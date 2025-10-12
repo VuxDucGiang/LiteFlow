@@ -1,0 +1,280 @@
+/* Dashboard specific styles */
+.dashboard-content {
+  padding: 20px 26px;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  min-height: calc(100vh - 80px);
+}
+
+
+.left-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.right-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Sales Results Section */
+.sales-results {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0c2c52;
+  margin-bottom: 20px;
+}
+
+.sales-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sales-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #e8eef5;
+}
+
+.sales-card .icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+  font-size: 24px;
+}
+
+.sales-card .icon.blue {
+  background: linear-gradient(135deg, #2a7cf6, #69e0cf);
+  color: white;
+}
+
+.sales-card .icon.green {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+  color: white;
+}
+
+.sales-card .icon.teal {
+  background: linear-gradient(135deg, #17a2b8, #20c997);
+  color: white;
+}
+
+.sales-card .value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0c2c52;
+  margin-bottom: 4px;
+}
+
+.sales-card .label {
+  font-size: 14px;
+  color: #6a7a92;
+  margin-bottom: 8px;
+}
+
+.sales-card .change {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sales-card .change.up {
+  color: #20c997;
+}
+
+.sales-card .change.down {
+  color: #ef476f;
+}
+
+/* Revenue Section */
+.revenue-section {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.revenue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.revenue-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0c2c52;
+}
+
+.revenue-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  color: #6a7a92;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.tab.active {
+  background: #2a7cf6;
+  color: white;
+}
+
+.revenue-content {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6a7a92;
+}
+
+.revenue-content .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.revenue-content .empty-text {
+  font-size: 16px;
+}
+
+/* Right Section */
+.ad-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 20px;
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.ad-banner .logo {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 12px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.ad-banner .title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ad-banner .subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Recent Activities */
+.activities-section {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.activities-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.activities-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0c2c52;
+}
+
+.activities-dropdown {
+  padding: 6px 12px;
+  border: 1px solid #e8eef5;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #6a7a92;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e9f2ff;
+  color: #2a7cf6;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-text {
+  font-size: 14px;
+  color: #0c2c52;
+  margin-bottom: 4px;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: #6a7a92;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .sales-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .sales-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-content {
+    padding: 16px;
+  }
+}
