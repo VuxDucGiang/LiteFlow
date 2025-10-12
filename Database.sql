@@ -193,26 +193,65 @@ CREATE TABLE InventoryLogs (
 );
 
 -- =======================================================
--- 4. ORDERS
+-- 4. CAFE MANAGEMENT SYSTEM
 -- =======================================================
-CREATE TABLE Orders (
-    OrderID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    UserID UNIQUEIDENTIFIER NOT NULL,
-    OrderDate DATETIME2 DEFAULT SYSDATETIME(),
-    TotalAmount DECIMAL(10,2) NOT NULL,
-    Status NVARCHAR(50) DEFAULT 'Pending',
-    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE
+
+-- TABLE SESSIONS - Quản lý phiên làm việc của từng bàn
+CREATE TABLE TableSessions (
+    SessionID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    TableID UNIQUEIDENTIFIER NOT NULL,
+    CustomerName NVARCHAR(200) NULL,  -- Tên khách hàng (tùy chọn)
+    CustomerPhone NVARCHAR(20) NULL,  -- SĐT khách hàng (tùy chọn)
+    CheckInTime DATETIME2 DEFAULT SYSDATETIME(),  -- Thời gian vào
+    CheckOutTime DATETIME2 NULL,      -- Thời gian ra
+    Status NVARCHAR(50) DEFAULT 'Active' CHECK (Status IN ('Active', 'Completed', 'Cancelled')),
+    TotalAmount DECIMAL(10,2) DEFAULT 0.00,  -- Tổng tiền của phiên
+    PaymentMethod NVARCHAR(50) NULL,  -- Phương thức thanh toán
+    PaymentStatus NVARCHAR(50) DEFAULT 'Unpaid' CHECK (PaymentStatus IN ('Unpaid', 'Paid', 'Partial')),
+    Notes NVARCHAR(MAX) NULL,         -- Ghi chú
+    CreatedBy UNIQUEIDENTIFIER NULL,  -- Nhân viên tạo phiên
+    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_TableSessions_Table FOREIGN KEY (TableID) REFERENCES Tables(TableID) ON DELETE CASCADE,
+    CONSTRAINT FK_TableSessions_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID) ON DELETE SET NULL
 );
 
+-- ORDERS - Đơn hàng trong phiên (có thể có nhiều đơn trong 1 phiên)
+CREATE TABLE Orders (
+    OrderID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    SessionID UNIQUEIDENTIFIER NOT NULL,  -- Liên kết với phiên bàn
+    OrderNumber NVARCHAR(50) NOT NULL,    -- Số đơn hàng (vd: ORD001, ORD002)
+    OrderDate DATETIME2 DEFAULT SYSDATETIME(),
+    SubTotal DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    VAT DECIMAL(10,2) DEFAULT 0.00,       -- Thuế VAT
+    Discount DECIMAL(10,2) DEFAULT 0.00,  -- Giảm giá
+    TotalAmount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    Status NVARCHAR(50) DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Preparing', 'Ready', 'Served', 'Cancelled')),
+    PaymentMethod NVARCHAR(50) NULL,
+    PaymentStatus NVARCHAR(50) DEFAULT 'Unpaid' CHECK (PaymentStatus IN ('Unpaid', 'Paid')),
+    Notes NVARCHAR(MAX) NULL,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_Orders_Session FOREIGN KEY (SessionID) REFERENCES TableSessions(SessionID) ON DELETE CASCADE,
+    CONSTRAINT FK_Orders_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID) ON DELETE SET NULL
+);
+
+-- ORDER DETAILS - Chi tiết món trong đơn hàng
 CREATE TABLE OrderDetails (
     OrderDetailID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     OrderID UNIQUEIDENTIFIER NOT NULL,
     ProductVariantID UNIQUEIDENTIFIER NOT NULL,
-    Quantity INT NOT NULL,
-    Price DECIMAL(10,2) NOT NULL,
-    OriginalPrice DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE CASCADE,
-    FOREIGN KEY (ProductVariantID) REFERENCES ProductVariant(ProductVariantID)
+    Quantity INT NOT NULL DEFAULT 1,
+    UnitPrice DECIMAL(10,2) NOT NULL,     -- Giá đơn vị
+    TotalPrice DECIMAL(10,2) NOT NULL,    -- Tổng tiền = UnitPrice * Quantity
+    SpecialInstructions NVARCHAR(500) NULL, -- Yêu cầu đặc biệt (ít đường, không đá, etc.)
+    Status NVARCHAR(50) DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Preparing', 'Ready', 'Served')),
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_OrderDetails_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE CASCADE,
+    CONSTRAINT FK_OrderDetails_ProductVariant FOREIGN KEY (ProductVariantID) REFERENCES ProductVariant(ProductVariantID)
 );
 
 -- =======================================================
@@ -242,19 +281,35 @@ CREATE TABLE Tables (
     TableID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     RoomID UNIQUEIDENTIFIER NULL,
     TableNumber NVARCHAR(50) NOT NULL,
-    Status NVARCHAR(50) DEFAULT 'Available',
+    TableName NVARCHAR(100) NOT NULL,  -- Tên hiển thị (vd: "Bàn 1", "Bàn VIP")
+    Capacity INT NOT NULL DEFAULT 4,   -- Sức chứa
+    Status NVARCHAR(50) DEFAULT 'Available' CHECK (Status IN ('Available', 'Occupied', 'Reserved', 'Maintenance')),
+    IsActive BIT DEFAULT 1,            -- Bàn có hoạt động không
     CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
-    FOREIGN KEY (RoomID) REFERENCES Rooms(RoomID) ON DELETE SET NULL
+    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_Tables_Room FOREIGN KEY (RoomID) REFERENCES Rooms(RoomID) ON DELETE SET NULL
 );
 
 -- =======================================================
--- 7. LINK TABLE WITH ORDERS
+-- 7. PAYMENT TRANSACTIONS
 -- =======================================================
-ALTER TABLE Orders
-ADD TableID UNIQUEIDENTIFIER NULL;
-
-ALTER TABLE Orders
-ADD FOREIGN KEY (TableID) REFERENCES Tables(TableID);
+CREATE TABLE PaymentTransactions (
+    TransactionID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    SessionID UNIQUEIDENTIFIER NOT NULL,
+    OrderID UNIQUEIDENTIFIER NULL,  -- NULL nếu thanh toán toàn bộ phiên
+    Amount DECIMAL(10,2) NOT NULL,
+    PaymentMethod NVARCHAR(50) NOT NULL CHECK (PaymentMethod IN ('Cash', 'Card', 'Transfer', 'Wallet')),
+    PaymentStatus NVARCHAR(50) DEFAULT 'Completed' CHECK (PaymentStatus IN ('Pending', 'Completed', 'Failed', 'Refunded')),
+    TransactionReference NVARCHAR(200) NULL,  -- Mã giao dịch từ hệ thống thanh toán
+    Notes NVARCHAR(500) NULL,
+    ProcessedBy UNIQUEIDENTIFIER NULL,  -- Nhân viên xử lý thanh toán
+    ProcessedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_PaymentTransactions_Session FOREIGN KEY (SessionID) REFERENCES TableSessions(SessionID) ON DELETE CASCADE,
+    CONSTRAINT FK_PaymentTransactions_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE SET NULL,
+    CONSTRAINT FK_PaymentTransactions_ProcessedBy FOREIGN KEY (ProcessedBy) REFERENCES Users(UserID) ON DELETE SET NULL
+);
 
 -- =======================================================
 -- 8. INDEXES
@@ -267,17 +322,30 @@ CREATE INDEX IX_Products_IsDeleted ON Products(IsDeleted);
 CREATE INDEX IX_ProductVariant_ProductID ON ProductVariant(ProductID);
 CREATE INDEX IX_ProductVariant_Price ON ProductVariant(Price);
 
-CREATE INDEX IX_Orders_UserID ON Orders(UserID);
+-- Cafe Management Indexes
+CREATE INDEX IX_TableSessions_TableID ON TableSessions(TableID);
+CREATE INDEX IX_TableSessions_Status ON TableSessions(Status);
+CREATE INDEX IX_TableSessions_CheckInTime ON TableSessions(CheckInTime);
+CREATE INDEX IX_TableSessions_CheckOutTime ON TableSessions(CheckOutTime);
+
+CREATE INDEX IX_Orders_SessionID ON Orders(SessionID);
+CREATE INDEX IX_Orders_OrderNumber ON Orders(OrderNumber);
 CREATE INDEX IX_Orders_OrderDate ON Orders(OrderDate);
 CREATE INDEX IX_Orders_Status ON Orders(Status);
-CREATE INDEX IX_Orders_TableID ON Orders(TableID);
+CREATE INDEX IX_Orders_PaymentStatus ON Orders(PaymentStatus);
 
 CREATE INDEX IX_OrderDetails_OrderID ON OrderDetails(OrderID);
 CREATE INDEX IX_OrderDetails_ProductVariantID ON OrderDetails(ProductVariantID);
+CREATE INDEX IX_OrderDetails_Status ON OrderDetails(Status);
+
+CREATE INDEX IX_PaymentTransactions_SessionID ON PaymentTransactions(SessionID);
+CREATE INDEX IX_PaymentTransactions_OrderID ON PaymentTransactions(OrderID);
+CREATE INDEX IX_PaymentTransactions_ProcessedAt ON PaymentTransactions(ProcessedAt);
 
 CREATE INDEX IX_Rooms_Name ON Rooms(Name);
 CREATE INDEX IX_Tables_RoomID ON Tables(RoomID);
 CREATE INDEX IX_Tables_Status ON Tables(Status);
+CREATE INDEX IX_Tables_IsActive ON Tables(IsActive);
 GO
 USE LiteFlowDBO;
 GO

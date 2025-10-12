@@ -205,11 +205,15 @@ INSERT INTO Rooms (Name, Description) VALUES
 (N'VIP', N'Phòng VIP riêng tư');
 GO
 
-INSERT INTO Tables (RoomID, TableNumber) VALUES
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'Bàn 1'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'Bàn 2'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'Bàn 3'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP 1');
+INSERT INTO Tables (RoomID, TableNumber, TableName, Capacity, Status) VALUES
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-01', 'Bàn 1', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-02', 'Bàn 2', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-03', 'Bàn 3', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-04', 'Bàn 4', 2, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-01', 'Bàn 5', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-02', 'Bàn 6', 8, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-01', 'Bàn VIP 1', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-02', 'Bàn VIP 2', 8, 'Available');
 GO
 -- ============================================================
 -- 8️⃣ EMPLOYEES (Liên kết 1-1 với bảng Users)
@@ -353,4 +357,167 @@ SELECT
     N'MB Bank - CN Quận 3',
     N'Pha chế đồ uống, hỗ trợ khách hàng tại quầy'
 FROM Users u WHERE u.Email = 'employee1@liteflow.vn';
+GO
+
+-- ============================================================
+-- 9️⃣ CAFE MANAGEMENT - TABLE SESSIONS & ORDERS
+-- ============================================================
+
+-- Sample Table Sessions (Phiên làm việc của các bàn)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, Status, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Khách hàng A',
+    '0901234567',
+    DATEADD(HOUR, -2, SYSDATETIME()), -- 2 giờ trước
+    'Active',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, Status, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Khách hàng B',
+    '0907654321',
+    DATEADD(MINUTE, -30, SYSDATETIME()), -- 30 phút trước
+    'Active',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn 2' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Sample Orders (Đơn hàng trong phiên)
+INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
+SELECT 
+    ts.SessionID,
+    'ORD001',
+    75000, -- 2 cà phê sữa đá M + 1 bánh tiramisu
+    7500,  -- VAT 10%
+    82500, -- Tổng
+    'Served',
+    u.UserID
+FROM TableSessions ts
+CROSS JOIN Users u
+WHERE ts.CustomerName = N'Khách hàng A' AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
+SELECT 
+    ts.SessionID,
+    'ORD002',
+    105000, -- 1 latte L + 1 trà sữa trân châu L + 1 khoai tây chiên lớn
+    10500,  -- VAT 10%
+    115500, -- Tổng
+    'Preparing',
+    u.UserID
+FROM TableSessions ts
+CROSS JOIN Users u
+WHERE ts.CustomerName = N'Khách hàng B' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Sample Order Details (Chi tiết món trong đơn)
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    2, -- Số lượng
+    pv.Price,
+    pv.Price * 2, -- Tổng tiền
+    'Served'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD001' 
+    AND p.Name = N'Cà phê sữa đá' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = 'M';
+
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    1, -- Số lượng
+    pv.Price,
+    pv.Price, -- Tổng tiền
+    'Served'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD001' 
+    AND p.Name = N'Bánh tiramisu' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = '1 miếng';
+
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    1, -- Số lượng
+    pv.Price,
+    pv.Price, -- Tổng tiền
+    'Preparing'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD002' 
+    AND p.Name = N'Latte' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = 'L';
+
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    1, -- Số lượng
+    pv.Price,
+    pv.Price, -- Tổng tiền
+    'Preparing'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD002' 
+    AND p.Name = N'Trà sữa trân châu' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = 'L';
+
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    1, -- Số lượng
+    pv.Price,
+    pv.Price, -- Tổng tiền
+    'Pending'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD002' 
+    AND p.Name = N'Khoai tây chiên' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = 'Phần lớn';
+
+-- Sample Payment Transactions (Giao dịch thanh toán)
+INSERT INTO PaymentTransactions (SessionID, OrderID, Amount, PaymentMethod, PaymentStatus, ProcessedBy)
+SELECT 
+    ts.SessionID,
+    o.OrderID,
+    o.TotalAmount,
+    'Cash',
+    'Completed',
+    u.UserID
+FROM TableSessions ts
+CROSS JOIN Orders o
+CROSS JOIN Users u
+WHERE ts.CustomerName = N'Khách hàng A' 
+    AND o.OrderNumber = 'ORD001'
+    AND u.Email = 'cashier1@liteflow.vn';
+
+-- Update table status to Occupied for active sessions
+UPDATE Tables 
+SET Status = 'Occupied'
+WHERE TableID IN (
+    SELECT DISTINCT ts.TableID 
+    FROM TableSessions ts 
+    WHERE ts.Status = 'Active'
+);
 GO
