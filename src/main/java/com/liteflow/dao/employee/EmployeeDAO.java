@@ -1,5 +1,6 @@
-package com.liteflow.dao;
+package com.liteflow.dao.employee;
 
+import com.liteflow.dao.GenericDAO;
 import com.liteflow.model.auth.Employee;
 import jakarta.persistence.EntityManager;
 import java.util.Collections;

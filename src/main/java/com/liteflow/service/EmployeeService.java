@@ -1,6 +1,6 @@
 package com.liteflow.service;
 
-import com.liteflow.dao.EmployeeDAO;
+import com.liteflow.dao.employee.EmployeeDAO;
 import com.liteflow.model.auth.Employee;
 import java.util.List;
 import java.util.Optional;
