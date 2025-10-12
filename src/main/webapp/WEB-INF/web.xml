@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="6.0" xmlns="https://jakarta.ee/xml/ns/jakartaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee                              https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd">
+    <display-name>LiteFlow</display-name>
+    <!-- Config Google OAuth -->
+    <context-param>
+        <param-name>google.clientId</param-name>
+        <param-value>665278180329-96s6ts4nufg8o5duai5hqqvdsbcbabar.apps.googleusercontent.com</param-value>
+    </context-param>
+    <context-param>
+        <param-name>google.clientSecret</param-name>
+        <param-value>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</param-value>
+    </context-param>
+    <context-param>
+        <param-name>google.redirectUri</param-name>
+        <param-value>http://localhost:8080/LiteFlow/oauth2callback</param-value>
+    </context-param>
+    <welcome-file-list>
+        <welcome-file>auth/login.jsp</welcome-file>
+    </welcome-file-list>
+        <servlet>
+        <servlet-name>ProductServlet</servlet-name>
+        <servlet-class>com.liteflow.controller.ProductServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ProductServlet</servlet-name>
+        <url-pattern>/products</url-pattern>
+    </servlet-mapping>
+    
+    <!-- Room Table Servlet Configuration -->
+    <servlet>
+        <servlet-name>RoomTableServlet</servlet-name>
+        <servlet-class>com.liteflow.controller.RoomTableServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>RoomTableServlet</servlet-name>
+        <url-pattern>/roomtable</url-pattern>
+    </servlet-mapping>
+    
+    <!-- Employee Servlet Configuration -->
+    <servlet>
+        <servlet-name>EmployeeServlet</servlet-name>
+        <servlet-class>com.liteflow.controller.EmployeeServlet</servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>EmployeeServlet</servlet-name>
+        <url-pattern>/employees</url-pattern>
+    </servlet-mapping>
+    
+    <!-- Test Employee Servlet Configuration -->
+    <servlet>
+        <servlet-name>TestEmployeeServlet</servlet-name>
+        <servlet-class>com.liteflow.controller.TestEmployeeServlet</servlet-class>
+        <load-on-startup>4</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TestEmployeeServlet</servlet-name>
+        <url-pattern>/test-employees</url-pattern>
+    </servlet-mapping>
+    
+    <!-- Character Encoding Filter -->
+    <filter>
+        <filter-name>CharacterEncodingFilter</filter-name>
+        <filter-class>org.apache.catalina.filters.SetCharacterEncodingFilter</filter-class>
+        <init-param>
+            <param-name>encoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>CharacterEncodingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+</web-app>

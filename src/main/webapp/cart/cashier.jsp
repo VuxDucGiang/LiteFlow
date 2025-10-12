@@ -1,43 +1,140 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
-<jsp:include page="../includes/header.jsp">
-  <jsp:param name="page" value="cashier" />
 
-</jsp:include>
-
-<style>
-/* Cashier-specific styles that override header styles */
-.cashier-container {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 20px;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashier - LiteFlow</title>
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.0.7/css/boxicons.min.css" rel="stylesheet">
+    <style>
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #333;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+/* Full Screen Container */
+.cashier-container {
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+}
 
 /* Main Content */
 .main-content {
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 24px;
-  height: calc(100vh - 140px);
+  gap: 0;
+  height: 100vh;
+  flex: 1;
 }
 
 /* Left Panel */
 .left-panel {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0;
   overflow: hidden;
+  padding: 16px;
+}
+
+/* Tab System */
+.tab-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.tab-header {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #6c757d;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+}
+
+.tab-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #007bff;
+  border-bottom: 3px solid #007bff;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #007bff;
+}
+
+.tab-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-panel {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.tab-panel.active {
+  display: flex;
 }
 
 /* Right Panel */
 .right-panel {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 0;
   overflow: hidden;
+  padding: 16px;
 }
 
 /* Sections */
@@ -49,6 +146,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
+  margin-bottom: 16px;
 }
 
 .section-header {
@@ -71,8 +169,11 @@
 
 /* Table Section */
 .table-section {
-  flex: 0 0 auto;
-  max-height: 300px;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
 }
 
 .table-filters {
@@ -122,7 +223,7 @@
 
 .tables-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
   max-height: 200px;
   overflow-y: auto;
@@ -133,11 +234,16 @@
   background: #f8f9fa;
   border: 2px solid transparent;
   border-radius: 12px;
-  padding: 16px 12px;
+  padding: 16px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .table-item:hover {
@@ -226,6 +332,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 24px;
 }
 
 .menu-search {
@@ -289,8 +396,8 @@
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
   padding: 4px;
 }
 
@@ -306,6 +413,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  min-height: 120px;
+  justify-content: center;
 }
 
 .menu-item:hover {
@@ -355,8 +464,8 @@
   transform: scale(1.1);
 }
 
-/* Order Section */
-.order-section {
+/* Order & Bill Section */
+.order-bill-section {
   flex: 1;
   overflow: hidden;
   display: flex;
@@ -375,7 +484,8 @@
 .order-items {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  max-height: 300px;
 }
 
 .empty-order {
@@ -469,16 +579,12 @@
   background: #c82333;
 }
 
-/* Bill Section */
-.bill-section {
-  flex: 0 0 auto;
-}
-
 .bill-summary {
   background: #f8f9fa;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 16px;
+  margin-bottom: 16px;
+  flex: 0 0 auto;
 }
 
 .bill-row {
@@ -502,7 +608,8 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  flex: 0 0 auto;
 }
 
 .payment-btn {
@@ -534,6 +641,7 @@
 .action-buttons {
   display: flex;
   gap: 12px;
+  flex: 0 0 auto;
 }
 
 .btn {
@@ -615,27 +723,31 @@
 }
 
 @media (max-width: 768px) {
-  .cashier-container {
-    padding: 12px;
+  .left-panel,
+  .right-panel {
+    padding: 8px;
   }
   
-  .cashier-header {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
+  .section {
+    margin-bottom: 8px;
+    padding: 16px;
   }
   
-  .header-right {
-    flex-direction: column;
-    gap: 12px;
+  .tab-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .tab-btn i {
+    font-size: 18px;
   }
   
   .tables-grid {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
   
   .menu-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
   
   .payment-methods {
@@ -649,66 +761,87 @@
   <div class="main-content">
     <!-- Left Panel: Tables & Menu -->
     <div class="left-panel">
-      <!-- Table Selection -->
-      <div class="section table-section">
-        <div class="section-header">
-          <h2><i class='bx bx-table'></i> Chọn bàn</h2>
-        <div class="table-filters">
-          <button class="filter-btn active" data-filter="all">Tất cả</button>
-          <button class="filter-btn" data-filter="available">Trống</button>
-          <button class="filter-btn" data-filter="occupied">Có khách</button>
-        </div>
-        <div class="room-filters">
-          <select id="roomFilter" class="room-select">
-            <option value="all">Tất cả phòng</option>
-          </select>
-        </div>
-        </div>
-        <div class="tables-grid" id="tablesGrid">
-          <!-- Tables will be populated by JavaScript -->
-        </div>
-      </div>
-
-      <!-- Menu Selection -->
-      <div class="section menu-section">
-        <div class="section-header">
-          <h2><i class='bx bx-food-menu'></i> Thực đơn</h2>
-        <div class="menu-search">
-          <input type="text" id="menuSearch" placeholder="Tìm món ăn..." class="search-input">
-            <i class='bx bx-search'></i>
-          </div>
+      <!-- Tab Container -->
+      <div class="tab-container">
+        <!-- Tab Header -->
+        <div class="tab-header">
+          <button class="tab-btn active" data-tab="tables">
+            <i class='bx bx-table'></i>
+            Chọn bàn
+          </button>
+          <button class="tab-btn" data-tab="menu">
+            <i class='bx bx-food-menu'></i>
+            Thực đơn
+          </button>
         </div>
         
-        <div class="menu-categories" id="menuCategories">
-          <button class="category-btn active" data-category="all">Tất cả</button>
-          <!-- Categories will be populated by JavaScript -->
-        </div>
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Tables Tab -->
+          <div class="tab-panel active" id="tables-tab">
+            <div class="table-section">
+              <div class="section-header">
+                <h2><i class='bx bx-table'></i> Chọn bàn</h2>
+                <div class="table-filters">
+                  <button class="filter-btn active" data-filter="all">Tất cả</button>
+                  <button class="filter-btn" data-filter="available">Trống</button>
+                  <button class="filter-btn" data-filter="occupied">Có khách</button>
+                </div>
+                <div class="room-filters">
+                  <select id="roomFilter" class="room-select">
+                    <option value="all">Tất cả phòng</option>
+                  </select>
+                </div>
+              </div>
+              <div class="tables-grid" id="tablesGrid">
+                <!-- Tables will be populated by JavaScript -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- Menu Tab -->
+          <div class="tab-panel" id="menu-tab">
+            <div class="menu-section">
+              <div class="section-header">
+                <h2><i class='bx bx-food-menu'></i> Thực đơn</h2>
+                <div class="menu-search">
+                  <input type="text" id="menuSearch" placeholder="Tìm món ăn..." class="search-input">
+                  <i class='bx bx-search'></i>
+                </div>
+              </div>
+              
+              <div class="menu-categories" id="menuCategories">
+                <button class="category-btn active" data-category="all">Tất cả</button>
+                <!-- Categories will be populated by JavaScript -->
+              </div>
 
-        <div class="menu-grid" id="menuGrid">
-          <!-- Menu items will be populated by JavaScript -->
+              <div class="menu-grid" id="menuGrid">
+                <!-- Menu items will be populated by JavaScript -->
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Right Panel: Order & Bill -->
     <div class="right-panel">
-      <!-- Order Summary -->
-      <div class="section order-section">
+      <!-- Combined Order & Bill Section -->
+      <div class="section order-bill-section">
         <div class="section-header">
-          <h2><i class='bx bx-receipt'></i> Đơn hàng</h2>
+          <h2><i class='bx bx-receipt'></i> Đơn hàng & Thanh toán</h2>
           <span class="table-info" id="selectedTableInfo">Chưa chọn bàn</span>
         </div>
         
+        <!-- Order Items -->
         <div class="order-items" id="orderItems">
           <div class="empty-order">
             <i class='bx bx-shopping-cart'></i>
             <p>Chưa có món nào được chọn</p>
           </div>
         </div>
-      </div>
 
-      <!-- Bill Summary -->
-      <div class="section bill-section">
+        <!-- Bill Summary -->
         <div class="bill-summary">
           <div class="bill-row">
             <span>Tạm tính:</span>
@@ -721,9 +854,10 @@
           <div class="bill-row total">
             <span>Tổng cộng:</span>
             <span id="total">0đ</span>
+          </div>
         </div>
-      </div>
 
+        <!-- Payment Methods -->
         <div class="payment-methods">
           <button class="payment-btn" data-method="cash">
             <i class='bx bx-money'></i>
@@ -739,6 +873,7 @@
           </button>
         </div>
 
+        <!-- Action Buttons -->
         <div class="action-buttons">
           <button class="btn btn-secondary" id="clearOrder">
             <i class='bx bx-trash'></i> Xóa đơn
@@ -754,10 +889,10 @@
 
   <script>
 // Database data from server
-const tables = ${tablesJson != null ? tablesJson : '[]'};
-const rooms = ${roomsJson != null ? roomsJson : '[]'};
-const menuItems = ${menuItemsJson != null ? menuItemsJson : '[]'};
-const categories = ${categoriesJson != null ? categoriesJson : '[]'};
+const tables = <c:choose><c:when test="${tablesJson != null}"><c:out value="${tablesJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+const rooms = <c:choose><c:when test="${roomsJson != null}"><c:out value="${roomsJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+const menuItems = <c:choose><c:when test="${menuItemsJson != null}"><c:out value="${menuItemsJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+const categories = <c:choose><c:when test="${categoriesJson != null}"><c:out value="${categoriesJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
 
 // Global variables
 let selectedTable = null;
@@ -774,11 +909,66 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('Menu items:', menuItems);
   console.log('Categories:', categories);
   
+  // Debug: Log table and room data structure
+  if (tables && tables.length > 0) {
+    console.log('Sample table data:', tables[0]);
+  } else {
+    console.log('No tables data found, using fallback data');
+    // Add some fallback tables for testing
+    if (!tables || tables.length === 0) {
+      window.tables = [
+        {
+          id: 'table1',
+          name: 'Bàn 1',
+          status: 'available',
+          room: 'Tầng 1',
+          capacity: 4
+        },
+        {
+          id: 'table2', 
+          name: 'Bàn 2',
+          status: 'occupied',
+          room: 'Tầng 1',
+          capacity: 6
+        },
+        {
+          id: 'table3',
+          name: 'Bàn 3', 
+          status: 'available',
+          room: 'Tầng 2',
+          capacity: 4
+        }
+      ];
+    }
+  }
+  
+  if (rooms && rooms.length > 0) {
+    console.log('Sample room data:', rooms[0]);
+  } else {
+    console.log('No rooms data found, using fallback data');
+    // Add some fallback rooms for testing
+    if (!rooms || rooms.length === 0) {
+      window.rooms = [
+        {
+          id: 'room1',
+          name: 'Tầng 1',
+          description: 'Tầng 1'
+        },
+        {
+          id: 'room2',
+          name: 'Tầng 2', 
+          description: 'Tầng 2'
+        }
+      ];
+    }
+  }
+  
   populateRoomFilter();
   populateMenuCategories();
   renderTables();
   renderMenu();
   setupEventListeners();
+  setupTabSystem();
 });
 
 // Populate room filter dropdown
@@ -786,8 +976,11 @@ function populateRoomFilter() {
   const roomFilter = document.getElementById('roomFilter');
   roomFilter.innerHTML = '<option value="all">Tất cả phòng</option>';
   
-  if (rooms && rooms.length > 0) {
-    rooms.forEach(room => {
+  const roomsData = window.rooms || rooms || [];
+  console.log('Populating room filter with:', roomsData);
+  
+  if (roomsData && roomsData.length > 0) {
+    roomsData.forEach(room => {
       const option = document.createElement('option');
       option.value = room.id;
       option.textContent = room.name;
@@ -805,21 +998,48 @@ function populateRoomFilter() {
 // Render tables
 function renderTables() {
   const tablesGrid = document.getElementById('tablesGrid');
-  let filteredTables = tables || [];
+  let filteredTables = window.tables || tables || [];
   
-  // Filter by status
+  console.log('Rendering tables:', filteredTables);
+  console.log('Current filter:', currentFilter);
+  console.log('Current room:', currentRoom);
+  
+  // Filter by status (convert to lowercase for comparison)
   if (currentFilter !== 'all') {
-    filteredTables = filteredTables.filter(table => table.status === currentFilter);
+    console.log('Filtering by status:', currentFilter);
+    filteredTables = filteredTables.filter(table => {
+      const tableStatus = (table.status || '').toLowerCase();
+      console.log('Table:', table.name, 'Status:', tableStatus, 'Original:', table.status);
+      if (currentFilter === 'available') {
+        return tableStatus === 'available' || tableStatus === 'trống';
+      } else if (currentFilter === 'occupied') {
+        return tableStatus === 'occupied' || tableStatus === 'có khách';
+      }
+      return tableStatus === currentFilter;
+    });
+    console.log('After status filter:', filteredTables.length, 'tables');
   }
   
   // Filter by room
   if (currentRoom !== 'all') {
+    console.log('Filtering by room:', currentRoom);
     filteredTables = filteredTables.filter(table => {
+      console.log('Table:', table.name, 'Room:', table.room, 'Type:', typeof table.room);
+      
       if (currentRoom === 'special') {
         return table.room === 'Đặc biệt';
       }
-      return table.room && table.room.id === currentRoom;
+      
+      // Find room name by ID
+      const selectedRoom = (window.rooms || rooms || []).find(room => room.id === currentRoom);
+      if (selectedRoom) {
+        console.log('Selected room:', selectedRoom.name);
+        return table.room === selectedRoom.name;
+      }
+      
+      return false;
     });
+    console.log('After room filter:', filteredTables.length, 'tables');
   }
   
   if (filteredTables.length === 0) {
@@ -832,28 +1052,34 @@ function renderTables() {
   } else {
     tablesGrid.innerHTML = filteredTables.map(table => {
       const isSelected = selectedTable && selectedTable.id === table.id;
-      const statusText = table.status === 'available' ? 'Trống' : 'Có khách';
-      const roomName = table.room || 'Chưa phân loại';
+      const tableStatus = (table.status || '').toLowerCase();
+      const statusText = (tableStatus === 'available' || tableStatus === 'trống') ? 'Trống' : 'Có khách';
+      const statusClass = (tableStatus === 'available' || tableStatus === 'trống') ? 'available' : 'occupied';
+      
+      // Handle room name - could be string or object
+      let roomName = 'Chưa phân loại';
+      if (typeof table.room === 'string') {
+        roomName = table.room;
+      } else if (table.room && table.room.name) {
+        roomName = table.room.name;
+      }
+      
       return `
-        <div class="table-item ${table.status} ${isSelected ? 'selected' : ''}" 
-             data-table-id="${table.id}" data-status="${table.status}">
+        <div class="table-item \${statusClass} \${isSelected ? 'selected' : ''}" 
+             data-table-id="\${table.id}" data-status="\${statusClass}">
           <div class="table-icon">
             <i class='bx bx-table'></i>
           </div>
-          <div class="table-info">
-            <span class="table-name">${table.name}</span>
-            <span class="table-room">${roomName}</span>
-            <span class="table-capacity">${table.capacity || 4} người</span>
-          </div>
-          <div class="table-status">
-            <span class="status-badge ${table.status}">
-              ${statusText}
-            </span>
-          </div>
+          <span class="table-name">\${table.name}</span>
+          <span class="table-room">\${roomName}</span>
+          <span class="table-capacity">\${table.capacity || 4} người</span>
+          <span class="status-badge \${statusClass}">
+            \${statusText}
+          </span>
         </div>
       `;
-  }).join('');
-}
+    }).join('');
+  }
 }
 
 // Render menu
@@ -886,17 +1112,17 @@ function renderMenu() {
     menuGrid.innerHTML = filteredItems.map(item => {
       const imageUrl = item.imageUrl || '🍽️';
       const displayImage = imageUrl.startsWith('http') || imageUrl.startsWith('/') ? 
-        `<img src="${imageUrl}" alt="${item.name}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;">` : 
+        `<img src="\${imageUrl}" alt="\${item.name}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;">` : 
         imageUrl;
       
       return `
-        <div class="menu-item" data-item-id="${item.id}">
-          <div class="menu-item-image">${displayImage}</div>
+        <div class="menu-item" data-item-id="\${item.id}">
+          <div class="menu-item-image">\${displayImage}</div>
           <div class="menu-item-info">
-            <h4>${item.name}</h4>
-            <p class="price">${parseFloat(item.price || 0).toLocaleString('vi-VN')}đ</p>
+            <h4>\${item.name}</h4>
+            <p class="price">\${parseFloat(item.price || 0).toLocaleString('vi-VN')}đ</p>
           </div>
-          <button class="add-to-cart-btn" onclick="addToCart('${item.id}')">
+          <button class="add-to-cart-btn" onclick="addToCart('\${item.id}')">
             <i class='bx bx-plus'></i>
           </button>
         </div>
@@ -990,19 +1216,19 @@ function renderOrderItems() {
   orderItemsContainer.innerHTML = orderItems.map(item => `
     <div class="order-item">
       <div class="item-info">
-        <span class="item-name">${item.name}</span>
-        <span class="item-price">${item.price.toLocaleString('vi-VN')}đ</span>
+        <span class="item-name">\${item.name}</span>
+        <span class="item-price">\${item.price.toLocaleString('vi-VN')}đ</span>
       </div>
       <div class="quantity-controls">
-        <button onclick="updateQuantity(${item.id}, ${item.quantity - 1})">
+        <button onclick="updateQuantity(\${item.id}, \${item.quantity - 1})">
           <i class='bx bx-minus'></i>
         </button>
-        <span class="quantity">${item.quantity}</span>
-        <button onclick="updateQuantity(${item.id}, ${item.quantity + 1})">
+        <span class="quantity">\${item.quantity}</span>
+        <button onclick="updateQuantity(\${item.id}, \${item.quantity + 1})">
           <i class='bx bx-plus'></i>
         </button>
       </div>
-      <button class="remove-btn" onclick="removeFromCart(${item.id})">
+      <button class="remove-btn" onclick="removeFromCart(\${item.id})">
         <i class='bx bx-trash'></i>
       </button>
     </div>
@@ -1024,6 +1250,28 @@ function updateBill() {
   checkoutBtn.disabled = orderItems.length === 0 || !selectedTable;
 }
 
+// Setup tab system
+function setupTabSystem() {
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const targetTab = this.dataset.tab;
+      
+      // Remove active class from all buttons and panels
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabPanels.forEach(panel => panel.classList.remove('active'));
+      
+      // Add active class to clicked button and corresponding panel
+      this.classList.add('active');
+      document.getElementById(targetTab + '-tab').classList.add('active');
+      
+      console.log('Switched to tab:', targetTab);
+    });
+  });
+}
+
 // Setup event listeners
 function setupEventListeners() {
   // Table selection
@@ -1038,9 +1286,18 @@ function setupEventListeners() {
         return;
       }
       
-      selectedTable = tables.find(t => t.id === tableId);
+      selectedTable = (window.tables || tables || []).find(t => t.id === tableId);
       if (selectedTable) {
-        document.getElementById('selectedTableInfo').textContent = selectedTable.name;
+        // Display table info with room name
+        let tableInfo = selectedTable.name;
+        if (selectedTable.room) {
+          if (typeof selectedTable.room === 'string') {
+            tableInfo += ` - \${selectedTable.room}`;
+          } else if (selectedTable.room.name) {
+            tableInfo += ` - \${selectedTable.room.name}`;
+          }
+        }
+        document.getElementById('selectedTableInfo').textContent = tableInfo;
         renderTables();
         updateBill();
       }
@@ -1073,6 +1330,7 @@ function setupEventListeners() {
   // Room filter
   document.getElementById('roomFilter').addEventListener('change', function() {
     currentRoom = this.value;
+    console.log('Room filter changed to:', currentRoom);
     renderTables();
   });
   
@@ -1109,7 +1367,7 @@ function setupEventListeners() {
     const vat = Math.round(total * 0.1);
     const finalTotal = total + vat;
     
-    if (confirm(`Xác nhận thanh toán cho ${selectedTable.name}?\nTổng tiền: ${finalTotal.toLocaleString('vi-VN')}đ`)) {
+    if (confirm(`Xác nhận thanh toán cho \${selectedTable.name}?\nTổng tiền: \${finalTotal.toLocaleString('vi-VN')}đ`)) {
   alert('Thanh toán thành công!');
       // Reset order
       orderItems = [];
@@ -1123,4 +1381,5 @@ function setupEventListeners() {
 }
 </script>
 
-<jsp:include page="../includes/footer.jsp" />
+</body>
+</html>
