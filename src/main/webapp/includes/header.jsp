@@ -124,7 +124,7 @@
         <div class="nav-icon">
           <i class='bx bx-calendar'></i>
         </div>
-        <a href="${pageContext.request.contextPath}/cashier" class="nav-icon" title="Thu ngân">
+        <a href="${pageContext.request.contextPath}/cashier" class="nav-icon" title="Thu ngân" target="_blank">
           <i class='bx bx-file'></i>
         </a>
       </div>
