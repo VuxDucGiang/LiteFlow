@@ -1,28 +1,36 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.liteflow.model.inventory;
 
 import jakarta.persistence.*;
-import java.util.*;
+import java.io.Serializable;
+import java.util.UUID;
 
+/**
+ * ProductCategory: Liên kết sản phẩm với danh mục
+ */
 @Entity
 @jakarta.persistence.Table(name = "ProductsCategories")
-public class ProductCategory {
+public class ProductCategory implements Serializable {
 
     @Id
     @Column(name = "ProductCategoryID", columnDefinition = "uniqueidentifier")
     private UUID productCategoryId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ProductID", nullable = false)
     private Product product;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CategoryID", nullable = false)
     private Category category;
 
+    @PrePersist
+    protected void onCreate() {
+        if (productCategoryId == null) {
+            productCategoryId = UUID.randomUUID();
+        }
+    }
+
+    // Getters & Setters
     public UUID getProductCategoryId() {
         return productCategoryId;
     }
@@ -47,5 +55,12 @@ public class ProductCategory {
         this.category = category;
     }
 
- 
+    @Override
+    public String toString() {
+        return "ProductCategory{" +
+                "productCategoryId=" + productCategoryId +
+                ", product=" + (product != null ? product.getName() : "null") +
+                ", category=" + (category != null ? category.getName() : "null") +
+                '}';
+    }
 }

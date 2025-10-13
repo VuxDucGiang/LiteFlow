@@ -23,19 +23,34 @@ public class Table {
     @Column(name = "TableNumber", nullable = false, length = 50)
     private String tableNumber;
 
+    // @Column(name = "TableName", nullable = false, length = 100)
+    // private String tableName;
+
+    // @Column(name = "Capacity", nullable = false)
+    // private Integer capacity = 4;
+
     @Column(name = "Status", length = 50)
-    private String status;
+    private String status = "Available";
+
+    @Column(name = "IsActive", nullable = false)
+    private Boolean isActive = true;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "CreatedAt")
     private Date createdAt;
 
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "UpdatedAt")
+    private Date updatedAt;
+
     @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Order> orders;
+    private List<TableSession> tableSessions;
 
     public Table() {
-        this.orders = new ArrayList<>();
+        this.tableSessions = new ArrayList<>();
         this.status = "Available";
+        this.isActive = true;
+        // this.capacity = 4;
     }
 
     public UUID getTableId() {
@@ -62,12 +77,36 @@ public class Table {
         this.tableNumber = tableNumber;
     }
 
+    // public String getTableName() {
+    //     return tableName;
+    // }
+
+    // public void setTableName(String tableName) {
+    //     this.tableName = tableName;
+    // }
+
+    // public Integer getCapacity() {
+    //     return capacity;
+    // }
+
+    // public void setCapacity(Integer capacity) {
+    //     this.capacity = capacity;
+    // }
+
     public String getStatus() {
         return status;
     }
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 
     public Date getCreatedAt() {
@@ -78,26 +117,51 @@ public class Table {
         this.createdAt = createdAt;
     }
 
-    public List<Order> getOrders() {
-        return orders;
+    public Date getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setOrders(List<Order> orders) {
-        this.orders = orders;
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
-    public void addOrder(Order order) {
-        if (orders == null) {
-            orders = new ArrayList<>();
+    public List<TableSession> getTableSessions() {
+        return tableSessions;
+    }
+
+    public void setTableSessions(List<TableSession> tableSessions) {
+        this.tableSessions = tableSessions;
+    }
+
+    public void addTableSession(TableSession tableSession) {
+        if (tableSessions == null) {
+            tableSessions = new ArrayList<>();
         }
-        orders.add(order);
-        order.setTable(this);
+        tableSessions.add(tableSession);
+        tableSession.setTable(this);
     }
 
-    public void removeOrder(Order order) {
-        if (orders != null) {
-            orders.remove(order);
-            order.setTable(null);
+    public void removeTableSession(TableSession tableSession) {
+        if (tableSessions != null) {
+            tableSessions.remove(tableSession);
+            tableSession.setTable(null);
         }
+    }
+
+    // Helper methods
+    public boolean isAvailable() {
+        return "Available".equals(status) && Boolean.TRUE.equals(isActive);
+    }
+
+    public boolean isOccupied() {
+        return "Occupied".equals(status);
+    }
+
+    public boolean isReserved() {
+        return "Reserved".equals(status);
+    }
+
+    public boolean isMaintenance() {
+        return "Maintenance".equals(status);
     }
 }

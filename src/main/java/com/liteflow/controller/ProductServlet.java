@@ -181,7 +181,7 @@ public class ProductServlet extends HttpServlet {
                 newProduct.setName(name.trim());
                 newProduct.setDescription(description.trim());
                 newProduct.setImageUrl(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl.trim() : null);
-                newProduct.setImportDate(new java.util.Date());
+                newProduct.setImportDate(java.time.LocalDateTime.now());
                 newProduct.setIsDeleted(false);
 
                 // Lưu sản phẩm
@@ -237,7 +237,8 @@ public class ProductServlet extends HttpServlet {
             com.liteflow.model.inventory.ProductVariant variant = new com.liteflow.model.inventory.ProductVariant();
             variant.setProduct(product);
             variant.setSize(size);
-            variant.setPrice(price);
+            variant.setPrice(java.math.BigDecimal.valueOf(price));
+            variant.setOriginalPrice(java.math.BigDecimal.valueOf(price));
             variant.setIsDeleted(false);
             
             System.out.println("ProductVariant created: " + variant.getSize() + " - " + variant.getPrice());

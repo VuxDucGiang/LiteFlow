@@ -193,7 +193,31 @@ CREATE TABLE InventoryLogs (
 );
 
 -- =======================================================
--- 4. CAFE MANAGEMENT SYSTEM
+-- 4. ROOMS & TABLES (Must be created before TableSessions)
+-- =======================================================
+CREATE TABLE Rooms (
+    RoomID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Name NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(500),
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME()
+);
+
+CREATE TABLE Tables (
+    TableID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    RoomID UNIQUEIDENTIFIER NULL,
+    TableNumber NVARCHAR(50) NOT NULL,
+    TableName NVARCHAR(100) NOT NULL,  -- Tên hiển thị (vd: "Bàn 1", "Bàn VIP")
+    Capacity INT NOT NULL DEFAULT 4,   -- Sức chứa
+    Status NVARCHAR(50) DEFAULT 'Available' CHECK (Status IN ('Available', 'Occupied', 'Reserved', 'Maintenance')),
+    IsActive BIT DEFAULT 1,            -- Bàn có hoạt động không
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_Tables_Room FOREIGN KEY (RoomID) REFERENCES Rooms(RoomID) ON DELETE SET NULL
+);
+
+-- =======================================================
+-- 5. CAFE MANAGEMENT SYSTEM
 -- =======================================================
 
 -- TABLE SESSIONS - Quản lý phiên làm việc của từng bàn
@@ -268,31 +292,7 @@ CREATE TABLE UserInteractions (
 );
 
 -- =======================================================
--- 6. ROOMS & TABLES
--- =======================================================
-CREATE TABLE Rooms (
-    RoomID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(500),
-    CreatedAt DATETIME2 DEFAULT SYSDATETIME()
-);
-
-CREATE TABLE Tables (
-    TableID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    RoomID UNIQUEIDENTIFIER NULL,
-    TableNumber NVARCHAR(50) NOT NULL,
-    TableName NVARCHAR(100) NOT NULL,  -- Tên hiển thị (vd: "Bàn 1", "Bàn VIP")
-    Capacity INT NOT NULL DEFAULT 4,   -- Sức chứa
-    Status NVARCHAR(50) DEFAULT 'Available' CHECK (Status IN ('Available', 'Occupied', 'Reserved', 'Maintenance')),
-    IsActive BIT DEFAULT 1,            -- Bàn có hoạt động không
-    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
-    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
-    
-    CONSTRAINT FK_Tables_Room FOREIGN KEY (RoomID) REFERENCES Rooms(RoomID) ON DELETE SET NULL
-);
-
--- =======================================================
--- 7. PAYMENT TRANSACTIONS
+-- 6. PAYMENT TRANSACTIONS
 -- =======================================================
 CREATE TABLE PaymentTransactions (
     TransactionID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
@@ -306,13 +306,13 @@ CREATE TABLE PaymentTransactions (
     ProcessedBy UNIQUEIDENTIFIER NULL,  -- Nhân viên xử lý thanh toán
     ProcessedAt DATETIME2 DEFAULT SYSDATETIME(),
     
-    CONSTRAINT FK_PaymentTransactions_Session FOREIGN KEY (SessionID) REFERENCES TableSessions(SessionID) ON DELETE CASCADE,
-    CONSTRAINT FK_PaymentTransactions_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE SET NULL,
+    CONSTRAINT FK_PaymentTransactions_Session FOREIGN KEY (SessionID) REFERENCES TableSessions(SessionID) ON DELETE NO ACTION,
+    CONSTRAINT FK_PaymentTransactions_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE NO ACTION,
     CONSTRAINT FK_PaymentTransactions_ProcessedBy FOREIGN KEY (ProcessedBy) REFERENCES Users(UserID) ON DELETE SET NULL
 );
 
 -- =======================================================
--- 8. INDEXES
+-- 7. INDEXES
 -- =======================================================
 CREATE INDEX IX_Users_IsActive ON Users(IsActive);
 
@@ -351,7 +351,7 @@ USE LiteFlowDBO;
 GO
 
 -- =======================================================
--- 9. EMPLOYEES (Liên kết với bảng Users)
+-- 8. EMPLOYEES (Liên kết với bảng Users)
 -- =======================================================
 
 CREATE TABLE Employees (
@@ -384,7 +384,7 @@ CREATE TABLE Employees (
 GO
 
 -- =======================================================
--- 10. INDEXES CHO EMPLOYEE
+-- 9. INDEXES CHO EMPLOYEE
 -- =======================================================
 CREATE INDEX IX_Employees_Status ON Employees(EmploymentStatus);
 CREATE INDEX IX_Employees_Position ON Employees(Position);

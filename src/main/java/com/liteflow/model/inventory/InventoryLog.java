@@ -1,21 +1,22 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.liteflow.model.inventory;
 
 import jakarta.persistence.*;
-import java.util.*;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
+/**
+ * InventoryLog: Lịch sử thay đổi tồn kho
+ */
 @Entity
 @jakarta.persistence.Table(name = "InventoryLogs")
-public class InventoryLog {
+public class InventoryLog implements Serializable {
 
     @Id
     @Column(name = "LogID", columnDefinition = "uniqueidentifier")
     private UUID logId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ProductVariantID", nullable = false)
     private ProductVariant productVariant;
 
@@ -23,15 +24,49 @@ public class InventoryLog {
     private String actionType; // IN, OUT, ADJUST
 
     @Column(name = "QuantityChanged", nullable = false)
-    private int quantityChanged;
+    private Integer quantityChanged;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "ActionDate")
-    private Date actionDate;
+    private LocalDateTime actionDate;
 
     @Column(name = "StoreLocation", length = 100)
-    private String storeLocation;
+    private String storeLocation = "Main Warehouse";
 
+    @PrePersist
+    protected void onCreate() {
+        if (logId == null) {
+            logId = UUID.randomUUID();
+        }
+        if (actionDate == null) {
+            actionDate = LocalDateTime.now();
+        }
+        if (storeLocation == null) {
+            storeLocation = "Main Warehouse";
+        }
+    }
+
+    // Helper methods
+    public boolean isInbound() {
+        return "IN".equalsIgnoreCase(actionType);
+    }
+
+    public boolean isOutbound() {
+        return "OUT".equalsIgnoreCase(actionType);
+    }
+
+    public boolean isAdjustment() {
+        return "ADJUST".equalsIgnoreCase(actionType);
+    }
+
+    public boolean isIncrease() {
+        return quantityChanged != null && quantityChanged > 0;
+    }
+
+    public boolean isDecrease() {
+        return quantityChanged != null && quantityChanged < 0;
+    }
+
+    // Getters & Setters
     public UUID getLogId() {
         return logId;
     }
@@ -56,19 +91,19 @@ public class InventoryLog {
         this.actionType = actionType;
     }
 
-    public int getQuantityChanged() {
+    public Integer getQuantityChanged() {
         return quantityChanged;
     }
 
-    public void setQuantityChanged(int quantityChanged) {
+    public void setQuantityChanged(Integer quantityChanged) {
         this.quantityChanged = quantityChanged;
     }
 
-    public Date getActionDate() {
+    public LocalDateTime getActionDate() {
         return actionDate;
     }
 
-    public void setActionDate(Date actionDate) {
+    public void setActionDate(LocalDateTime actionDate) {
         this.actionDate = actionDate;
     }
 
@@ -80,4 +115,13 @@ public class InventoryLog {
         this.storeLocation = storeLocation;
     }
 
+    @Override
+    public String toString() {
+        return "InventoryLog{" +
+                "logId=" + logId +
+                ", actionType='" + actionType + '\'' +
+                ", quantityChanged=" + quantityChanged +
+                ", actionDate=" + actionDate +
+                '}';
+    }
 }

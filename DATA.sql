@@ -7,6 +7,75 @@ USE LiteFlowDBO;
 GO
 
 -- ============================================================
+-- 🗑️ DELETE ALL EXISTING DATA (CLEAN SLATE)
+-- ============================================================
+-- Delete in reverse order of dependencies to avoid foreign key constraints
+
+-- Delete payment transactions first
+DELETE FROM PaymentTransactions;
+GO
+
+-- Delete order details
+DELETE FROM OrderDetails;
+GO
+
+-- Delete orders
+DELETE FROM Orders;
+GO
+
+-- Delete table sessions
+DELETE FROM TableSessions;
+GO
+
+-- Delete employees
+DELETE FROM Employees;
+GO
+
+-- Delete user roles
+DELETE FROM UserRoles;
+GO
+
+-- Delete users
+DELETE FROM Users;
+GO
+
+-- Delete roles
+DELETE FROM Roles;
+GO
+
+-- Delete product stock
+DELETE FROM ProductStock;
+GO
+
+-- Delete inventory
+DELETE FROM Inventory;
+GO
+
+-- Delete product categories mapping
+DELETE FROM ProductsCategories;
+GO
+
+-- Delete product variants
+DELETE FROM ProductVariant;
+GO
+
+-- Delete products
+DELETE FROM Products;
+GO
+
+-- Delete categories
+DELETE FROM Categories;
+GO
+
+-- Delete tables
+DELETE FROM Tables;
+GO
+
+-- Delete rooms
+DELETE FROM Rooms;
+GO
+
+-- ============================================================
 -- 1️⃣ CATEGORIES
 -- ============================================================
 INSERT INTO Categories (Name, Description) VALUES
@@ -210,10 +279,14 @@ INSERT INTO Tables (RoomID, TableNumber, TableName, Capacity, Status) VALUES
 ((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-02', 'Bàn 2', 4, 'Available'),
 ((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-03', 'Bàn 3', 6, 'Available'),
 ((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-04', 'Bàn 4', 2, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-01', 'Bàn 5', 4, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-02', 'Bàn 6', 8, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-05', 'Bàn 5', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-01', 'Bàn 6', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-02', 'Bàn 7', 8, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-03', 'Bàn 8', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-04', 'Bàn 9', 4, 'Available'),
 ((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-01', 'Bàn VIP 1', 6, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-02', 'Bàn VIP 2', 8, 'Available');
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-02', 'Bàn VIP 2', 8, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-03', 'Bàn VIP 3', 4, 'Available');
 GO
 -- ============================================================
 -- 8️⃣ EMPLOYEES (Liên kết 1-1 với bảng Users)

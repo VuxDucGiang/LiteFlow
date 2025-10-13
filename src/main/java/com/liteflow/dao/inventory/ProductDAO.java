@@ -2,10 +2,11 @@ package com.liteflow.dao.inventory;
 
 import com.liteflow.dao.GenericDAO;
 import com.liteflow.model.inventory.Product;
+import java.util.UUID;
 
-public class ProductDAO extends GenericDAO<Product, String> {
+public class ProductDAO extends GenericDAO<Product, UUID> {
 
     public ProductDAO() {
-        super(Product.class, String.class);
+        super(Product.class, UUID.class);
     }
 }

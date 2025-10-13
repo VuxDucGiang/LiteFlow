@@ -62,7 +62,12 @@ public class ProductService {
                     dto.setProductId((UUID) row[0]);
                     dto.setProductName((String) row[1]);
                     dto.setSize((String) row[2]);
-                    dto.setPrice((Double) row[3]);
+                    // Convert BigDecimal to Double
+                    if (row[3] != null) {
+                        dto.setPrice(((java.math.BigDecimal) row[3]).doubleValue());
+                    } else {
+                        dto.setPrice(0.0);
+                    }
                     dto.setStockAmount(((Number) row[4]).intValue());
                     dto.setIsDeleted((Boolean) row[5]);
                     dto.setImageUrl((String) row[6]);
@@ -87,7 +92,7 @@ public class ProductService {
         }
     }
 
-    public Product getById(String id) {
+    public Product getById(UUID id) {
         return productDAO.findById(id);
     }
 
@@ -99,7 +104,7 @@ public class ProductService {
         return productDAO.update(p);
     }
 
-    public boolean deleteProduct(String id) {
+    public boolean deleteProduct(UUID id) {
         return productDAO.delete(id);
     }
     
@@ -130,8 +135,17 @@ public class ProductService {
                     dto.setProductId((UUID) row[0]);
                     dto.setProductName((String) row[1]);
                     dto.setSize((String) row[2]);
-                    dto.setOriginalPrice((Double) row[3]);
-                    dto.setSellingPrice((Double) row[4]);
+                    // Convert BigDecimal to Double
+                    if (row[3] != null) {
+                        dto.setOriginalPrice(((java.math.BigDecimal) row[3]).doubleValue());
+                    } else {
+                        dto.setOriginalPrice(0.0);
+                    }
+                    if (row[4] != null) {
+                        dto.setSellingPrice(((java.math.BigDecimal) row[4]).doubleValue());
+                    } else {
+                        dto.setSellingPrice(0.0);
+                    }
                     dto.setIsDeleted((Boolean) row[5]);
                     dto.setCategoryName("Chưa phân loại");
                     

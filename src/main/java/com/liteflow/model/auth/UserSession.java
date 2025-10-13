@@ -40,6 +40,28 @@ public class UserSession implements Serializable {
     @Column(name = "Last2faVerifiedAt")
     private LocalDateTime last2faVerifiedAt;
 
+    @Column(name = "Action", length = 200)
+    private String action;
+
+    @Column(name = "ObjectType", length = 100)
+    private String objectType;
+
+    @Column(name = "ObjectID", columnDefinition = "uniqueidentifier")
+    private UUID objectID;
+
+    @Column(name = "Details", columnDefinition = "NVARCHAR(MAX)")
+    private String details;
+
+    @Column(name = "IPAddressAction", length = 50)
+    private String ipAddressAction;
+
+    @Column(name = "CreatedAtAction")
+    private LocalDateTime createdAtAction;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "UserID", insertable = false, updatable = false)
+    private User user;
+
     @PrePersist
     protected void onCreate() {
         if (sessionId == null) {
@@ -121,5 +143,61 @@ public class UserSession implements Serializable {
 
     public void setLast2faVerifiedAt(LocalDateTime last2faVerifiedAt) {
         this.last2faVerifiedAt = last2faVerifiedAt;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
+    }
+
+    public String getObjectType() {
+        return objectType;
+    }
+
+    public void setObjectType(String objectType) {
+        this.objectType = objectType;
+    }
+
+    public UUID getObjectID() {
+        return objectID;
+    }
+
+    public void setObjectID(UUID objectID) {
+        this.objectID = objectID;
+    }
+
+    public String getDetails() {
+        return details;
+    }
+
+    public void setDetails(String details) {
+        this.details = details;
+    }
+
+    public String getIpAddressAction() {
+        return ipAddressAction;
+    }
+
+    public void setIpAddressAction(String ipAddressAction) {
+        this.ipAddressAction = ipAddressAction;
+    }
+
+    public LocalDateTime getCreatedAtAction() {
+        return createdAtAction;
+    }
+
+    public void setCreatedAtAction(LocalDateTime createdAtAction) {
+        this.createdAtAction = createdAtAction;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

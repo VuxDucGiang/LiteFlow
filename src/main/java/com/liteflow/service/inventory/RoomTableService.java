@@ -41,7 +41,7 @@ public class RoomTableService {
     public boolean addRoom(Room room) {
         try {
             // Set created date
-            room.setCreatedAt(new java.util.Date());
+            room.setCreatedAt(java.time.LocalDateTime.now());
             return roomDAO.insert(room);
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi thêm phòng: " + e.getMessage());

@@ -111,7 +111,22 @@
                                 </td>
                                 <td>${room.description != null ? room.description : 'Không có mô tả'}</td>
                                 <td>
-                                    <fmt:formatDate value="${room.createdAt}" pattern="dd/MM/yyyy HH:mm" />
+                                    <c:choose>
+                                        <c:when test="${room.createdAt != null}">
+                                            <c:set var="dateValue" value="${room.createdAt}" />
+                                            <c:choose>
+                                                <c:when test="${dateValue.getClass().simpleName == 'LocalDateTime'}">
+                                                    ${room.createdAt}
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <fmt:formatDate value="${room.createdAt}" pattern="dd/MM/yyyy HH:mm" />
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </c:when>
+                                        <c:otherwise>
+                                            N/A
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td>
                                     <c:set var="tableCount" value="0" />
@@ -192,7 +207,22 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <fmt:formatDate value="${table.createdAt}" pattern="dd/MM/yyyy HH:mm" />
+                                    <c:choose>
+                                        <c:when test="${table.createdAt != null}">
+                                            <c:set var="tableDateValue" value="${table.createdAt}" />
+                                            <c:choose>
+                                                <c:when test="${tableDateValue.getClass().simpleName == 'LocalDateTime'}">
+                                                    ${table.createdAt}
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <fmt:formatDate value="${table.createdAt}" pattern="dd/MM/yyyy HH:mm" />
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </c:when>
+                                        <c:otherwise>
+                                            N/A
+                                        </c:otherwise>
+                                    </c:choose>
                                 </td>
                                 <td>
                                     <div class="actions">

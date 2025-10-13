@@ -1,19 +1,21 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.liteflow.model.inventory;
 
 import jakarta.persistence.*;
-import java.util.*;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
+/**
+ * Room: Phòng trong quán cafe
+ */
 @Entity
 @jakarta.persistence.Table(name = "Rooms")
-public class Room {
+public class Room implements Serializable {
 
     @Id
     @Column(name = "RoomID", columnDefinition = "uniqueidentifier")
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID roomId;
 
     @Column(name = "Name", nullable = false, length = 100)
@@ -22,17 +24,61 @@ public class Room {
     @Column(name = "Description", length = 500)
     private String description;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "CreatedAt")
-    private Date createdAt;
+    private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Table> tables;
+    private List<Table> tables = new ArrayList<>();
+
+    @PrePersist
+    protected void onCreate() {
+        if (roomId == null) {
+            roomId = UUID.randomUUID();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 
     public Room() {
         this.tables = new ArrayList<>();
     }
 
+    // Helper methods
+    public void addTable(Table table) {
+        if (tables == null) {
+            tables = new ArrayList<>();
+        }
+        tables.add(table);
+        table.setRoom(this);
+    }
+
+    public void removeTable(Table table) {
+        if (tables != null) {
+            tables.remove(table);
+            table.setRoom(null);
+        }
+    }
+
+    public int getTableCount() {
+        return tables != null ? tables.size() : 0;
+    }
+
+    public int getAvailableTableCount() {
+        if (tables == null) return 0;
+        return (int) tables.stream()
+                .filter(Table::isAvailable)
+                .count();
+    }
+
+    public int getOccupiedTableCount() {
+        if (tables == null) return 0;
+        return (int) tables.stream()
+                .filter(Table::isOccupied)
+                .count();
+    }
+
+    // Getters & Setters
     public UUID getRoomId() {
         return roomId;
     }
@@ -57,11 +103,11 @@ public class Room {
         this.description = description;
     }
 
-    public Date getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Date createdAt) {
+    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -73,18 +119,12 @@ public class Room {
         this.tables = tables;
     }
 
-    public void addTable(Table table) {
-        if (tables == null) {
-            tables = new ArrayList<>();
-        }
-        tables.add(table);
-        table.setRoom(this);
-    }
-
-    public void removeTable(Table table) {
-        if (tables != null) {
-            tables.remove(table);
-            table.setRoom(null);
-        }
+    @Override
+    public String toString() {
+        return "Room{" +
+                "roomId=" + roomId +
+                ", name='" + name + '\'' +
+                ", tableCount=" + getTableCount() +
+                '}';
     }
 }
