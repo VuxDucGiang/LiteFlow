@@ -72,7 +72,20 @@
             <div class="filter-section">
                 <h3 class="filter-title">Danh mục</h3>
                 <div class="filter-options">
-                    <p style="color: #666; font-style: italic;">Chưa có danh mục nào</p>
+                    <c:choose>
+                        <c:when test="${not empty categories}">
+                            <c:forEach var="category" items="${categories}">
+                                <label class="filter-option">
+                                    <input type="checkbox" name="categoryFilter" value="${category}">
+                                    <span class="checkmark"></span>
+                                    ${category}
+                                </label>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <p style="color: #666; font-style: italic;">Chưa có danh mục nào từ sản phẩm</p>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
             </div>
 
@@ -123,13 +136,11 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Mã sản phẩm</th>
-                                    <th>Tên sản phẩm</th>
+                                    <th>Mã hàng</th>
+                                    <th>Tên hàng</th>
                                     <th>Kích thước</th>
                                     <th>Giá vốn</th>
                                     <th>Giá bán</th>
-                                    <th>Lợi nhuận</th>
-                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -146,28 +157,10 @@
                                         </td>
                                         <td>${p.size}</td>
                                         <td>
-                                            <input type="number" class="price-input original-price" 
-                                                   value="${p.originalPrice}" 
-                                                   data-product-id="${p.productId}"
-                                                   data-field="originalPrice"
-                                                   min="0" step="1000">
+                                            <fmt:formatNumber value="${p.originalPrice}" pattern="#,###" /> ₫
                                         </td>
                                         <td>
-                                            <input type="number" class="price-input selling-price" 
-                                                   value="${p.sellingPrice}" 
-                                                   data-product-id="${p.productId}"
-                                                   data-field="sellingPrice"
-                                                   min="0" step="1000">
-                                        </td>
-                                        <td>
-                                            <span class="profit-amount">
-                                                <fmt:formatNumber value="${p.sellingPrice - p.originalPrice}" pattern="#,###" /> ₫
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary" onclick="updateProductPrice('${p.productId}')">
-                                                💾 Lưu
-                                            </button>
+                                            <fmt:formatNumber value="${p.sellingPrice}" pattern="#,###" /> ₫
                                         </td>
                                     </tr>
                                 </c:forEach>
@@ -312,6 +305,29 @@
 
     function bulkUpdatePrices() {
         alert('Chức năng cập nhật hàng loạt sẽ được triển khai');
+    }
+
+    // Lọc theo danh mục (checkbox bên trái)
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.name === 'categoryFilter') {
+            filterByCategories();
+        }
+    });
+
+    function filterByCategories() {
+        const checked = Array.from(document.querySelectorAll('input[name="categoryFilter"]:checked'))
+            .map(cb => cb.value.trim());
+        const rows = document.querySelectorAll('.price-table table tbody tr');
+
+        rows.forEach(row => {
+            const tagEl = row.querySelector('.category-tag');
+            const category = tagEl ? tagEl.textContent.trim() : '';
+            if (checked.length === 0) {
+                row.style.display = '';
+            } else {
+                row.style.display = checked.includes(category) ? '' : 'none';
+            }
+        });
     }
 
     // Cập nhật lợi nhuận khi thay đổi giá

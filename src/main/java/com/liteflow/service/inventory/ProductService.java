@@ -117,10 +117,12 @@ public class ProductService {
             try {
                 // Query đơn giản để lấy thông tin sản phẩm với giá
                 String jpql = """
-                    SELECT p.productId, p.name, pv.size, pv.originalPrice, pv.price, 
-                           p.isDeleted
-                    FROM Product p 
-                    LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId 
+                    SELECT p.productId, p.name, pv.size, pv.originalPrice, pv.price,
+                           p.isDeleted, c.name as categoryName
+                    FROM Product p
+                    LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId
+                    LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId
+                    LEFT JOIN Category c ON pc.category.categoryId = c.categoryId
                     WHERE (pv.isDeleted = false OR pv.isDeleted IS NULL)
                     AND (p.isDeleted = false OR p.isDeleted IS NULL)
                     ORDER BY p.name, pv.size
@@ -147,7 +149,7 @@ public class ProductService {
                         dto.setSellingPrice(0.0);
                     }
                     dto.setIsDeleted((Boolean) row[5]);
-                    dto.setCategoryName("Chưa phân loại");
+                    dto.setCategoryName((String) row[6]);
                     
                     // Tạo mã sản phẩm từ ID
                     dto.setProductCode("SP" + String.format("%06d", Math.abs(dto.getProductId().hashCode()) % 1000000));

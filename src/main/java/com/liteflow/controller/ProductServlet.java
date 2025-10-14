@@ -215,6 +215,82 @@ public class ProductServlet extends HttpServlet {
                 }
             }
 
+            if ("update".equals(action)) {
+                String productIdStr = request.getParameter("productId");
+                String name = request.getParameter("name");
+                String description = request.getParameter("description");
+                String imageUrl = request.getParameter("imageUrl");
+                String priceStr = request.getParameter("price");
+                String stockStr = request.getParameter("stock");
+                String size = request.getParameter("size");
+                System.out.println("=== DEBUG: UPDATE params ===");
+                System.out.println("productId=" + productIdStr + ", name=" + name + ", price=" + priceStr + ", stock=" + stockStr + ", size=" + size);
+
+                try {
+                    java.util.UUID productId = java.util.UUID.fromString(productIdStr);
+
+                    // Update Product fields
+                    com.liteflow.dao.inventory.ProductDAO productDAO = new com.liteflow.dao.inventory.ProductDAO();
+                    com.liteflow.model.inventory.Product product = productDAO.findById(productId);
+                    if (product == null) {
+                        request.setAttribute("error", "Không tìm thấy sản phẩm để cập nhật");
+                        doGet(request, response);
+                        return;
+                    }
+                    System.out.println("Found product: " + product.getProductId() + ", current name=" + product.getName());
+                    if (name != null && !name.trim().isEmpty()) product.setName(name.trim());
+                    if (description != null) product.setDescription(description.trim());
+                    if (imageUrl != null && !imageUrl.trim().isEmpty()) product.setImageUrl(imageUrl.trim());
+                    boolean productUpdated = productDAO.update(product);
+                    System.out.println("Product updated: " + productUpdated);
+
+                    // Update price and stock for the selected size
+                    com.liteflow.dao.inventory.ProductVariantDAO variantDAO = new com.liteflow.dao.inventory.ProductVariantDAO();
+                    com.liteflow.model.inventory.ProductVariant variant = variantDAO.findByProductAndSize(productId, size);
+                    if (variant != null) {
+                        System.out.println("Found variant: " + variant.getProductVariantId() + ", size=" + variant.getSize() + ", current price=" + variant.getPrice());
+                        if (priceStr != null && !priceStr.isBlank()) {
+                            try {
+                                double price = Double.parseDouble(priceStr.trim());
+                                variant.setPrice(java.math.BigDecimal.valueOf(price));
+                                System.out.println("Updating variant selling price to: " + price);
+                            } catch (NumberFormatException ignored) {}
+                        }
+
+                        if (stockStr != null && !stockStr.isBlank()) {
+                            try {
+                                int stock = Integer.parseInt(stockStr.trim());
+                                com.liteflow.dao.inventory.ProductStockDAO stockDAO = new com.liteflow.dao.inventory.ProductStockDAO();
+                                // Tìm stock theo variant và inventory mặc định
+                                var em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+                                try {
+                                    var stocks = em.createQuery("SELECT ps FROM ProductStock ps WHERE ps.productVariant.productVariantId = :pvid", com.liteflow.model.inventory.ProductStock.class)
+                                            .setParameter("pvid", variant.getProductVariantId())
+                                            .getResultList();
+                                    if (!stocks.isEmpty()) {
+                                        var ps = stocks.get(0);
+                                        System.out.println("Found stock row for variant: current amount=" + ps.getAmount());
+                                        ps.setAmount(stock);
+                                        boolean stockUpdated = stockDAO.update(ps);
+                                        System.out.println("Stock updated: " + stockUpdated + ", new amount=" + stock);
+                                    }
+                                } finally {
+                                    em.close();
+                                }
+                            } catch (NumberFormatException ignored) {}
+                        }
+                        boolean variantUpdated = variantDAO.update(variant);
+                        System.out.println("Variant updated: " + variantUpdated);
+                    } else {
+                        System.out.println("Variant not found for productId=" + productId + ", size=" + size);
+                    }
+
+                    request.setAttribute("success", "Cập nhật sản phẩm thành công");
+                } catch (Exception ex) {
+                    request.setAttribute("error", "Lỗi khi cập nhật sản phẩm: " + ex.getMessage());
+                }
+            }
+
             // Redirect về trang danh sách
             doGet(request, response);
         } catch (Exception e) {

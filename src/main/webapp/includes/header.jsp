@@ -69,7 +69,7 @@
             <a href="${pageContext.request.contextPath}/products" class="dropdown-item">
               <i class='bx bxs-category'></i> Danh mục
             </a>
-            <a href="${pageContext.request.contextPath}/inventory/setPrice.jsp" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/setprice" class="dropdown-item">
               <i class='bx bx-dollar'></i> Thiết lập giá
             </a>
           </div>

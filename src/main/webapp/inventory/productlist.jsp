@@ -196,7 +196,15 @@
                             </thead>
                             <tbody>
                                 <c:forEach var="p" items="${products}">
-                                    <tr>
+                                    <tr class="product-row"
+                                        data-product-id="${p.productId}"
+                                        data-product-code="${p.productCode}"
+                                        data-product-name="${p.productName}"
+                                        data-size="${p.size}"
+                                        data-category="${p.categoryName}"
+                                        data-price="${p.price}"
+                                        data-stock="${p.stockAmount}"
+                                        data-image-url="${p.imageUrl}">
                                         <td>
                                             <span class="product-code">${p.productCode}</span>
                                         </td>
@@ -447,6 +455,12 @@
 
             function addProduct() {
                 document.getElementById('addProductModal').style.display = 'block';
+                document.querySelector('#addProductModal h2').textContent = '➕ Thêm sản phẩm mới';
+                document.querySelector('#addProductForm input[name="action"]').value = 'create';
+                document.querySelector('#addProductForm .modal-footer button.btn.btn-success').textContent = '✅ Thêm sản phẩm';
+                // Reset hidden productId if exists
+                const idInput = document.querySelector('#addProductForm input[name="productId"]');
+                if (idInput) idInput.remove();
             }
 
             function closeAddProductModal() {
@@ -476,6 +490,7 @@
             function submitAddProduct() {
                 const form = document.getElementById('addProductForm');
                 const formData = new FormData(form);
+                const action = form.querySelector('input[name="action"]').value;
 
                 // Validate required fields
                 const name = formData.get('name');
@@ -501,10 +516,12 @@
                     return;
                 }
 
-                if (!description || description.trim() === '') {
-                    alert('Vui lòng nhập mô tả sản phẩm');
-                    document.getElementById('description').focus();
-                    return;
+                if (action === 'create') {
+                    if (!description || description.trim() === '') {
+                        alert('Vui lòng nhập mô tả sản phẩm');
+                        document.getElementById('description').focus();
+                        return;
+                    }
                 }
 
                 // Validate name length
@@ -552,9 +569,94 @@
                 form.submit();
             }
 
-            function editProduct(productId) {
-                alert('Chức năng sửa sản phẩm sẽ được triển khai cho ID: ' + productId);
+            // Mở modal sửa khi click vào dòng
+            document.addEventListener('click', function(e) {
+                const row = e.target.closest('tr.product-row');
+                if (!row) return;
+                openEditModalFromRow(row);
+            });
+
+            function openEditModalFromRow(row) {
+                const id = row.dataset.productId;
+                const name = row.dataset.productName || '';
+                const price = row.dataset.price || '';
+                const stock = row.dataset.stock || '';
+                const size = row.dataset.size || '';
+                const imageUrl = row.dataset.imageUrl || '';
+
+                // Reuse addProduct modal as edit modal
+                document.getElementById('addProductModal').style.display = 'block';
+                document.querySelector('#addProductModal h2').textContent = '✏️ Sửa sản phẩm';
+                document.querySelector('#addProductForm input[name="action"]').value = 'update';
+
+                // Add hidden productId input if not exists
+                let idInput = document.querySelector('#addProductForm input[name="productId"]');
+                if (!idInput) {
+                    idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'productId';
+                    document.getElementById('addProductForm').appendChild(idInput);
+                }
+                idInput.value = id;
+
+                // Prefill fields
+                document.getElementById('name').value = name;
+                document.getElementById('price').value = price;
+                document.getElementById('stock').value = stock;
+                document.getElementById('imageUrl').value = imageUrl;
+
+                // Size prefill: write size into custom input and check custom toggle
+                const customSizeCheck = document.getElementById('customSizeCheck');
+                const customSizeInput = document.getElementById('customSizeInput');
+                const sizeCheckboxes = document.querySelectorAll('input[name="size"]');
+                sizeCheckboxes.forEach(cb => cb.checked = false);
+                if (size === 'S' || size === 'M' || size === 'L') {
+                    // If is standard size, check it
+                    const target = Array.from(sizeCheckboxes).find(cb => cb.value === size);
+                    if (target) target.checked = true;
+                    customSizeCheck.checked = false;
+                    customSizeInput.disabled = true;
+                    customSizeInput.value = '';
+                } else if (size) {
+                    customSizeCheck.checked = true;
+                    customSizeInput.disabled = false;
+                    customSizeInput.value = size;
+                }
+
+                // Change submit button to Update
+                document.querySelector('#addProductForm .modal-footer button.btn.btn-success').textContent = '💾 Cập nhật';
             }
+
+            // Khi submit nếu action=update, ensure gửi size đúng
+            (function hookSubmit() {
+                const form = document.getElementById('addProductForm');
+                const originalSubmit = form.submit.bind(form);
+                form.submit = function() {
+                    const action = form.querySelector('input[name="action"]').value;
+                    if (action === 'update') {
+                        // Ensure one size value is sent
+                        const customSizeCheck = document.getElementById('customSizeCheck');
+                        const customSizeInput = document.getElementById('customSizeInput');
+                        const sizeChecked = document.querySelector('input[name="size"]:checked');
+                        let sizeValue = '';
+                        if (customSizeCheck.checked && customSizeInput.value.trim() !== '') {
+                            sizeValue = customSizeInput.value.trim();
+                        } else if (sizeChecked) {
+                            sizeValue = sizeChecked.value;
+                        }
+                        // Create/overwrite size input
+                        let hiddenSize = form.querySelector('input[name="size"][type="hidden"]');
+                        if (!hiddenSize) {
+                            hiddenSize = document.createElement('input');
+                            hiddenSize.type = 'hidden';
+                            hiddenSize.name = 'size';
+                            form.appendChild(hiddenSize);
+                        }
+                        hiddenSize.value = sizeValue;
+                    }
+                    originalSubmit();
+                };
+            })();
 
             function hideProduct(productId) {
                 if (confirm('Bạn có chắc muốn ẩn sản phẩm này?')) {
@@ -648,8 +750,8 @@
                             </div>
                             <div class="form-group">
                                 <div class="form-group">
-                                    <label for="description">Mô tả sản phẩm *</label>
-                                    <textarea id="description" name="description" required 
+                                    <label for="description">Mô tả sản phẩm</label>
+                                    <textarea id="description" name="description"
                                               placeholder="Nhập mô tả chi tiết về sản phẩm" rows="8"></textarea>
                                 </div>
                             </div>
