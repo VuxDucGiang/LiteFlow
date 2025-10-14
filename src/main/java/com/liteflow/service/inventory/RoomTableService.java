@@ -192,4 +192,31 @@ public class RoomTableService {
             return 0;
         }
     }
+
+    // Tổng giá trị các đơn đang phục vụ dựa trên tổng OrderDetail.totalPrice của các phiên Active
+    public java.math.BigDecimal getTotalActiveSessionsAmount() {
+        jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+        try {
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT COALESCE(SUM(od.totalPrice), 0) " +
+                "FROM OrderDetail od " +
+                "JOIN od.order o " +
+                "JOIN o.session s " +
+                "WHERE (s.status = 'Active' OR (s.status IS NULL AND s.checkOutTime IS NULL))"
+            );
+            Object result = q.getSingleResult();
+            if (result instanceof java.math.BigDecimal) {
+                return (java.math.BigDecimal) result;
+            }
+            if (result instanceof Number) {
+                return java.math.BigDecimal.valueOf(((Number) result).doubleValue());
+            }
+            return java.math.BigDecimal.ZERO;
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi tính tổng giá trị phiên đang phục vụ: " + e.getMessage());
+            return java.math.BigDecimal.ZERO;
+        } finally {
+            em.close();
+        }
+    }
 }

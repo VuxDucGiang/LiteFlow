@@ -11,6 +11,7 @@
 <%
   RoomTableService roomTableService = new RoomTableService();
   int occupiedTables = roomTableService.getOccupiedTables();
+  java.math.BigDecimal totalActiveAmount = roomTableService.getTotalActiveSessionsAmount();
 %>
 
 <div class="dashboard-content">
@@ -35,6 +36,9 @@
           </div>
           <div class="value"><%= occupiedTables %></div>
           <div class="label">đơn đang phục vụ</div>
+          <div class="change up" style="font-size:12px;color:#6a7a92;margin-top:4px;">
+            Tổng giá trị: <%= new java.text.DecimalFormat("#,###").format(totalActiveAmount) %> ₫
+          </div>
         </div>
         <div class="sales-card">
           <div class="icon teal">
