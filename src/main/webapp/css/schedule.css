@@ -77,6 +77,80 @@
   color: #333333;
 }
 
+/* Week control chip */
+.week-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dcdcdc;
+  border-radius: 12px;
+  padding: 4px 6px;
+  background: #fff;
+}
+.chip-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #1a1a1a;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.chip-btn:hover { background: #f6f6f6; }
+.chip-label {
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  border-left: 1px solid #e9e9e9;
+  border-right: 1px solid #e9e9e9;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Calendar popover */
+.calendar-popover {
+  position: absolute;
+  z-index: 100;
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(16,24,40,0.12);
+  padding: 12px;
+}
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cal-title { font-weight: 700; }
+.cal-nav {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.calendar-grid { display: grid; gap: 4px; }
+.cal-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-head { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+.cal-head > div { text-align: center; padding: 6px 4px; }
+.cal-cell {
+  padding: 8px 0;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.cal-cell:hover { background: #f1f5ff; border-color: #c7d2fe; }
+.cal-cell.muted { color: #c0c0c0; background: #fafafa; cursor: default; }
+
 .schedule-table {
   border: 1px solid #eeeeee;
   border-radius: 8px;
@@ -167,15 +241,9 @@
   font-size: 12px;
 }
 
-.shift-block .shift-time {
-  font-weight: 600;
-  color: #2f6feb;
-  margin-bottom: 2px;
-}
-
-.shift-block .shift-title {
-  color: #333333;
-}
+.shift-block .shift-emp { font-weight: 700; color: #1a1a1a; }
+.shift-block .shift-notes { color: #333; margin-top: 2px; }
+.shift-block .shift-location { color: #2f6feb; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
 
 .slot-title {
   font-weight: 700;

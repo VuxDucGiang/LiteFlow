@@ -20,12 +20,21 @@
   <!-- Main Content Area -->
   <div class="main-content">
     <div class="schedule-toolbar">
-      <div class="week-nav">
-        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}"><i class='bx bx-chevron-left'></i> Tuần trước</a>
-        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule"><i class='bx bx-target-lock'></i> Hôm nay</a>
-        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}">Tuần sau <i class='bx bx-chevron-right'></i></a>
+      <div class="week-chip" id="weekChip">
+        <a class="chip-btn prev" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}"><i class='bx bx-chevron-left'></i></a>
+        <button type="button" class="chip-label" id="openCalendar">${controlLabel}</button>
+        <a class="chip-btn next" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}"><i class='bx bx-chevron-right'></i></a>
       </div>
-      <div class="week-label">${weekLabel}</div>
+      <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule">Tuần này</a>
+    </div>
+
+    <div class="calendar-popover" id="calendarPopover" hidden>
+      <div class="calendar-header">
+        <button class="cal-nav" id="calPrev"><i class='bx bx-chevron-left'></i></button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="cal-nav" id="calNext"><i class='bx bx-chevron-right'></i></button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
     </div>
 
     <div class="schedule-table">
@@ -58,9 +67,13 @@
                         <c:otherwise>
                           <c:forEach var="s" items="${row.items}">
                             <div class="shift-block">
-                              <div class="shift-time">${s.time}</div>
-                              <div class="shift-title">${s.title}</div>
                               <div class="shift-emp">${s.employee}</div>
+                              <c:if test="${not empty s.notes}">
+                                <div class="shift-notes">${s.notes}</div>
+                              </c:if>
+                              <c:if test="${not empty s.location}">
+                                <div class="shift-location"><i class='bx bx-map'></i> ${s.location}</div>
+                              </c:if>
                             </div>
                           </c:forEach>
                         </c:otherwise>
@@ -173,6 +186,78 @@
 
   renderBody();
   renderHeader();
+  // Lightweight calendar popover for choosing a date -> navigate to its week
+  var openBtn = document.getElementById('openCalendar');
+  var pop = document.getElementById('calendarPopover');
+  var calTitle = document.getElementById('calTitle');
+  var calGrid = document.getElementById('calendarGrid');
+  var calPrev = document.getElementById('calPrev');
+  var calNext = document.getElementById('calNext');
+
+  var viewYear, viewMonth; // 0-based month
+
+  function setViewToToday() {
+    var today = new Date();
+    viewYear = today.getFullYear();
+    viewMonth = today.getMonth();
+  }
+
+  function renderCalendar() {
+    calTitle.textContent = 'Thg ' + (viewMonth + 1) + ' ' + viewYear;
+    calGrid.innerHTML = '';
+
+    var header = ['T2','T3','T4','T5','T6','T7','CN'];
+    var headRow = document.createElement('div');
+    headRow.className = 'cal-row cal-head';
+    header.forEach(function(h){
+      var c = document.createElement('div'); c.textContent = h; headRow.appendChild(c);
+    });
+    calGrid.appendChild(headRow);
+
+    var first = new Date(viewYear, viewMonth, 1);
+    var startIdx = (first.getDay() + 6) % 7; // Monday=0
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    var day = 1 - startIdx;
+    for (var r = 0; r < 6; r++) {
+      var row = document.createElement('div');
+      row.className = 'cal-row';
+      for (var c = 0; c < 7; c++, day++) {
+        var cell = document.createElement('button');
+        cell.className = 'cal-cell';
+        var thisDate = new Date(viewYear, viewMonth, day);
+        if (day < 1 || day > daysInMonth) {
+          cell.classList.add('muted');
+          cell.textContent = thisDate.getDate();
+          cell.disabled = true;
+        } else {
+          cell.textContent = day;
+          cell.addEventListener('click', function(ev){
+            var picked = new Date(viewYear, viewMonth, parseInt(ev.target.textContent, 10));
+            var ws = startOfWeek(picked);
+            var y = ws.getFullYear();
+            var m = ('0' + (ws.getMonth()+1)).slice(-2);
+            var d = ('0' + ws.getDate()).slice(-2);
+            window.location.href = '${pageContext.request.contextPath}/schedule?weekStart=' + y + '-' + m + '-' + d;
+          });
+        }
+        row.appendChild(cell);
+      }
+      calGrid.appendChild(row);
+    }
+  }
+
+  openBtn.addEventListener('click', function(){
+    if (pop.hasAttribute('hidden')) {
+      setViewToToday();
+      renderCalendar();
+      pop.removeAttribute('hidden');
+    } else {
+      pop.setAttribute('hidden', 'hidden');
+    }
+  });
+  calPrev.addEventListener('click', function(){ viewMonth -= 1; if (viewMonth<0){viewMonth=11; viewYear-=1;} renderCalendar(); });
+  calNext.addEventListener('click', function(){ viewMonth += 1; if (viewMonth>11){viewMonth=0; viewYear+=1;} renderCalendar(); });
+
 })();
 </script>
 

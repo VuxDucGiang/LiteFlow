@@ -47,6 +47,12 @@ public class ScheduleServlet extends HttpServlet {
         LocalDate weekEnd = weekStart.plusDays(6);
         String weekLabel = "Tuần " + weekStart.format(dmy) + " - " + weekEnd.format(dmyFull);
 
+        // Week-of-month label for control chip like: "Tuần 2 - Th. 10 2025"
+        var wf = java.time.temporal.WeekFields.of(DayOfWeek.MONDAY, 1);
+        int weekOfMonth = weekStart.get(wf.weekOfMonth());
+        String monthShort = String.format("%02d", weekStart.getMonthValue());
+        String controlLabel = "Tuần " + weekOfMonth + " - Th. " + monthShort + " " + weekStart.getYear();
+
         // Prepare per-day buckets with 3 base shift rows (templates)
         List<Map<String, Object>> weekDays = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
@@ -80,9 +86,9 @@ public class ScheduleServlet extends HttpServlet {
                     String tEnd = t.getEndTime().toString().substring(0,5);
                     if (sStart.equals(tStart) && sEnd.equals(tEnd)) {
                         Map<String, String> vm = new HashMap<>();
-                        vm.put("time", sStart + " - " + sEnd);
-                        vm.put("title", s.getTitle() != null ? s.getTitle() : t.getName());
                         vm.put("employee", s.getEmployee() != null ? s.getEmployee().getFullName() : "");
+                        vm.put("notes", s.getNotes() != null ? s.getNotes() : "");
+                        vm.put("location", s.getLocation() != null ? s.getLocation() : "");
                         cellShifts.add(vm);
                     }
                 }
@@ -98,6 +104,7 @@ public class ScheduleServlet extends HttpServlet {
         String nextWeekStart = weekStart.plusDays(7).toString();
 
         req.setAttribute("weekLabel", weekLabel);
+        req.setAttribute("controlLabel", controlLabel);
         req.setAttribute("weekDays", weekDays);
         req.setAttribute("prevWeekStart", prevWeekStart);
         req.setAttribute("nextWeekStart", nextWeekStart);
