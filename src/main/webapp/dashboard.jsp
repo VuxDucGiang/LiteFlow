@@ -1,11 +1,17 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ page import="com.liteflow.service.inventory.RoomTableService" %>
 <jsp:include page="includes/header.jsp">
   <jsp:param name="page" value="dashboard" />
   <jsp:param name="currentDate" value="Thứ Hai, 06/10/2025" />
 </jsp:include>
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/dashboard.css">
+
+<%
+  RoomTableService roomTableService = new RoomTableService();
+  int occupiedTables = roomTableService.getOccupiedTables();
+%>
 
 <div class="dashboard-content">
   <!-- Left Section -->
@@ -27,7 +33,7 @@
           <div class="icon green">
             <i class='bx bx-edit'></i>
           </div>
-          <div class="value">0</div>
+          <div class="value"><%= occupiedTables %></div>
           <div class="label">đơn đang phục vụ</div>
         </div>
         <div class="sales-card">

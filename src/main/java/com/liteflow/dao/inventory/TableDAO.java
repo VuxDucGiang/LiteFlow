@@ -2,7 +2,9 @@ package com.liteflow.dao.inventory;
 
 import com.liteflow.dao.GenericDAO;
 import com.liteflow.model.inventory.Table;
+import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Collections;
 import java.util.UUID;
 
 public class TableDAO extends GenericDAO<Table, UUID> {
@@ -40,6 +42,21 @@ public class TableDAO extends GenericDAO<Table, UUID> {
     }
     
     public List<Table> findByStatus(String status) {
-        return super.findByAttribute("status", status);
+        if (status == null || status.isBlank()) {
+            return Collections.emptyList();
+        }
+        EntityManager em = emf.createEntityManager();
+        try {
+            return em.createQuery(
+                    "SELECT t FROM Table t WHERE t.status = :status AND (t.isActive = true OR t.isActive IS NULL)",
+                    Table.class)
+                .setParameter("status", status)
+                .getResultList();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi findByStatus: " + e.getMessage());
+            return Collections.emptyList();
+        } finally {
+            em.close();
+        }
     }
 }
