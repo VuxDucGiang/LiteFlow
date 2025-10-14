@@ -128,10 +128,10 @@
 }
 
 .time-col {
-  width: 84px;
+ 
   min-width: 84px;
   max-width: 84px;
-  text-align: right;
+  text-align: center;
   padding: 8px 12px;
   color: #666666;
   background: #fcfcfc;
@@ -175,6 +175,21 @@
 
 .shift-block .shift-title {
   color: #333333;
+}
+
+.slot-title {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.slot-time {
+  color: #667085;
+  font-size: 12px;
+}
+
+.empty-day {
+  color: #a0a0a0;
+  font-size: 12px;
 }
 
 

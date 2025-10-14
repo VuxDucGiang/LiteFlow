@@ -391,3 +391,136 @@ CREATE INDEX IX_Employees_Position ON Employees(Position);
 CREATE INDEX IX_Employees_FullName ON Employees(FullName);
 CREATE INDEX IX_Employees_HireDate ON Employees(HireDate);
 GO
+
+-- =======================================================
+-- 10. EMPLOYEE SCHEDULING (Lịch làm việc nhân viên)
+-- =======================================================
+CREATE TABLE EmployeeShifts (
+    ShiftID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    Title NVARCHAR(200) NULL,
+    Notes NVARCHAR(1000) NULL,
+    StartAt DATETIME2 NOT NULL,
+    EndAt DATETIME2 NOT NULL,
+    Location NVARCHAR(200) NULL,
+    Status NVARCHAR(50) NOT NULL DEFAULT 'Scheduled' 
+        CHECK (Status IN ('Scheduled', 'Completed', 'Cancelled')),
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_EmployeeShifts_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT FK_EmployeeShifts_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    CONSTRAINT CK_EmployeeShifts_TimeRange CHECK (EndAt > StartAt)
+);
+GO
+
+-- =======================================================
+-- 11. SHIFT TEMPLATES (Mẫu ca làm việc) & ASSIGNMENTS
+-- =======================================================
+CREATE TABLE ShiftTemplates (
+    TemplateID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Name NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(500) NULL,
+    -- Time-of-day range for a single day template
+    StartTime TIME NOT NULL,
+    EndTime TIME NOT NULL,
+    BreakMinutes INT NOT NULL DEFAULT 0 CHECK (BreakMinutes >= 0 AND BreakMinutes <= 720),
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT CK_ShiftTemplates_TimeRange CHECK (EndTime > StartTime),
+    CONSTRAINT FK_ShiftTemplates_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID) ON DELETE SET NULL
+);
+GO
+
+CREATE UNIQUE INDEX UX_ShiftTemplates_Name ON ShiftTemplates(Name);
+CREATE INDEX IX_ShiftTemplates_IsActive ON ShiftTemplates(IsActive);
+GO
+
+-- Assign repeating templates to employees by weekday, with optional effective date range
+CREATE TABLE EmployeeShiftAssignments (
+    AssignmentID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    TemplateID UNIQUEIDENTIFIER NOT NULL,
+    Weekday TINYINT NOT NULL CHECK (Weekday BETWEEN 1 AND 7), -- 1=Mon ... 7=Sun
+    EffectiveFrom DATE NULL,
+    EffectiveTo DATE NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_EmpShiftAssign_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT FK_EmpShiftAssign_Template FOREIGN KEY (TemplateID) REFERENCES ShiftTemplates(TemplateID) ON DELETE CASCADE,
+    CONSTRAINT FK_EmpShiftAssign_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    CONSTRAINT CK_EmpShiftAssign_DateRange CHECK (EffectiveTo IS NULL OR EffectiveFrom IS NULL OR EffectiveTo >= EffectiveFrom)
+);
+GO
+
+CREATE INDEX IX_EmpShiftAssign_EmployeeWeekday ON EmployeeShiftAssignments(EmployeeID, Weekday);
+CREATE INDEX IX_EmpShiftAssign_Effective ON EmployeeShiftAssignments(EffectiveFrom, EffectiveTo);
+CREATE INDEX IX_EmpShiftAssign_IsActive ON EmployeeShiftAssignments(IsActive);
+GO
+
+-- Trigger to prevent overlapping active assignments for the same employee, weekday, and date range
+CREATE OR ALTER TRIGGER TRG_EmpShiftAssignments_NoOverlap
+ON EmployeeShiftAssignments
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Only consider active assignments
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN EmployeeShiftAssignments a
+          ON a.EmployeeID = i.EmployeeID
+         AND a.AssignmentID <> i.AssignmentID
+         AND a.IsActive = 1 AND i.IsActive = 1
+         AND a.Weekday = i.Weekday
+         -- Date range overlap (NULL means open-ended)
+         AND (ISNULL(i.EffectiveFrom, a.EffectiveFrom) IS NULL OR ISNULL(a.EffectiveTo, '9999-12-31') >= ISNULL(i.EffectiveFrom, '0001-01-01'))
+         AND (ISNULL(i.EffectiveTo, '9999-12-31') >= ISNULL(a.EffectiveFrom, '0001-01-01'))
+    )
+    BEGIN
+        THROW 51001, N'Nhân viên đã có mẫu ca trùng (weekday/date range).', 1;
+    END
+END;
+GO
+
+-- Indexes to optimize lookups by employee and time range
+CREATE INDEX IX_EmployeeShifts_EmployeeID ON EmployeeShifts(EmployeeID);
+CREATE INDEX IX_EmployeeShifts_StartAt ON EmployeeShifts(StartAt);
+CREATE INDEX IX_EmployeeShifts_EndAt ON EmployeeShifts(EndAt);
+CREATE INDEX IX_EmployeeShifts_Status ON EmployeeShifts(Status);
+GO
+
+-- Prevent overlapping shifts for the same employee (except when existing or new is Cancelled)
+CREATE OR ALTER TRIGGER TRG_EmployeeShifts_NoOverlap
+ON EmployeeShifts
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN EmployeeShifts s
+          ON s.EmployeeID = i.EmployeeID
+         AND s.ShiftID <> i.ShiftID
+         AND s.Status <> 'Cancelled'
+         AND i.Status <> 'Cancelled'
+         -- Time overlap condition: [i.StartAt, i.EndAt) intersects [s.StartAt, s.EndAt)
+         AND i.StartAt < s.EndAt
+         AND i.EndAt > s.StartAt
+    )
+    BEGIN
+        THROW 51000, N'Nhân viên đã có lịch trùng thời gian.', 1;
+    END
+END;
+GO

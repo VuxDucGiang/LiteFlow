@@ -27,6 +27,14 @@ GO
 DELETE FROM TableSessions;
 GO
 
+-- Delete scheduling data (shifts -> assignments -> templates)
+DELETE FROM EmployeeShifts;
+GO
+DELETE FROM EmployeeShiftAssignments;
+GO
+DELETE FROM ShiftTemplates;
+GO
+
 -- Delete employees
 DELETE FROM Employees;
 GO
@@ -430,6 +438,80 @@ SELECT
     N'MB Bank - CN Quận 3',
     N'Pha chế đồ uống, hỗ trợ khách hàng tại quầy'
 FROM Users u WHERE u.Email = 'employee1@liteflow.vn';
+GO
+
+-- ============================================================
+-- 9️⃣.1 SCHEDULING - SHIFT TEMPLATES, ASSIGNMENTS, SHIFTS
+-- ============================================================
+-- Create shift templates
+INSERT INTO ShiftTemplates (Name, Description, StartTime, EndTime, BreakMinutes, IsActive, CreatedBy)
+SELECT N'Ca Sáng', N'7:00 - 12:00', '07:00', '12:00', 15, 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+
+INSERT INTO ShiftTemplates (Name, Description, StartTime, EndTime, BreakMinutes, IsActive, CreatedBy)
+SELECT N'Ca Chiều', N'12:00 - 17:00', '12:00', '17:00', 15, 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+
+INSERT INTO ShiftTemplates (Name, Description, StartTime, EndTime, BreakMinutes, IsActive, CreatedBy)
+SELECT N'Ca Tối', N'17:00 - 22:00', '17:00', '22:00', 15, 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+GO
+
+-- Assign templates to employees by weekdays
+-- Employee1 (Barista): Ca Sáng từ Thứ 2 - Thứ 6
+INSERT INTO EmployeeShiftAssignments (EmployeeID, TemplateID, Weekday, EffectiveFrom, EffectiveTo, IsActive, CreatedBy)
+SELECT e.EmployeeID, t.TemplateID, v.Weekday, CAST(SYSDATETIME() AS DATE), NULL, 1, uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN ShiftTemplates t ON t.Name = N'Ca Sáng'
+CROSS JOIN (VALUES (1),(2),(3),(4),(5)) v(Weekday)
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+
+-- Cashier: Ca Tối vào Thứ 2, 4, 6
+INSERT INTO EmployeeShiftAssignments (EmployeeID, TemplateID, Weekday, EffectiveFrom, EffectiveTo, IsActive, CreatedBy)
+SELECT e.EmployeeID, t.TemplateID, v.Weekday, CAST(SYSDATETIME() AS DATE), NULL, 1, uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'cashier1@liteflow.vn'
+JOIN ShiftTemplates t ON t.Name = N'Ca Tối'
+CROSS JOIN (VALUES (1),(3),(5)) v(Weekday)
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+
+-- Concrete shifts for current week (sample)
+DECLARE @HR UNIQUEIDENTIFIER = (SELECT TOP 1 UserID FROM Users WHERE Email = 'hr@liteflow.vn');
+DECLARE @today DATE = CAST(SYSDATETIME() AS DATE);
+
+-- Employee1 today morning shift
+INSERT INTO EmployeeShifts (EmployeeID, Title, Notes, StartAt, EndAt, Location, Status, CreatedBy)
+SELECT e.EmployeeID, N'Ca Sáng', N'Phân công mẫu',
+       DATEADD(HOUR, 7, CAST(@today AS DATETIME2)),
+       DATEADD(HOUR, 12, CAST(@today AS DATETIME2)),
+       N'Cửa hàng chính', 'Scheduled', @HR
+FROM Employees e
+JOIN Users u ON u.UserID = e.UserID
+WHERE u.Email = 'employee1@liteflow.vn';
+
+-- Employee1 tomorrow afternoon shift
+INSERT INTO EmployeeShifts (EmployeeID, Title, Notes, StartAt, EndAt, Location, Status, CreatedBy)
+SELECT e.EmployeeID, N'Ca Chiều', N'Phân công mẫu',
+       DATEADD(HOUR, 12, DATEADD(DAY, 1, CAST(@today AS DATETIME2))),
+       DATEADD(HOUR, 17, DATEADD(DAY, 1, CAST(@today AS DATETIME2))),
+       N'Cửa hàng chính', 'Scheduled', @HR
+FROM Employees e
+JOIN Users u ON u.UserID = e.UserID
+WHERE u.Email = 'employee1@liteflow.vn';
+
+-- Cashier day after tomorrow evening shift
+INSERT INTO EmployeeShifts (EmployeeID, Title, Notes, StartAt, EndAt, Location, Status, CreatedBy)
+SELECT e.EmployeeID, N'Ca Tối', N'Phân công mẫu',
+       DATEADD(HOUR, 17, DATEADD(DAY, 2, CAST(@today AS DATETIME2))),
+       DATEADD(HOUR, 22, DATEADD(DAY, 2, CAST(@today AS DATETIME2))),
+       N'Cửa hàng chính', 'Scheduled', @HR
+FROM Employees e
+JOIN Users u ON u.UserID = e.UserID
+WHERE u.Email = 'cashier1@liteflow.vn';
 GO
 
 -- ============================================================

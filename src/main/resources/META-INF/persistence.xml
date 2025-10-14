@@ -10,6 +10,10 @@
     <class>com.liteflow.model.auth.Role</class>
     <class>com.liteflow.model.auth.Employee</class>
     <class>com.liteflow.model.auth.UserRole</class>
+    <!-- Scheduling entities -->
+    <class>com.liteflow.model.auth.ShiftTemplate</class>
+    <class>com.liteflow.model.auth.EmployeeShiftAssignment</class>
+    <class>com.liteflow.model.auth.EmployeeShift</class>
     <!-- Inventory entities -->
     <class>com.liteflow.model.inventory.Category</class>
     <class>com.liteflow.model.inventory.Inventory</class>

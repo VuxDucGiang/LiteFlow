@@ -21,28 +21,61 @@
   <div class="main-content">
     <div class="schedule-toolbar">
       <div class="week-nav">
-        <button id="prevWeek" class="btn btn-light"><i class='bx bx-chevron-left'></i> Tuần trước</button>
-        <button id="todayWeek" class="btn btn-light">Hôm nay</button>
-        <button id="nextWeek" class="btn btn-light">Tuần sau <i class='bx bx-chevron-right'></i></button>
+        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}"><i class='bx bx-chevron-left'></i> Tuần trước</a>
+        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule"><i class='bx bx-target-lock'></i> Hôm nay</a>
+        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}">Tuần sau <i class='bx bx-chevron-right'></i></a>
       </div>
-      <div class="week-label" id="weekLabel">Tuần</div>
+      <div class="week-label">${weekLabel}</div>
     </div>
 
     <div class="schedule-table">
       <table class="schedule-grid">
         <thead>
           <tr>
-            <th class="time-col">Giờ</th>
-            <th data-day="1"><span>Thứ 2</span><small class="date"></small></th>
-            <th data-day="2"><span>Thứ 3</span><small class="date"></small></th>
-            <th data-day="3"><span>Thứ 4</span><small class="date"></small></th>
-            <th data-day="4"><span>Thứ 5</span><small class="date"></small></th>
-            <th data-day="5"><span>Thứ 6</span><small class="date"></small></th>
-            <th data-day="6"><span>Thứ 7</span><small class="date"></small></th>
-            <th data-day="7"><span>Chủ nhật</span><small class="date"></small></th>
+            <th class="time-col">Ca làm việc</th>
+            <c:forEach var="d" items="${weekDays}">
+              <th><span>${d.label}</span><small class="date">${d.dateStr}</small></th>
+            </c:forEach>
           </tr>
         </thead>
-        <tbody id="scheduleBody"></tbody>
+        <tbody>
+          <!-- Render each base shift row (templates) -->
+          <c:forEach var="t" items="${templates}">
+            <tr>
+              <td class="time-col">
+                <div class="slot-title">${t.name}</div>
+                <div class="slot-time">${t.startTime} - ${t.endTime}</div>
+              </td>
+              <c:forEach var="d" items="${weekDays}">
+                <td class="schedule-cell">
+                  <c:set var="rowFound" value="false" />
+                  <c:forEach var="row" items="${d.rows}">
+                    <c:if test="${row.templateName == t.name}">
+                      <c:choose>
+                        <c:when test="${empty row.items}">
+                          <div class="empty-day">—</div>
+                        </c:when>
+                        <c:otherwise>
+                          <c:forEach var="s" items="${row.items}">
+                            <div class="shift-block">
+                              <div class="shift-time">${s.time}</div>
+                              <div class="shift-title">${s.title}</div>
+                              <div class="shift-emp">${s.employee}</div>
+                            </div>
+                          </c:forEach>
+                        </c:otherwise>
+                      </c:choose>
+                      <c:set var="rowFound" value="true" />
+                    </c:if>
+                  </c:forEach>
+                  <c:if test="${!rowFound}">
+                    <div class="empty-day">—</div>
+                  </c:if>
+                </td>
+              </c:forEach>
+            </tr>
+          </c:forEach>
+        </tbody>
       </table>
     </div>
   </div>
