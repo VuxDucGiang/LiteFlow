@@ -26,7 +26,7 @@
             <i class='bx bx-dollar'></i>
           </div>
           <div class="value">0</div>
-          <div class="label">đơn đã xong</div>
+          <div class="label">Đơn đã xong</div>
           <div class="change up">↑ 100%</div>
           <div style="font-size: 12px; color: #6a7a92; margin-top: 4px;">Hôm qua 0</div>
         </div>
@@ -35,7 +35,7 @@
             <i class='bx bx-edit'></i>
           </div>
           <div class="value"><%= occupiedTables %></div>
-          <div class="label">đơn đang phục vụ</div>
+          <div class="label">Đơn đang phục vụ</div>
           <div class="change up" style="font-size:12px;color:#6a7a92;margin-top:4px;">
             Tổng giá trị: <%= new java.text.DecimalFormat("#,###").format(totalActiveAmount) %> ₫
           </div>
@@ -73,9 +73,9 @@
   <div class="right-section">
     <!-- Advertisement Banner -->
     <div class="ad-banner">
-      <div class="logo">KV</div>
-      <div class="title">Bán hàng thảnh thơi</div>
-      <div class="subtitle">Rinh ưu đãi tới 1,8 triệu</div>
+      <img src="${pageContext.request.contextPath}/img/fpt.jpg" alt="FPT Logo" class="logo">
+      <div class="title">Trường Đại Học hàng đầu Việt Nam</div>
+      <div class="subtitle">Ưu đãi học phí lên đến 100%</div>
     </div>
 
     <!-- Recent Activities -->
@@ -137,5 +137,8 @@
   </div>
 </div>
 
+
+<!-- Dashboard Enhancements -->
+<script src="${pageContext.request.contextPath}/js/dashboard-enhancements.js"></script>
 
 <jsp:include page="includes/footer.jsp" />

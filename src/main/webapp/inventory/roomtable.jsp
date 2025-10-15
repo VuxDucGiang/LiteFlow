@@ -7,6 +7,7 @@
 </jsp:include>
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/roomtable.css">
+<script src="${pageContext.request.contextPath}/js/roomtable-enhancements.js"></script>
 
 <div class="content">
     <!-- Statistics -->
