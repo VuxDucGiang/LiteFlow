@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+    /**
+     * Tạo ca làm việc mới
+     */
 public class ScheduleService {
 
     private final EmployeeShiftDAO shiftDAO = new EmployeeShiftDAO();
@@ -29,9 +32,6 @@ public class ScheduleService {
         return templateDAO.findActiveOrdered();
     }
 
-    /**
-     * Tạo ca làm việc mới
-     */
     public boolean createShift(String employeeCode,
                                java.time.LocalDate date,
                                LocalTime startTime,
