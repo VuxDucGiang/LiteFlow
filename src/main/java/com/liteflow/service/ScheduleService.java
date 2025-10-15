@@ -62,6 +62,14 @@ public class ScheduleService {
 
         return shiftDAO.insert(shift);
     }
+
+    /**
+     * Xóa ca làm việc theo ID
+     */
+    public boolean deleteShift(java.util.UUID shiftId) {
+        if (shiftId == null) return false;
+        return shiftDAO.delete(shiftId);
+    }
 }
 
 

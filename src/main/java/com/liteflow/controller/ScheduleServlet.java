@@ -92,6 +92,11 @@ public class ScheduleServlet extends HttpServlet {
                         vm.put("employee", s.getEmployee() != null ? s.getEmployee().getFullName() : "");
                         vm.put("notes", s.getNotes() != null ? s.getNotes() : "");
                         vm.put("location", s.getLocation() != null ? s.getLocation() : "");
+                        vm.put("shiftId", s.getShiftID() != null ? s.getShiftID().toString() : "");
+                        vm.put("title", s.getTitle() != null ? s.getTitle() : "");
+                        vm.put("status", s.getStatus() != null ? s.getStatus() : "");
+                        vm.put("startAt", s.getStartAt().toString());
+                        vm.put("endAt", s.getEndAt().toString());
                         cellShifts.add(vm);
                     }
                 }
@@ -156,6 +161,20 @@ public class ScheduleServlet extends HttpServlet {
                 }
             } catch (Exception ex) {
                 req.setAttribute("error", "Lỗi khi tạo ca làm việc: " + ex.getMessage());
+            }
+        } else if ("delete".equals(action)) {
+            try {
+                String shiftIdStr = req.getParameter("shiftId");
+                java.util.UUID sid = java.util.UUID.fromString(shiftIdStr);
+                boolean ok = scheduleService.deleteShift(sid);
+                if (ok) {
+                    resp.sendRedirect(req.getContextPath() + "/schedule?weekStart=" + (weekStartParam != null ? weekStartParam : LocalDate.now().toString()));
+                    return;
+                } else {
+                    req.setAttribute("error", "Không thể xóa ca làm việc");
+                }
+            } catch (Exception ex) {
+                req.setAttribute("error", "Lỗi khi xóa ca làm việc: " + ex.getMessage());
             }
         }
 

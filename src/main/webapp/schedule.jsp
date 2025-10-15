@@ -10,7 +10,15 @@
   <!-- Header Section -->
   <div class="schedule-header">
     <h1>Lịch làm việc</h1>
-    <div class="header-actions">
+    <div class="header-actions" style="display:flex; align-items:center; gap:12px; flex-wrap:nowrap;">
+      <div class="schedule-toolbar" style="margin: 0 12px 0 0;">
+        <div class="week-chip" id="weekChip">
+          <a class="chip-btn prev" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}"><i class='bx bx-chevron-left'></i></a>
+          <button type="button" class="chip-label" id="openCalendar">${controlLabel}</button>
+          <a class="chip-btn next" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}"><i class='bx bx-chevron-right'></i></a>
+        </div>
+        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule">Tuần này</a>
+      </div>
       <button class="btn btn-primary" id="openAddShift" type="button">
         <i class='bx bx-plus'></i> Thêm lịch làm việc
       </button>
@@ -19,14 +27,7 @@
 
   <!-- Main Content Area -->
   <div class="main-content">
-    <div class="schedule-toolbar">
-      <div class="week-chip" id="weekChip">
-        <a class="chip-btn prev" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}"><i class='bx bx-chevron-left'></i></a>
-        <button type="button" class="chip-label" id="openCalendar">${controlLabel}</button>
-        <a class="chip-btn next" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}"><i class='bx bx-chevron-right'></i></a>
-      </div>
-      <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule">Tuần này</a>
-    </div>
+    
 
     <div class="calendar-popover" id="calendarPopover" hidden>
       <div class="calendar-header">
@@ -66,7 +67,15 @@
                         </c:when>
                         <c:otherwise>
                           <c:forEach var="s" items="${row.items}">
-                            <div class="shift-block">
+                            <div class="shift-block"
+                                 data-shift-id="${s.shiftId}"
+                                 data-title="${s.title}"
+                                 data-employee="${s.employee}"
+                                 data-notes="${s.notes}"
+                                 data-location="${s.location}"
+                                 data-status="${s.status}"
+                                 data-start-at="${s.startAt}"
+                                 data-end-at="${s.endAt}">
                               <div class="shift-emp">${s.employee}</div>
                               <c:if test="${not empty s.notes}">
                                 <div class="shift-notes">${s.notes}</div>
@@ -160,6 +169,32 @@
   
 </div>
 
+<!-- Shift Detail Modal -->
+<div id="shiftDetailOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1000;">
+  <div style="background:#fff; width:95%; max-width:560px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #eee;">
+      <h3 style="margin:0; font-size:18px; font-weight:600;">Chi tiết ca làm việc</h3>
+      <div>
+        <form id="deleteShiftForm" method="post" action="${pageContext.request.contextPath}/schedule" style="display:inline; margin-right:8px;">
+          <input type="hidden" name="action" value="delete" />
+          <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+          <input type="hidden" name="shiftId" id="deleteShiftId" />
+          <button type="submit" class="btn btn-danger" id="deleteShiftBtn">Xóa</button>
+        </form>
+        <button type="button" id="closeShiftDetail" class="btn btn-light">Đóng</button>
+      </div>
+    </div>
+    <div style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
+      <div><label style="font-size:12px; color:#6b7280;">Nhân viên</label><div id="sdEmployee" style="margin-top:6px; font-weight:600;"></div></div>
+      <div><label style="font-size:12px; color:#6b7280;">Tiêu đề</label><div id="sdTitle" style="margin-top:6px;"></div></div>
+      <div><label style="font-size:12px; color:#6b7280;">Trạng thái</label><div id="sdStatus" style="margin-top:6px;"></div></div>
+      <div><label style="font-size:12px; color:#6b7280;">Địa điểm</label><div id="sdLocation" style="margin-top:6px;"></div></div>
+      <div><label style="font-size:12px; color:#6b7280;">Bắt đầu</label><div id="sdStartAt" style="margin-top:6px;"></div></div>
+      <div><label style="font-size:12px; color:#6b7280;">Kết thúc</label><div id="sdEndAt" style="margin-top:6px;"></div></div>
+      <div style="grid-column:1 / -1;"><label style="font-size:12px; color:#6b7280;">Ghi chú</label><div id="sdNotes" style="margin-top:6px;"></div></div>
+    </div>
+  </div>
+</div>
 <script>
 (function() {
   const gridBody = document.getElementById('scheduleBody');
@@ -408,6 +443,47 @@
       e.preventDefault();
       alert('Vui lòng chọn ít nhất một ca làm việc.');
     }
+  });
+})();
+
+// Shift Detail Modal wiring
+(function(){
+  var overlay = document.getElementById('shiftDetailOverlay');
+  var closeBtn = document.getElementById('closeShiftDetail');
+  function open(){ if (overlay) overlay.style.display = 'flex'; }
+  function close(){ if (overlay) overlay.style.display = 'none'; }
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (overlay) overlay.addEventListener('click', function(e){ if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+
+  function setText(id, v){ var el = document.getElementById(id); if (el) el.textContent = v || ''; }
+  function formatDT(dt){
+    if (!dt) return '';
+    try { var d = new Date(dt); return d.toLocaleString('vi-VN'); } catch(e) { return dt; }
+  }
+
+  document.addEventListener('click', function(e){
+    var block = e.target.closest('.shift-block');
+    if (!block) return;
+    var emp = block.getAttribute('data-employee') || '';
+    var title = block.getAttribute('data-title') || '';
+    var status = block.getAttribute('data-status') || '';
+    var loc = block.getAttribute('data-location') || '';
+    var startAt = block.getAttribute('data-start-at') || '';
+    var endAt = block.getAttribute('data-end-at') || '';
+    var notes = block.getAttribute('data-notes') || '';
+    var sid = block.getAttribute('data-shift-id') || '';
+
+    setText('sdEmployee', emp);
+    setText('sdTitle', title);
+    setText('sdStatus', status);
+    setText('sdLocation', loc);
+    setText('sdStartAt', formatDT(startAt));
+    setText('sdEndAt', formatDT(endAt));
+    setText('sdNotes', notes);
+    var delId = document.getElementById('deleteShiftId');
+    if (delId) delId.value = sid;
+    open();
   });
 })();
 </script>

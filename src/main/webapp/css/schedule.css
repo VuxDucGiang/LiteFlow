@@ -1,6 +1,6 @@
 .schedule-container {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -11,6 +11,13 @@
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid #e0e0e0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
 }
 
 .schedule-header h1 {
@@ -51,6 +58,16 @@
 
 .btn.btn-light:hover {
   background: #f6f6f6;
+}
+
+.btn.btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+.btn.btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
 .main-content {
@@ -239,6 +256,7 @@
   border-radius: 8px;
   padding: 6px 8px;
   font-size: 12px;
+  cursor: pointer;
 }
 
 .shift-block .shift-emp { font-weight: 700; color: #1a1a1a; }
