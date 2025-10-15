@@ -92,7 +92,7 @@
             <a href="${pageContext.request.contextPath}/employees" class="dropdown-item">
               <i class='bx bx-group'></i> Danh sách nhân viên
             </a>
-            <a href="${pageContext.request.contextPath}/schedule.jsp" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/schedule" class="dropdown-item">
               <i class='bx bx-calendar'></i> Lịch làm việc
             </a>
             <a href="#" class="dropdown-item">
