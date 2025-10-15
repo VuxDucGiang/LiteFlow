@@ -1,6 +1,7 @@
 package com.liteflow.controller;
 
 import com.liteflow.model.auth.EmployeeShift;
+import com.liteflow.service.EmployeeService;
 import com.liteflow.service.ScheduleService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class ScheduleServlet extends HttpServlet {
 
     private final ScheduleService scheduleService = new ScheduleService();
+    private final EmployeeService employeeService = new EmployeeService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -109,7 +112,55 @@ public class ScheduleServlet extends HttpServlet {
         req.setAttribute("prevWeekStart", prevWeekStart);
         req.setAttribute("nextWeekStart", nextWeekStart);
         req.setAttribute("templates", templates);
+        req.setAttribute("currentWeekStart", weekStart.toString());
+        req.setAttribute("employees", employeeService.getAllEmployees());
         req.getRequestDispatcher("/schedule.jsp").forward(req, resp);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding("UTF-8");
+        String action = req.getParameter("action");
+
+        String weekStartParam = req.getParameter("weekStart");
+        if (weekStartParam == null || weekStartParam.isBlank()) {
+            weekStartParam = LocalDate.now().toString();
+        }
+
+        if (action == null || action.isBlank() || "create".equals(action)) {
+            try {
+                String employeeCode = req.getParameter("employeeCode");
+                String dateStr = req.getParameter("date");
+                String[] startTimes = req.getParameterValues("startTime");
+                String[] endTimes = req.getParameterValues("endTime");
+                String title = req.getParameter("title");
+                String notes = req.getParameter("notes");
+                String location = req.getParameter("location");
+
+                LocalDate date = LocalDate.parse(dateStr);
+                boolean anyCreated = false;
+                if (startTimes != null && endTimes != null && startTimes.length == endTimes.length) {
+                    for (int i = 0; i < startTimes.length; i++) {
+                        LocalTime st = LocalTime.parse(startTimes[i]);
+                        LocalTime et = LocalTime.parse(endTimes[i]);
+                        boolean ok = scheduleService.createShift(employeeCode, date, st, et, title, notes, location);
+                        anyCreated = anyCreated || ok;
+                    }
+                }
+
+                if (anyCreated) {
+                    resp.sendRedirect(req.getContextPath() + "/schedule?weekStart=" + weekStartParam);
+                    return;
+                } else {
+                    req.setAttribute("error", "Không thể tạo ca làm việc. Vui lòng kiểm tra dữ liệu.");
+                }
+            } catch (Exception ex) {
+                req.setAttribute("error", "Lỗi khi tạo ca làm việc: " + ex.getMessage());
+            }
+        }
+
+        // Fallback: render GET with error message
+        doGet(req, resp);
     }
 }
 

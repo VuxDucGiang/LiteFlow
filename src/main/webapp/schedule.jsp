@@ -11,7 +11,7 @@
   <div class="schedule-header">
     <h1>Lịch làm việc</h1>
     <div class="header-actions">
-      <button class="btn btn-primary">
+      <button class="btn btn-primary" id="openAddShift" type="button">
         <i class='bx bx-plus'></i> Thêm lịch làm việc
       </button>
     </div>
@@ -94,11 +94,81 @@
   </div>
 </div>
 
+<!-- Add Shift Modal -->
+<div id="addShiftOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1000;">
+  <div style="background:#fff; width:95%; max-width:640px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #eee;">
+      <h3 style="margin:0; font-size:18px; font-weight:600;">Thêm lịch làm việc</h3>
+      <button type="button" id="closeAddShift" style="background:transparent; border:none; font-size:20px; cursor:pointer; padding:6px 10px; border-radius:6px;">✕</button>
+    </div>
+    <form id="addShiftForm" method="post" action="${pageContext.request.contextPath}/schedule" style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
+      <input type="hidden" name="action" value="create" />
+      <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+
+      <div style="grid-column:1 / -1;">
+        <label for="employeeCode" style="font-size:12px; color:#6b7280;">Nhân viên</label>
+        <select id="employeeCode" name="employeeCode" required style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
+          <option value="" disabled selected>Chọn nhân viên</option>
+          <c:forEach var="e" items="${employees}">
+            <option value="${e.employeeCode}">${e.employeeCode} - ${e.fullName}</option>
+          </c:forEach>
+        </select>
+      </div>
+
+      <div>
+        <label for="date" style="font-size:12px; color:#6b7280;">Ngày</label>
+        <input id="date" name="date" type="date" required style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
+      </div>
+      <div>
+        <label for="location" style="font-size:12px; color:#6b7280;">Địa điểm</label>
+        <input id="location" name="location" type="text" placeholder="VD: Quầy, Bếp..." style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
+      </div>
+
+      <div style="grid-column:1 / -1;">
+        <label style="font-size:12px; color:#6b7280; display:block; margin-bottom:6px;">Chọn ca</label>
+        <div id="templateOptions" style="display:flex; flex-wrap:wrap; gap:8px;">
+          <c:forEach var="t" items="${templates}">
+            <button type="button"
+                    class="tmpl-option"
+                    data-start="${t.startTime.toString().substring(0,5)}"
+                    data-end="${t.endTime.toString().substring(0,5)}"
+                    style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; cursor:pointer;">
+              <span style="font-weight:600;">${t.name}</span>
+              <span style="color:#6b7280; margin-left:6px;">${t.startTime.toString().substring(0,5)} - ${t.endTime.toString().substring(0,5)}</span>
+            </button>
+          </c:forEach>
+        </div>
+        <div style="margin-top:6px; font-size:12px; color:#374151;">Đã chọn: <span id="selectedTemplateLabel" style="font-weight:600;">Chưa chọn</span></div>
+        <div id="hiddenTimesContainer"></div>
+      </div>
+
+      <div>
+        <label for="title" style="font-size:12px; color:#6b7280;">Tiêu đề</label>
+        <input id="title" name="title" type="text" placeholder="Ca sáng, Ca tối..." style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
+      </div>
+      <div>
+        <label for="notes" style="font-size:12px; color:#6b7280;">Ghi chú</label>
+        <input id="notes" name="notes" type="text" placeholder="Ghi chú thêm" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
+      </div>
+
+      <div style="grid-column:1 / -1; display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+        <button type="button" id="cancelAddShift" class="btn btn-light">Hủy</button>
+        <button type="submit" class="btn btn-primary">Lưu</button>
+      </div>
+    </form>
+  </div>
+  
+</div>
+
 <script>
 (function() {
   const gridBody = document.getElementById('scheduleBody');
   const weekLabel = document.getElementById('weekLabel');
   const headerCells = Array.prototype.slice.call(document.querySelectorAll('.schedule-grid thead th[data-day]'));
+  // If legacy dynamic grid anchors are not present (server-rendered table), skip this block
+  if (!gridBody || !weekLabel) {
+    return;
+  }
 
   function startOfWeek(date) {
     const d = new Date(date);
@@ -165,18 +235,12 @@
     td.appendChild(block);
   }
 
-  document.getElementById('prevWeek').addEventListener('click', function() {
-    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    renderHeader();
-  });
-  document.getElementById('nextWeek').addEventListener('click', function() {
-    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-    renderHeader();
-  });
-  document.getElementById('todayWeek').addEventListener('click', function() {
-    currentWeekStart = startOfWeek(new Date());
-    renderHeader();
-  });
+  var prevBtn = document.getElementById('prevWeek');
+  var nextBtn = document.getElementById('nextWeek');
+  var todayBtn = document.getElementById('todayWeek');
+  if (prevBtn) prevBtn.addEventListener('click', function() { currentWeekStart.setDate(currentWeekStart.getDate() - 7); renderHeader(); });
+  if (nextBtn) nextBtn.addEventListener('click', function() { currentWeekStart.setDate(currentWeekStart.getDate() + 7); renderHeader(); });
+  if (todayBtn) todayBtn.addEventListener('click', function() { currentWeekStart = startOfWeek(new Date()); renderHeader(); });
 
   document.querySelector('.schedule-grid').addEventListener('click', function(e) {
     var td = e.target.closest('td.schedule-cell');
@@ -258,6 +322,93 @@
   calPrev.addEventListener('click', function(){ viewMonth -= 1; if (viewMonth<0){viewMonth=11; viewYear-=1;} renderCalendar(); });
   calNext.addEventListener('click', function(){ viewMonth += 1; if (viewMonth>11){viewMonth=0; viewYear+=1;} renderCalendar(); });
 
+})();
+
+// Add Shift Modal wiring
+(function(){
+  var overlay = document.getElementById('addShiftOverlay');
+  var openBtn = document.getElementById('openAddShift');
+  var closeBtn = document.getElementById('closeAddShift');
+  var cancelBtn = document.getElementById('cancelAddShift');
+  function open(){ overlay.style.display = 'flex'; }
+  function close(){ overlay.style.display = 'none'; }
+  if (openBtn) openBtn.addEventListener('click', open);
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (cancelBtn) cancelBtn.addEventListener('click', close);
+  if (overlay) overlay.addEventListener('click', function(e){ if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+
+  // Template selection wiring
+  var selectedLabel = document.getElementById('selectedTemplateLabel');
+  var hiddenContainer = document.getElementById('hiddenTimesContainer');
+  var options = Array.prototype.slice.call(document.querySelectorAll('.tmpl-option'));
+  function fmt(s, e){ return s + ' - ' + e; }
+  function updateSelectedLabel(){
+    var chips = Array.prototype.slice.call(hiddenContainer.querySelectorAll('input[name="startTime"]'));
+    if (!chips.length) { selectedLabel.textContent = 'Chưa chọn'; return; }
+    var labels = [];
+    chips.forEach(function(inp){
+      var s = inp.value;
+      var e = inp.nextSibling && inp.nextSibling.name === 'endTime' ? inp.nextSibling.value : '';
+      // end input is not reliably nextSibling if nodes differ; query accordingly
+    });
+    // Build labels from pairs
+    var starts = Array.prototype.slice.call(hiddenContainer.querySelectorAll('input[name="startTime"]'));
+    var ends = Array.prototype.slice.call(hiddenContainer.querySelectorAll('input[name="endTime"]'));
+    for (var i = 0; i < starts.length; i++) {
+      labels.push(fmt(starts[i].value, ends[i] ? ends[i].value : ''));
+    }
+    selectedLabel.textContent = labels.join(', ');
+  }
+  function isSelected(s, e){
+    var starts = hiddenContainer.querySelectorAll('input[name="startTime"][value="' + s + '"]');
+    var ends = hiddenContainer.querySelectorAll('input[name="endTime"][value="' + e + '"]');
+    return starts.length > 0 && ends.length > 0;
+  }
+  function addHidden(s, e){
+    var si = document.createElement('input'); si.type = 'hidden'; si.name = 'startTime'; si.value = s;
+    var ei = document.createElement('input'); ei.type = 'hidden'; ei.name = 'endTime'; ei.value = e;
+    hiddenContainer.appendChild(si);
+    hiddenContainer.appendChild(ei);
+  }
+  function removeHidden(s, e){
+    var starts = Array.prototype.slice.call(hiddenContainer.querySelectorAll('input[name="startTime"]'));
+    var ends = Array.prototype.slice.call(hiddenContainer.querySelectorAll('input[name="endTime"]'));
+    for (var i = 0; i < starts.length; i++) {
+      if (starts[i].value === s && ends[i] && ends[i].value === e) {
+        hiddenContainer.removeChild(starts[i]);
+        hiddenContainer.removeChild(ends[i]);
+        break;
+      }
+    }
+  }
+  function setActive(btn, active){
+    btn.style.background = active ? '#eef2ff' : '#fff';
+    btn.style.borderColor = active ? '#6366f1' : '#e5e7eb';
+  }
+  options.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var s = btn.getAttribute('data-start');
+      var e = btn.getAttribute('data-end');
+      if (isSelected(s, e)) {
+        removeHidden(s, e);
+        setActive(btn, false);
+      } else {
+        addHidden(s, e);
+        setActive(btn, true);
+      }
+      updateSelectedLabel();
+    });
+  });
+
+  // Validate before submit
+  var form = document.getElementById('addShiftForm');
+  if (form) form.addEventListener('submit', function(e){
+    if (!hiddenContainer.querySelector('input[name="startTime"]')) {
+      e.preventDefault();
+      alert('Vui lòng chọn ít nhất một ca làm việc.');
+    }
+  });
 })();
 </script>
 
