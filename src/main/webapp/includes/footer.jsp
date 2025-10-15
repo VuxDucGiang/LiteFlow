@@ -8,12 +8,26 @@
       <div class="footer-main">
         <div class="footer-brand">
           <div class="footer-logo">
-            <div class="logo-icon">LF</div>
+            <img src="${pageContext.request.contextPath}/img/logo.png" alt="LiteFlow Logo" class="logo-image">
             <span class="brand-name">LiteFlow</span>
           </div>
           <p class="brand-description">
             Hệ thống quản lý bán hàng toàn diện, giúp doanh nghiệp tối ưu hóa quy trình kinh doanh và tăng trưởng bền vững.
           </p>
+          <div class="social-links">
+            <a href="#" class="social-link facebook" data-tooltip="Facebook">
+              <i class='bx bxl-facebook'></i>
+            </a>
+            <a href="#" class="social-link twitter" data-tooltip="Twitter">
+              <i class='bx bxl-twitter'></i>
+            </a>
+            <a href="#" class="social-link linkedin" data-tooltip="LinkedIn">
+              <i class='bx bxl-linkedin'></i>
+            </a>
+            <a href="#" class="social-link youtube" data-tooltip="YouTube">
+              <i class='bx bxl-youtube'></i>
+            </a>
+          </div>
         </div>
         
         <div class="footer-sections">
@@ -97,6 +111,11 @@
   </button>
 </div>
 
+<!-- LiteFlow UI Enhancement Scripts -->
+<script src="${pageContext.request.contextPath}/js/liteflow-ui.js"></script>
+<script src="${pageContext.request.contextPath}/js/performance-system.js"></script>
+<script src="${pageContext.request.contextPath}/js/ui-enhancements.js"></script>
+
 <script>
   // Navigation item interactions
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -116,6 +135,128 @@
   document.querySelector('.floating-support')?.addEventListener('click', function() {
     // Add support functionality here
     console.log('Support button clicked');
+  });
+
+  // Footer Enhancements
+  document.addEventListener('DOMContentLoaded', function() {
+    // Animate footer elements on scroll
+    const footerElements = document.querySelectorAll('.footer-column, .footer-brand');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-fade-in-up');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    footerElements.forEach(el => observer.observe(el));
+
+    // Social links hover effects
+    document.querySelectorAll('.social-link').forEach(link => {
+      link.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-3px) scale(1.1)';
+        this.style.boxShadow = '0 8px 25px rgba(0, 128, 255, 0.3)';
+      });
+      
+      link.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0) scale(1)';
+        this.style.boxShadow = '0 4px 15px rgba(0, 128, 255, 0.2)';
+      });
+    });
+
+    // Footer links hover effects
+    document.querySelectorAll('.footer-link').forEach(link => {
+      link.addEventListener('mouseenter', function() {
+        this.style.color = '#00c6ff';
+        this.style.transform = 'translateX(5px)';
+      });
+      
+      link.addEventListener('mouseleave', function() {
+        this.style.color = '#ccc';
+        this.style.transform = 'translateX(0)';
+      });
+    });
+
+    // Contact info hover effects
+    document.querySelectorAll('.contact-row').forEach(row => {
+      row.addEventListener('mouseenter', function() {
+        this.style.backgroundColor = 'rgba(0, 128, 255, 0.1)';
+        this.style.transform = 'translateX(10px)';
+      });
+      
+      row.addEventListener('mouseleave', function() {
+        this.style.backgroundColor = 'transparent';
+        this.style.transform = 'translateX(0)';
+      });
+    });
+
+    // Tooltip functionality
+    document.querySelectorAll('[data-tooltip]').forEach(element => {
+      element.addEventListener('mouseenter', function() {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = this.dataset.tooltip;
+        tooltip.style.cssText = `
+          position: absolute;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          z-index: 1000;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          bottom: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          margin-bottom: 8px;
+        `;
+        
+        this.style.position = 'relative';
+        this.appendChild(tooltip);
+        
+        setTimeout(() => {
+          tooltip.style.opacity = '1';
+        }, 10);
+      });
+      
+      element.addEventListener('mouseleave', function() {
+        const tooltip = this.querySelector('.tooltip');
+        if (tooltip) {
+          tooltip.style.opacity = '0';
+          setTimeout(() => {
+            tooltip.remove();
+          }, 300);
+        }
+      });
+    });
+
+    // Newsletter subscription (if added)
+    const newsletterForm = document.querySelector('.newsletter-form');
+    if (newsletterForm) {
+      newsletterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const email = this.querySelector('input[type="email"]').value;
+        
+        // Show success animation
+        const button = this.querySelector('button');
+        const originalText = button.textContent;
+        button.textContent = 'Đang gửi...';
+        button.style.background = 'linear-gradient(135deg, #00c6ff, #0080FF)';
+        
+        setTimeout(() => {
+          button.textContent = 'Đã đăng ký!';
+          button.style.background = 'linear-gradient(135deg, #7d2ae8, #00c6ff)';
+          
+          setTimeout(() => {
+            button.textContent = originalText;
+            button.style.background = 'linear-gradient(135deg, #0080FF, #00c6ff)';
+            this.reset();
+          }, 2000);
+        }, 1000);
+      });
+    }
   });
 </script>
 </body>

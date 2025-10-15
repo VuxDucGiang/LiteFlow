@@ -12,7 +12,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- Header CSS -->
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/design-system.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/animations.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/ui-components.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
 </head>
 <body>
@@ -21,10 +24,10 @@
   <!-- Top Header Bar -->
   <header class="top-header">
     <div class="top-header-content">
-      <div class="nav-brand">
-        <div class="nav-logo">LF</div>
+      <a href="${pageContext.request.contextPath}/dashboard" class="nav-brand">
+        <img src="${pageContext.request.contextPath}/img/logo.png" alt="LiteFlow Logo" class="nav-logo">
         <span class="nav-brand-name">LiteFlow</span>
-      </div>
+      </a>
       <nav class="top-header-nav">
         <a href="#"><i class='bx bx-dollar'></i> Thanh toán</a>
         <a href="#"><i class='bx bx-dollar'></i> Vay vốn</a>
