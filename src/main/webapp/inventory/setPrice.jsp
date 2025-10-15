@@ -136,16 +136,22 @@
                         <table class="table">
                             <thead>
                                 <tr>
+                                    <th>Chọn</th>
                                     <th>Mã hàng</th>
                                     <th>Tên hàng</th>
                                     <th>Kích thước</th>
                                     <th>Giá vốn</th>
                                     <th>Giá bán</th>
+                                    <th>Lợi nhuận</th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <c:forEach var="p" items="${productPrices}">
                                     <tr>
+                                        <td>
+                                            <input type="checkbox" class="row-select" data-product-id="${p.productCode}">
+                                        </td>
                                         <td>
                                             <span class="product-code">${p.productCode}</span>
                                         </td>
@@ -157,10 +163,16 @@
                                         </td>
                                         <td>${p.size}</td>
                                         <td>
-                                            <fmt:formatNumber value="${p.originalPrice}" pattern="#,###" /> ₫
+                                            <input type="number" min="0" step="100" class="price-input original-price" data-product-id="${p.productCode}" data-field="originalPrice" value="${p.originalPrice}">
                                         </td>
                                         <td>
-                                            <fmt:formatNumber value="${p.sellingPrice}" pattern="#,###" /> ₫
+                                            <input type="number" min="0" step="100" class="price-input selling-price" data-product-id="${p.productCode}" data-field="sellingPrice" value="${p.sellingPrice}">
+                                        </td>
+                                        <td>
+                                            <span class="profit-amount"><fmt:formatNumber value="${p.sellingPrice - p.originalPrice}" pattern="#,###" /> ₫</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success" onclick="updateProductPrice('${p.productId}', '${p.size}')">Lưu</button>
                                         </td>
                                     </tr>
                                 </c:forEach>
@@ -261,20 +273,55 @@
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
 }
+
+.row-selected {
+    background-color: #f0f8ff;
+}
 </style>
 
 <script>
-    function updateProductPrice(productId) {
-        const row = document.querySelector(`input[data-product-id="${productId}"]`).closest('tr');
+    async function updateProductPrice(productId, size) {
+        const row = Array.from(document.querySelectorAll('tbody tr')).find(tr => {
+            const btn = tr.querySelector('button');
+            return btn && btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(productId) && btn.getAttribute('onclick').includes(size);
+        }) || document.querySelector(`input[data-product-id="${productId}"]`)?.closest('tr');
+
+        if (!row) {
+            alert('Không tìm thấy dòng sản phẩm.');
+            return;
+        }
+
         const originalPrice = row.querySelector('.original-price').value;
         const sellingPrice = row.querySelector('.selling-price').value;
-        
+
         if (!originalPrice || !sellingPrice || parseFloat(originalPrice) < 0 || parseFloat(sellingPrice) < 0) {
             alert('Vui lòng nhập giá hợp lệ');
             return;
         }
-        
-        alert(`Cập nhật giá cho sản phẩm ${productId}: Giá vốn ${originalPrice}, Giá bán ${sellingPrice}`);
+
+        try {
+            const resp = await fetch(`${pageContext.request.contextPath}/setprice`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                },
+                body: new URLSearchParams({
+                    productId: productId,
+                    size: size,
+                    originalPrice: originalPrice,
+                    sellingPrice: sellingPrice
+                })
+            });
+
+            const data = await resp.json().catch(() => ({}));
+            if (resp.ok && data.success) {
+                alert('✅ Cập nhật giá thành công');
+            } else {
+                alert('❌ Cập nhật thất bại: ' + (data.message || resp.status));
+            }
+        } catch (err) {
+            alert('❌ Lỗi khi gọi API: ' + err.message);
+        }
     }
 
     function saveAllPrices() {
@@ -311,6 +358,14 @@
     document.addEventListener('change', function(e) {
         if (e.target && e.target.name === 'categoryFilter') {
             filterByCategories();
+        }
+        if (e.target && e.target.classList.contains('row-select')) {
+            const row = e.target.closest('tr');
+            if (e.target.checked) {
+                row.classList.add('row-selected');
+            } else {
+                row.classList.remove('row-selected');
+            }
         }
     });
 

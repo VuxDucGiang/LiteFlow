@@ -7,6 +7,23 @@
 </jsp:include>
 
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/employee.css">
+        <style>
+            /* Minimal modal styles scoped to this page */
+            .employee-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
+            .employee-modal { background: #fff; width: 95%; max-width: 820px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+            .employee-modal__header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #eee; }
+            .employee-modal__title { font-size: 18px; font-weight: 600; margin: 0; }
+            .employee-modal__close { background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 6px 10px; border-radius: 6px; }
+            .employee-modal__close:hover { background: #f3f4f6; }
+            .employee-modal__body { padding: 20px; max-height: 70vh; overflow: auto; }
+            .employee-modal__grid { display: grid; grid-template-columns: 160px 1fr; gap: 20px; }
+            .employee-modal__avatar { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; }
+            .employee-modal__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+            .employee-field { display: flex; flex-direction: column; gap: 6px; }
+            .employee-field label { font-size: 12px; color: #6b7280; }
+            .employee-field .value { font-size: 14px; color: #111827; background: #f9fafb; padding: 10px 12px; border-radius: 8px; border: 1px solid #f3f4f6; }
+            @media (max-width: 680px) { .employee-modal__grid { grid-template-columns: 1fr; } .employee-modal__fields { grid-template-columns: 1fr; } }
+        </style>
 
 <div class="content">
     <!-- Statistics -->
@@ -175,7 +192,27 @@
                             </thead>
                             <tbody>
                                 <c:forEach var="emp" items="${employees}">
-                                    <tr>
+                                    <tr
+                                        data-employee-code="${emp.employeeCode}"
+                                        data-full-name="${emp.fullName}"
+                                        data-email="${emp.email}"
+                                        data-phone="${emp.phone}"
+                                        data-national-id="${emp.nationalID}"
+                                        data-gender="${emp.gender}"
+                                        data-birth-date="${emp.birthDate}"
+                                        data-address="${emp.address}"
+                                        data-position="${emp.position}"
+                                        data-status="${emp.employmentStatus}"
+                                        data-salary="${emp.salary}"
+                                        data-bank-account="${emp.bankAccount}"
+                                        data-bank-name="${emp.bankName}"
+                                        data-notes="${emp.notes}"
+                                        data-avatar-url="${emp.avatarURL}"
+                                        data-hire-date="${emp.hireDate}"
+                                        data-termination-date="${emp.terminationDate}"
+                                        data-created-at="${emp.createdAt}"
+                                        data-updated-at="${emp.updatedAt}"
+                                    >
                                         <td>
                                             <span class="employee-code">${emp.employeeCode}</span>
                                         </td>
@@ -229,6 +266,43 @@
                         </table>
                     </c:otherwise>
                 </c:choose>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Detail Modal -->
+<div id="employeeDetailModal" class="employee-modal-overlay">
+    <div class="employee-modal" role="dialog" aria-modal="true" aria-labelledby="employeeDetailTitle">
+        <div class="employee-modal__header">
+            <h3 id="employeeDetailTitle" class="employee-modal__title">Thông tin nhân viên</h3>
+            <button type="button" class="employee-modal__close" id="employeeModalCloseBtn" aria-label="Đóng">✕</button>
+        </div>
+        <div class="employee-modal__body">
+            <div class="employee-modal__grid">
+                <div style="display:flex; align-items:center; justify-content:center;">
+                    <img id="modalAvatar" class="employee-modal__avatar" src="" alt="Avatar">
+                </div>
+                <div class="employee-modal__fields">
+                    <div class="employee-field"><label>Mã nhân viên</label><div id="modalEmployeeCode" class="value"></div></div>
+                    <div class="employee-field"><label>Họ tên</label><div id="modalFullName" class="value"></div></div>
+                    <div class="employee-field"><label>Email</label><div id="modalEmail" class="value"></div></div>
+                    <div class="employee-field"><label>Số điện thoại</label><div id="modalPhone" class="value"></div></div>
+                    <div class="employee-field"><label>CCCD/CMND</label><div id="modalNationalID" class="value"></div></div>
+                    <div class="employee-field"><label>Giới tính</label><div id="modalGender" class="value"></div></div>
+                    <div class="employee-field"><label>Ngày sinh</label><div id="modalBirthDate" class="value"></div></div>
+                    <div class="employee-field"><label>Địa chỉ</label><div id="modalAddress" class="value"></div></div>
+                    <div class="employee-field"><label>Vị trí</label><div id="modalPosition" class="value"></div></div>
+                    <div class="employee-field"><label>Trạng thái</label><div id="modalStatus" class="value"></div></div>
+                    <div class="employee-field"><label>Lương</label><div id="modalSalary" class="value"></div></div>
+                    <div class="employee-field"><label>Ngân hàng</label><div id="modalBankName" class="value"></div></div>
+                    <div class="employee-field"><label>Số tài khoản</label><div id="modalBankAccount" class="value"></div></div>
+                    <div class="employee-field" style="grid-column: 1 / -1;"><label>Ghi chú</label><div id="modalNotes" class="value"></div></div>
+                    <div class="employee-field"><label>Ngày vào làm</label><div id="modalHireDate" class="value"></div></div>
+                    <div class="employee-field"><label>Ngày nghỉ việc</label><div id="modalTerminationDate" class="value"></div></div>
+                    <div class="employee-field"><label>Tạo lúc</label><div id="modalCreatedAt" class="value"></div></div>
+                    <div class="employee-field"><label>Cập nhật lúc</label><div id="modalUpdatedAt" class="value"></div></div>
+                </div>
             </div>
         </div>
     </div>
@@ -411,7 +485,59 @@
             }
 
             function viewEmployee(employeeCode) {
-                alert('Chức năng xem chi tiết nhân viên sẽ được triển khai cho mã: ' + employeeCode);
+                const row = document.querySelector('tr[data-employee-code="' + employeeCode + '"]');
+                if (!row) {
+                    alert('Không tìm thấy dữ liệu nhân viên: ' + employeeCode);
+                    return;
+                }
+
+                const get = (k) => (row.getAttribute(k) || '').trim();
+                const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || ''; };
+
+                const avatar = get('data-avatar-url') || '';
+                const avatarEl = document.getElementById('modalAvatar');
+                if (avatarEl) {
+                    avatarEl.src = avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(get('data-full-name') || employeeCode) + '&background=E5E7EB&color=111827';
+                }
+
+                setText('modalEmployeeCode', get('data-employee-code'));
+                setText('modalFullName', get('data-full-name'));
+                setText('modalEmail', get('data-email'));
+                setText('modalPhone', get('data-phone'));
+                setText('modalNationalID', get('data-national-id'));
+                setText('modalGender', get('data-gender'));
+                setText('modalBirthDate', get('data-birth-date'));
+                setText('modalAddress', get('data-address'));
+                setText('modalPosition', get('data-position'));
+                setText('modalStatus', get('data-status'));
+                setText('modalSalary', get('data-salary'));
+                setText('modalBankName', get('data-bank-name'));
+                setText('modalBankAccount', get('data-bank-account'));
+                setText('modalNotes', get('data-notes'));
+                setText('modalHireDate', get('data-hire-date'));
+                setText('modalTerminationDate', get('data-termination-date'));
+                setText('modalCreatedAt', get('data-created-at'));
+                setText('modalUpdatedAt', get('data-updated-at'));
+
+                openEmployeeModal();
+            }
+
+            function openEmployeeModal() {
+                const overlay = document.getElementById('employeeDetailModal');
+                if (!overlay) return;
+                overlay.style.display = 'flex';
+                // close on outside click
+                overlay.addEventListener('click', function onOverlay(e) {
+                    if (e.target === overlay) {
+                        closeEmployeeModal();
+                    }
+                }, { once: true });
+            }
+
+            function closeEmployeeModal() {
+                const overlay = document.getElementById('employeeDetailModal');
+                if (!overlay) return;
+                overlay.style.display = 'none';
             }
 
             function editEmployee(employeeCode) {
@@ -445,6 +571,13 @@
             document.querySelectorAll('input[name="positionFilter"], input[name="statusFilter"]').forEach(checkbox => {
                 checkbox.addEventListener('change', applyAllFilters);
             });
+
+            // Close modal button and ESC
+            (function initEmployeeModalControls(){
+                const btn = document.getElementById('employeeModalCloseBtn');
+                if (btn) btn.addEventListener('click', closeEmployeeModal);
+                document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeEmployeeModal(); });
+            })();
         </script>
 
 <jsp:include page="../includes/footer.jsp" />
