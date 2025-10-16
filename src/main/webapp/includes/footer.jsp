@@ -116,6 +116,76 @@
 <script src="${pageContext.request.contextPath}/js/ui-enhancements.js"></script>
 
 <script>
+  // Navigation dropdown functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle dropdown menus
+    document.querySelectorAll('.nav-item.dropdown').forEach(dropdown => {
+      const dropdownToggle = dropdown.querySelector('.nav-item');
+      const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+      
+      if (dropdownToggle && dropdownMenu) {
+        dropdownToggle.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Close other dropdowns
+          document.querySelectorAll('.nav-item.dropdown').forEach(otherDropdown => {
+            if (otherDropdown !== dropdown) {
+              otherDropdown.classList.remove('show');
+              const otherMenu = otherDropdown.querySelector('.dropdown-menu');
+              if (otherMenu) {
+                otherMenu.style.display = 'none';
+              }
+            }
+          });
+          
+          // Toggle current dropdown
+          dropdown.classList.toggle('show');
+          if (dropdown.classList.contains('show')) {
+            dropdownMenu.style.display = 'block';
+            // Add animation
+            dropdownMenu.style.opacity = '0';
+            dropdownMenu.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+              dropdownMenu.style.opacity = '1';
+              dropdownMenu.style.transform = 'translateY(0)';
+            }, 10);
+          } else {
+            dropdownMenu.style.display = 'none';
+          }
+        });
+      }
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.nav-item.dropdown')) {
+        document.querySelectorAll('.nav-item.dropdown').forEach(dropdown => {
+          dropdown.classList.remove('show');
+          const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+          if (dropdownMenu) {
+            dropdownMenu.style.display = 'none';
+          }
+        });
+      }
+    });
+    
+    // Handle dropdown item clicks
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', function() {
+        // Close parent dropdown
+        const dropdown = this.closest('.nav-item.dropdown');
+        if (dropdown) {
+          dropdown.classList.remove('show');
+          const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+          if (dropdownMenu) {
+            dropdownMenu.style.display = 'none';
+          }
+        }
+      });
+    });
+  });
+
   // Navigation item interactions
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', function() {

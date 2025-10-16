@@ -310,12 +310,15 @@ body{
   border: 1px solid var(--border-primary);
   backdrop-filter: blur(20px);
   overflow: hidden;
+  display: none;
 }
 
-.nav-item.dropdown:hover .dropdown-menu {
+.nav-item.dropdown:hover .dropdown-menu,
+.nav-item.dropdown.show .dropdown-menu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0) scale(1);
+  display: block;
 }
 
 .dropdown-item {
