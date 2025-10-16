@@ -112,7 +112,6 @@
 </div>
 
 <!-- LiteFlow UI Enhancement Scripts -->
-<script src="${pageContext.request.contextPath}/js/liteflow-ui.js"></script>
 <script src="${pageContext.request.contextPath}/js/performance-system.js"></script>
 <script src="${pageContext.request.contextPath}/js/ui-enhancements.js"></script>
 
