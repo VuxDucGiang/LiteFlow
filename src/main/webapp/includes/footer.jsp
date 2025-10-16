@@ -8,7 +8,7 @@
       <div class="footer-main">
         <div class="footer-brand">
           <div class="footer-logo">
-            <img src="${pageContext.request.contextPath}/img/logo.png" alt="LiteFlow Logo" class="logo-image">
+     <!--       <img src="${pageContext.request.contextPath}/img/logo.png" alt="LiteFlow Logo" class="logo-image"> -->
             <span class="brand-name">LiteFlow</span>
           </div>
           <p class="brand-description">
