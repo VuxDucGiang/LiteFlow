@@ -6,6 +6,61 @@
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/schedule.css">
 
+<style>
+/* Quick add shift styles */
+.clickable-cell {
+  cursor: pointer !important;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.clickable-cell:hover {
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+}
+
+.clickable-cell:hover::after {
+  content: '+';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: bold;
+  color: #0369a1;
+}
+
+.clickable-cell:not(:hover) {
+  background-color: transparent !important;
+  color: #9ca3af !important;
+}
+
+/* Modal animation */
+#quickAddShiftOverlay {
+  animation: fadeIn 0.2s ease;
+}
+
+#quickAddShiftOverlay > div {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+</style>
+
 <div class="schedule-container">
   <!-- Header Section -->
   <div class="schedule-header">
@@ -63,7 +118,13 @@
                     <c:if test="${row.templateName == t.name}">
                       <c:choose>
                         <c:when test="${empty row.items}">
-                          <div class="empty-day">—</div>
+                          <div class="empty-day clickable-cell" 
+                               data-date="${d.dateStr}"
+                               data-day-label="${d.label}"
+                               data-template-name="${t.name}"
+                               data-start-time="${t.startTime.toString().substring(0,5)}"
+                               data-end-time="${t.endTime.toString().substring(0,5)}"
+                               title="Click để thêm lịch làm việc">—</div>
                         </c:when>
                         <c:otherwise>
                           <c:forEach var="s" items="${row.items}">
@@ -75,7 +136,8 @@
                                  data-location="${s.location}"
                                  data-status="${s.status}"
                                  data-start-at="${s.startAt}"
-                                 data-end-at="${s.endAt}">
+                                 data-end-at="${s.endAt}"
+                                 data-is-recurring="${s.isRecurring}">
                               <div class="shift-emp">${s.employee}</div>
                               <c:if test="${not empty s.notes}">
                                 <div class="shift-notes">${s.notes}</div>
@@ -91,7 +153,13 @@
                     </c:if>
                   </c:forEach>
                   <c:if test="${!rowFound}">
-                    <div class="empty-day">—</div>
+                    <div class="empty-day clickable-cell" 
+                         data-date="${d.dateStr}"
+                         data-day-label="${d.label}"
+                         data-template-name="${t.name}"
+                         data-start-time="${t.startTime.toString().substring(0,5)}"
+                         data-end-time="${t.endTime.toString().substring(0,5)}"
+                         title="Click để thêm lịch làm việc">—</div>
                   </c:if>
                 </td>
               </c:forEach>
@@ -160,6 +228,41 @@
         <input id="notes" name="notes" type="text" placeholder="Ghi chú thêm" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
       </div>
 
+      <!-- Toggle lặp lại hằng tuần cho ca mới -->
+      <div style="grid-column:1 / -1; margin-top:16px; padding-top:16px; border-top:1px solid #eee;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <label style="font-size:14px; color:#374151; font-weight:500;">Lặp lại hằng tuần</label>
+            <div style="font-size:12px; color:#6b7280; margin-top:2px;">Ca làm việc này sẽ tự động lặp lại vào cùng thời điểm mỗi tuần</div>
+          </div>
+          <div style="position:relative;">
+            <input type="checkbox" id="addRecurringToggle" name="isRecurring" value="true" style="display:none;">
+            <label for="addRecurringToggle" id="addRecurringToggleLabel" style="
+              display:inline-block; 
+              width:48px; 
+              height:24px; 
+              background:#e5e7eb; 
+              border-radius:12px; 
+              position:relative; 
+              cursor:pointer; 
+              transition:background 0.3s ease;
+            ">
+              <span style="
+                position:absolute; 
+                top:2px; 
+                left:2px; 
+                width:20px; 
+                height:20px; 
+                background:#fff; 
+                border-radius:50%; 
+                transition:transform 0.3s ease; 
+                box-shadow:0 2px 4px rgba(0,0,0,0.1);
+              "></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div style="grid-column:1 / -1; display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
         <button type="button" id="cancelAddShift" class="btn btn-light">Hủy</button>
         <button type="submit" class="btn btn-primary">Lưu</button>
@@ -167,6 +270,94 @@
     </form>
   </div>
   
+</div>
+
+<!-- Quick Add Shift Modal -->
+<div id="quickAddShiftOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1000;">
+  <div style="background:#fff; width:95%; max-width:480px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #eee;">
+      <h3 style="margin:0; font-size:18px; font-weight:600;">Thêm lịch làm việc nhanh</h3>
+      <button type="button" id="closeQuickAddShift" style="background:transparent; border:none; font-size:20px; cursor:pointer; padding:6px 10px; border-radius:6px;">✕</button>
+    </div>
+    <form id="quickAddShiftForm" method="post" action="${pageContext.request.contextPath}/schedule" style="padding:20px; display:grid; gap:16px;">
+      <input type="hidden" name="action" value="create" />
+      <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+      <input type="hidden" name="date" id="quickDate" />
+      <input type="hidden" name="startTime" id="quickStartTime" />
+      <input type="hidden" name="endTime" id="quickEndTime" />
+
+      <!-- Thông tin ca làm việc được điền sẵn -->
+      <div style="background:#f8fafc; padding:12px; border-radius:8px; border-left:4px solid #3b82f6;">
+        <div style="font-size:14px; color:#374151; font-weight:500;">Ca làm việc</div>
+        <div id="quickShiftInfo" style="font-size:13px; color:#6b7280; margin-top:4px;"></div>
+      </div>
+
+      <div>
+        <label for="quickEmployeeCode" style="font-size:12px; color:#6b7280;">Nhân viên *</label>
+        <select id="quickEmployeeCode" name="employeeCode" required style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
+          <option value="" disabled selected>Chọn nhân viên</option>
+          <c:forEach var="e" items="${employees}">
+            <option value="${e.employeeCode}">${e.employeeCode} - ${e.fullName}</option>
+          </c:forEach>
+        </select>
+      </div>
+
+      <div>
+        <label for="quickTitle" style="font-size:12px; color:#6b7280;">Tiêu đề</label>
+        <input id="quickTitle" name="title" type="text" placeholder="Ca sáng, Ca tối..." style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
+      </div>
+
+      <div>
+        <label for="quickLocation" style="font-size:12px; color:#6b7280;">Địa điểm</label>
+        <input id="quickLocation" name="location" type="text" placeholder="VD: Quầy, Bếp..." style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
+      </div>
+
+      <div>
+        <label for="quickNotes" style="font-size:12px; color:#6b7280;">Ghi chú</label>
+        <input id="quickNotes" name="notes" type="text" placeholder="Ghi chú thêm" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
+      </div>
+
+      <!-- Toggle lặp lại hằng tuần -->
+      <div style="margin-top:8px; padding-top:16px; border-top:1px solid #eee;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <label style="font-size:14px; color:#374151; font-weight:500;">Lặp lại hằng tuần</label>
+            <div style="font-size:12px; color:#6b7280; margin-top:2px;">Ca làm việc này sẽ tự động lặp lại vào cùng thời điểm mỗi tuần</div>
+          </div>
+          <div style="position:relative;">
+            <input type="checkbox" id="quickRecurringToggle" name="isRecurring" value="true" style="display:none;">
+            <label for="quickRecurringToggle" id="quickRecurringToggleLabel" style="
+              display:inline-block; 
+              width:48px; 
+              height:24px; 
+              background:#e5e7eb; 
+              border-radius:12px; 
+              position:relative; 
+              cursor:pointer; 
+              transition:background 0.3s ease;
+            ">
+              <span style="
+                position:absolute; 
+                top:2px; 
+                left:2px; 
+                width:20px; 
+                height:20px; 
+                background:#fff; 
+                border-radius:50%; 
+                transition:transform 0.3s ease; 
+                box-shadow:0 2px 4px rgba(0,0,0,0.1);
+              "></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+        <button type="button" id="cancelQuickAddShift" class="btn btn-light">Hủy</button>
+        <button type="submit" class="btn btn-primary">Thêm ca</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- Shift Detail Modal -->
@@ -192,6 +383,47 @@
       <div><label style="font-size:12px; color:#6b7280;">Bắt đầu</label><div id="sdStartAt" style="margin-top:6px;"></div></div>
       <div><label style="font-size:12px; color:#6b7280;">Kết thúc</label><div id="sdEndAt" style="margin-top:6px;"></div></div>
       <div style="grid-column:1 / -1;"><label style="font-size:12px; color:#6b7280;">Ghi chú</label><div id="sdNotes" style="margin-top:6px;"></div></div>
+      
+      <!-- Toggle lặp lại hằng tuần -->
+      <div style="grid-column:1 / -1; margin-top:16px; padding-top:16px; border-top:1px solid #eee;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <label style="font-size:14px; color:#374151; font-weight:500;">Lặp lại hằng tuần</label>
+            <div style="font-size:12px; color:#6b7280; margin-top:2px;">Ca làm việc này sẽ tự động lặp lại vào cùng thời điểm mỗi tuần</div>
+          </div>
+          <div style="position:relative;">
+            <input type="checkbox" id="recurringToggle" style="display:none;">
+            <label for="recurringToggle" id="recurringToggleLabel" style="
+              display:inline-block; 
+              width:48px; 
+              height:24px; 
+              background:#e5e7eb; 
+              border-radius:12px; 
+              position:relative; 
+              cursor:pointer; 
+              transition:background 0.3s ease;
+            ">
+              <span style="
+                position:absolute; 
+                top:2px; 
+                left:2px; 
+                width:20px; 
+                height:20px; 
+                background:#fff; 
+                border-radius:50%; 
+                transition:transform 0.3s ease; 
+                box-shadow:0 2px 4px rgba(0,0,0,0.1);
+              "></span>
+            </label>
+          </div>
+        </div>
+        <form id="toggleRecurringForm" method="post" action="${pageContext.request.contextPath}/schedule" style="display:none;">
+          <input type="hidden" name="action" value="toggleRecurring" />
+          <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+          <input type="hidden" name="shiftId" id="toggleShiftId" />
+          <input type="hidden" name="isRecurring" id="toggleIsRecurring" />
+        </form>
+      </div>
     </div>
   </div>
 </div>
@@ -436,6 +668,28 @@
     });
   });
 
+  // Xử lý toggle switch cho modal thêm lịch
+  var addToggle = document.getElementById('addRecurringToggle');
+  var addToggleLabel = document.getElementById('addRecurringToggleLabel');
+  
+  if (addToggle && addToggleLabel) {
+    addToggleLabel.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Toggle trạng thái
+      addToggle.checked = !addToggle.checked;
+      
+      // Cập nhật giao diện
+      if (addToggle.checked) {
+        addToggleLabel.style.background = '#10b981';
+        addToggleLabel.querySelector('span').style.transform = 'translateX(24px)';
+      } else {
+        addToggleLabel.style.background = '#e5e7eb';
+        addToggleLabel.querySelector('span').style.transform = 'translateX(0px)';
+      }
+    });
+  }
+
   // Validate before submit
   var form = document.getElementById('addShiftForm');
   if (form) form.addEventListener('submit', function(e){
@@ -456,6 +710,36 @@
   if (overlay) overlay.addEventListener('click', function(e){ if (e.target === overlay) close(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
 
+  // Xử lý toggle switch
+  var toggle = document.getElementById('recurringToggle');
+  var toggleLabel = document.getElementById('recurringToggleLabel');
+  var toggleForm = document.getElementById('toggleRecurringForm');
+  
+  if (toggle && toggleLabel && toggleForm) {
+    toggleLabel.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Toggle trạng thái
+      toggle.checked = !toggle.checked;
+      
+      // Cập nhật giao diện
+      if (toggle.checked) {
+        toggleLabel.style.background = '#10b981';
+        toggleLabel.querySelector('span').style.transform = 'translateX(24px)';
+      } else {
+        toggleLabel.style.background = '#e5e7eb';
+        toggleLabel.querySelector('span').style.transform = 'translateX(0px)';
+      }
+      
+      // Cập nhật giá trị trong form và submit
+      var toggleIsRecurring = document.getElementById('toggleIsRecurring');
+      if (toggleIsRecurring) {
+        toggleIsRecurring.value = toggle.checked ? 'true' : 'false';
+        toggleForm.submit();
+      }
+    });
+  }
+
   function setText(id, v){ var el = document.getElementById(id); if (el) el.textContent = v || ''; }
   function formatDT(dt){
     if (!dt) return '';
@@ -473,6 +757,7 @@
     var endAt = block.getAttribute('data-end-at') || '';
     var notes = block.getAttribute('data-notes') || '';
     var sid = block.getAttribute('data-shift-id') || '';
+    var isRecurring = block.getAttribute('data-is-recurring') || 'false';
 
     setText('sdEmployee', emp);
     setText('sdTitle', title);
@@ -481,8 +766,126 @@
     setText('sdStartAt', formatDT(startAt));
     setText('sdEndAt', formatDT(endAt));
     setText('sdNotes', notes);
+    
     var delId = document.getElementById('deleteShiftId');
     if (delId) delId.value = sid;
+    
+    // Cập nhật toggle switch
+    var toggle = document.getElementById('recurringToggle');
+    var toggleLabel = document.getElementById('recurringToggleLabel');
+    var toggleShiftId = document.getElementById('toggleShiftId');
+    var toggleIsRecurring = document.getElementById('toggleIsRecurring');
+    
+    if (toggle && toggleLabel && toggleShiftId && toggleIsRecurring) {
+      toggleShiftId.value = sid;
+      toggleIsRecurring.value = isRecurring;
+      toggle.checked = isRecurring === 'true';
+      
+      // Cập nhật giao diện toggle
+      if (toggle.checked) {
+        toggleLabel.style.background = '#10b981';
+        toggleLabel.querySelector('span').style.transform = 'translateX(24px)';
+      } else {
+        toggleLabel.style.background = '#e5e7eb';
+        toggleLabel.querySelector('span').style.transform = 'translateX(0px)';
+      }
+    }
+    
+    open();
+  });
+})();
+
+// Quick Add Shift Modal wiring
+(function(){
+  var overlay = document.getElementById('quickAddShiftOverlay');
+  var closeBtn = document.getElementById('closeQuickAddShift');
+  var cancelBtn = document.getElementById('cancelQuickAddShift');
+  var form = document.getElementById('quickAddShiftForm');
+  
+  function open(){ if (overlay) overlay.style.display = 'flex'; }
+  function close(){ if (overlay) overlay.style.display = 'none'; }
+  
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (cancelBtn) cancelBtn.addEventListener('click', close);
+  if (overlay) overlay.addEventListener('click', function(e){ if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+
+  // Xử lý toggle switch cho modal thêm nhanh
+  var quickToggle = document.getElementById('quickRecurringToggle');
+  var quickToggleLabel = document.getElementById('quickRecurringToggleLabel');
+  
+  if (quickToggle && quickToggleLabel) {
+    quickToggleLabel.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Toggle trạng thái
+      quickToggle.checked = !quickToggle.checked;
+      
+      // Cập nhật giao diện
+      if (quickToggle.checked) {
+        quickToggleLabel.style.background = '#10b981';
+        quickToggleLabel.querySelector('span').style.transform = 'translateX(24px)';
+      } else {
+        quickToggleLabel.style.background = '#e5e7eb';
+        quickToggleLabel.querySelector('span').style.transform = 'translateX(0px)';
+      }
+    });
+  }
+
+  // Xử lý click vào ô trống để thêm nhanh
+  document.addEventListener('click', function(e){
+    var cell = e.target.closest('.clickable-cell');
+    if (!cell) return;
+    
+    // Lấy thông tin từ data attributes
+    var dateStr = cell.getAttribute('data-date');
+    var dayLabel = cell.getAttribute('data-day-label');
+    var templateName = cell.getAttribute('data-template-name');
+    var startTime = cell.getAttribute('data-start-time');
+    var endTime = cell.getAttribute('data-end-time');
+    
+    if (!dateStr || !templateName || !startTime || !endTime) return;
+    
+    // Chuyển đổi ngày từ dd/mm sang yyyy-mm-dd
+    var dateParts = dateStr.split('/');
+    var day = dateParts[0];
+    var month = dateParts[1];
+    
+    // Lấy năm từ tuần hiện tại (từ weekStart parameter)
+    var urlParams = new URLSearchParams(window.location.search);
+    var weekStart = urlParams.get('weekStart');
+    var year = new Date().getFullYear(); // fallback
+    
+    if (weekStart) {
+      var weekStartDate = new Date(weekStart);
+      year = weekStartDate.getFullYear();
+    }
+    
+    var date = year + '-' + month + '-' + day;
+    
+    // Điền thông tin vào form
+    document.getElementById('quickDate').value = date;
+    document.getElementById('quickStartTime').value = startTime;
+    document.getElementById('quickEndTime').value = endTime;
+    
+    // Hiển thị thông tin ca làm việc
+    var shiftInfo = dayLabel + ' ' + dateStr + ' • ' + templateName + ' (' + startTime + ' - ' + endTime + ')';
+    document.getElementById('quickShiftInfo').textContent = shiftInfo;
+    
+    // Reset form
+    document.getElementById('quickEmployeeCode').value = '';
+    document.getElementById('quickTitle').value = '';
+    document.getElementById('quickLocation').value = '';
+    document.getElementById('quickNotes').value = '';
+    
+    // Reset toggle
+    if (quickToggle) {
+      quickToggle.checked = false;
+      quickToggleLabel.style.background = '#e5e7eb';
+      quickToggleLabel.querySelector('span').style.transform = 'translateX(0px)';
+    }
+    
+    // Mở modal
     open();
   });
 })();

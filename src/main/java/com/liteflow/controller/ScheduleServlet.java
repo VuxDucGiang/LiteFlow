@@ -97,6 +97,7 @@ public class ScheduleServlet extends HttpServlet {
                         vm.put("status", s.getStatus() != null ? s.getStatus() : "");
                         vm.put("startAt", s.getStartAt().toString());
                         vm.put("endAt", s.getEndAt().toString());
+                        vm.put("isRecurring", s.getIsRecurring() != null ? s.getIsRecurring().toString() : "false");
                         cellShifts.add(vm);
                     }
                 }
@@ -141,6 +142,8 @@ public class ScheduleServlet extends HttpServlet {
                 String title = req.getParameter("title");
                 String notes = req.getParameter("notes");
                 String location = req.getParameter("location");
+                String isRecurringStr = req.getParameter("isRecurring");
+                boolean isRecurring = "true".equals(isRecurringStr);
 
                 LocalDate date = LocalDate.parse(dateStr);
                 boolean anyCreated = false;
@@ -148,7 +151,7 @@ public class ScheduleServlet extends HttpServlet {
                     for (int i = 0; i < startTimes.length; i++) {
                         LocalTime st = LocalTime.parse(startTimes[i]);
                         LocalTime et = LocalTime.parse(endTimes[i]);
-                        boolean ok = scheduleService.createShift(employeeCode, date, st, et, title, notes, location);
+                        boolean ok = scheduleService.createShift(employeeCode, date, st, et, title, notes, location, isRecurring);
                         anyCreated = anyCreated || ok;
                     }
                 }
@@ -175,6 +178,23 @@ public class ScheduleServlet extends HttpServlet {
                 }
             } catch (Exception ex) {
                 req.setAttribute("error", "Lỗi khi xóa ca làm việc: " + ex.getMessage());
+            }
+        } else if ("toggleRecurring".equals(action)) {
+            try {
+                String shiftIdStr = req.getParameter("shiftId");
+                String isRecurringStr = req.getParameter("isRecurring");
+                java.util.UUID sid = java.util.UUID.fromString(shiftIdStr);
+                boolean isRecurring = "true".equals(isRecurringStr);
+                
+                boolean ok = scheduleService.toggleRecurring(sid, isRecurring);
+                if (ok) {
+                    resp.sendRedirect(req.getContextPath() + "/schedule?weekStart=" + (weekStartParam != null ? weekStartParam : LocalDate.now().toString()));
+                    return;
+                } else {
+                    req.setAttribute("error", "Không thể cập nhật trạng thái lặp lại");
+                }
+            } catch (Exception ex) {
+                req.setAttribute("error", "Lỗi khi cập nhật trạng thái lặp lại: " + ex.getMessage());
             }
         }
 

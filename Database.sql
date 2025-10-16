@@ -405,6 +405,7 @@ CREATE TABLE EmployeeShifts (
     Location NVARCHAR(200) NULL,
     Status NVARCHAR(50) NOT NULL DEFAULT 'Scheduled' 
         CHECK (Status IN ('Scheduled', 'Completed', 'Cancelled')),
+    IsRecurring BIT NOT NULL DEFAULT 0,
     CreatedBy UNIQUEIDENTIFIER NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
