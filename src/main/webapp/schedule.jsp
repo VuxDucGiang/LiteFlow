@@ -66,13 +66,35 @@
   <div class="schedule-header">
     <h1>Lịch làm việc</h1>
     <div class="header-actions" style="display:flex; align-items:center; gap:12px; flex-wrap:nowrap;">
+      <!-- Search/Filter Bar -->
+      <form method="get" action="${pageContext.request.contextPath}/schedule" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap; background:#fff; padding:8px 12px; border:1px solid #e5e7eb; border-radius:10px;">
+        <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+        <select name="employeeCode" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
+          <option value="">Chọn nhân viên</option>
+          <c:forEach var="e" items="${employees}">
+            <option value="${e.employeeCode}" <c:if test='${selectedEmployeeCode == e.employeeCode}'>selected</c:if>>${e.employeeCode} - ${e.fullName}</option>
+          </c:forEach>
+        </select>
+        <select name="templateName" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
+          <option value="">Chọn ca làm việc</option>
+          <c:forEach var="t" items="${templates}">
+            <option value="${t.name}" <c:if test='${selectedTemplateName == t.name}'>selected</c:if>>${t.name}</option>
+          </c:forEach>
+        </select>
+        <button type="submit" class="btn btn-primary" title="Tìm kiếm" style="display:flex; align-items:center; justify-content:center; width:40px; height:36px; padding:0;">
+          <i class='bx bx-search'></i>
+        </button>
+        <a href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}" class="btn btn-light" title="Hủy lọc" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0;">
+          <i class='bx bx-filter-alt-off'></i>
+        </a>
+      </form>
       <div class="schedule-toolbar" style="margin: 0 12px 0 0;">
         <div class="week-chip" id="weekChip">
-          <a class="chip-btn prev" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}"><i class='bx bx-chevron-left'></i></a>
+          <a class="chip-btn prev" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}${filterQuery}"><i class='bx bx-chevron-left'></i></a>
           <button type="button" class="chip-label" id="openCalendar">${controlLabel}</button>
-          <a class="chip-btn next" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}"><i class='bx bx-chevron-right'></i></a>
+          <a class="chip-btn next" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}${filterQuery}"><i class='bx bx-chevron-right'></i></a>
         </div>
-        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule">Tuần này</a>
+        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}${filterQuery}">Tuần này</a>
       </div>
       <button class="btn btn-primary" id="openAddShift" type="button">
         <i class='bx bx-plus'></i> Thêm lịch làm việc

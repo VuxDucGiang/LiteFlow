@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.nio.charset.StandardCharsets;
 
 @WebServlet(name = "ScheduleServlet", urlPatterns = {"/schedule"})
 public class ScheduleServlet extends HttpServlet {
@@ -42,6 +44,29 @@ public class ScheduleServlet extends HttpServlet {
 
         List<EmployeeShift> shifts = scheduleService.getShiftsForWeek(weekStart);
         var templates = scheduleService.getActiveTemplates();
+
+        // Optional filters
+        String employeeCodeFilter = req.getParameter("employeeCode");
+        String templateNameFilter = req.getParameter("templateName");
+
+        if (employeeCodeFilter != null && !employeeCodeFilter.isBlank()) {
+            String ec = employeeCodeFilter.trim();
+            shifts.removeIf(s -> s.getEmployee() == null || s.getEmployee().getEmployeeCode() == null || !s.getEmployee().getEmployeeCode().equals(ec));
+        }
+
+        if (templateNameFilter != null && !templateNameFilter.isBlank()) {
+            var match = templates.stream().filter(t -> templateNameFilter.equals(t.getName())).findFirst();
+            if (match.isPresent()) {
+                var t = match.get();
+                String tStart = t.getStartTime().toString().substring(0, 5);
+                String tEnd = t.getEndTime().toString().substring(0, 5);
+                shifts.removeIf(s -> {
+                    String sStart = s.getStartAt().toLocalTime().toString().substring(0, 5);
+                    String sEnd = s.getEndAt().toLocalTime().toString().substring(0, 5);
+                    return !sStart.equals(tStart) || !sEnd.equals(tEnd);
+                });
+            }
+        }
 
         // Build week metadata for JSP rendering
         DateTimeFormatter dmy = DateTimeFormatter.ofPattern("dd/MM", Locale.forLanguageTag("vi"));
@@ -112,6 +137,16 @@ public class ScheduleServlet extends HttpServlet {
         String prevWeekStart = weekStart.minusDays(7).toString();
         String nextWeekStart = weekStart.plusDays(7).toString();
 
+        // Preserve filters across navigation
+        StringBuilder fq = new StringBuilder();
+        if (employeeCodeFilter != null && !employeeCodeFilter.isBlank()) {
+            fq.append("&employeeCode=").append(URLEncoder.encode(employeeCodeFilter, StandardCharsets.UTF_8));
+        }
+        if (templateNameFilter != null && !templateNameFilter.isBlank()) {
+            fq.append("&templateName=").append(URLEncoder.encode(templateNameFilter, StandardCharsets.UTF_8));
+        }
+        String filterQuery = fq.toString();
+
         req.setAttribute("weekLabel", weekLabel);
         req.setAttribute("controlLabel", controlLabel);
         req.setAttribute("weekDays", weekDays);
@@ -120,6 +155,9 @@ public class ScheduleServlet extends HttpServlet {
         req.setAttribute("templates", templates);
         req.setAttribute("currentWeekStart", weekStart.toString());
         req.setAttribute("employees", employeeService.getAllEmployees());
+        req.setAttribute("selectedEmployeeCode", employeeCodeFilter);
+        req.setAttribute("selectedTemplateName", templateNameFilter);
+        req.setAttribute("filterQuery", filterQuery);
         req.getRequestDispatcher("/schedule.jsp").forward(req, resp);
     }
 
