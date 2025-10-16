@@ -118,15 +118,29 @@
 <script>
   // Navigation dropdown functionality
   document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dropdown script loaded');
+    
     // Handle dropdown menus
-    document.querySelectorAll('.nav-item.dropdown').forEach(dropdown => {
-      const dropdownToggle = dropdown.querySelector('.nav-item');
+    const dropdowns = document.querySelectorAll('.nav-item.dropdown');
+    console.log('Found dropdowns:', dropdowns.length);
+    
+    dropdowns.forEach((dropdown, index) => {
+      const dropdownToggle = dropdown.querySelector('.nav-link.dropdown-toggle');
       const dropdownMenu = dropdown.querySelector('.dropdown-menu');
       
+      console.log(`Dropdown ${index}:`, {
+        dropdown: dropdown,
+        toggle: dropdownToggle,
+        menu: dropdownMenu
+      });
+      
       if (dropdownToggle && dropdownMenu) {
+        // Add click event
         dropdownToggle.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
+          
+          console.log('Dropdown clicked:', dropdown);
           
           // Close other dropdowns
           document.querySelectorAll('.nav-item.dropdown').forEach(otherDropdown => {
@@ -143,6 +157,7 @@
           dropdown.classList.toggle('show');
           if (dropdown.classList.contains('show')) {
             dropdownMenu.style.display = 'block';
+            console.log('Opening dropdown');
             // Add animation
             dropdownMenu.style.opacity = '0';
             dropdownMenu.style.transform = 'translateY(-10px)';
@@ -152,7 +167,23 @@
             }, 10);
           } else {
             dropdownMenu.style.display = 'none';
+            console.log('Closing dropdown');
           }
+        });
+        
+        // Add hover event for better UX
+        dropdown.addEventListener('mouseenter', function() {
+          console.log('Dropdown hovered:', dropdown);
+          dropdown.classList.add('show');
+          dropdownMenu.style.display = 'block';
+          dropdownMenu.style.opacity = '1';
+          dropdownMenu.style.transform = 'translateY(0)';
+        });
+        
+        dropdown.addEventListener('mouseleave', function() {
+          console.log('Dropdown left:', dropdown);
+          dropdown.classList.remove('show');
+          dropdownMenu.style.display = 'none';
         });
       }
     });

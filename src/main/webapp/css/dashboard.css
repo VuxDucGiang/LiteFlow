@@ -64,7 +64,7 @@
   content: '';
   width: 4px;
   height: 24px;
-  background: linear-gradient(135deg, #7d2ae8, #00c6ff);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
   border-radius: var(--radius-full);
 }
 
@@ -80,7 +80,7 @@
   border-radius: var(--radius-xl);
   padding: var(--space-5);
   text-align: center;
-  border: 1px solid #0080FF;
+  border: 1px solid var(--color-primary);
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
@@ -128,19 +128,19 @@
 }
 
 .sales-card .icon.blue {
-  background: linear-gradient(135deg, #0080FF, #00c6ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: white;
   box-shadow: var(--shadow-md);
 }
 
 .sales-card .icon.green {
-  background: linear-gradient(135deg, #7d2ae8, #00c6ff);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
   color: white;
   box-shadow: var(--shadow-md);
 }
 
 .sales-card .icon.teal {
-  background: linear-gradient(135deg, #00c6ff, #0080FF);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
   color: white;
   box-shadow: var(--shadow-md);
 }
@@ -187,7 +187,7 @@
   border-radius: 16px;
   padding: 20px;
   box-shadow: var(--shadow);
-  border: 1px solid #0080FF;
+  border: 1px solid var(--color-primary);
 }
 
 .revenue-header {
@@ -219,7 +219,7 @@
 }
 
 .tab.active {
-  background: #0080FF;
+  background: var(--color-primary);
   color: white;
 }
 
@@ -241,7 +241,7 @@
 
 /* Right Section */
 .ad-banner {
-  background: linear-gradient(135deg, #7d2ae8 0%, #0080FF 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
   border-radius: 16px;
   padding: 20px;
   color: white;
@@ -276,7 +276,7 @@
   border-radius: 16px;
   padding: 20px;
   box-shadow: var(--shadow);
-  border: 1px solid #0080FF;
+  border: 1px solid var(--color-primary);
 }
 
 .activities-header {
@@ -330,7 +330,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0080FF, #00c6ff);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: white;
   display: grid;
   place-items: center;
