@@ -59,6 +59,11 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* Small gap below each shift for easier clicking */
+.schedule-cell .shift-block {
+  margin-bottom: 6px;
+}
 </style>
 
 <div class="schedule-container">
