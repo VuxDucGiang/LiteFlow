@@ -112,7 +112,12 @@
                 <div class="slot-time">${t.startTime} - ${t.endTime}</div>
               </td>
               <c:forEach var="d" items="${weekDays}">
-                <td class="schedule-cell">
+                <td class="schedule-cell"
+                     data-date="${d.dateStr}"
+                     data-day-label="${d.label}"
+                     data-template-name="${t.name}"
+                     data-start-time="${t.startTime.toString().substring(0,5)}"
+                     data-end-time="${t.endTime.toString().substring(0,5)}">
                   <c:set var="rowFound" value="false" />
                   <c:forEach var="row" items="${d.rows}">
                     <c:if test="${row.templateName == t.name}">
@@ -183,13 +188,16 @@
       <input type="hidden" name="weekStart" value="${currentWeekStart}" />
 
       <div style="grid-column:1 / -1;">
-        <label for="employeeCode" style="font-size:12px; color:#6b7280;">Nhân viên</label>
-        <select id="employeeCode" name="employeeCode" required style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
-          <option value="" disabled selected>Chọn nhân viên</option>
+        <label style="font-size:12px; color:#6b7280; display:block;">Nhân viên</label>
+        <div id="employeeChecklist" style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; max-height:220px; overflow:auto; padding:8px; border:1px solid #e5e7eb; border-radius:8px;">
           <c:forEach var="e" items="${employees}">
-            <option value="${e.employeeCode}">${e.employeeCode} - ${e.fullName}</option>
+            <label style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" name="employeeCode" value="${e.employeeCode}" />
+              <span>${e.employeeCode} - ${e.fullName}</span>
+            </label>
           </c:forEach>
-        </select>
+        </div>
+        <div style="font-size:12px; color:#6b7280; margin-top:4px;">Chọn 1 hoặc nhiều nhân viên</div>
       </div>
 
       <div>
@@ -293,13 +301,15 @@
       </div>
 
       <div>
-        <label for="quickEmployeeCode" style="font-size:12px; color:#6b7280;">Nhân viên *</label>
-        <select id="quickEmployeeCode" name="employeeCode" required style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;">
-          <option value="" disabled selected>Chọn nhân viên</option>
+        <label style="font-size:12px; color:#6b7280;">Nhân viên *</label>
+        <div id="quickEmployeeChecklist" style="display:grid; grid-template-columns:repeat(1, minmax(0,1fr)); gap:8px; max-height:200px; overflow:auto; padding:8px; border:1px solid #e5e7eb; border-radius:8px;">
           <c:forEach var="e" items="${employees}">
-            <option value="${e.employeeCode}">${e.employeeCode} - ${e.fullName}</option>
+            <label style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" name="employeeCode" value="${e.employeeCode}" />
+              <span>${e.employeeCode} - ${e.fullName}</span>
+            </label>
           </c:forEach>
-        </select>
+        </div>
       </div>
 
       <div>
@@ -696,6 +706,13 @@
     if (!hiddenContainer.querySelector('input[name="startTime"]')) {
       e.preventDefault();
       alert('Vui lòng chọn ít nhất một ca làm việc.');
+      return;
+    }
+    var empChecked = form.querySelectorAll('#employeeChecklist input[name="employeeCode"]:checked');
+    if (!empChecked.length) {
+      e.preventDefault();
+      alert('Vui lòng chọn ít nhất một nhân viên.');
+      return;
     }
   });
 })();
@@ -832,61 +849,94 @@
     });
   }
 
-  // Xử lý click vào ô trống để thêm nhanh
+  // Xử lý click vào ô lịch để thêm nhanh khi ô trống
   document.addEventListener('click', function(e){
-    var cell = e.target.closest('.clickable-cell');
-    if (!cell) return;
-    
-    // Lấy thông tin từ data attributes
-    var dateStr = cell.getAttribute('data-date');
-    var dayLabel = cell.getAttribute('data-day-label');
-    var templateName = cell.getAttribute('data-template-name');
-    var startTime = cell.getAttribute('data-start-time');
-    var endTime = cell.getAttribute('data-end-time');
-    
+    // Bỏ qua nếu click vào một ca đã tồn tại
+    var existing = e.target.closest('.shift-block');
+    if (existing) return;
+
+    var td = e.target.closest('td.schedule-cell');
+    if (!td) return;
+
+    // Ưu tiên lấy từ chính ô td (đã gắn data-*)
+    var dateStr = td.getAttribute('data-date');
+    var dayLabel = td.getAttribute('data-day-label');
+    var templateName = td.getAttribute('data-template-name');
+    var startTime = td.getAttribute('data-start-time');
+    var endTime = td.getAttribute('data-end-time');
+
+    // Fallback: nếu click vào .clickable-cell cũ
+    if ((!dateStr || !templateName || !startTime || !endTime)) {
+      var legacy = e.target.closest('.clickable-cell');
+      if (legacy) {
+        dateStr = legacy.getAttribute('data-date');
+        dayLabel = legacy.getAttribute('data-day-label');
+        templateName = legacy.getAttribute('data-template-name');
+        startTime = legacy.getAttribute('data-start-time');
+        endTime = legacy.getAttribute('data-end-time');
+      }
+    }
+
     if (!dateStr || !templateName || !startTime || !endTime) return;
-    
+
     // Chuyển đổi ngày từ dd/mm sang yyyy-mm-dd
-    var dateParts = dateStr.split('/');
-    var day = dateParts[0];
-    var month = dateParts[1];
-    
-    // Lấy năm từ tuần hiện tại (từ weekStart parameter)
+    var parts = dateStr.split('/');
+    var dd = parts[0];
+    var mm = parts[1];
+
     var urlParams = new URLSearchParams(window.location.search);
     var weekStart = urlParams.get('weekStart');
-    var year = new Date().getFullYear(); // fallback
-    
+    var year = new Date().getFullYear();
     if (weekStart) {
-      var weekStartDate = new Date(weekStart);
-      year = weekStartDate.getFullYear();
+      var wsDate = new Date(weekStart);
+      if (!isNaN(wsDate.getTime())) {
+        year = wsDate.getFullYear();
+      }
     }
-    
-    var date = year + '-' + month + '-' + day;
-    
+    var date = year + '-' + mm + '-' + dd;
+
     // Điền thông tin vào form
-    document.getElementById('quickDate').value = date;
-    document.getElementById('quickStartTime').value = startTime;
-    document.getElementById('quickEndTime').value = endTime;
-    
+    var qDate = document.getElementById('quickDate');
+    var qStart = document.getElementById('quickStartTime');
+    var qEnd = document.getElementById('quickEndTime');
+    if (qDate) qDate.value = date;
+    if (qStart) qStart.value = startTime;
+    if (qEnd) qEnd.value = endTime;
+
     // Hiển thị thông tin ca làm việc
-    var shiftInfo = dayLabel + ' ' + dateStr + ' • ' + templateName + ' (' + startTime + ' - ' + endTime + ')';
-    document.getElementById('quickShiftInfo').textContent = shiftInfo;
-    
-    // Reset form
-    document.getElementById('quickEmployeeCode').value = '';
-    document.getElementById('quickTitle').value = '';
-    document.getElementById('quickLocation').value = '';
-    document.getElementById('quickNotes').value = '';
-    
+    var info = dayLabel + ' ' + dateStr + ' • ' + templateName + ' (' + startTime + ' - ' + endTime + ')';
+    var infoEl = document.getElementById('quickShiftInfo');
+    if (infoEl) infoEl.textContent = info;
+
+    // Reset form các trường còn lại
+    var title = document.getElementById('quickTitle');
+    var loc = document.getElementById('quickLocation');
+    var notes = document.getElementById('quickNotes');
+    if (title) title.value = '';
+    if (loc) loc.value = '';
+    if (notes) notes.value = '';
+    // Reset checklist nhân viên nhanh
+    var quickChecklist = document.getElementById('quickEmployeeChecklist');
+    if (quickChecklist) {
+      Array.prototype.slice.call(quickChecklist.querySelectorAll('input[name="employeeCode"]')).forEach(function(cb){ cb.checked = false; });
+    }
+
     // Reset toggle
-    if (quickToggle) {
+    if (quickToggle && quickToggleLabel) {
       quickToggle.checked = false;
       quickToggleLabel.style.background = '#e5e7eb';
       quickToggleLabel.querySelector('span').style.transform = 'translateX(0px)';
     }
-    
-    // Mở modal
+
     open();
+  });
+  // Validate checklist trước khi submit Quick Add
+  if (form) form.addEventListener('submit', function(e){
+    var checked = document.querySelectorAll('#quickEmployeeChecklist input[name="employeeCode"]:checked');
+    if (!checked.length) {
+      e.preventDefault();
+      alert('Vui lòng chọn ít nhất một nhân viên.');
+    }
   });
 })();
 </script>

@@ -135,7 +135,7 @@ public class ScheduleServlet extends HttpServlet {
 
         if (action == null || action.isBlank() || "create".equals(action)) {
             try {
-                String employeeCode = req.getParameter("employeeCode");
+                String[] employeeCodes = req.getParameterValues("employeeCode");
                 String dateStr = req.getParameter("date");
                 String[] startTimes = req.getParameterValues("startTime");
                 String[] endTimes = req.getParameterValues("endTime");
@@ -147,12 +147,15 @@ public class ScheduleServlet extends HttpServlet {
 
                 LocalDate date = LocalDate.parse(dateStr);
                 boolean anyCreated = false;
-                if (startTimes != null && endTimes != null && startTimes.length == endTimes.length) {
-                    for (int i = 0; i < startTimes.length; i++) {
-                        LocalTime st = LocalTime.parse(startTimes[i]);
-                        LocalTime et = LocalTime.parse(endTimes[i]);
-                        boolean ok = scheduleService.createShift(employeeCode, date, st, et, title, notes, location, isRecurring);
-                        anyCreated = anyCreated || ok;
+                if (employeeCodes != null && employeeCodes.length > 0 && startTimes != null && endTimes != null && startTimes.length == endTimes.length) {
+                    for (String employeeCode : employeeCodes) {
+                        if (employeeCode == null || employeeCode.isBlank()) continue;
+                        for (int i = 0; i < startTimes.length; i++) {
+                            LocalTime st = LocalTime.parse(startTimes[i]);
+                            LocalTime et = LocalTime.parse(endTimes[i]);
+                            boolean ok = scheduleService.createShift(employeeCode, date, st, et, title, notes, location, isRecurring);
+                            anyCreated = anyCreated || ok;
+                        }
                     }
                 }
 

@@ -101,7 +101,8 @@ public class ScheduleService {
                     recurringShift.setStartAt(futureStart);
                     recurringShift.setEndAt(futureEnd);
                     recurringShift.setStatus(shift.getStatus());
-                    recurringShift.setIsRecurring(false); // Ca con không lặp lại
+                    // Đánh dấu là ca thuộc chuỗi lặp lại để UI hiển thị bật
+                    recurringShift.setIsRecurring(true);
                     recurringShift.setCreatedBy(shift.getCreatedBy());
                     
                     shiftDAO.insert(recurringShift);
@@ -162,15 +163,33 @@ public class ScheduleService {
                     recurringShift.setStartAt(futureStart);
                     recurringShift.setEndAt(futureEnd);
                     recurringShift.setStatus(originalShift.getStatus());
-                    recurringShift.setIsRecurring(false); // Ca con không lặp lại
+                    // Đánh dấu là ca thuộc chuỗi lặp lại để UI hiển thị bật
+                    recurringShift.setIsRecurring(true);
                     recurringShift.setCreatedBy(originalShift.getCreatedBy());
                     
                     shiftDAO.insert(recurringShift);
                 }
             }
         } else {
-            // Nếu tắt lặp lại, xóa các ca lặp lại tương lai (tùy chọn)
-            // Ở đây chúng ta chỉ tắt trạng thái lặp lại của ca gốc
+            // Nếu tắt lặp lại: xóa các ca tương lai cùng nhân viên và cùng khung giờ
+            LocalDateTime seriesStart = originalShift.getStartAt();
+            LocalTime startTime = seriesStart.toLocalTime();
+            LocalTime endTime = originalShift.getEndAt().toLocalTime();
+            // Phạm vi tìm kiếm 12 tuần tới (có thể điều chỉnh)
+            LocalDateTime searchFrom = seriesStart.plusMinutes(1);
+            LocalDateTime searchTo = seriesStart.plusWeeks(12);
+            List<EmployeeShift> candidates = shiftDAO.findByDateRange(searchFrom, searchTo);
+            for (EmployeeShift s : candidates) {
+                boolean sameEmployee = s.getEmployee() != null && originalShift.getEmployee() != null
+                        && s.getEmployee().getEmployeeID().equals(originalShift.getEmployee().getEmployeeID());
+                boolean sameStart = s.getStartAt() != null && s.getStartAt().toLocalTime().equals(startTime);
+                boolean sameEnd = s.getEndAt() != null && s.getEndAt().toLocalTime().equals(endTime);
+                boolean sameTitle = (originalShift.getTitle() == null ? s.getTitle() == null : originalShift.getTitle().equals(s.getTitle()));
+                boolean sameLocation = (originalShift.getLocation() == null ? s.getLocation() == null : originalShift.getLocation().equals(s.getLocation()));
+                if (sameEmployee && sameStart && sameEnd && sameTitle && sameLocation) {
+                    shiftDAO.delete(s.getShiftID());
+                }
+            }
         }
         
         return shiftDAO.update(originalShift);
