@@ -64,7 +64,7 @@
           <i class='bx bxs-dashboard'></i> Tổng quan
         </a>
         <div class="nav-item dropdown ${param.page == 'products' || param.page == 'setprice' ? 'active' : ''}">
-          <a href="#" class="nav-item">
+          <a href="#" class="nav-link dropdown-toggle">
           <i class='bx bxs-package'></i> Hàng hóa
             <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
           </a>
@@ -87,7 +87,7 @@
           <i class='bx bx-group'></i> Đối tác
         </a>
         <div class="nav-item dropdown">
-          <a href="#" class="nav-item">
+          <a href="#" class="nav-link dropdown-toggle">
             <i class='bx bx-user'></i> Nhân viên
             <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
           </a>
