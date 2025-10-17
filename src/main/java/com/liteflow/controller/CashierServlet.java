@@ -51,18 +51,16 @@ public class CashierServlet extends HttpServlet {
         EntityManager em = BaseDAO.emf.createEntityManager();
         
         try {
-            String jpql = """
-                SELECT p.productId, p.name, p.description, p.imageUrl, 
-                       pv.productVariantId, pv.size, pv.price, 
-                       c.name as categoryName
-                FROM Product p 
-                LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId 
-                LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId
-                LEFT JOIN Category c ON pc.category.categoryId = c.categoryId
-                WHERE p.isDeleted = false 
-                  AND (pv.isDeleted = false OR pv.isDeleted IS NULL)
-                ORDER BY c.name, p.name, pv.size
-                """;
+            String jpql = "SELECT p.productId, p.name, p.description, p.imageUrl, " +
+                       "pv.productVariantId, pv.size, pv.price, " +
+                       "c.name as categoryName " +
+                       "FROM Product p " +
+                       "LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId " +
+                       "LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId " +
+                       "LEFT JOIN Category c ON pc.category.categoryId = c.categoryId " +
+                       "WHERE p.isDeleted = false " +
+                       "AND (pv.isDeleted = false OR pv.isDeleted IS NULL) " +
+                       "ORDER BY c.name, p.name, pv.size";
             
             Query query = em.createQuery(jpql);
             @SuppressWarnings("unchecked")
@@ -112,12 +110,10 @@ public class CashierServlet extends HttpServlet {
         EntityManager em = BaseDAO.emf.createEntityManager();
         
         try {
-            String jpql = """
-                SELECT t.tableId, t.tableNumber, t.status, r.name as roomName
-                FROM Table t 
-                LEFT JOIN Room r ON t.room.roomId = r.roomId
-                ORDER BY r.name, t.tableNumber
-                """;
+            String jpql = "SELECT t.tableId, t.tableNumber, t.status, r.name as roomName " +
+                       "FROM Table t " +
+                       "LEFT JOIN Room r ON t.room.roomId = r.roomId " +
+                       "ORDER BY r.name, t.tableNumber";
             
             Query query = em.createQuery(jpql);
             @SuppressWarnings("unchecked")

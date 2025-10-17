@@ -40,18 +40,16 @@ public class ProductService {
             
             try {
                 // Query để lấy thông tin sản phẩm với giá, tồn kho và category
-                String jpql = """
-                    SELECT p.productId, p.name, pv.size, pv.price, 
-                           COALESCE(ps.amount, 0) as stockAmount, 
-                           p.isDeleted, p.imageUrl, c.name as categoryName
-                    FROM Product p 
-                    LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId 
-                    LEFT JOIN ProductStock ps ON pv.productVariantId = ps.productVariant.productVariantId
-                    LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId
-                    LEFT JOIN Category c ON pc.category.categoryId = c.categoryId
-                    WHERE pv.isDeleted = false OR pv.isDeleted IS NULL
-                    ORDER BY p.name, pv.size
-                    """;
+                String jpql = "SELECT p.productId, p.name, pv.size, pv.price, " +
+                           "COALESCE(ps.amount, 0) as stockAmount, " +
+                           "p.isDeleted, p.imageUrl, c.name as categoryName " +
+                           "FROM Product p " +
+                           "LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId " +
+                           "LEFT JOIN ProductStock ps ON pv.productVariantId = ps.productVariant.productVariantId " +
+                           "LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId " +
+                           "LEFT JOIN Category c ON pc.category.categoryId = c.categoryId " +
+                           "WHERE pv.isDeleted = false OR pv.isDeleted IS NULL " +
+                           "ORDER BY p.name, pv.size";
                 
                 Query query = em.createQuery(jpql);
                 @SuppressWarnings("unchecked")
@@ -116,17 +114,15 @@ public class ProductService {
             
             try {
                 // Query đơn giản để lấy thông tin sản phẩm với giá
-                String jpql = """
-                    SELECT p.productId, p.name, pv.size, pv.originalPrice, pv.price,
-                           p.isDeleted, c.name as categoryName
-                    FROM Product p
-                    LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId
-                    LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId
-                    LEFT JOIN Category c ON pc.category.categoryId = c.categoryId
-                    WHERE (pv.isDeleted = false OR pv.isDeleted IS NULL)
-                    AND (p.isDeleted = false OR p.isDeleted IS NULL)
-                    ORDER BY p.name, pv.size
-                    """;
+                String jpql = "SELECT p.productId, p.name, pv.size, pv.originalPrice, pv.price, " +
+                           "p.isDeleted, c.name as categoryName " +
+                           "FROM Product p " +
+                           "LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId " +
+                           "LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId " +
+                           "LEFT JOIN Category c ON pc.category.categoryId = c.categoryId " +
+                           "WHERE (pv.isDeleted = false OR pv.isDeleted IS NULL) " +
+                           "AND (p.isDeleted = false OR p.isDeleted IS NULL) " +
+                           "ORDER BY p.name, pv.size";
                 
                 Query query = em.createQuery(jpql);
                 @SuppressWarnings("unchecked")
@@ -177,12 +173,10 @@ public class ProductService {
             
             try {
                 // Query để lấy các danh mục khác nhau từ bảng Category
-                String jpql = """
-                    SELECT DISTINCT c.name 
-                    FROM Category c 
-                    WHERE c.name IS NOT NULL
-                    ORDER BY c.name
-                    """;
+                String jpql = "SELECT DISTINCT c.name " +
+                           "FROM Category c " +
+                           "WHERE c.name IS NOT NULL " +
+                           "ORDER BY c.name";
                 
                 Query query = em.createQuery(jpql);
                 @SuppressWarnings("unchecked")

@@ -23,34 +23,34 @@ public class AuthenticationFilter extends BaseFilter {
     private static final Map<String, Set<String>> ROLE_FUNCTIONS = new HashMap<>();
 
     static {
-        ROLE_FUNCTIONS.put("Cashier", Set.of("/pos", "/sales", "/cart", "/checkout"));
-        ROLE_FUNCTIONS.put("Inventory Manager", Set.of("/inventory", "/products", "/stock", "/purchaseOrders"));
-        ROLE_FUNCTIONS.put("Procurement Officer", Set.of("/purchaseOrders", "/suppliers", "/invoices"));
-        ROLE_FUNCTIONS.put("HR Officer", Set.of("/employees", "/payroll", "/timesheets", "/leaveRequests"));
+        ROLE_FUNCTIONS.put("Cashier", new HashSet<>(Arrays.asList("/pos", "/sales", "/cart", "/checkout")));
+        ROLE_FUNCTIONS.put("Inventory Manager", new HashSet<>(Arrays.asList("/inventory", "/products", "/stock", "/purchaseOrders")));
+        ROLE_FUNCTIONS.put("Procurement Officer", new HashSet<>(Arrays.asList("/purchaseOrders", "/suppliers", "/invoices")));
+        ROLE_FUNCTIONS.put("HR Officer", new HashSet<>(Arrays.asList("/employees", "/payroll", "/timesheets", "/leaveRequests")));
         // Allow employees to access their own user pages and dashboard
-        ROLE_FUNCTIONS.put("Employee", Set.of(
+        ROLE_FUNCTIONS.put("Employee", new HashSet<>(Arrays.asList(
                 "/dashboard",
                 "/user/profile",
                 "/user/timesheet",
                 "/user/payroll"
-        ));
-        ROLE_FUNCTIONS.put("Admin", Set.of("/*")); // full quyền
+        )));
+        ROLE_FUNCTIONS.put("Admin", new HashSet<>(Arrays.asList("/*"))); // full quyền
 
         // ============================================================
         // 🆕 PHÂN QUYỀN MODULE PROCUREMENT (THÊM MỚI)
         // ============================================================
         // Cho phép truy cập các đường dẫn trong module Procurement:
         // /procurement/supplier, /procurement/po, /procurement/invoice, /procurement/gr ...
-        Set<String> procurementPaths = Set.of(
+        Set<String> procurementPaths = new HashSet<>(Arrays.asList(
                 "/procurement",
                 "/procurement/dashboard",
                 "/procurement/supplier",
                 "/procurement/po",
                 "/procurement/invoice",
                 "/procurement/gr"
-        );
+        ));
 
-        List<String> targetRoles = List.of("Procurement Officer", "Inventory Manager", "Owner", "Admin");
+        List<String> targetRoles = Arrays.asList("Procurement Officer", "Inventory Manager", "Owner", "Admin");
 
         for (String role : targetRoles) {
             Set<String> funcs = new HashSet<>(ROLE_FUNCTIONS.getOrDefault(role, Collections.emptySet()));
@@ -118,7 +118,7 @@ public class AuthenticationFilter extends BaseFilter {
         String authHeader = req.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try {
-                var ctx = JwtUtil.parseToUserContext(authHeader.substring(7));
+                JwtUtil.UserContext ctx = JwtUtil.parseToUserContext(authHeader.substring(7));
                 user = userService.getUserById(UUID.fromString(ctx.userId())).orElse(null);
                 if (user != null) {
                     roles = (ctx.roles() == null || ctx.roles().isEmpty())
@@ -139,7 +139,8 @@ public class AuthenticationFilter extends BaseFilter {
             if (session != null) {
                 Object sUser = session.getAttribute("UserLogin");
                 java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("Session UserLogin attribute: " + sUser + " (type: " + (sUser != null ? sUser.getClass().getSimpleName() : "null") + ")");
-                if (sUser instanceof User u) {
+                if (sUser instanceof User) {
+                    User u = (User) sUser;
                     user = u;
                 } else if (sUser instanceof java.util.UUID) {
                     user = userService.getUserById((java.util.UUID) sUser).orElse(null);
