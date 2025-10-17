@@ -8,27 +8,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Nhà cung cấp</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/dropdown-fix.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/nav-hover-fix.css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/auto-hide-fix.css">
-    <script src="${pageContext.request.contextPath}/js/dropdown-fix.js"></script>
+    <script src="${pageContext.request.contextPath}/js/dropdown-simple.js"></script>
     
     <!-- Simple JavaScript functions -->
     <script>
         function simpleEdit(supplierId) {
-            editSupplier(supplierId);
+            alert('Chức năng sửa nhà cung cấp: ' + supplierId);
         }
         
         function simpleDetails(supplierId) {
-            viewDetails(supplierId);
+            alert('Xem chi tiết nhà cung cấp: ' + supplierId);
         }
         
         window.simpleEdit = simpleEdit;
         window.simpleDetails = simpleDetails;
         
-        // Global variables
-        let currentSupplierId = null;
-        let pendingChanges = {};
+        // Simple initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ Supplier page JavaScript loaded');
+        });
         
         // Main functions for edit and details
         function editSupplier(supplierId) {

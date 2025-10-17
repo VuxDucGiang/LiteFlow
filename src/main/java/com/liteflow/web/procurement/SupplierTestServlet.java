@@ -7,14 +7,14 @@ import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/procurement/supplier-simple"})
-public class SupplierSimpleServlet extends HttpServlet {
+@WebServlet(urlPatterns = {"/procurement/supplier-test"})
+public class SupplierTestServlet extends HttpServlet {
     private final ProcurementService service = new ProcurementService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, jakarta.servlet.ServletException {
         try {
-            System.out.println("=== SUPPLIER SIMPLE SERVLET ===");
+            System.out.println("=== SUPPLIER TEST SERVLET ===");
             
             // Set proper encoding
             resp.setContentType("text/html; charset=UTF-8");
@@ -27,16 +27,17 @@ public class SupplierSimpleServlet extends HttpServlet {
             // Set in request scope
             req.setAttribute("suppliers", suppliers);
             
-            // Forward to simple JSP
-            req.getRequestDispatcher("/procurement/supplier-list-simple.jsp").forward(req, resp);
+            // Forward to minimal JSP
+            System.out.println("Forwarding to supplier-minimal.jsp");
+            req.getRequestDispatcher("/procurement/supplier-minimal.jsp").forward(req, resp);
             
         } catch (Exception e) {
-            System.err.println("ERROR in SupplierSimpleServlet: " + e.getMessage());
+            System.err.println("ERROR in SupplierTestServlet: " + e.getMessage());
             e.printStackTrace();
             
             resp.setContentType("text/html; charset=UTF-8");
             resp.setCharacterEncoding("UTF-8");
-            resp.getWriter().write("<html><head><meta charset='UTF-8'></head><body><h1>Lỗi hệ thống</h1><p>" + e.getMessage() + "</p></body></html>");
+            resp.getWriter().write("<html><head><meta charset='UTF-8'></head><body><h1>Error</h1><p>" + e.getMessage() + "</p></body></html>");
         }
     }
 }

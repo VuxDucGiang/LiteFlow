@@ -69,7 +69,31 @@
             }
           });
           
-          // No hover effects - click only for dropdown
+          // Hover effects with delay for better UX
+          let headerHoverTimeout;
+          
+          dropdown.addEventListener('mouseenter', function() {
+            if (window.innerWidth > 768) {
+              console.log('🖱️ Header hover enter:', dropdown);
+              // Clear any pending close timeout
+              if (headerHoverTimeout) {
+                clearTimeout(headerHoverTimeout);
+                headerHoverTimeout = null;
+              }
+              dropdown.classList.add('show', 'active');
+            }
+          });
+          
+          dropdown.addEventListener('mouseleave', function() {
+            if (window.innerWidth > 768) {
+              console.log('🖱️ Header hover leave:', dropdown);
+              // Add delay before closing
+              headerHoverTimeout = setTimeout(function() {
+                dropdown.classList.remove('show', 'active');
+                console.log('⏰ Header delayed close dropdown');
+              }, 300); // 300ms delay
+            }
+          });
         }
       });
       

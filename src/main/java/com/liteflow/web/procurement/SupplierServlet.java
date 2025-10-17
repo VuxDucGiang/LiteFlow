@@ -31,7 +31,8 @@ public class SupplierServlet extends HttpServlet {
             req.setAttribute("suppliers", suppliers);
             
             System.out.println("Forwarding to supplier-list.jsp");
-            req.getRequestDispatcher("/procurement/supplier-list.jsp").forward(req, resp);
+            // Try simple version first
+            req.getRequestDispatcher("/procurement/supplier-list-simple.jsp").forward(req, resp);
             
         } catch (Exception e) {
             System.err.println("ERROR in SupplierServlet doGet: " + e.getMessage());
@@ -47,15 +48,319 @@ public class SupplierServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException, jakarta.servlet.ServletException {
-        String action = req.getParameter("action");
+        try {
+            // Set proper encoding
+            req.setCharacterEncoding("UTF-8");
+            resp.setContentType("application/json; charset=UTF-8");
+            resp.setCharacterEncoding("UTF-8");
+            
+            // Check if it's a JSON request
+            String contentType = req.getContentType();
+            if (contentType != null && contentType.contains("application/json")) {
+                handleJsonRequest(req, resp);
+            } else {
+                // Handle form request
+                String action = req.getParameter("action");
+                if ("update".equals(action)) {
+                    handleUpdateSupplier(req, resp);
+                } else {
+                    handleCreateSupplier(req, resp);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("ERROR in doPost: " + e.getMessage());
+            e.printStackTrace();
+            
+            resp.setContentType("application/json; charset=UTF-8");
+            resp.getWriter().write("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+    
+    private void handleJsonRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        // Read JSON from request body
+        StringBuilder jsonBuffer = new StringBuilder();
+        String line;
+        try (java.io.BufferedReader reader = req.getReader()) {
+            while ((line = reader.readLine()) != null) {
+                jsonBuffer.append(line);
+            }
+        }
+        
+        String jsonString = jsonBuffer.toString();
+        System.out.println("Received JSON: " + jsonString);
+        
+        // Parse JSON (simple parsing for now)
+        String action = extractJsonValue(jsonString, "action");
         
         if ("update".equals(action)) {
-            // Handle update supplier
-            handleUpdateSupplier(req, resp);
+            handleJsonUpdateSupplier(jsonString, resp);
+        } else if ("create".equals(action)) {
+            handleJsonCreateSupplier(jsonString, req, resp);
         } else {
-            // Handle create new supplier
-            handleCreateSupplier(req, resp);
+            resp.getWriter().write("{\"success\": false, \"message\": \"Unknown action\"}");
         }
+    }
+    
+    private void handleJsonUpdateSupplier(String jsonString, HttpServletResponse resp) throws IOException {
+        try {
+            // Clean and validate JSON string
+            jsonString = jsonString.trim();
+            System.out.println("Processing JSON: " + jsonString);
+            
+            // Parse JSON using safer approach
+            String supplierId = extractJsonValueSafe(jsonString, "supplierId");
+            String name = extractJsonValueSafe(jsonString, "name");
+            String contact = extractJsonValueSafe(jsonString, "contact");
+            String email = extractJsonValueSafe(jsonString, "email");
+            String phone = extractJsonValueSafe(jsonString, "phone");
+            String address = extractJsonValueSafe(jsonString, "address");
+            String ratingStr = extractJsonValueSafe(jsonString, "rating");
+            String onTimeRateStr = extractJsonValueSafe(jsonString, "onTimeRate");
+            String isActiveStr = extractJsonValueSafe(jsonString, "isActive");
+            
+            System.out.println("Parsed values:");
+            System.out.println("SupplierId: " + supplierId);
+            System.out.println("Name: " + name);
+            System.out.println("Contact: " + contact);
+            System.out.println("Email: " + email);
+            System.out.println("Phone: " + phone);
+            System.out.println("Address: " + address);
+            System.out.println("Rating: " + ratingStr);
+            System.out.println("OnTimeRate: " + onTimeRateStr);
+            System.out.println("IsActive: " + isActiveStr);
+            
+            // Validate required fields
+            if (supplierId == null || supplierId.trim().isEmpty()) {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Supplier ID is required\"}");
+                return;
+            }
+            
+            if (name == null || name.trim().isEmpty()) {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Supplier name is required\"}");
+                return;
+            }
+            
+            // Parse numeric values safely
+            Double rating = 0.0;
+            Double onTimeRate = 0.0;
+            Boolean isActive = false;
+            
+            try {
+                if (ratingStr != null && !ratingStr.trim().isEmpty()) {
+                    rating = Double.parseDouble(ratingStr);
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid rating value: " + ratingStr);
+            }
+            
+            try {
+                if (onTimeRateStr != null && !onTimeRateStr.trim().isEmpty()) {
+                    onTimeRate = Double.parseDouble(onTimeRateStr);
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid onTimeRate value: " + onTimeRateStr);
+            }
+            
+            isActive = "true".equals(isActiveStr) || Boolean.parseBoolean(isActiveStr);
+            
+            // Get existing supplier first
+            Supplier existingSupplier = service.getSupplierById(UUID.fromString(supplierId));
+            if (existingSupplier == null) {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Supplier not found\"}");
+                return;
+            }
+            
+            // Update supplier fields
+            existingSupplier.setName(name);
+            existingSupplier.setContact(contact);
+            existingSupplier.setEmail(email);
+            existingSupplier.setPhone(phone);
+            existingSupplier.setAddress(address);
+            existingSupplier.setRating(rating);
+            existingSupplier.setOnTimeRate(onTimeRate);
+            existingSupplier.setIsActive(isActive);
+            
+            // Update supplier
+            boolean success = service.updateSupplier(existingSupplier);
+            
+            if (success) {
+                resp.getWriter().write("{\"success\": true, \"message\": \"Supplier updated successfully\"}");
+            } else {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Failed to update supplier\"}");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERROR updating supplier: " + e.getMessage());
+            e.printStackTrace();
+            resp.getWriter().write("{\"success\": false, \"message\": \"Update failed: " + e.getMessage() + "\"}");
+        }
+    }
+    
+    private void handleJsonCreateSupplier(String jsonString, HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            // Clean and validate JSON string
+            jsonString = jsonString.trim();
+            System.out.println("Processing create JSON: " + jsonString);
+            
+            // Parse JSON using safer approach
+            String name = extractJsonValueSafe(jsonString, "name");
+            String contact = extractJsonValueSafe(jsonString, "contact");
+            String email = extractJsonValueSafe(jsonString, "email");
+            String phone = extractJsonValueSafe(jsonString, "phone");
+            String address = extractJsonValueSafe(jsonString, "address");
+            String ratingStr = extractJsonValueSafe(jsonString, "rating");
+            String onTimeRateStr = extractJsonValueSafe(jsonString, "onTimeRate");
+            String isActiveStr = extractJsonValueSafe(jsonString, "isActive");
+            
+            System.out.println("Parsed create values:");
+            System.out.println("Name: " + name);
+            System.out.println("Contact: " + contact);
+            System.out.println("Email: " + email);
+            System.out.println("Phone: " + phone);
+            System.out.println("Address: " + address);
+            System.out.println("Rating: " + ratingStr);
+            System.out.println("OnTimeRate: " + onTimeRateStr);
+            System.out.println("IsActive: " + isActiveStr);
+            
+            // Validate required fields
+            if (name == null || name.trim().isEmpty()) {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Tên nhà cung cấp không được để trống\"}");
+                return;
+            }
+            
+            if (email == null || email.trim().isEmpty()) {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Email không được để trống\"}");
+                return;
+            }
+            
+            // Email format validation
+            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Email không đúng định dạng\"}");
+                return;
+            }
+            
+            // Parse numeric values safely
+            Double rating = 0.0;
+            Double onTimeRate = 0.0;
+            Boolean isActive = true;
+            
+            try {
+                if (ratingStr != null && !ratingStr.trim().isEmpty()) {
+                    rating = Double.parseDouble(ratingStr);
+                    if (rating < 0 || rating > 5) {
+                        resp.getWriter().write("{\"success\": false, \"message\": \"Đánh giá phải từ 0 đến 5\"}");
+                        return;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid rating value: " + ratingStr);
+            }
+            
+            try {
+                if (onTimeRateStr != null && !onTimeRateStr.trim().isEmpty()) {
+                    onTimeRate = Double.parseDouble(onTimeRateStr);
+                    if (onTimeRate < 0 || onTimeRate > 100) {
+                        resp.getWriter().write("{\"success\": false, \"message\": \"Tỷ lệ đúng hẹn phải từ 0 đến 100%\"}");
+                        return;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid onTimeRate value: " + onTimeRateStr);
+            }
+            
+            isActive = "true".equals(isActiveStr) || Boolean.parseBoolean(isActiveStr);
+            
+            // Get current user ID for createdBy
+            String userLogin = (String) req.getSession().getAttribute("UserLogin");
+            UUID createdBy = userLogin != null ? UUID.fromString(userLogin) : null;
+            
+            // Create supplier (returns UUID)
+            UUID newSupplierId = service.createSupplier(name, createdBy, email);
+            
+            if (newSupplierId != null) {
+                // Get the created supplier to update additional fields
+                Supplier newSupplier = service.getSupplierById(newSupplierId);
+                
+                if (newSupplier != null) {
+                    // Update additional fields
+                    newSupplier.setContact(contact);
+                    newSupplier.setPhone(phone);
+                    newSupplier.setAddress(address);
+                    newSupplier.setRating(rating);
+                    newSupplier.setOnTimeRate(onTimeRate);
+                    newSupplier.setIsActive(isActive);
+                    
+                    // Save updated supplier
+                    boolean success = service.updateSupplier(newSupplier);
+                    
+                    if (success) {
+                        resp.getWriter().write("{\"success\": true, \"message\": \"Nhà cung cấp '" + name + "' đã được thêm thành công\"}");
+                    } else {
+                        resp.getWriter().write("{\"success\": false, \"message\": \"Lỗi khi lưu thông tin bổ sung\"}");
+                    }
+                } else {
+                    resp.getWriter().write("{\"success\": false, \"message\": \"Không thể tìm thấy nhà cung cấp vừa tạo\"}");
+                }
+            } else {
+                resp.getWriter().write("{\"success\": false, \"message\": \"Không thể tạo nhà cung cấp mới\"}");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERROR creating supplier: " + e.getMessage());
+            e.printStackTrace();
+            resp.getWriter().write("{\"success\": false, \"message\": \"Tạo nhà cung cấp thất bại: " + e.getMessage() + "\"}");
+        }
+    }
+    
+    private String extractJsonValueSafe(String json, String key) {
+        try {
+            // Escape special characters in key
+            String escapedKey = key.replaceAll("[\\[\\]{}()*+?.\\\\^$|]", "\\\\$0");
+            
+            // First try to extract string values
+            String stringPattern = "\"" + escapedKey + "\"\\s*:\\s*\"([^\"]*)\"";
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile(stringPattern);
+            java.util.regex.Matcher m = p.matcher(json);
+            if (m.find()) {
+                String value = m.group(1);
+                // Decode common escape sequences
+                value = value.replace("\\\"", "\"")
+                           .replace("\\\\", "\\")
+                           .replace("\\n", "\n")
+                           .replace("\\r", "\r")
+                           .replace("\\t", "\t");
+                return value;
+            }
+            
+            // Try to extract non-string values (numbers, booleans, null)
+            String valuePattern = "\"" + escapedKey + "\"\\s*:\\s*([^,}]+)";
+            p = java.util.regex.Pattern.compile(valuePattern);
+            m = p.matcher(json);
+            if (m.find()) {
+                String value = m.group(1).trim();
+                
+                // Remove quotes if present
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    value = value.substring(1, value.length() - 1);
+                    // Decode escape sequences
+                    value = value.replace("\\\"", "\"")
+                               .replace("\\\\", "\\")
+                               .replace("\\n", "\n")
+                               .replace("\\r", "\r")
+                               .replace("\\t", "\t");
+                }
+                
+                return value;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error extracting JSON value for key: " + key + ", Error: " + e.getMessage());
+        }
+        return null;
+    }
+    
+    private String extractJsonValue(String json, String key) {
+        return extractJsonValueSafe(json, key);
     }
     
     private void handleCreateSupplier(HttpServletRequest req, HttpServletResponse resp) throws IOException {
