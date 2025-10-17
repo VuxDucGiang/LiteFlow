@@ -1,10 +1,126 @@
-﻿-- ================================
+﻿-- ============================================================
+-- 1️⃣0 PAYROLL & COMPENSATION - SAMPLE DATA
+-- ============================================================
+
+-- Create sample Pay Policies
+INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
+SELECT N'Chính sách chuẩn VN', N'Mặc định cho nhân viên toàn thời gian', 1.5, 1.2, 1.5, 2.0, 15, 'VND', 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+
+INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
+SELECT N'Chính sách tăng cuối tuần', N'Tăng lương giờ cho cuối tuần', 1.5, 1.2, 1.75, 2.0, 15, 'VND', 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+GO
+
+-- Per-employee compensation configurations
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'Fixed', p.PolicyID, 12000000, NULL, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Thu nhập cố định', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'cashier1@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'PerShift', p.PolicyID, NULL, NULL, 100000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Pha chế tính theo ca', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'Hybrid', p.PolicyID, 8000000, 20000, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Kho: lương cơ bản + theo giờ', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'inventory@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+
+-- Shift pay rules (by template/position, with weekend uplift)
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekday', 'Hourly', 25000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ ngày thường'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
+
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekend', 'Hourly', 30000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ cuối tuần'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
+
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Thu ngân / Cashier', 'Any', 'Hourly', 28000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Áp dụng mọi ngày'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Tối';
+GO
+
+-- Timesheets (actual worked times)
+-- Employee1 morning shift today (07:00 - 12:00, 15 min break)
+INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, ApprovedBy, ApprovedAt, Notes)
+SELECT e.EmployeeID,
+       s.ShiftID,
+       CAST(SYSDATETIME() AS DATE),
+       DATEADD(MINUTE, -5, s.StartAt),
+       DATEADD(MINUTE, 10, s.EndAt),
+       15,
+       'Approved',
+       'Manual',
+       4.75,
+       uHR.UserID,
+       SYSDATETIME(),
+       N'Check-in sớm 5 phút; check-out muộn 10 phút'
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN EmployeeShifts s ON s.EmployeeID = e.EmployeeID AND CONVERT(date, s.StartAt) = CAST(SYSDATETIME() AS DATE) AND s.Title = N'Ca Sáng'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+
+-- Holidays and exchange rates
+INSERT INTO HolidayCalendar (HolidayDate, Name, Region, DayType, IsPaidHoliday)
+VALUES ('2025-09-02', N'Quốc khánh Việt Nam', 'VN', 'Public', 1);
+
+INSERT INTO ExchangeRates (Currency, RateToVND, RateDate, Source)
+VALUES ('USD', 24800.000000, CAST(SYSDATETIME() AS DATE), N'Static Sample'),
+       ('VND', 1.000000, CAST(SYSDATETIME() AS DATE), N'Parity');
+GO
+
+-- Pay period for current month and a payroll run
+DECLARE @StartOfMonth DATE = DATEADD(DAY, 1, EOMONTH(SYSDATETIME(), -1));
+DECLARE @EndOfMonth DATE = EOMONTH(SYSDATETIME(), 0);
+
+DECLARE @PeriodID UNIQUEIDENTIFIER = NEWID();
+INSERT INTO PayPeriods (PayPeriodID, Name, PeriodType, StartDate, EndDate, Status)
+VALUES (@PeriodID, FORMAT(@StartOfMonth, 'yyyy-MM') + N' - Kỳ lương', 'Monthly', @StartOfMonth, @EndOfMonth, 'Open');
+
+DECLARE @RunID UNIQUEIDENTIFIER = NEWID();
+INSERT INTO PayrollRuns (PayrollRunID, PayPeriodID, RunNumber, Status, CalculatedAt, Notes)
+VALUES (@RunID, @PeriodID, 1, 'Calculated', SYSDATETIME(), N'Chạy lương mẫu cho kỳ hiện tại');
+
+-- Payroll entries for two employees (same batch to keep @RunID)
+INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
+SELECT @RunID, e.EmployeeID, 'Fixed', 12000000, NULL, NULL, NULL, NULL, 0, 0, 0, 500000, 0, 12500000, 12500000
+FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
+SELECT @RunID, e.EmployeeID, 'PerShift', NULL, NULL, 100000, 4.75, 1, 0, 0, 0, 0, 0, 100000, 100000
+FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn';
+
+-- One payroll adjustment (allowance) for barista (same batch)
+INSERT INTO PayrollAdjustments (PayrollRunID, EmployeeID, AdjustmentType, Amount, Reason, CreatedBy, CreatedAt)
+SELECT @RunID, e.EmployeeID, 'Allowance', 50000, N'Phụ cấp chuyên cần', uHR.UserID, SYSDATETIME()
+FROM Employees e
+JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+-- ================================
 -- SAMPLE DATA FOR LITEFLOW CAFE ☕
 -- Version: 2025-10
 -- ================================
 
 USE LiteFlowDBO;
 GO
+
+
 
 -- ============================================================
 -- 🗑️ DELETE ALL EXISTING DATA (CLEAN SLATE)
@@ -675,4 +791,393 @@ WHERE TableID IN (
     FROM TableSessions ts 
     WHERE ts.Status = 'Active'
 );
+GO
+
+-- ============================================================
+-- 1️⃣ THÊM PHÒNG VÀ BÀN MẪU
+-- ============================================================
+
+-- Thêm phòng mới
+INSERT INTO Rooms (Name, Description) VALUES
+(N'Phòng Ngoài Trời', N'Khu vực ngoài trời, thoáng mát'),
+(N'Phòng Họp', N'Phòng họp riêng tư cho khách VIP'),
+(N'Khu Vực Lễ Tân', N'Khu vực gần lễ tân, tiện lợi');
+GO
+
+-- Thêm bàn mẫu với các trạng thái khác nhau
+INSERT INTO Tables (RoomID, TableNumber, TableName, Capacity, Status) VALUES
+-- Phòng Ngoài Trời
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-01', N'Bàn Ngoài Trời 1', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-02', N'Bàn Ngoài Trời 2', 6, 'Occupied'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-03', N'Bàn Ngoài Trời 3', 8, 'Reserved'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-04', N'Bàn Ngoài Trời 4', 2, 'Maintenance'),
+
+-- Phòng Họp
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'PH-01', N'Bàn Họp 1', 10, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'PH-02', N'Bàn Họp 2', 12, 'Occupied'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'PH-03', N'Bàn Họp 3', 8, 'Available'),
+
+-- Khu Vực Lễ Tân
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-01', N'Bàn Lễ Tân 1', 2, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-02', N'Bàn Lễ Tân 2', 4, 'Occupied'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-03', N'Bàn Lễ Tân 3', 2, 'Available');
+
+-- Thêm bàn không có phòng (test case)
+INSERT INTO Tables (RoomID, TableNumber, TableName, Capacity, Status) VALUES
+(NULL, 'NO-ROOM-01', 'Bàn Không Phòng 1', 4, 'Available'),
+(NULL, 'NO-ROOM-02', 'Bàn Không Phòng 2', 6, 'Occupied');
+
+GO
+
+-- ============================================================
+-- 2️⃣ THÊM TABLE SESSIONS MẪU (Lịch sử giao dịch)
+-- ============================================================
+
+-- Session đã hoàn thành (Completed)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Nguyễn Văn An',
+    '0901111111',
+    DATEADD(HOUR, -24, SYSDATETIME()), -- 1 ngày trước
+    DATEADD(HOUR, -23, SYSDATETIME()), -- 1 tiếng sau
+    'Completed',
+    150000,
+    'Cash',
+    'Paid',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Session đã hủy (Cancelled)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Trần Thị Bình',
+    '0902222222',
+    DATEADD(HOUR, -12, SYSDATETIME()), -- 12 tiếng trước
+    DATEADD(HOUR, -11, SYSDATETIME()), -- 1 tiếng sau
+    'Cancelled',
+    75000,
+    'Card',
+    'Paid',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn 2' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Session với khách hàng VIP
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Lê Văn Cường',
+    '0903333333',
+    DATEADD(DAY, -3, SYSDATETIME()), -- 3 ngày trước
+    DATEADD(DAY, -3, DATEADD(HOUR, 2, SYSDATETIME())), -- 2 tiếng sau
+    'Completed',
+    450000,
+    'Transfer',
+    'Paid',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn VIP 1' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Session với thanh toán một phần
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Phạm Thị Dung',
+    '0904444444',
+    DATEADD(DAY, -2, SYSDATETIME()), -- 2 ngày trước
+    DATEADD(DAY, -2, DATEADD(HOUR, 3, SYSDATETIME())), -- 3 tiếng sau
+    'Completed',
+    200000,
+    'Cash',
+    'Partial',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn 3' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Session với ghi chú
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, Notes, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Hoàng Văn Em',
+    '0905555555',
+    DATEADD(DAY, -1, SYSDATETIME()), -- 1 ngày trước
+    DATEADD(DAY, -1, DATEADD(HOUR, 1, SYSDATETIME())), -- 1 tiếng sau
+    'Completed',
+    120000,
+    'Wallet',
+    'Paid',
+    N'Khách hàng thân thiết, yêu cầu cà phê ít đường',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn 4' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Session với khách vãng lai (không có thông tin)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+SELECT 
+    t.TableID,
+    NULL, -- Khách vãng lai
+    NULL,
+    DATEADD(HOUR, -6, SYSDATETIME()), -- 6 tiếng trước
+    DATEADD(HOUR, -5, SYSDATETIME()), -- 1 tiếng sau
+    'Completed',
+    85000,
+    'Cash',
+    'Paid',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn 5' AND u.Email = 'cashier1@liteflow.vn';
+
+GO
+
+-- ============================================================
+-- 3️⃣ THÊM ORDERS VÀ ORDER DETAILS CHO CÁC SESSION
+-- ============================================================
+
+-- Order cho session đã hoàn thành
+INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
+SELECT 
+    ts.SessionID,
+    'ORD-HISTORY-001',
+    135000,
+    13500,
+    148500,
+    'Served',
+    u.UserID
+FROM TableSessions ts
+CROSS JOIN Users u
+WHERE ts.CustomerName = N'Nguyễn Văn An' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Order cho session VIP
+INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
+SELECT 
+    ts.SessionID,
+    'ORD-HISTORY-002',
+    405000,
+    40500,
+    445500,
+    'Served',
+    u.UserID
+FROM TableSessions ts
+CROSS JOIN Users u
+WHERE ts.CustomerName = N'Lê Văn Cường' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Order Details cho session đã hoàn thành
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    3,
+    pv.Price,
+    pv.Price * 3,
+    'Served'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD-HISTORY-001' 
+    AND p.Name = N'Cà phê sữa đá' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = 'M';
+
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    2,
+    pv.Price,
+    pv.Price * 2,
+    'Served'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD-HISTORY-001' 
+    AND p.Name = N'Bánh tiramisu' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = '1 miếng';
+
+-- Order Details cho session VIP
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    5,
+    pv.Price,
+    pv.Price * 5,
+    'Served'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD-HISTORY-002' 
+    AND p.Name = N'Latte' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = 'L';
+
+INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
+SELECT 
+    o.OrderID,
+    pv.ProductVariantID,
+    3,
+    pv.Price,
+    pv.Price * 3,
+    'Served'
+FROM Orders o
+CROSS JOIN Products p
+CROSS JOIN ProductVariant pv
+WHERE o.OrderNumber = 'ORD-HISTORY-002' 
+    AND p.Name = N'Bánh tiramisu' 
+    AND pv.ProductID = p.ProductID 
+    AND pv.Size = '1 miếng';
+
+GO
+
+-- ============================================================
+-- 4️⃣ THÊM PAYMENT TRANSACTIONS
+-- ============================================================
+
+-- Payment cho session đã hoàn thành
+INSERT INTO PaymentTransactions (SessionID, OrderID, Amount, PaymentMethod, PaymentStatus, ProcessedBy)
+SELECT 
+    ts.SessionID,
+    o.OrderID,
+    o.TotalAmount,
+    'Cash',
+    'Completed',
+    u.UserID
+FROM TableSessions ts
+CROSS JOIN Orders o
+CROSS JOIN Users u
+WHERE ts.CustomerName = N'Nguyễn Văn An' 
+    AND o.OrderNumber = 'ORD-HISTORY-001'
+    AND u.Email = 'cashier1@liteflow.vn';
+
+-- Payment cho session VIP
+INSERT INTO PaymentTransactions (SessionID, OrderID, Amount, PaymentMethod, PaymentStatus, ProcessedBy)
+SELECT 
+    ts.SessionID,
+    o.OrderID,
+    o.TotalAmount,
+    'Transfer',
+    'Completed',
+    u.UserID
+FROM TableSessions ts
+CROSS JOIN Orders o
+CROSS JOIN Users u
+WHERE ts.CustomerName = N'Lê Văn Cường' 
+    AND o.OrderNumber = 'ORD-HISTORY-002'
+    AND u.Email = 'cashier1@liteflow.vn';
+
+GO
+
+-- ============================================================
+-- 5️⃣ CẬP NHẬT TRẠNG THÁI BÀN
+-- ============================================================
+
+-- Cập nhật trạng thái bàn dựa trên sessions
+UPDATE Tables 
+SET Status = 'Occupied'
+WHERE TableID IN (
+    SELECT DISTINCT ts.TableID 
+    FROM TableSessions ts 
+    WHERE ts.Status = 'Active'
+);
+
+-- Cập nhật một số bàn thành Reserved để test
+UPDATE Tables 
+SET Status = 'Reserved'
+WHERE TableName IN ('Bàn Ngoài Trời 3', 'Bàn Họp 2');
+
+-- Cập nhật một số bàn thành Maintenance để test
+UPDATE Tables 
+SET Status = 'Maintenance'
+WHERE TableName IN ('Bàn Ngoài Trời 4');
+
+-- Cập nhật một số bàn thành Available để test
+UPDATE Tables 
+SET Status = 'Available'
+WHERE TableName IN ('Bàn Ngoài Trời 1', 'Bàn Họp 1', 'Bàn Họp 3', 'Bàn Lễ Tân 1', 'Bàn Lễ Tân 3');
+
+GO
+
+-- ============================================================
+-- 6️⃣ THÊM DỮ LIỆU TEST CHO CÁC TRƯỜNG HỢP ĐẶC BIỆT
+-- ============================================================
+
+-- Session với null values để test error handling
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Test Null Values',
+    NULL,
+    DATEADD(HOUR, -1, SYSDATETIME()),
+    NULL, -- CheckOutTime null để test
+    'Active',
+    NULL, -- TotalAmount null để test
+    NULL, -- PaymentMethod null để test
+    'Unpaid',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn Không Phòng 1' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Session với số tiền 0
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+SELECT 
+    t.TableID,
+    N'Khách Hàng Miễn Phí',
+    '0900000000',
+    DATEADD(HOUR, -3, SYSDATETIME()),
+    DATEADD(HOUR, -2, SYSDATETIME()),
+    'Completed',
+    0, -- Số tiền 0
+    'Cash',
+    'Paid',
+    u.UserID
+FROM Tables t
+CROSS JOIN Users u
+WHERE t.TableName = 'Bàn Không Phòng 2' AND u.Email = 'cashier1@liteflow.vn';
+
+GO
+
+-- ============================================================
+-- 7️⃣ THÊM DỮ LIỆU TEST CHO PERFORMANCE
+-- ============================================================
+
+-- Thêm nhiều sessions cũ để test pagination và performance
+DECLARE @counter INT = 1;
+DECLARE @maxCounter INT = 50;
+
+WHILE @counter <= @maxCounter
+BEGIN
+    INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+    SELECT 
+        t.TableID,
+        N'Khách Hàng Test ' + CAST(@counter AS NVARCHAR(10)),
+        '090' + RIGHT('0000000' + CAST(@counter AS NVARCHAR(10)), 7),
+        DATEADD(DAY, -@counter, SYSDATETIME()),
+        DATEADD(DAY, -@counter, DATEADD(HOUR, 2, SYSDATETIME())),
+        'Completed',
+        50000 + (@counter * 1000),
+        CASE (@counter % 4)
+            WHEN 0 THEN 'Cash'
+            WHEN 1 THEN 'Card'
+            WHEN 2 THEN 'Transfer'
+            ELSE 'Wallet'
+        END,
+        'Paid',
+        u.UserID
+    FROM Tables t
+    CROSS JOIN Users u
+    WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
+    
+    SET @counter = @counter + 1;
+END
+
 GO

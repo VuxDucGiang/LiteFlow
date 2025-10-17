@@ -116,9 +116,9 @@
 <script src="${pageContext.request.contextPath}/js/ui-enhancements.js"></script>
 
 <script>
-  // Navigation dropdown functionality
+  // Simple and effective dropdown functionality
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('Dropdown script loaded');
+    console.log('🚀 Dropdown script loaded');
     
     // Handle dropdown menus
     const dropdowns = document.querySelectorAll('.nav-item.dropdown');
@@ -135,55 +135,45 @@
       });
       
       if (dropdownToggle && dropdownMenu) {
-        // Add click event
+        // Click event handler
         dropdownToggle.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
           
-          console.log('Dropdown clicked:', dropdown);
+          console.log('🖱️ Dropdown clicked:', dropdown);
           
-          // Close other dropdowns
+          // Close all other dropdowns first
           document.querySelectorAll('.nav-item.dropdown').forEach(otherDropdown => {
             if (otherDropdown !== dropdown) {
-              otherDropdown.classList.remove('show');
-              const otherMenu = otherDropdown.querySelector('.dropdown-menu');
-              if (otherMenu) {
-                otherMenu.style.display = 'none';
-              }
+              otherDropdown.classList.remove('show', 'active');
             }
           });
           
           // Toggle current dropdown
-          dropdown.classList.toggle('show');
-          if (dropdown.classList.contains('show')) {
-            dropdownMenu.style.display = 'block';
-            console.log('Opening dropdown');
-            // Add animation
-            dropdownMenu.style.opacity = '0';
-            dropdownMenu.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-              dropdownMenu.style.opacity = '1';
-              dropdownMenu.style.transform = 'translateY(0)';
-            }, 10);
+          const isOpen = dropdown.classList.contains('show');
+          
+          if (isOpen) {
+            dropdown.classList.remove('show', 'active');
+            console.log('❌ Closing dropdown');
           } else {
-            dropdownMenu.style.display = 'none';
-            console.log('Closing dropdown');
+            dropdown.classList.add('show', 'active');
+            console.log('✅ Opening dropdown');
           }
         });
         
-        // Add hover event for better UX
+        // Hover events for desktop
         dropdown.addEventListener('mouseenter', function() {
-          console.log('Dropdown hovered:', dropdown);
-          dropdown.classList.add('show');
-          dropdownMenu.style.display = 'block';
-          dropdownMenu.style.opacity = '1';
-          dropdownMenu.style.transform = 'translateY(0)';
+          if (window.innerWidth > 768) {
+            console.log('🖱️ Hover enter:', dropdown);
+            dropdown.classList.add('show', 'active');
+          }
         });
         
         dropdown.addEventListener('mouseleave', function() {
-          console.log('Dropdown left:', dropdown);
-          dropdown.classList.remove('show');
-          dropdownMenu.style.display = 'none';
+          if (window.innerWidth > 768) {
+            console.log('🖱️ Hover leave:', dropdown);
+            dropdown.classList.remove('show', 'active');
+          }
         });
       }
     });
@@ -191,12 +181,9 @@
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.nav-item.dropdown')) {
+        console.log('🖱️ Clicked outside, closing all dropdowns');
         document.querySelectorAll('.nav-item.dropdown').forEach(dropdown => {
-          dropdown.classList.remove('show');
-          const dropdownMenu = dropdown.querySelector('.dropdown-menu');
-          if (dropdownMenu) {
-            dropdownMenu.style.display = 'none';
-          }
+          dropdown.classList.remove('show', 'active');
         });
       }
     });
@@ -204,16 +191,23 @@
     // Handle dropdown item clicks
     document.querySelectorAll('.dropdown-item').forEach(item => {
       item.addEventListener('click', function() {
+        console.log('🖱️ Dropdown item clicked:', this.textContent);
         // Close parent dropdown
         const dropdown = this.closest('.nav-item.dropdown');
         if (dropdown) {
-          dropdown.classList.remove('show');
-          const dropdownMenu = dropdown.querySelector('.dropdown-menu');
-          if (dropdownMenu) {
-            dropdownMenu.style.display = 'none';
-          }
+          dropdown.classList.remove('show', 'active');
         }
       });
+    });
+    
+    // Escape key handler
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        console.log('⌨️ Escape pressed, closing dropdowns');
+        document.querySelectorAll('.nav-item.dropdown').forEach(dropdown => {
+          dropdown.classList.remove('show', 'active');
+        });
+      }
     });
   });
 

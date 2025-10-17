@@ -193,6 +193,49 @@ public class RoomTableService {
         }
     }
 
+    // TableSession operations
+    public com.liteflow.model.inventory.TableSession getActiveSessionByTableId(UUID tableId) {
+        jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+        try {
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT ts FROM TableSession ts " +
+                "WHERE ts.table.tableId = :tableId " +
+                "AND (ts.status = 'Active' OR (ts.status IS NULL AND ts.checkOutTime IS NULL))"
+            );
+            q.setParameter("tableId", tableId);
+            q.setMaxResults(1);
+            return (com.liteflow.model.inventory.TableSession) q.getSingleResult();
+        } catch (jakarta.persistence.NoResultException e) {
+            return null;
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi lấy phiên hoạt động của bàn: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        } finally {
+            em.close();
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public java.util.List<com.liteflow.model.inventory.TableSession> getTableSessionsByTableId(UUID tableId) {
+        jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+        try {
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT ts FROM TableSession ts " +
+                "WHERE ts.table.tableId = :tableId " +
+                "ORDER BY ts.checkInTime DESC"
+            );
+            q.setParameter("tableId", tableId);
+            return q.getResultList();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi lấy lịch sử phiên của bàn: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+
     // Tổng giá trị các đơn đang phục vụ dựa trên tổng OrderDetail.totalPrice của các phiên Active
     public java.math.BigDecimal getTotalActiveSessionsAmount() {
         jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();

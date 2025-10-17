@@ -26,6 +26,19 @@
     <class>com.liteflow.model.inventory.ProductVariant</class>
     <class>com.liteflow.model.inventory.Room</class>
     <class>com.liteflow.model.inventory.Table</class>
+    <!-- Payroll entities -->
+    <class>com.liteflow.model.payroll.PayPeriod</class>
+    <class>com.liteflow.model.payroll.PayrollRun</class>
+    <class>com.liteflow.model.payroll.PayrollEntry</class>
+    <class>com.liteflow.model.payroll.PayrollAdjustment</class>
+    <class>com.liteflow.model.payroll.PayPolicy</class>
+    <class>com.liteflow.model.payroll.EmployeeCompensation</class>
+    <!-- Timesheet entities -->
+    <class>com.liteflow.model.timesheet.ShiftPayRule</class>
+    <class>com.liteflow.model.timesheet.EmployeeShiftTimesheet</class>
+    <!-- External info entities -->
+    <class>com.liteflow.model.external.HolidayCalendar</class>
+    <class>com.liteflow.model.external.ExchangeRate</class>
     <properties>
       <property name="jakarta.persistence.jdbc.driver" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
       <property name="jakarta.persistence.jdbc.url" value="jdbc:sqlserver://localhost:1433;databaseName=LiteFlowDBO;encrypt=true;trustServerCertificate=true;"/>
