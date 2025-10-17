@@ -17,6 +17,12 @@
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/animations.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/ui-components.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/dropdown-fix.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/nav-hover-fix.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/auto-hide-fix.css">
+  
+  <!-- JavaScript -->
+  <script src="${pageContext.request.contextPath}/js/dropdown-fix.js"></script>
 </head>
 <body>
 
@@ -106,6 +112,29 @@
             </a>
             <a href="#" class="dropdown-item">
               <i class='bx bx-cog'></i> Thiết lập nhân viên
+            </a>
+          </div>
+        </div>
+        <div class="nav-item dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class='bx bx-shopping-bag'></i> Mua sắm
+            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+          </a>
+          <div class="dropdown-menu">
+            <a href="${pageContext.request.contextPath}/procurement/dashboard" class="dropdown-item">
+              <i class='bx bxs-dashboard'></i> Tổng quan
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/supplier" class="dropdown-item">
+              <i class='bx bx-store'></i> Nhà cung cấp
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/po" class="dropdown-item">
+              <i class='bx bx-receipt'></i> Đơn đặt hàng
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/gr" class="dropdown-item">
+              <i class='bx bx-package'></i> Nhận hàng
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
+              <i class='bx bx-file'></i> Hóa đơn
             </a>
           </div>
         </div>

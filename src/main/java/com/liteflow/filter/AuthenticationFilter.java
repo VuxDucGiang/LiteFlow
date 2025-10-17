@@ -15,7 +15,7 @@ import java.util.*;
 @WebFilter("/*")
 public class AuthenticationFilter extends BaseFilter {
 
-    private static volatile boolean AUTH_ENABLED = false;
+    private static volatile boolean AUTH_ENABLED = true;
 
     private final AuditService auditService = new AuditService();
     private final UserService userService = new UserService();
@@ -35,6 +35,28 @@ public class AuthenticationFilter extends BaseFilter {
                 "/user/payroll"
         ));
         ROLE_FUNCTIONS.put("Admin", Set.of("/*")); // full quyền
+
+        // ============================================================
+        // 🆕 PHÂN QUYỀN MODULE PROCUREMENT (THÊM MỚI)
+        // ============================================================
+        // Cho phép truy cập các đường dẫn trong module Procurement:
+        // /procurement/supplier, /procurement/po, /procurement/invoice, /procurement/gr ...
+        Set<String> procurementPaths = Set.of(
+                "/procurement",
+                "/procurement/dashboard",
+                "/procurement/supplier",
+                "/procurement/po",
+                "/procurement/invoice",
+                "/procurement/gr"
+        );
+
+        List<String> targetRoles = List.of("Procurement Officer", "Inventory Manager", "Owner", "Admin");
+
+        for (String role : targetRoles) {
+            Set<String> funcs = new HashSet<>(ROLE_FUNCTIONS.getOrDefault(role, Collections.emptySet()));
+            funcs.addAll(procurementPaths);
+            ROLE_FUNCTIONS.put(role, funcs);
+        }
     }
 
     @Override
@@ -61,13 +83,13 @@ public class AuthenticationFilter extends BaseFilter {
     }
 
     private boolean isPublicPage(String path) {
-    return path.equals("/login") || path.equals("/register") || path.equals("/logout")
-        || path.equals("/auth/google") || path.equals("/oauth2callback")
-        || path.equals("/auth/forgot") || path.equals("/auth/reset") || path.equals("/verify-otp")
-        || path.equals("/auth/verify") || path.equals("/auth/verify-otp")
-        || path.equals("/send-otp")
+        return path.equals("/login") || path.equals("/register") || path.equals("/logout")
+                || path.equals("/auth/google") || path.equals("/oauth2callback")
+                || path.equals("/auth/forgot") || path.equals("/auth/reset") || path.equals("/verify-otp")
+                || path.equals("/auth/verify") || path.equals("/auth/verify-otp")
+                || path.equals("/send-otp")
                 || (path.endsWith(".jsp") && (path.startsWith("/auth/") || path.equals("/login.jsp") || path.equals("/register.jsp")))
-                || path.equals("/health") || path.equals("/access-denied.jsp")
+                || path.equals("/health") || path.equals("/accessDenied.jsp")
                 || path.startsWith("/public/") || path.startsWith("/api/public/");
     }
 
@@ -116,6 +138,7 @@ public class AuthenticationFilter extends BaseFilter {
             HttpSession session = getSession(req, false);
             if (session != null) {
                 Object sUser = session.getAttribute("UserLogin");
+                java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("Session UserLogin attribute: " + sUser + " (type: " + (sUser != null ? sUser.getClass().getSimpleName() : "null") + ")");
                 if (sUser instanceof User u) {
                     user = u;
                 } else if (sUser instanceof java.util.UUID) {
@@ -133,42 +156,45 @@ public class AuthenticationFilter extends BaseFilter {
                     @SuppressWarnings("unchecked")
                     List<String> sRoles = (List<String>) session.getAttribute("UserRoles");
                     roles = (sRoles != null) ? sRoles : userService.getRoleNames(user.getUserID());
+                    java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("User found: " + user.getUserID() + ", Roles: " + roles);
                 }
             }
-            // NOTE: "Remember me" cookie is intended only to help the client
-            // (browser) remember the account for autofill. The server MUST NOT
-            // automatically restore session or skip 2FA based solely on this
-            // cookie. If you need server-side long-lived login, use a proper
-            // refresh token flow.
         }
 
         if (user == null) {
+            java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).warning("No user found for path: " + path + " - redirecting to login");
             res.sendRedirect(req.getContextPath() + "/login");
             return;
         }
 
         if (isAuthorized(roles, path)) {
+            java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("Access granted for " + path + " - proceeding to servlet");
             chain.doFilter(req, res);
         } else {
+            java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).warning("Access denied for " + path + " - redirecting to access denied");
             auditService.logDenied(user, path, req.getRemoteAddr());
-            res.sendRedirect(req.getContextPath() + "/access-denied.jsp");
+            res.sendRedirect(req.getContextPath() + "/accessDenied.jsp");
         }
     }
 
     private boolean isAuthorized(List<String> roles, String path) {
         if (roles == null || roles.isEmpty()) {
+            java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).warning("No roles found for path: " + path);
             return false;
         }
         if (roles.stream().anyMatch(r -> r.equalsIgnoreCase("owner") || r.equalsIgnoreCase("admin"))) {
+            java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("Access granted for " + path + " - Owner/Admin role");
             return true;
         }
         String lowerPath = path.toLowerCase();
         for (String role : roles) {
             Set<String> funcs = ROLE_FUNCTIONS.getOrDefault(role, Collections.emptySet());
             if (funcs.stream().anyMatch(f -> lowerPath.startsWith(f.toLowerCase()))) {
+                java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("Access granted for " + path + " - Role: " + role);
                 return true;
             }
         }
+        java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).warning("Access denied for " + path + " - Roles: " + roles + ", Available functions: " + ROLE_FUNCTIONS);
         return false;
     }
 }
