@@ -68,5 +68,12 @@ public class PurchaseOrderServlet extends HttpServlet {
             service.approvePO(poid, userID, level);
             resp.sendRedirect(req.getContextPath() + "/procurement/po?status=approved");
         }
+
+        if ("reject".equals(action)) {
+            UUID poid = UUID.fromString(req.getParameter("poid"));
+            String reason = req.getParameter("reason");
+            service.rejectPO(poid, userID, reason);
+            resp.sendRedirect(req.getContextPath() + "/procurement/po?status=rejected");
+        }
     }
 }
