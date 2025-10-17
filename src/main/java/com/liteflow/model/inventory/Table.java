@@ -23,11 +23,11 @@ public class Table {
     @Column(name = "TableNumber", nullable = false, length = 50)
     private String tableNumber;
 
-    // @Column(name = "TableName", nullable = false, length = 100)
-    // private String tableName;
+    @Column(name = "TableName", nullable = false, length = 100)
+    private String tableName;
 
-    // @Column(name = "Capacity", nullable = false)
-    // private Integer capacity = 4;
+    @Column(name = "Capacity", nullable = false)
+    private Integer capacity = 4;
 
     @Column(name = "Status", length = 50)
     private String status = "Available";
@@ -50,7 +50,7 @@ public class Table {
         this.tableSessions = new ArrayList<>();
         this.status = "Available";
         this.isActive = true;
-        // this.capacity = 4;
+        this.capacity = 4;
     }
 
     public UUID getTableId() {
@@ -77,21 +77,21 @@ public class Table {
         this.tableNumber = tableNumber;
     }
 
-    // public String getTableName() {
-    //     return tableName;
-    // }
+    public String getTableName() {
+        return tableName;
+    }
 
-    // public void setTableName(String tableName) {
-    //     this.tableName = tableName;
-    // }
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
+    }
 
-    // public Integer getCapacity() {
-    //     return capacity;
-    // }
+    public Integer getCapacity() {
+        return capacity;
+    }
 
-    // public void setCapacity(Integer capacity) {
-    //     this.capacity = capacity;
-    // }
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
+    }
 
     public String getStatus() {
         return status;

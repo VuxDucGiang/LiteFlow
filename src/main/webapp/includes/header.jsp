@@ -17,6 +17,84 @@
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/animations.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/ui-components.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
+  
+  <!-- Dropdown Fix Script -->
+  <script src="${pageContext.request.contextPath}/js/dropdown-fix.js"></script>
+  
+  <!-- Inline Dropdown Fix -->
+  <script>
+    // Simple inline dropdown fix
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🔧 Inline dropdown fix loaded');
+      
+      const dropdowns = document.querySelectorAll('.nav-item.dropdown');
+      console.log('Found dropdowns:', dropdowns.length);
+      
+      dropdowns.forEach((dropdown, index) => {
+        const toggle = dropdown.querySelector('.nav-link.dropdown-toggle');
+        const menu = dropdown.querySelector('.dropdown-menu');
+        
+        console.log(`Dropdown ${index}:`, {
+          element: dropdown,
+          toggle: toggle,
+          menu: menu
+        });
+        
+        if (toggle && menu) {
+          let hoverTimeout;
+          
+          // Click handler
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🖱️ Click on dropdown:', dropdown);
+            
+            // Close all other dropdowns
+            dropdowns.forEach(otherDropdown => {
+              if (otherDropdown !== dropdown) {
+                otherDropdown.classList.remove('show', 'active');
+              }
+            });
+            
+            // Toggle current dropdown
+            const isOpen = dropdown.classList.contains('show');
+            
+            if (isOpen) {
+              dropdown.classList.remove('show', 'active');
+              console.log('❌ Closed dropdown');
+            } else {
+              dropdown.classList.add('show', 'active');
+              console.log('✅ Opened dropdown');
+            }
+          });
+          
+          // No hover effects - click only for dropdown
+        }
+      });
+      
+      // Close dropdowns when clicking outside or on dropdown items
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.nav-item.dropdown')) {
+          console.log('🖱️ Clicked outside, closing dropdowns');
+          dropdowns.forEach(dropdown => {
+            dropdown.classList.remove('show', 'active');
+          });
+        }
+      });
+      
+      // Close dropdown when clicking on dropdown items
+      document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function() {
+          console.log('🖱️ Dropdown item clicked:', this.textContent.trim());
+          const dropdown = this.closest('.nav-item.dropdown');
+          if (dropdown) {
+            dropdown.classList.remove('show', 'active');
+          }
+        });
+      });
+    });
+  </script>
 </head>
 <body>
 
@@ -65,7 +143,7 @@
         </a>
         <div class="nav-item dropdown ${param.page == 'products' || param.page == 'setprice' ? 'active' : ''}">
           <a href="#" class="nav-link dropdown-toggle">
-          <i class='bx bxs-package'></i> Hàng hóa
+            <i class='bx bxs-package'></i> Hàng hóa
             <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
           </a>
           <div class="dropdown-menu">
@@ -121,10 +199,10 @@
      
       </div>
       <div class="nav-right">
-        <div class="nav-icon">
+        <div class="nav-icon" title="Nhà bếp">
           <i class='bx bx-home'></i>
         </div>
-        <div class="nav-icon">
+        <div class="nav-icon" title="Lễ tân">
           <i class='bx bx-calendar'></i>
         </div>
         <a href="${pageContext.request.contextPath}/cashier" class="nav-icon" title="Thu ngân" target="_blank">

@@ -499,8 +499,70 @@ class KeyboardShortcuts {
 
 window.keyboard = new KeyboardShortcuts();
 
+// ==================== DROPDOWN FUNCTIONALITY ====================
+function setupDropdownMenus() {
+  const dropdowns = document.querySelectorAll('.nav-item.dropdown');
+  
+  dropdowns.forEach(dropdown => {
+    const toggle = dropdown.querySelector('.dropdown-toggle');
+    const menu = dropdown.querySelector('.dropdown-menu');
+    
+    if (!toggle || !menu) return;
+    
+    // Click handler for mobile/touch devices
+    toggle.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Close other dropdowns
+      dropdowns.forEach(otherDropdown => {
+        if (otherDropdown !== dropdown) {
+          otherDropdown.classList.remove('show');
+        }
+      });
+      
+      // Toggle current dropdown
+      dropdown.classList.toggle('show');
+    });
+    
+    // Hover handlers for desktop
+    dropdown.addEventListener('mouseenter', function() {
+      if (window.innerWidth > 768) {
+        dropdown.classList.add('show');
+      }
+    });
+    
+    dropdown.addEventListener('mouseleave', function() {
+      if (window.innerWidth > 768) {
+        dropdown.classList.remove('show');
+      }
+    });
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.nav-item.dropdown')) {
+      dropdowns.forEach(dropdown => {
+        dropdown.classList.remove('show');
+      });
+    }
+  });
+  
+  // Close dropdowns on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      dropdowns.forEach(dropdown => {
+        dropdown.classList.remove('show');
+      });
+    }
+  });
+}
+
 // ==================== AUTO-INIT ON DOM READY ====================
 document.addEventListener('DOMContentLoaded', function() {
+  // Setup dropdown menus
+  setupDropdownMenus();
+  
   // Add ripple effect to buttons
   document.querySelectorAll('.btn, button').forEach(btn => {
     if (!btn.classList.contains('no-ripple')) {
