@@ -104,7 +104,7 @@
             <a href="#" class="dropdown-item">
               <i class='bx bx-money'></i> Bảng lương
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/employee/setupEmployee.jsp" class="dropdown-item">
               <i class='bx bx-cog'></i> Thiết lập nhân viên
             </a>
           </div>
