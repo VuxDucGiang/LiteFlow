@@ -234,12 +234,8 @@
             </a>
           </div>
         </div>
-        <a href="#" class="nav-item">
-          <i class='bx bx-cart'></i> Bán Online
-        </a>
-        <a href="#" class="nav-item">
-          <i class='bx bx-wallet'></i> Sổ quỹ
-        </a>
+        
+    
         <a href="#" class="nav-item">
           <i class='bx bx-bar-chart'></i> Báo cáo
         </a>
