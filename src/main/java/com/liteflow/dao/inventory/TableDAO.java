@@ -59,4 +59,28 @@ public class TableDAO extends GenericDAO<Table, UUID> {
             em.close();
         }
     }
+    
+    public List<Table> findByRoomIdAndStatus(UUID roomId, String status) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            StringBuilder jpql = new StringBuilder("SELECT t FROM Table t WHERE t.room.roomId = :roomId");
+            if (status != null && !status.isBlank()) {
+                jpql.append(" AND t.status = :status");
+            }
+            jpql.append(" AND (t.isActive = true OR t.isActive IS NULL)");
+            
+            jakarta.persistence.Query query = em.createQuery(jpql.toString(), Table.class);
+            query.setParameter("roomId", roomId);
+            if (status != null && !status.isBlank()) {
+                query.setParameter("status", status);
+            }
+            
+            return query.getResultList();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi findByRoomIdAndStatus: " + e.getMessage());
+            return Collections.emptyList();
+        } finally {
+            em.close();
+        }
+    }
 }

@@ -65,6 +65,14 @@ public class RoomTableServlet extends HttpServlet {
                 deleteRoom(request, response);
             } else if ("deleteTable".equals(action)) {
                 deleteTable(request, response);
+            } else if ("editRoom".equals(action)) {
+                editRoom(request, response);
+            } else if ("editTable".equals(action)) {
+                editTable(request, response);
+            } else if ("getTableDetails".equals(action)) {
+                getTableDetails(request, response);
+            } else if ("getTableHistory".equals(action)) {
+                getTableHistory(request, response);
             } else {
                 request.setAttribute("error", "Hành động không hợp lệ");
             }
@@ -125,11 +133,15 @@ public class RoomTableServlet extends HttpServlet {
         try {
             String roomIdStr = request.getParameter("roomId");
             String tableNumber = request.getParameter("tableNumber");
+            String tableName = request.getParameter("tableName");
+            String capacityStr = request.getParameter("capacity");
             String status = request.getParameter("status");
 
             System.out.println("=== DEBUG: Add Table ===");
             System.out.println("Room ID: " + roomIdStr);
             System.out.println("Số bàn: " + tableNumber);
+            System.out.println("Tên bàn: " + tableName);
+            System.out.println("Sức chứa: " + capacityStr);
             System.out.println("Trạng thái: " + status);
 
             // Validation
@@ -138,15 +150,44 @@ public class RoomTableServlet extends HttpServlet {
                 return;
             }
 
+            if (tableName == null || tableName.trim().isEmpty()) {
+                request.setAttribute("error", "Tên bàn không được để trống");
+                return;
+            }
+
             if (tableNumber.trim().length() > 50) {
                 request.setAttribute("error", "Số bàn không được vượt quá 50 ký tự");
+                return;
+            }
+
+            if (tableName.trim().length() > 100) {
+                request.setAttribute("error", "Tên bàn không được vượt quá 100 ký tự");
                 return;
             }
 
             // Tạo đối tượng Table mới
             Table newTable = new Table();
             newTable.setTableNumber(tableNumber.trim());
+            newTable.setTableName(tableName.trim());
             newTable.setStatus(status != null && !status.trim().isEmpty() ? status.trim() : "Available");
+
+            // Parse capacity
+            if (capacityStr != null && !capacityStr.trim().isEmpty()) {
+                try {
+                    int capacity = Integer.parseInt(capacityStr.trim());
+                    if (capacity > 0 && capacity <= 20) {
+                        newTable.setCapacity(capacity);
+                    } else {
+                        request.setAttribute("error", "Sức chứa phải từ 1 đến 20 người");
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    request.setAttribute("error", "Sức chứa không hợp lệ");
+                    return;
+                }
+            } else {
+                newTable.setCapacity(4); // Default capacity
+            }
 
             // Set room if provided
             if (roomIdStr != null && !roomIdStr.trim().isEmpty()) {
@@ -279,6 +320,265 @@ public class RoomTableServlet extends HttpServlet {
             System.err.println("❌ Lỗi trong deleteTable: " + e.getMessage());
             e.printStackTrace();
             request.setAttribute("error", "Có lỗi xảy ra khi xóa bàn: " + e.getMessage());
+        }
+    }
+    
+    private void editRoom(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String roomIdStr = request.getParameter("roomId");
+            String name = request.getParameter("roomName");
+            String description = request.getParameter("roomDescription");
+
+            if (roomIdStr == null || roomIdStr.trim().isEmpty()) {
+                request.setAttribute("error", "ID phòng không được để trống");
+                return;
+            }
+
+            if (name == null || name.trim().isEmpty()) {
+                request.setAttribute("error", "Tên phòng không được để trống");
+                return;
+            }
+
+            try {
+                UUID roomId = UUID.fromString(roomIdStr.trim());
+                Room room = roomTableService.getRoomById(roomId);
+                
+                if (room != null) {
+                    room.setName(name.trim());
+                    room.setDescription(description != null && !description.trim().isEmpty() ? description.trim() : null);
+                    
+                    boolean success = roomTableService.updateRoom(room);
+                    
+                    if (success) {
+                        request.setAttribute("success", "Cập nhật phòng thành công!");
+                        System.out.println("✅ Cập nhật phòng thành công: " + roomId);
+                    } else {
+                        request.setAttribute("error", "Có lỗi xảy ra khi cập nhật phòng");
+                    }
+                } else {
+                    request.setAttribute("error", "Không tìm thấy phòng");
+                }
+            } catch (IllegalArgumentException e) {
+                request.setAttribute("error", "ID phòng không hợp lệ");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi trong editRoom: " + e.getMessage());
+            e.printStackTrace();
+            request.setAttribute("error", "Có lỗi xảy ra khi cập nhật phòng: " + e.getMessage());
+        }
+    }
+    
+    private void editTable(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String tableIdStr = request.getParameter("tableId");
+            String tableNumber = request.getParameter("tableNumber");
+            String tableName = request.getParameter("tableName");
+            String capacityStr = request.getParameter("capacity");
+            String roomIdStr = request.getParameter("roomId");
+            String status = request.getParameter("status");
+
+            if (tableIdStr == null || tableIdStr.trim().isEmpty()) {
+                request.setAttribute("error", "ID bàn không được để trống");
+                return;
+            }
+
+            if (tableNumber == null || tableNumber.trim().isEmpty()) {
+                request.setAttribute("error", "Số bàn không được để trống");
+                return;
+            }
+
+            if (tableName == null || tableName.trim().isEmpty()) {
+                request.setAttribute("error", "Tên bàn không được để trống");
+                return;
+            }
+
+            try {
+                UUID tableId = UUID.fromString(tableIdStr.trim());
+                Table table = roomTableService.getTableById(tableId);
+                
+                if (table != null) {
+                    table.setTableNumber(tableNumber.trim());
+                    table.setTableName(tableName.trim());
+                    
+                    // Parse capacity
+                    if (capacityStr != null && !capacityStr.trim().isEmpty()) {
+                        try {
+                            int capacity = Integer.parseInt(capacityStr.trim());
+                            if (capacity > 0 && capacity <= 20) {
+                                table.setCapacity(capacity);
+                            } else {
+                                request.setAttribute("error", "Sức chứa phải từ 1 đến 20 người");
+                                return;
+                            }
+                        } catch (NumberFormatException e) {
+                            request.setAttribute("error", "Sức chứa không hợp lệ");
+                            return;
+                        }
+                    }
+                    
+                    // Set room if provided
+                    if (roomIdStr != null && !roomIdStr.trim().isEmpty()) {
+                        try {
+                            UUID roomId = UUID.fromString(roomIdStr.trim());
+                            Room room = roomTableService.getRoomById(roomId);
+                            table.setRoom(room);
+                        } catch (IllegalArgumentException e) {
+                            request.setAttribute("error", "ID phòng không hợp lệ");
+                            return;
+                        }
+                    }
+                    
+                    // Set status if provided
+                    if (status != null && !status.trim().isEmpty()) {
+                        table.setStatus(status.trim());
+                    }
+                    
+                    boolean success = roomTableService.updateTable(table);
+                    
+                    if (success) {
+                        request.setAttribute("success", "Cập nhật bàn thành công!");
+                        System.out.println("✅ Cập nhật bàn thành công: " + tableId);
+                    } else {
+                        request.setAttribute("error", "Có lỗi xảy ra khi cập nhật bàn");
+                    }
+                } else {
+                    request.setAttribute("error", "Không tìm thấy bàn");
+                }
+            } catch (IllegalArgumentException e) {
+                request.setAttribute("error", "ID bàn không hợp lệ");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi trong editTable: " + e.getMessage());
+            e.printStackTrace();
+            request.setAttribute("error", "Có lỗi xảy ra khi cập nhật bàn: " + e.getMessage());
+        }
+    }
+    
+    private void getTableDetails(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String tableIdStr = request.getParameter("tableId");
+            
+            if (tableIdStr == null || tableIdStr.trim().isEmpty()) {
+                response.getWriter().write("{\"error\": \"ID bàn không được để trống\"}");
+                return;
+            }
+
+            try {
+                UUID tableId = UUID.fromString(tableIdStr.trim());
+                Table table = roomTableService.getTableById(tableId);
+                
+                if (table != null) {
+                    // Get active session for this table
+                    com.liteflow.model.inventory.TableSession activeSession = 
+                        roomTableService.getActiveSessionByTableId(tableId);
+                    
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    
+                    StringBuilder json = new StringBuilder();
+                    json.append("{");
+                    json.append("\"tableId\":\"").append(table.getTableId()).append("\",");
+                    json.append("\"tableNumber\":\"").append(table.getTableNumber()).append("\",");
+                    json.append("\"tableName\":\"").append(table.getTableName()).append("\",");
+                    json.append("\"capacity\":").append(table.getCapacity()).append(",");
+                    json.append("\"status\":\"").append(table.getStatus()).append("\",");
+                    json.append("\"isActive\":").append(table.getIsActive()).append(",");
+                    json.append("\"room\":");
+                    if (table.getRoom() != null) {
+                        json.append("{");
+                        json.append("\"roomId\":\"").append(table.getRoom().getRoomId()).append("\",");
+                        json.append("\"name\":\"").append(table.getRoom().getName()).append("\"");
+                        json.append("}");
+                    } else {
+                        json.append("null");
+                    }
+                    json.append(",");
+                    json.append("\"activeSession\":");
+                    if (activeSession != null) {
+                        json.append("{");
+                        json.append("\"sessionId\":\"").append(activeSession.getSessionId()).append("\",");
+                        json.append("\"customerName\":\"").append(activeSession.getCustomerName() != null ? activeSession.getCustomerName() : "").append("\",");
+                        json.append("\"customerPhone\":\"").append(activeSession.getCustomerPhone() != null ? activeSession.getCustomerPhone() : "").append("\",");
+                        json.append("\"checkInTime\":\"").append(activeSession.getCheckInTime()).append("\",");
+                        json.append("\"totalAmount\":").append(activeSession.getTotalAmount()).append(",");
+                        json.append("\"paymentStatus\":\"").append(activeSession.getPaymentStatus()).append("\"");
+                        json.append("}");
+                    } else {
+                        json.append("null");
+                    }
+                    json.append("}");
+                    
+                    response.getWriter().write(json.toString());
+                } else {
+                    response.getWriter().write("{\"error\": \"Không tìm thấy bàn\"}");
+                }
+            } catch (IllegalArgumentException e) {
+                response.getWriter().write("{\"error\": \"ID bàn không hợp lệ\"}");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi trong getTableDetails: " + e.getMessage());
+            e.printStackTrace();
+            try {
+                response.getWriter().write("{\"error\": \"Có lỗi xảy ra: " + e.getMessage() + "\"}");
+            } catch (Exception ex) {
+                // Ignore
+            }
+        }
+    }
+    
+    private void getTableHistory(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String tableIdStr = request.getParameter("tableId");
+            
+            if (tableIdStr == null || tableIdStr.trim().isEmpty()) {
+                response.getWriter().write("{\"error\": \"ID bàn không được để trống\"}");
+                return;
+            }
+
+            try {
+                UUID tableId = UUID.fromString(tableIdStr.trim());
+                java.util.List<com.liteflow.model.inventory.TableSession> sessions = 
+                    roomTableService.getTableSessionsByTableId(tableId);
+                
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                
+                StringBuilder json = new StringBuilder();
+                json.append("{\"sessions\":[");
+                
+                if (sessions != null && !sessions.isEmpty()) {
+                    for (int i = 0; i < sessions.size(); i++) {
+                        com.liteflow.model.inventory.TableSession session = sessions.get(i);
+                        json.append("{");
+                        json.append("\"sessionId\":\"").append(session.getSessionId()).append("\",");
+                        json.append("\"customerName\":\"").append(session.getCustomerName() != null ? session.getCustomerName() : "").append("\",");
+                        json.append("\"customerPhone\":\"").append(session.getCustomerPhone() != null ? session.getCustomerPhone() : "").append("\",");
+                        json.append("\"checkInTime\":\"").append(session.getCheckInTime()).append("\",");
+                        json.append("\"checkOutTime\":\"").append(session.getCheckOutTime() != null ? session.getCheckOutTime() : "").append("\",");
+                        json.append("\"status\":\"").append(session.getStatus()).append("\",");
+                        json.append("\"totalAmount\":").append(session.getTotalAmount()).append("\",");
+                        json.append("\"paymentStatus\":\"").append(session.getPaymentStatus()).append("\"");
+                        json.append("}");
+                        
+                        if (i < sessions.size() - 1) {
+                            json.append(",");
+                        }
+                    }
+                }
+                
+                json.append("]}");
+                response.getWriter().write(json.toString());
+            } catch (IllegalArgumentException e) {
+                response.getWriter().write("{\"error\": \"ID bàn không hợp lệ\"}");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi trong getTableHistory: " + e.getMessage());
+            e.printStackTrace();
+            try {
+                response.getWriter().write("{\"error\": \"Có lỗi xảy ra: " + e.getMessage() + "\"}");
+            } catch (Exception ex) {
+                // Ignore
+            }
         }
     }
 }
