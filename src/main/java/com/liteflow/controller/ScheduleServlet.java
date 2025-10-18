@@ -198,7 +198,24 @@ public class ScheduleServlet extends HttpServlet {
                 }
 
                 if (anyCreated) {
-                    resp.sendRedirect(req.getContextPath() + "/schedule?weekStart=" + weekStartParam);
+                    StringBuilder url = new StringBuilder(req.getContextPath())
+                            .append("/schedule?weekStart=").append(weekStartParam);
+                    String employeeFilter = req.getParameter("redirectEmployeeCode");
+                    if (employeeFilter == null || employeeFilter.isBlank()) {
+                        employeeFilter = req.getParameter("employeeCode"); // first value if multiple
+                    }
+                    if (employeeFilter != null && !employeeFilter.isBlank()) {
+                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
+                    }
+                    String templateName = req.getParameter("templateName");
+                    if (templateName != null && !templateName.isBlank()) {
+                        url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
+                    }
+                    String embed = req.getParameter("embed");
+                    if ("1".equals(embed)) {
+                        url.append("&embed=1");
+                    }
+                    resp.sendRedirect(url.toString());
                     return;
                 } else {
                     req.setAttribute("error", "Không thể tạo ca làm việc. Vui lòng kiểm tra dữ liệu.");
@@ -212,7 +229,25 @@ public class ScheduleServlet extends HttpServlet {
                 java.util.UUID sid = java.util.UUID.fromString(shiftIdStr);
                 boolean ok = scheduleService.deleteShift(sid);
                 if (ok) {
-                    resp.sendRedirect(req.getContextPath() + "/schedule?weekStart=" + (weekStartParam != null ? weekStartParam : LocalDate.now().toString()));
+                    StringBuilder url = new StringBuilder(req.getContextPath())
+                            .append("/schedule?weekStart=")
+                            .append(weekStartParam != null ? weekStartParam : LocalDate.now().toString());
+                    String employeeFilter = req.getParameter("redirectEmployeeCode");
+                    if (employeeFilter == null || employeeFilter.isBlank()) {
+                        employeeFilter = req.getParameter("employeeCode");
+                    }
+                    if (employeeFilter != null && !employeeFilter.isBlank()) {
+                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
+                    }
+                    String templateName = req.getParameter("templateName");
+                    if (templateName != null && !templateName.isBlank()) {
+                        url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
+                    }
+                    String embed = req.getParameter("embed");
+                    if ("1".equals(embed)) {
+                        url.append("&embed=1");
+                    }
+                    resp.sendRedirect(url.toString());
                     return;
                 } else {
                     req.setAttribute("error", "Không thể xóa ca làm việc");
@@ -229,7 +264,25 @@ public class ScheduleServlet extends HttpServlet {
                 
                 boolean ok = scheduleService.toggleRecurring(sid, isRecurring);
                 if (ok) {
-                    resp.sendRedirect(req.getContextPath() + "/schedule?weekStart=" + (weekStartParam != null ? weekStartParam : LocalDate.now().toString()));
+                    StringBuilder url = new StringBuilder(req.getContextPath())
+                            .append("/schedule?weekStart=")
+                            .append(weekStartParam != null ? weekStartParam : LocalDate.now().toString());
+                    String employeeFilter = req.getParameter("redirectEmployeeCode");
+                    if (employeeFilter == null || employeeFilter.isBlank()) {
+                        employeeFilter = req.getParameter("employeeCode");
+                    }
+                    if (employeeFilter != null && !employeeFilter.isBlank()) {
+                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
+                    }
+                    String templateName = req.getParameter("templateName");
+                    if (templateName != null && !templateName.isBlank()) {
+                        url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
+                    }
+                    String embed = req.getParameter("embed");
+                    if ("1".equals(embed)) {
+                        url.append("&embed=1");
+                    }
+                    resp.sendRedirect(url.toString());
                     return;
                 } else {
                     req.setAttribute("error", "Không thể cập nhật trạng thái lặp lại");
