@@ -36,6 +36,7 @@
     <!-- Timesheet entities -->
     <class>com.liteflow.model.timesheet.ShiftPayRule</class>
     <class>com.liteflow.model.timesheet.EmployeeShiftTimesheet</class>
+    <class>com.liteflow.model.timesheet.EmployeeAttendance</class>
     <!-- External info entities -->
     <class>com.liteflow.model.external.HolidayCalendar</class>
     <class>com.liteflow.model.external.ExchangeRate</class>

@@ -786,3 +786,52 @@ CREATE TABLE ExchangeRates (
     CONSTRAINT UX_ExchangeRates UNIQUE (Currency, RateDate)
 );
 GO
+
+-- =======================================================
+-- 17. ATTENDANCE STATUS (Daily per-employee)
+-- =======================================================
+CREATE TABLE EmployeeAttendance (
+    AttendanceID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    WorkDate DATE NOT NULL,
+    Status NVARCHAR(20) NOT NULL CHECK (Status IN ('Work', 'LeavePaid', 'LeaveUnpaid')),
+    CheckInTime TIME NULL,
+    CheckOutTime TIME NULL,
+    Notes NVARCHAR(500) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_EmployeeAttendance_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT UX_EmployeeAttendance UNIQUE (EmployeeID, WorkDate)
+);
+GO
+
+CREATE INDEX IX_EmployeeAttendance_Employee ON EmployeeAttendance(EmployeeID);
+CREATE INDEX IX_EmployeeAttendance_WorkDate ON EmployeeAttendance(WorkDate);
+GO
+
+-- =======================================================
+-- 18. COMPENSATION EVENTS (Per-day Bonuses/Penalties)
+-- =======================================================
+CREATE TABLE EmployeeCompEvents (
+    EventID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    WorkDate DATE NULL,
+    EventType NVARCHAR(20) NOT NULL CHECK (EventType IN ('Bonus', 'Penalty')),
+    Amount DECIMAL(12,2) NOT NULL CHECK (Amount >= 0),
+    Reason NVARCHAR(500) NULL,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    ApprovedBy UNIQUEIDENTIFIER NULL,
+    ApprovedAt DATETIME2 NULL,
+
+    CONSTRAINT FK_CompEvents_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT FK_CompEvents_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    CONSTRAINT FK_CompEvents_ApprovedBy FOREIGN KEY (ApprovedBy) REFERENCES Users(UserID)
+);
+GO
+
+CREATE INDEX IX_EmployeeCompEvents_Employee ON EmployeeCompEvents(EmployeeID);
+CREATE INDEX IX_EmployeeCompEvents_WorkDate ON EmployeeCompEvents(WorkDate);
+CREATE INDEX IX_EmployeeCompEvents_Type ON EmployeeCompEvents(EventType);
+GO

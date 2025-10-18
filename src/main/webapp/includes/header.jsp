@@ -200,7 +200,7 @@
             <a href="${pageContext.request.contextPath}/schedule" class="dropdown-item">
               <i class='bx bx-calendar'></i> Lịch làm việc
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/attendance" class="dropdown-item">
               <i class='bx bx-time'></i> Bảng chấm công
             </a>
             <a href="#" class="dropdown-item">
