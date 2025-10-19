@@ -77,7 +77,8 @@
                               data-start-time="${t.startTime.toString().substring(0,5)}"
                               data-end-time="${t.endTime.toString().substring(0,5)}"
                               data-check-in-at="${item.checkInAt}"
-                              data-check-out-at="${item.checkOutAt}">
+                              data-check-out-at="${item.checkOutAt}"
+                              data-source="${item.source}">
                               <div class="shift-emp">${item.employee}</div>
                               <div class="shift-status">
                                 <c:choose>
@@ -284,6 +285,7 @@
     var en = block.getAttribute('data-end-time') || '';
     var ci = block.getAttribute('data-check-in-at') || '';
     var co = block.getAttribute('data-check-out-at') || '';
+    var src = block.getAttribute('data-source') || '';
     var empCode = block.getAttribute('data-employee-code') || block.getAttribute('data-emp-code') || '';
 
     // Populate overview
@@ -359,6 +361,86 @@
 
     // Default to Overview tab each time open
     activateTab('overview');
+
+    // Build history table rows with status evaluation (đúng giờ / muộn / về sớm / tăng ca)
+    var histEmpty = document.getElementById('attHistoryEmpty');
+    var histList = document.getElementById('attHistoryList');
+    var histBody = document.getElementById('attHistoryTbody');
+    if (histEmpty && histList && histBody) {
+      histBody.innerHTML = '';
+      var haveAny = false;
+      function addRow(timeStr, statusLabel, methodLabel, content) {
+        var tr = document.createElement('tr');
+        var td1 = document.createElement('td'); td1.style.padding = '8px 10px'; td1.textContent = timeStr || '';
+        var td2 = document.createElement('td'); td2.style.padding = '8px 10px'; td2.textContent = statusLabel || '';
+        var td3 = document.createElement('td'); td3.style.padding = '8px 10px'; td3.textContent = methodLabel || '';
+        var td4 = document.createElement('td'); td4.style.padding = '8px 10px'; td4.textContent = content || '';
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tr.appendChild(td4);
+        histBody.appendChild(tr);
+        haveAny = true;
+      }
+
+      var method = '—';
+      if (src) {
+        if (src === 'Auto') method = 'Chấm công tự động';
+        else if (src === 'Manual') method = 'Chấm công thủ công';
+        else if (src === 'Import') method = 'Chấm công bằng máy chấm công';
+        else method = src;
+      }
+      var contentBase = 'Giờ ca: ' + (s && en ? (s + ' - ' + en) : '—');
+
+      function toMinutes(hhmm){
+        if (!hhmm) return null;
+        // Try HH:mm first
+        if (/^\d{2}:\d{2}$/.test(hhmm)) {
+          var p = hhmm.split(':');
+          return parseInt(p[0],10)*60 + parseInt(p[1],10);
+        }
+        // Try Date string
+        var d = new Date(hhmm);
+        if (!isNaN(d.getTime())) return d.getHours()*60 + d.getMinutes();
+        // Try substring
+        if (hhmm.length >= 5 && hhmm.indexOf(':') === 2) {
+          var p2 = hhmm.substring(0,5).split(':');
+          return parseInt(p2[0],10)*60 + parseInt(p2[1],10);
+        }
+        return null;
+      }
+      function fmtDuration(mins){
+        var m = Math.abs(mins|0); var h = Math.floor(m/60); var r = m%60;
+        return h + ' giờ ' + r + ' phút';
+      }
+
+      var startM = toMinutes(s);
+      var endM = toMinutes(en);
+      var inM = toMinutes(ci);
+      var outM = toMinutes(co);
+
+      // Check-in row with status
+      if (inM != null && startM != null) {
+        var statusIn;
+        if (inM === startM) statusIn = 'Đúng giờ';
+        else if (inM > startM) statusIn = 'Muộn ' + fmtDuration(inM - startM);
+        else statusIn = 'Tăng ca ' + fmtDuration(startM - inM); // đến sớm
+        addRow((ci && ci.substring ? ci.substring(0,5) : ci), statusIn, method, contentBase);
+      } else if (ci) {
+        addRow(ci, 'Đã chấm công vào', method, contentBase);
+      }
+
+      // Check-out row with status
+      if (outM != null && endM != null) {
+        var statusOut;
+        if (outM === endM) statusOut = 'Đúng giờ';
+        else if (outM < endM) statusOut = 'Về sớm ' + fmtDuration(endM - outM);
+        else statusOut = 'Tăng ca ' + fmtDuration(outM - endM);
+        addRow((co && co.substring ? co.substring(0,5) : co), statusOut, method, contentBase);
+      } else if (co) {
+        addRow(co, 'Đã chấm công ra', method, contentBase);
+      }
+
+      histEmpty.style.display = haveAny ? 'none' : 'block';
+      histList.style.display = haveAny ? 'block' : 'none';
+    }
 
     open();
   });

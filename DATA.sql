@@ -1272,7 +1272,82 @@ GO
 USE LiteFlowDBO;
 GO
 
+-- ============================================================
+-- 🔟 SEED DỮ LIỆU MẪU LỊCH SỬ CHẤM CÔNG (Timesheets with mixed sources)
+-- ============================================================
+USE LiteFlowDBO;
+GO
+
+DECLARE @Today DATE = CAST(SYSDATETIME() AS DATE);
+
+DECLARE @EmpBaristaTS UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+);
+
+IF @EmpBaristaTS IS NOT NULL
+BEGIN
+  -- Xóa dữ liệu timesheet trong ngày để seed lại demo rõ ràng
+  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpBaristaTS AND WorkDate = @Today;
+
+  -- Chấm công tự động: check-in đúng giờ template, check-out muộn 5'
+  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
+  SELECT @EmpBaristaTS,
+         s.ShiftID,
+         @Today,
+         DATEADD(HOUR, 7, CAST(@Today AS DATETIME2)),
+         DATEADD(MINUTE, 5, DATEADD(HOUR, 12, CAST(@Today AS DATETIME2))),
+         15,
+         'Approved',
+         'Auto',
+         4.75,
+         N'Chấm công tự động (mặc định hệ thống)'
+  FROM EmployeeShifts s
+  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpBaristaTS
+  WHERE CONVERT(date, s.StartAt) = @Today;
+END
+GO
+
+DECLARE @EmpCashierTS UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
+);
+
+IF @EmpCashierTS IS NOT NULL
+BEGIN
+  -- Xóa để seed lại
+  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpCashierTS AND WorkDate = @Today;
+
+  -- Chấm công bằng máy chấm công: import
+  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
+  SELECT @EmpCashierTS,
+         s.ShiftID,
+         @Today,
+         DATEADD(HOUR, 17, CAST(@Today AS DATETIME2)),
+         DATEADD(HOUR, 22, CAST(@Today AS DATETIME2)),
+         0,
+         'Approved',
+         'Import',
+         5.00,
+         N'Chấm công bằng máy (import file)'
+  FROM EmployeeShifts s
+  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpCashierTS
+  WHERE CONVERT(date, s.StartAt) = @Today;
+END
+GO
+
 DECLARE @HRUser UNIQUEIDENTIFIER = (SELECT TOP 1 UserID FROM Users WHERE Email = 'hr@liteflow.vn');
+
+-- Recompute week anchors and employee IDs in this batch
+DECLARE @Mon DATE;
+DECLARE @today2 DATE = CAST(SYSDATETIME() AS DATE);
+SET @Mon = DATEADD(DAY, -((DATEPART(WEEKDAY, @today2) + 5) % 7), @today2);
+
+DECLARE @EmpBarista UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+);
+
+DECLARE @EmpCashier UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
+);
 
 IF @EmpBarista IS NOT NULL
 BEGIN

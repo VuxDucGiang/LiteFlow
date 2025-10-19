@@ -131,6 +131,7 @@ public class AttendanceServlet extends HttpServlet {
                                 map.put("checkInAt", ts.getCheckInAt());
                                 map.put("checkOutAt", ts.getCheckOutAt());
                                 map.put("hoursWorked", ts.getHoursWorked());
+                                map.put("source", ts.getSource());
                                 break;
                             }
                         }
