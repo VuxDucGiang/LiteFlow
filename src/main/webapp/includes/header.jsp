@@ -203,7 +203,7 @@
             <a href="${pageContext.request.contextPath}/attendance" class="dropdown-item">
               <i class='bx bx-time'></i> Bảng chấm công
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/employee/paysheet.jsp" class="dropdown-item">
               <i class='bx bx-money'></i> Bảng lương
             </a>
             <a href="${pageContext.request.contextPath}/employee/setupEmployee.jsp" class="dropdown-item">
