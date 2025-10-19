@@ -158,9 +158,8 @@
     </div>
 
     <!-- Status Legend -->
-    <div style="margin-top:24px; padding:16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px;">
+    <div style="margin-top:24px; padding:16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px;display:flex;justify-content: center;">
       <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
-        <span style="font-weight:600; color:#374151; margin-right:8px;">Trạng thái:</span>
         <div style="display:flex; align-items:center; gap:6px;">
           <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#dcfce7; border:1px solid #86efac;"></span>
           <span style="color:#166534; font-size:14px;">Đúng giờ</span>
