@@ -67,7 +67,30 @@
                         <c:otherwise>
                           <c:forEach var="item" items="${row.items}">
                             <c:set var="attStatus" value="${empty item.attendanceStatus ? item.status : item.attendanceStatus}" />
+                            <c:set var="hasCheckIn" value="${not empty item.checkInAt}" />
+                            <c:set var="hasCheckOut" value="${not empty item.checkOutAt}" />
+                            <c:set var="isLeave" value="${attStatus == 'LeavePaid' || attStatus == 'LeaveUnpaid'}" />
+                            
+                            <%-- Determine block background color based on attendance status --%>
+                            <c:set var="blockBg" value="#fed7aa" /><%-- Default: Chưa chấm công (orange) --%>
+                            <c:set var="blockBorder" value="#fdba74" />
+                            <c:choose>
+                              <c:when test="${isLeave}">
+                                <c:set var="blockBg" value="#e0f2fe" /><%-- Nghỉ làm (blue) --%>
+                                <c:set var="blockBorder" value="#bae6fd" />
+                              </c:when>
+                              <c:when test="${hasCheckIn && hasCheckOut}">
+                                <c:set var="blockBg" value="#dcfce7" /><%-- Đúng giờ (green) - will be overridden by JS if late/early --%>
+                                <c:set var="blockBorder" value="#86efac" />
+                              </c:when>
+                              <c:when test="${hasCheckIn || hasCheckOut}">
+                                <c:set var="blockBg" value="#fecaca" /><%-- Chấm công thiếu (red) --%>
+                                <c:set var="blockBorder" value="#f87171" />
+                              </c:when>
+                            </c:choose>
+                            
                             <div class="shift-block" title="${item.employee}"
+                              style="background:${blockBg}; border:1px solid ${blockBorder}; padding:8px;"
                               data-employee="${item.employee}"
                               data-employee-code="${item.employeeCode}"
                               data-status="${item.status}"
@@ -78,27 +101,48 @@
                               data-end-time="${t.endTime.toString().substring(0,5)}"
                               data-check-in-at="${item.checkInAt}"
                               data-check-out-at="${item.checkOutAt}"
-                              data-source="${item.source}">
-                              <div class="shift-emp">${item.employee}</div>
-                              <div class="shift-status">
+                              data-source="${item.source}"
+                              data-is-late="${item.isLate}"
+                              data-is-overtime="${item.isOvertime}"
+                              data-is-early-leave="${item.isEarlyLeave}">
+                              
+                              <!-- 1. Tên nhân viên -->
+                              <div class="shift-emp" style="font-weight:600; font-size:13px; margin-bottom:4px;">${item.employee}</div>
+                              
+                              <!-- 2. Thời gian check-in/out -->
+                              <c:if test="${not empty item.checkInAt}">
+                                <div class="shift-time" style="color:#374151; font-size:11px; font-weight:500; margin-bottom:4px;">
+                                  <i class='bx bx-time' style="font-size:12px;"></i> ${item.checkInAt} - ${item.checkOutAt}
+                                </div>
+                              </c:if>
+                              
+                              <!-- 3. Ghi chú -->
+                              <c:if test="${not empty item.notes}">
+                                <div class="shift-notes" style="color:#6b7280; font-size:10px; font-style:italic; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                  <i class='bx bx-note' style="font-size:11px;"></i> ${item.notes}
+                                </div>
+                              </c:if>
+                              
+                              <!-- 4. Trạng thái -->
+                              <div class="shift-status" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
                                 <c:choose>
                                   <c:when test="${attStatus == 'Work' || attStatus == 'Approved'}">
-                                    <span class="badge" style="background:#dcfce7;color:#166534;border:1px solid #86efac;">Đi làm</span>
+                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#166534;border:1px solid rgba(134,239,172,0.5);font-size:10px;padding:2px 5px;">Đi làm</span>
                                   </c:when>
                                   <c:when test="${attStatus == 'LeavePaid'}">
-                                    <span class="badge" style="background:#e0f2fe;color:#075985;border:1px solid #bae6fd;">Nghỉ có phép</span>
+                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#075985;border:1px solid rgba(186,230,253,0.5);font-size:10px;padding:2px 5px;">Nghỉ có phép</span>
                                   </c:when>
                                   <c:when test="${attStatus == 'LeaveUnpaid'}">
-                                    <span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;">Nghỉ không phép</span>
+                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#991b1b;border:1px solid rgba(254,202,202,0.5);font-size:10px;padding:2px 5px;">Nghỉ không phép</span>
                                   </c:when>
                                   <c:otherwise>
-                                    <span class="badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">Chưa xác định</span>
+                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#854d0e;border:1px solid rgba(253,230,138,0.5);font-size:10px;padding:2px 5px;">Chưa xác định</span>
                                   </c:otherwise>
                                 </c:choose>
                               </div>
-                              <c:if test="${not empty item.checkInAt}">
-                                <div class="shift-time" style="color:#6b7280; font-size:12px;">${item.checkInAt} - ${item.checkOutAt}</div>
-                              </c:if>
+                              
+                              <!-- Status flags with calculated time diff (will be filled by JS) -->
+                              <div class="shift-flags" style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; font-size:9px;"></div>
                             </div>
                           </c:forEach>
                         </c:otherwise>
@@ -111,6 +155,33 @@
           </c:forEach>
         </tbody>
       </table>
+    </div>
+
+    <!-- Status Legend -->
+    <div style="margin-top:24px; padding:16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px;">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
+        <span style="font-weight:600; color:#374151; margin-right:8px;">Trạng thái:</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#dcfce7; border:1px solid #86efac;"></span>
+          <span style="color:#166534; font-size:14px;">Đúng giờ</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#ddd6fe; border:1px solid #c4b5fd;"></span>
+          <span style="color:#5b21b6; font-size:14px;">Đi muộn / Về sớm</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#fecaca; border:1px solid #f87171;"></span>
+          <span style="color:#991b1b; font-size:14px;">Chấm công thiếu</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#fed7aa; border:1px solid #fdba74;"></span>
+          <span style="color:#9a3412; font-size:14px;">Chưa chấm công</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#e0f2fe; border:1px solid #bae6fd;"></span>
+          <span style="color:#075985; font-size:14px;">Nghỉ làm</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -152,16 +223,53 @@
             <div><label style="font-size:12px; color:#6b7280;">Ngày</label><div id="attSdDate" style="margin-top:6px;"></div></div>
             <div><label style="font-size:12px; color:#6b7280;">Ca</label><div id="attSdTemplate" style="margin-top:6px;"></div></div>
             <div><label style="font-size:12px; color:#6b7280;">Giờ ca</label><div id="attSdShiftTime" style="margin-top:6px;"></div></div>
-            <div><label style="font-size:12px; color:#6b7280;">Chấm công</label><div id="attSdCheckTime" style="margin-top:6px;"></div></div>
+            <div style="grid-column:1 / -1;">
+              <label style="font-size:12px; color:#6b7280;">Ghi chú</label>
+              <input id="attNotes" name="notes" form="attSaveForm" type="text" placeholder="Ghi chú chấm công" style="margin-top:6px; width:100%; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;" />
+            </div>
             <div id="attWorkTimeRow" style="grid-column:1 / -1; display:none;">
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
+                <!-- Left column: times -->
                 <div>
-                  <label for="attCheckInInput" style="font-size:12px; color:#6b7280;">Giờ vào</label>
-                  <input id="attCheckInInput" name="checkIn" form="attSaveForm" type="time" style="margin-top:6px; width:100%; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;" />
+                  <label style="font-size:12px; color:#6b7280;">Giờ vào / ra</label>
+                  <div style="display:flex; flex-direction:column; gap:10px; margin-top:6px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span style="width:40px; color:#6b7280;">Vào</span>
+                      <input id="attCheckInInput" name="checkIn" form="attSaveForm" type="time" style="width:140px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;" />
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span style="width:40px; color:#6b7280;">Ra</span>
+                      <input id="attCheckOutInput" name="checkOut" form="attSaveForm" type="time" style="width:140px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;" />
+                    </div>
+                  </div>
                 </div>
+                <!-- Right column: symmetric checkboxes -->
                 <div>
-                  <label for="attCheckOutInput" style="font-size:12px; color:#6b7280;">Giờ ra</label>
-                  <input id="attCheckOutInput" name="checkOut" form="attSaveForm" type="time" style="margin-top:6px; width:100%; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;" />
+                  <label style="font-size:12px; color:#6b7280;">Trạng thái</label>
+                  <div style="display:flex; flex-direction:column; gap:12px; margin-top:6px;">
+                    <div id="checkInStatusRow" style="display:flex; align-items:center; gap:12px; min-height:34px;">
+                      <span style="width:40px; color:#6b7280;">Vào</span>
+                      <label id="inLateLabel" style="display:none; align-items:center; gap:6px; padding:4px 10px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; cursor:pointer;">
+                        <input id="inLateToggle" type="checkbox" style="cursor:pointer;" />
+                        <span id="inLateText" style="color:#dc2626; font-size:13px;">Đi muộn</span>
+                      </label>
+                      <label id="inOverLabel" style="display:none; align-items:center; gap:6px; padding:4px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; cursor:pointer;">
+                        <input id="inOverToggle" type="checkbox" style="cursor:pointer;" />
+                        <span id="inOverText" style="color:#16a34a; font-size:13px;">Làm thêm</span>
+                      </label>
+                    </div>
+                    <div id="checkOutStatusRow" style="display:flex; align-items:center; gap:12px; min-height:34px;">
+                      <span style="width:40px; color:#6b7280;">Ra</span>
+                      <label id="outEarlyLabel" style="display:none; align-items:center; gap:6px; padding:4px 10px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; cursor:pointer;">
+                        <input id="outEarlyToggle" type="checkbox" style="cursor:pointer;" />
+                        <span id="outEarlyText" style="color:#dc2626; font-size:13px;">Về sớm</span>
+                      </label>
+                      <label id="outOverLabel" style="display:none; align-items:center; gap:6px; padding:4px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; cursor:pointer;">
+                        <input id="outOverToggle" type="checkbox" style="cursor:pointer;" />
+                        <span id="outOverText" style="color:#16a34a; font-size:13px;">Làm thêm</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -172,6 +280,10 @@
                 <input type="hidden" name="employeeCode" id="attFormEmployeeCode" />
                 <input type="hidden" name="date" id="attFormDate" />
                 <input type="hidden" name="redirectEmployeeCode" value="${selectedEmployeeCode}" />
+                <input type="hidden" name="inLate" id="attFormInLate" value="false" />
+                <input type="hidden" name="inOver" id="attFormInOver" value="false" />
+                <input type="hidden" name="outEarly" id="attFormOutEarly" value="false" />
+                <input type="hidden" name="outOver" id="attFormOutOver" value="false" />
                 <button type="submit" class="btn btn-primary">Lưu trạng thái</button>
               </form>
             </div>
@@ -272,6 +384,10 @@
     }
   });
 
+  // Global variables to store current shift info
+  var currentShiftStartTime = '';
+  var currentShiftEndTime = '';
+
   document.addEventListener('click', function(e){
     var block = e.target.closest('.shift-block');
     if (!block) return;
@@ -287,6 +403,10 @@
     var co = block.getAttribute('data-check-out-at') || '';
     var src = block.getAttribute('data-source') || '';
     var empCode = block.getAttribute('data-employee-code') || block.getAttribute('data-emp-code') || '';
+    
+    // Lưu giờ ca mặc định vào biến toàn cục
+    currentShiftStartTime = s;
+    currentShiftEndTime = en;
 
     // Populate overview
     setText('attSdEmployee', emp);
@@ -321,9 +441,119 @@
         }
       }
     }
-    if (inInput) inInput.value = (ci && ci.length >= 5) ? ci.substring(0,5) : '';
-    if (outInput) outInput.value = (co && co.length >= 5) ? co.substring(0,5) : '';
+    // Điền giờ vào/ra: nếu đã có check-in/out thì dùng, không thì dùng giờ ca mặc định
+    if (inInput) {
+      if (ci && ci.length >= 5) {
+        inInput.value = ci.substring(0,5);
+      } else if (s && s.length >= 5) {
+        inInput.value = s.substring(0,5); // Mặc định là giờ bắt đầu ca
+      } else {
+        inInput.value = '';
+      }
+    }
+    if (outInput) {
+      if (co && co.length >= 5) {
+        outInput.value = co.substring(0,5);
+      } else if (en && en.length >= 5) {
+        outInput.value = en.substring(0,5); // Mặc định là giờ kết thúc ca
+      } else {
+        outInput.value = '';
+      }
+    }
     if (workRow) workRow.style.display = (sel && sel.value === 'work') ? 'block' : 'none';
+
+    // Auto-calc toggles for in/out based on template vs actual
+    function toMinutes(hhmm){
+      if (!hhmm) return null;
+      if (/^\d{2}:\d{2}$/.test(hhmm)) { var p = hhmm.split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
+      var d = new Date(hhmm); if (!isNaN(d.getTime())) return d.getHours()*60 + d.getMinutes();
+      if (hhmm.length>=5 && hhmm.indexOf(':')===2){ var p2 = hhmm.substring(0,5).split(':'); return parseInt(p2[0],10)*60+parseInt(p2[1],10); }
+      return null;
+    }
+    function formatDiff(minutes){
+      var h = Math.floor(minutes/60);
+      var m = minutes%60;
+      if (h>0 && m>0) return h+' giờ '+m+' phút';
+      if (h>0) return h+' giờ';
+      return m+' phút';
+    }
+    function showStatusLabel(labelId, toggleId, textId, diff){
+      var label = document.getElementById(labelId);
+      var toggle = document.getElementById(toggleId);
+      var text = document.getElementById(textId);
+      if (label && toggle && text) {
+        if (diff && diff>0) {
+          label.style.display = 'flex';
+          label.style.opacity = '1';
+          label.style.textDecoration = 'none';
+          toggle.checked = true;
+          var baseText = text.textContent.split(' (')[0]; // Remove old time diff
+          text.textContent = baseText + ' (' + formatDiff(diff) + ')';
+          
+          // Sync with hidden form input
+          var formInputId = '';
+          if (toggleId === 'inLateToggle') formInputId = 'attFormInLate';
+          else if (toggleId === 'inOverToggle') formInputId = 'attFormInOver';
+          else if (toggleId === 'outEarlyToggle') formInputId = 'attFormOutEarly';
+          else if (toggleId === 'outOverToggle') formInputId = 'attFormOutOver';
+          var formInput = document.getElementById(formInputId);
+          if (formInput) formInput.value = 'true';
+        } else {
+          label.style.display = 'none';
+          label.style.opacity = '1';
+          label.style.textDecoration = 'none';
+          toggle.checked = false;
+          
+          // Sync with hidden form input
+          var formInputId2 = '';
+          if (toggleId === 'inLateToggle') formInputId2 = 'attFormInLate';
+          else if (toggleId === 'inOverToggle') formInputId2 = 'attFormInOver';
+          else if (toggleId === 'outEarlyToggle') formInputId2 = 'attFormOutEarly';
+          else if (toggleId === 'outOverToggle') formInputId2 = 'attFormOutOver';
+          var formInput2 = document.getElementById(formInputId2);
+          if (formInput2) formInput2.value = 'false';
+        }
+      }
+    }
+
+    var startM = toMinutes(s);
+    var endM = toMinutes(en);
+    var inM = toMinutes(ci);
+    var outM = toMinutes(co);
+
+    // In-side checkboxes: late vs overtime (arrive early counts as overtime)
+    if (inM!=null && startM!=null){
+      if (inM>startM){ 
+        showStatusLabel('inLateLabel','inLateToggle','inLateText', inM-startM); 
+        showStatusLabel('inOverLabel','inOverToggle','inOverText', 0); 
+      } else if (inM<startM){ 
+        showStatusLabel('inOverLabel','inOverToggle','inOverText', startM-inM); 
+        showStatusLabel('inLateLabel','inLateToggle','inLateText', 0); 
+      } else { 
+        showStatusLabel('inLateLabel','inLateToggle','inLateText', 0); 
+        showStatusLabel('inOverLabel','inOverToggle','inOverText', 0); 
+      }
+    } else {
+      showStatusLabel('inLateLabel','inLateToggle','inLateText', 0); 
+      showStatusLabel('inOverLabel','inOverToggle','inOverText', 0); 
+    }
+
+    // Out-side checkboxes: leave early vs overtime (checkout late counts as overtime)
+    if (outM!=null && endM!=null){
+      if (outM<endM){ 
+        showStatusLabel('outEarlyLabel','outEarlyToggle','outEarlyText', endM-outM); 
+        showStatusLabel('outOverLabel','outOverToggle','outOverText', 0); 
+      } else if (outM>endM){ 
+        showStatusLabel('outOverLabel','outOverToggle','outOverText', outM-endM); 
+        showStatusLabel('outEarlyLabel','outEarlyToggle','outEarlyText', 0); 
+      } else { 
+        showStatusLabel('outEarlyLabel','outEarlyToggle','outEarlyText', 0); 
+        showStatusLabel('outOverLabel','outOverToggle','outOverText', 0); 
+      }
+    } else {
+      showStatusLabel('outEarlyLabel','outEarlyToggle','outEarlyText', 0); 
+      showStatusLabel('outOverLabel','outOverToggle','outOverText', 0); 
+    }
 
     // Fill form hidden fields
     var formEmp = document.getElementById('attFormEmployeeCode');
@@ -445,15 +675,158 @@
     open();
   });
 
+  // Handle checkbox toggle for status labels
+  document.addEventListener('change', function(e){
+    if (!e.target) return;
+    var id = e.target.id;
+    if (id === 'inLateToggle' || id === 'inOverToggle' || id === 'outEarlyToggle' || id === 'outOverToggle') {
+      var labelId = id.replace('Toggle', 'Label');
+      var label = document.getElementById(labelId);
+      if (label) {
+        if (e.target.checked) {
+          // Keep original colors
+          label.style.opacity = '1';
+          label.style.textDecoration = 'none';
+        } else {
+          // Dim when unchecked
+          label.style.opacity = '0.5';
+          label.style.textDecoration = 'line-through';
+        }
+      }
+      
+      // Sync with hidden form inputs
+      var formInputId = '';
+      if (id === 'inLateToggle') formInputId = 'attFormInLate';
+      else if (id === 'inOverToggle') formInputId = 'attFormInOver';
+      else if (id === 'outEarlyToggle') formInputId = 'attFormOutEarly';
+      else if (id === 'outOverToggle') formInputId = 'attFormOutOver';
+      
+      var formInput = document.getElementById(formInputId);
+      if (formInput) {
+        formInput.value = e.target.checked ? 'true' : 'false';
+      }
+    }
+  });
+
+  // Color shift blocks based on late/early status (on page load)
+  document.addEventListener('DOMContentLoaded', function(){
+    function toMinutes(hhmm){
+      if (!hhmm) return null;
+      if (/^\d{2}:\d{2}$/.test(hhmm)) { var p = hhmm.split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
+      var d = new Date(hhmm); if (!isNaN(d.getTime())) return d.getHours()*60 + d.getMinutes();
+      if (hhmm.length>=5 && hhmm.indexOf(':')===2){ var p2 = hhmm.substring(0,5).split(':'); return parseInt(p2[0],10)*60+parseInt(p2[1],10); }
+      return null;
+    }
+    
+    function formatTimeDiff(minutes){
+      var h = Math.floor(minutes/60);
+      var m = minutes%60;
+      if (h>0 && m>0) return h+'g'+m+'p';
+      if (h>0) return h+'g';
+      return m+'p';
+    }
+    
+    var blocks = document.querySelectorAll('.shift-block');
+    blocks.forEach(function(block){
+      var s = block.getAttribute('data-start-time') || '';
+      var en = block.getAttribute('data-end-time') || '';
+      var ci = block.getAttribute('data-check-in-at') || '';
+      var co = block.getAttribute('data-check-out-at') || '';
+      var attStatus = block.getAttribute('data-att-status') || '';
+      var isLate = block.getAttribute('data-is-late') === 'true';
+      var isOvertime = block.getAttribute('data-is-overtime') === 'true';
+      var isEarlyLeave = block.getAttribute('data-is-early-leave') === 'true';
+      
+      // Skip if leave status
+      if (attStatus === 'LeavePaid' || attStatus === 'LeaveUnpaid') return;
+      
+      // Only process if both check-in and check-out exist
+      if (!ci || !co) return;
+      
+      var startM = toMinutes(s);
+      var endM = toMinutes(en);
+      var inM = toMinutes(ci);
+      var outM = toMinutes(co);
+      
+      var hasViolation = false; // Vi phạm (đi muộn hoặc về sớm)
+      var hasOnlyOvertime = false; // Chỉ có tăng ca, không có vi phạm
+      var flagsContainer = block.querySelector('.shift-flags');
+      if (!flagsContainer) return;
+      
+      // Check-in late (vi phạm)
+      if (isLate && inM !== null && startM !== null && inM > startM) {
+        hasViolation = true;
+        var diff = inM - startM;
+        var badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.style.cssText = 'background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:2px 5px;font-size:9px;';
+        badge.innerHTML = '<i class="bx bx-time-five" style="font-size:10px;"></i> Muộn ' + formatTimeDiff(diff);
+        flagsContainer.appendChild(badge);
+      }
+      
+      // Check-out early (vi phạm)
+      if (isEarlyLeave && outM !== null && endM !== null && outM < endM) {
+        hasViolation = true;
+        var diff3 = endM - outM;
+        var badge3 = document.createElement('span');
+        badge3.className = 'badge';
+        badge3.style.cssText = 'background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;padding:2px 5px;font-size:9px;';
+        badge3.innerHTML = '<i class="bx bx-log-out" style="font-size:10px;"></i> Về sớm ' + formatTimeDiff(diff3);
+        flagsContainer.appendChild(badge3);
+      }
+      
+      // Check-in early (overtime - chỉ tính nếu không có vi phạm)
+      if (isOvertime && inM !== null && startM !== null && inM < startM) {
+        if (!hasViolation) hasOnlyOvertime = true;
+        var diff2 = startM - inM;
+        var badge2 = document.createElement('span');
+        badge2.className = 'badge';
+        badge2.style.cssText = 'background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:2px 5px;font-size:9px;';
+        badge2.innerHTML = '<i class="bx bx-time" style="font-size:10px;"></i> Vào sớm ' + formatTimeDiff(diff2);
+        flagsContainer.appendChild(badge2);
+      }
+      
+      // Check-out late (overtime - chỉ tính nếu không có vi phạm)
+      if (isOvertime && outM !== null && endM !== null && outM > endM) {
+        if (!hasViolation) hasOnlyOvertime = true;
+        var diff4 = outM - endM;
+        var badge4 = document.createElement('span');
+        badge4.className = 'badge';
+        badge4.style.cssText = 'background:#f0fdf4;color:#16a34a;border:1px solid #86efac;padding:2px 5px;font-size:9px;';
+        badge4.innerHTML = '<i class="bx bx-time" style="font-size:10px;"></i> Tăng ca ' + formatTimeDiff(diff4);
+        flagsContainer.appendChild(badge4);
+      }
+      
+      // Xét màu theo ưu tiên:
+      // 1. Nếu có vi phạm (muộn/sớm) -> màu tím
+      // 2. Nếu chỉ có tăng ca -> giữ màu xanh (đúng giờ)
+      if (hasViolation) {
+        block.style.background = '#ddd6fe';
+        block.style.borderColor = '#c4b5fd';
+      }
+      // Nếu chỉ có overtime thì giữ nguyên màu xanh (đã set ở server-side)
+    });
+  });
+
   // React to status change to show/hide time fields
   document.addEventListener('change', function(e){
     if (e.target && e.target.id === 'attStatusSelect') {
       var workRow = document.getElementById('attWorkTimeRow');
       if (workRow) workRow.style.display = (e.target.value === 'work') ? 'block' : 'none';
-      // Clear time inputs when not work to avoid stale values
-      if (e.target.value !== 'work') {
-        var inInput = document.getElementById('attCheckInInput');
-        var outInput = document.getElementById('attCheckOutInput');
+      
+      var inInput = document.getElementById('attCheckInInput');
+      var outInput = document.getElementById('attCheckOutInput');
+      
+      if (e.target.value === 'work') {
+        // Khi chọn "Đi làm", nếu ô giờ đang trống thì điền giờ ca mặc định
+        if (inInput && !inInput.value && currentShiftStartTime) {
+          inInput.value = currentShiftStartTime.substring(0,5);
+        }
+        if (outInput && !outInput.value && currentShiftEndTime) {
+          outInput.value = currentShiftEndTime.substring(0,5);
+        }
+      } else {
+        // Clear time inputs when not work to avoid stale values
         if (inInput) inInput.value = '';
         if (outInput) outInput.value = '';
       }

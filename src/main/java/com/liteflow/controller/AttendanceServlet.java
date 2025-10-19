@@ -2,6 +2,7 @@ package com.liteflow.controller;
 
 import com.liteflow.model.auth.EmployeeShift;
 import com.liteflow.model.timesheet.EmployeeShiftTimesheet;
+import com.liteflow.model.timesheet.EmployeeAttendance;
 import com.liteflow.service.EmployeeService;
 import com.liteflow.service.ScheduleService;
 import com.liteflow.service.TimesheetService;
@@ -65,12 +66,14 @@ public class AttendanceServlet extends HttpServlet {
         // Index attendance by date and employee for badge/status
         Map<LocalDate, Map<java.util.UUID, String>> attByDateEmp = new HashMap<>();
         Map<LocalDate, Map<java.util.UUID, java.time.LocalTime[]>> attTimes = new HashMap<>();
+        Map<LocalDate, Map<java.util.UUID, EmployeeAttendance>> attFullData = new HashMap<>();
         for (var att : attendanceList) {
             if (att.getEmployee() == null) continue;
             LocalDate d = att.getWorkDate();
             attByDateEmp.computeIfAbsent(d, k -> new HashMap<>()).put(att.getEmployee().getEmployeeID(), att.getStatus());
             var arr = new java.time.LocalTime[]{att.getCheckInTime(), att.getCheckOutTime()};
             attTimes.computeIfAbsent(d, k -> new HashMap<>()).put(att.getEmployee().getEmployeeID(), arr);
+            attFullData.computeIfAbsent(d, k -> new HashMap<>()).put(att.getEmployee().getEmployeeID(), att);
         }
 
         List<Map<String, Object>> weekDays = new ArrayList<>();
@@ -118,10 +121,12 @@ public class AttendanceServlet extends HttpServlet {
                     String status = "Pending";
                     String attendanceStatus = null;
                     java.time.LocalTime attIn = null, attOut = null;
+                    EmployeeAttendance fullAtt = null;
                     if (attByDateEmp.containsKey(day) && s.getEmployee() != null) {
                         attendanceStatus = attByDateEmp.get(day).get(s.getEmployee().getEmployeeID());
                         var arr = attTimes.getOrDefault(day, java.util.Collections.emptyMap()).get(s.getEmployee().getEmployeeID());
                         if (arr != null) { attIn = arr[0]; attOut = arr[1]; }
+                        fullAtt = attFullData.getOrDefault(day, java.util.Collections.emptyMap()).get(s.getEmployee().getEmployeeID());
                     }
                     if (tsByDate.containsKey(day)) {
                         for (EmployeeShiftTimesheet ts : tsByDate.get(day)) {
@@ -146,6 +151,16 @@ public class AttendanceServlet extends HttpServlet {
                     map.put("status", status);
                     if (attendanceStatus != null) {
                         map.put("attendanceStatus", attendanceStatus);
+                    }
+                    
+                    // Add attendance notes and status flags
+                    if (fullAtt != null) {
+                        if (fullAtt.getNotes() != null && !fullAtt.getNotes().isEmpty()) {
+                            map.put("notes", fullAtt.getNotes());
+                        }
+                        if (fullAtt.getIsLate() != null) map.put("isLate", fullAtt.getIsLate());
+                        if (fullAtt.getIsOvertime() != null) map.put("isOvertime", fullAtt.getIsOvertime());
+                        if (fullAtt.getIsEarlyLeave() != null) map.put("isEarlyLeave", fullAtt.getIsEarlyLeave());
                     }
 
                     items.add(map);
@@ -205,12 +220,20 @@ public class AttendanceServlet extends HttpServlet {
             String status = req.getParameter("status"); // work | leave_paid | leave_unpaid
             String checkIn = req.getParameter("checkIn"); // HH:mm or empty
             String checkOut = req.getParameter("checkOut"); // HH:mm or empty
+            String notes = req.getParameter("notes");
+            
+            // Parse checkbox status flags
+            Boolean inLate = parseBoolean(req.getParameter("inLate"));
+            Boolean inOver = parseBoolean(req.getParameter("inOver"));
+            Boolean outEarly = parseBoolean(req.getParameter("outEarly"));
+            Boolean outOver = parseBoolean(req.getParameter("outOver"));
 
             java.time.LocalDate workDate = null;
             try { if (dateStr != null && !dateStr.isBlank()) workDate = java.time.LocalDate.parse(dateStr); } catch (Exception ignored) {}
 
             if (employeeCode != null && workDate != null && status != null && !status.isBlank()) {
-                timesheetService.upsertAttendance(employeeCode, workDate, status, checkIn, checkOut);
+                timesheetService.upsertAttendance(employeeCode, workDate, status, checkIn, checkOut, notes,
+                        inLate, inOver, outEarly, outOver);
             }
 
             // redirect back to same week (preserve filter if any)
@@ -224,6 +247,11 @@ public class AttendanceServlet extends HttpServlet {
 
         // default: go back
         resp.sendRedirect(req.getContextPath() + "/attendance?weekStart=" + weekStartParam);
+    }
+
+    private Boolean parseBoolean(String value) {
+        if (value == null || value.isBlank()) return null;
+        return "true".equalsIgnoreCase(value.trim());
     }
 }
 

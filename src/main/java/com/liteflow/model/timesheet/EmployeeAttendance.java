@@ -39,6 +39,16 @@ public class EmployeeAttendance implements Serializable {
     @Column(name = "Notes", length = 500)
     private String notes;
 
+    // Status flags for attendance violations/overtime
+    @Column(name = "IsLate")
+    private Boolean isLate;
+
+    @Column(name = "IsOvertime")
+    private Boolean isOvertime;
+
+    @Column(name = "IsEarlyLeave")
+    private Boolean isEarlyLeave;
+
     @Column(name = "CreatedAt", updatable = false)
     private LocalDateTime createdAt;
 
@@ -73,6 +83,12 @@ public class EmployeeAttendance implements Serializable {
     public void setCheckOutTime(LocalTime checkOutTime) { this.checkOutTime = checkOutTime; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public Boolean getIsLate() { return isLate; }
+    public void setIsLate(Boolean isLate) { this.isLate = isLate; }
+    public Boolean getIsOvertime() { return isOvertime; }
+    public void setIsOvertime(Boolean isOvertime) { this.isOvertime = isOvertime; }
+    public Boolean getIsEarlyLeave() { return isEarlyLeave; }
+    public void setIsEarlyLeave(Boolean isEarlyLeave) { this.isEarlyLeave = isEarlyLeave; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

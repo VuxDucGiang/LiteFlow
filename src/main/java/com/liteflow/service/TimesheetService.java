@@ -33,7 +33,8 @@ public class TimesheetService {
     }
 
     public EmployeeAttendance upsertAttendance(String employeeCode, LocalDate workDate, String status,
-                                               String checkIn, String checkOut) {
+                                               String checkIn, String checkOut, String notes,
+                                               Boolean inLate, Boolean inOver, Boolean outEarly, Boolean outOver) {
         if (employeeCode == null || employeeCode.isBlank() || workDate == null || status == null || status.isBlank()) {
             return null;
         }
@@ -62,6 +63,14 @@ public class TimesheetService {
         try { if (checkOut != null && !checkOut.isBlank()) outT = LocalTime.parse(checkOut); } catch (Exception ignored) {}
         att.setCheckInTime(inT);
         att.setCheckOutTime(outT);
+        if (notes != null) {
+            att.setNotes(notes.trim());
+        }
+
+        // Set status flags
+        att.setIsLate(inLate != null && inLate);
+        att.setIsOvertime((inOver != null && inOver) || (outOver != null && outOver));
+        att.setIsEarlyLeave(outEarly != null && outEarly);
 
         if (att.getAttendanceId() == null) {
             attendanceDAO.insert(att);

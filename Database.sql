@@ -798,6 +798,9 @@ CREATE TABLE EmployeeAttendance (
     CheckInTime TIME NULL,
     CheckOutTime TIME NULL,
     Notes NVARCHAR(500) NULL,
+    IsLate BIT NULL,
+    IsOvertime BIT NULL,
+    IsEarlyLeave BIT NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
 
