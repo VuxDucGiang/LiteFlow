@@ -25,6 +25,13 @@
             @media (max-width: 680px) { .employee-modal__grid { grid-template-columns: 1fr; } .employee-modal__fields { grid-template-columns: 1fr; } }
             .employee-row { cursor: pointer; }
             .employee-row:hover { background: #f9fafb; }
+            /* Tabs */
+            .employee-tab-nav { display: flex; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 16px; }
+            .employee-tab-btn { background: transparent; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #374151; }
+            .employee-tab-btn:hover { background: #f3f4f6; }
+            .employee-tab-btn.active { background: #eef2ff; color: #1f2937; font-weight: 600; }
+            .employee-tab-content { display: none; }
+            .employee-tab-content.active { display: block; }
         </style>
 
 <div class="content">
@@ -262,29 +269,53 @@
         <div class="employee-modal__body">
             <form id="employeeEditForm" method="post" action="${pageContext.request.contextPath}/employees">
                 <input type="hidden" name="action" value="update" />
-                <div class="employee-modal__grid">
-                    <div style="display:flex; align-items:center; justify-content:center;">
-                        <img id="modalAvatar" class="employee-modal__avatar" src="" alt="Avatar">
+                <div class="employee-tabs">
+                    <div class="employee-tab-nav" role="tablist" aria-label="Employee detail tabs">
+                        <button type="button" class="employee-tab-btn active" data-tab="info">Thông tin</button>
+                        <button type="button" class="employee-tab-btn" data-tab="schedule">Lịch làm việc</button>
+                        <button type="button" class="employee-tab-btn" data-tab="salary">Thiết lập lương</button>
                     </div>
-                    <div class="employee-modal__fields">
-                        <div class="employee-field"><label>Mã nhân viên</label><input id="modalEmployeeCode" name="employeeCode" class="value" readonly></div>
-                        <div class="employee-field"><label>Họ tên</label><input id="modalFullName" name="fullName" class="value"></div>
-                        <div class="employee-field"><label>Email</label><input id="modalEmail" name="email" class="value"></div>
-                        <div class="employee-field"><label>Số điện thoại</label><input id="modalPhone" name="phone" class="value"></div>
-                        <div class="employee-field"><label>CCCD/CMND</label><input id="modalNationalID" name="nationalID" class="value"></div>
-                        <div class="employee-field"><label>Giới tính</label><input id="modalGender" name="gender" class="value"></div>
-                        <div class="employee-field"><label>Ngày sinh</label><input id="modalBirthDate" name="birthDate" type="date" class="value"></div>
-                        <div class="employee-field"><label>Địa chỉ</label><input id="modalAddress" name="address" class="value"></div>
-                        <div class="employee-field"><label>Vị trí</label><input id="modalPosition" name="position" class="value"></div>
-                        <div class="employee-field"><label>Trạng thái</label><input id="modalStatus" name="employmentStatus" class="value"></div>
-                        <div class="employee-field"><label>Lương</label><input id="modalSalary" name="salary" type="number" step="0.01" class="value"></div>
-                        <div class="employee-field"><label>Ngân hàng</label><input id="modalBankName" name="bankName" class="value"></div>
-                        <div class="employee-field"><label>Số tài khoản</label><input id="modalBankAccount" name="bankAccount" class="value"></div>
-                        <div class="employee-field" style="grid-column: 1 / -1;"><label>Ghi chú</label><textarea id="modalNotes" name="notes" rows="3" class="value"></textarea></div>
-                        <div class="employee-field"><label>Ngày vào làm</label><input id="modalHireDate" name="hireDate" type="datetime-local" class="value" readonly></div>
-                        <div class="employee-field"><label>Ngày nghỉ việc</label><input id="modalTerminationDate" name="terminationDate" type="datetime-local" class="value" readonly></div>
-                        <div class="employee-field"><label>Tạo lúc</label><input id="modalCreatedAt" name="createdAt" class="value" readonly></div>
-                        <div class="employee-field"><label>Cập nhật lúc</label><input id="modalUpdatedAt" name="updatedAt" class="value" readonly></div>
+
+                    <div class="employee-tab-content active" data-content="info">
+                        <div class="employee-modal__grid">
+                            <div style="display:flex; align-items:center; justify-content:center;">
+                                <img id="modalAvatar" class="employee-modal__avatar" src="" alt="Avatar">
+                            </div>
+                            <div class="employee-modal__fields">
+                                <div class="employee-field"><label>Mã nhân viên</label><input id="modalEmployeeCode" name="employeeCode" class="value" readonly></div>
+                                <div class="employee-field"><label>Họ tên</label><input id="modalFullName" name="fullName" class="value"></div>
+                                <div class="employee-field"><label>Email</label><input id="modalEmail" name="email" class="value"></div>
+                                <div class="employee-field"><label>Số điện thoại</label><input id="modalPhone" name="phone" class="value"></div>
+                                <div class="employee-field"><label>CCCD/CMND</label><input id="modalNationalID" name="nationalID" class="value"></div>
+                                <div class="employee-field"><label>Giới tính</label><input id="modalGender" name="gender" class="value"></div>
+                                <div class="employee-field"><label>Ngày sinh</label><input id="modalBirthDate" name="birthDate" type="date" class="value"></div>
+                                <div class="employee-field"><label>Địa chỉ</label><input id="modalAddress" name="address" class="value"></div>
+                                <div class="employee-field"><label>Vị trí</label><input id="modalPosition" name="position" class="value"></div>
+                                <div class="employee-field"><label>Trạng thái</label><input id="modalStatus" name="employmentStatus" class="value"></div>
+                                <div class="employee-field"><label>Ngân hàng</label><input id="modalBankName" name="bankName" class="value"></div>
+                                <div class="employee-field"><label>Số tài khoản</label><input id="modalBankAccount" name="bankAccount" class="value"></div>
+                                <div class="employee-field" style="grid-column: 1 / -1;"><label>Ghi chú</label><textarea id="modalNotes" name="notes" rows="3" class="value"></textarea></div>
+                                <div class="employee-field"><label>Ngày vào làm</label><input id="modalHireDate" name="hireDate" type="datetime-local" class="value" readonly></div>
+                                <div class="employee-field"><label>Ngày nghỉ việc</label><input id="modalTerminationDate" name="terminationDate" type="datetime-local" class="value" readonly></div>
+                                <div class="employee-field"><label>Tạo lúc</label><input id="modalCreatedAt" name="createdAt" class="value" readonly></div>
+                                <div class="employee-field"><label>Cập nhật lúc</label><input id="modalUpdatedAt" name="updatedAt" class="value" readonly></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="employee-tab-content" data-content="schedule">
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between;">
+                                <div style="font-weight:600;">Lịch làm việc tuần này</div>
+                            </div>
+                            <iframe id="employeeScheduleFrame" title="Lịch làm việc" style="width:100%; height:520px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;" loading="lazy"></iframe>
+                        </div>
+                    </div>
+
+                    <div class="employee-tab-content" data-content="salary">
+                        <div class="employee-modal__fields" style="grid-template-columns: 1fr;">
+                            <div class="employee-field"><label>Lương</label><input id="modalSalary" name="salary" type="number" step="0.01" class="value"></div>
+                        </div>
                     </div>
                 </div>
                 <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end;">
@@ -515,6 +546,16 @@
                 setVal('modalCreatedAt', get('data-created-at'));
                 setVal('modalUpdatedAt', get('data-updated-at'));
 
+                // set schedule iframe src (embed mode)
+                const schedFrame = document.getElementById('employeeScheduleFrame');
+                if (schedFrame) {
+                    const base = (window.location.origin || '') + '${pageContext.request.contextPath}/schedule';
+                    const params = new URLSearchParams();
+                    params.set('employeeCode', get('data-employee-code'));
+                    params.set('embed', '1');
+                    schedFrame.src = base + '?' + params.toString();
+                }
+
                 openEmployeeModal();
             }
 
@@ -528,6 +569,8 @@
                         closeEmployeeModal();
                     }
                 }, { once: true });
+                // default to first tab active when opening
+                setActiveEmployeeTab('info');
             }
 
             function closeEmployeeModal() {
@@ -573,7 +616,27 @@
                 const btn = document.getElementById('employeeModalCloseBtn');
                 if (btn) btn.addEventListener('click', closeEmployeeModal);
                 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeEmployeeModal(); });
+                // tab click handlers
+                document.querySelectorAll('.employee-tab-btn').forEach(function(btn){
+                    btn.addEventListener('click', function(){
+                        const tab = btn.getAttribute('data-tab');
+                        setActiveEmployeeTab(tab);
+                    });
+                });
             })();
+
+            function setActiveEmployeeTab(tabKey){
+                // buttons
+                document.querySelectorAll('.employee-tab-btn').forEach(function(b){
+                    if (b.getAttribute('data-tab') === tabKey) b.classList.add('active');
+                    else b.classList.remove('active');
+                });
+                // contents
+                document.querySelectorAll('.employee-tab-content').forEach(function(c){
+                    if (c.getAttribute('data-content') === tabKey) c.classList.add('active');
+                    else c.classList.remove('active');
+                });
+            }
         </script>
 
 <jsp:include page="../includes/footer.jsp" />
