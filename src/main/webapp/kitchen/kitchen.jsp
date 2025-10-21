@@ -174,7 +174,10 @@ function renderOrders() {
           \${order.items.map(item => `
             <div class="order-item">
               <div class="item-quantity">\${item.quantity}x</div>
-              <div class="item-name">\${item.productName}</div>
+              <div class="item-details">
+                <div class="item-name">\${item.productName}</div>
+                \${item.note ? '<div class="item-note"><i class="bx bx-note"></i> ' + item.note + '</div>' : ''}
+              </div>
               <div class="item-status \${item.status.toLowerCase()}">
                 \${getStatusText(item.status)}
               </div>

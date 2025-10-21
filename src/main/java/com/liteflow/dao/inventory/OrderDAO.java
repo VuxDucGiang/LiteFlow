@@ -53,6 +53,7 @@ public class OrderDAO {
                 UUID variantId = UUID.fromString(variantIdStr);
                 Integer quantity = ((Number) item.get("quantity")).intValue();
                 BigDecimal unitPrice = new BigDecimal(item.get("unitPrice").toString());
+                String note = (String) item.get("note"); // Ghi chú từ cashier
                 
                 // Lấy ProductVariant
                 ProductVariant variant = em.find(ProductVariant.class, variantId);
@@ -68,6 +69,11 @@ public class OrderDAO {
                 detail.setUnitPrice(unitPrice);
                 detail.calculateTotalPrice();
                 detail.setStatus("Pending"); // Món đang chờ làm
+                
+                // Set ghi chú nếu có
+                if (note != null && !note.trim().isEmpty()) {
+                    detail.setSpecialInstructions(note.trim());
+                }
                 
                 orderDetails.add(detail);
                 subtotal = subtotal.add(detail.getTotalPrice());
@@ -243,6 +249,7 @@ public class OrderDAO {
                     itemMap.put("price", detail.getUnitPrice().doubleValue());
                     itemMap.put("quantity", detail.getQuantity());
                     itemMap.put("status", detail.getStatus());
+                    itemMap.put("note", detail.getSpecialInstructions()); // Ghi chú
                     result.add(itemMap);
                 }
             }
@@ -298,6 +305,7 @@ public class OrderDAO {
                     itemMap.put("productName", productName);
                     itemMap.put("quantity", detail.getQuantity());
                     itemMap.put("status", detail.getStatus());
+                    itemMap.put("note", detail.getSpecialInstructions()); // Ghi chú
                     items.add(itemMap);
                 }
                 orderMap.put("items", items);

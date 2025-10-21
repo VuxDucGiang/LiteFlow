@@ -574,6 +574,29 @@ body {
   color: #6c757d;
 }
 
+.item-note-input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.item-note-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.item-note-input::placeholder {
+  color: #adb5bd;
+  font-style: italic;
+}
+
 .quantity-controls {
   display: flex;
   align-items: center;

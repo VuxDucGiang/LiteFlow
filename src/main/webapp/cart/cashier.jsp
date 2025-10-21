@@ -407,6 +407,16 @@ function populateMenuCategories() {
       menuCategories.appendChild(button);
     });
   }
+  
+  // Setup event listeners cho category buttons sau khi tạo xong
+  document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentCategory = this.dataset.category;
+      renderMenu();
+    });
+  });
 }
 
 // Add item to cart
@@ -447,7 +457,8 @@ function addToCart(variantId) {
       name: displayName,
       price: parseFloat(item.price || 0),
       quantity: 1,
-      notifiedQuantity: 0 // Chưa notify món nào
+      notifiedQuantity: 0, // Chưa notify món nào
+      note: '' // Ghi chú cho món
     });
   }
   
@@ -477,6 +488,15 @@ function updateQuantity(variantId, newQuantity) {
   }
 }
 
+// Update item note
+function updateNote(variantId, note) {
+  const item = orderItems.find(i => i.variantId === variantId);
+  if (item) {
+    item.note = note;
+    console.log('Updated note for', item.name, ':', note);
+  }
+}
+
 // Render order items
 function renderOrderItems() {
   const orderItemsContainer = document.getElementById('orderItems');
@@ -491,11 +511,12 @@ function renderOrderItems() {
     return;
   }
   
-  orderItemsContainer.innerHTML = orderItems.map(item => {
+  orderItemsContainer.innerHTML = orderItems.map((item, index) => {
     const itemName = item.name || 'Món ăn';
     const itemPrice = (item.price || 0).toLocaleString('vi-VN');
     const itemQuantity = item.quantity || 1;
     const itemVariantId = item.variantId || '';
+    const itemNote = item.note || '';
     const notifiedQty = item.notifiedQuantity || 0;
     const newQty = itemQuantity - notifiedQty;
     
@@ -521,6 +542,11 @@ function renderOrderItems() {
           <span class="item-name">` + itemName + `</span>
           ` + notifiedBadge + `
           <span class="item-price">` + itemPrice + `đ</span>
+          <input type="text" 
+                 class="item-note-input" 
+                 placeholder="Ghi chú (vd: không hành, ít đá...)"
+                 value="` + itemNote + `"
+                 onchange="updateNote('` + itemVariantId + `', this.value)">
         </div>
         <div class="quantity-controls">
           <button onclick="updateQuantity('` + itemVariantId + `', ` + (itemQuantity - 1) + `)">
@@ -582,7 +608,8 @@ async function loadTableOrders(tableId) {
           quantity: qty,
           notified: true, // Đã được gửi bếp
           notifiedQuantity: qty, // Số lượng đã gửi = số lượng hiện tại (từ DB)
-          status: item.status // Pending, Preparing, Ready, etc.
+          status: item.status, // Pending, Preparing, Ready, etc.
+          note: item.note || '' // Ghi chú từ DB
         };
       });
       
@@ -593,6 +620,10 @@ async function loadTableOrders(tableId) {
         if (existing) {
           existing.quantity += item.quantity;
           existing.notifiedQuantity += item.notifiedQuantity;
+          // Merge notes: nếu có note mới, append; nếu không giữ note cũ
+          if (item.note && item.note !== existing.note) {
+            existing.note = existing.note ? existing.note + '; ' + item.note : item.note;
+          }
         } else {
           mergedItems.push(item);
         }
@@ -644,6 +675,7 @@ async function notifyKitchen() {
         variantId: item.variantId,
         quantity: newQty, // CHỈ GỬI số lượng mới
         unitPrice: item.price,
+        note: item.note || '', // Ghi chú
         originalItem: item // Reference để update sau
       });
     }
@@ -660,7 +692,8 @@ async function notifyKitchen() {
     items: itemsToNotify.map(item => ({
       variantId: item.variantId,
       quantity: item.quantity,
-      unitPrice: item.unitPrice
+      unitPrice: item.unitPrice,
+      note: item.note || ''
     }))
   };
   
@@ -783,15 +816,7 @@ function setupEventListeners() {
     });
   });
 
-  // Menu categories
-  document.querySelectorAll('.category-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      currentCategory = this.dataset.category;
-      renderMenu();
-    });
-  });
+  // Menu categories - đã được setup trong populateMenuCategories()
 
   // Menu search
   document.getElementById('menuSearch').addEventListener('input', renderMenu);

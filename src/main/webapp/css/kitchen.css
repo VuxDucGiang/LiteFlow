@@ -414,10 +414,34 @@ body {
   font-weight: 700;
 }
 
+.item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .item-name {
   font-size: 15px;
   font-weight: 600;
   color: #2c3e50;
+}
+
+.item-note {
+  font-size: 13px;
+  color: #6c757d;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #fff3e0;
+  border-radius: 6px;
+  border-left: 3px solid #ff9800;
+}
+
+.item-note i {
+  color: #ff9800;
+  font-size: 14px;
 }
 
 .item-status {
