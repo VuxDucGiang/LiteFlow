@@ -4,6 +4,9 @@ import com.liteflow.dao.inventory.RoomDAO;
 import com.liteflow.dao.inventory.TableDAO;
 import com.liteflow.model.inventory.Room;
 import com.liteflow.model.inventory.Table;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,10 +14,12 @@ public class RoomTableService {
     
     private RoomDAO roomDAO;
     private TableDAO tableDAO;
+    private EntityManagerFactory emf;
     
     public RoomTableService() {
         this.roomDAO = new RoomDAO();
         this.tableDAO = new TableDAO();
+        this.emf = com.liteflow.dao.BaseDAO.emf;
     }
     
     // Room operations
@@ -40,9 +45,21 @@ public class RoomTableService {
     
     public boolean addRoom(Room room) {
         try {
+            System.out.println("=== DEBUG: RoomTableService.addRoom ===");
+            System.out.println("Room: " + room);
+            System.out.println("Room Name: " + room.getName());
+            System.out.println("Room Description: " + room.getDescription());
+            System.out.println("Room TableCount: " + room.getTableCount());
+            System.out.println("Room TotalCapacity: " + room.getTotalCapacity());
+            
             // Set created date
             room.setCreatedAt(java.time.LocalDateTime.now());
-            return roomDAO.insert(room);
+            
+            System.out.println("Calling roomDAO.insert...");
+            boolean result = roomDAO.insert(room);
+            System.out.println("roomDAO.insert result: " + result);
+            
+            return result;
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi thêm phòng: " + e.getMessage());
             e.printStackTrace();
@@ -62,9 +79,77 @@ public class RoomTableService {
     
     public boolean deleteRoom(UUID roomId) {
         try {
-            return roomDAO.delete(roomId);
+            System.out.println("=== DEBUG: RoomTableService.deleteRoom ===");
+            System.out.println("Room ID to delete: " + roomId);
+            
+            // Check if room exists first
+            Room room = roomDAO.findById(roomId);
+            if (room == null) {
+                System.out.println("❌ Room not found with ID: " + roomId);
+                return false;
+            }
+            
+            System.out.println("Room found: " + room.getName());
+            
+            // Check if room has related data
+            boolean hasRelatedData = roomDAO.checkRoomHasRelatedData(roomId);
+            System.out.println("Room has related data: " + hasRelatedData);
+            
+            // First, manually delete all related data using JPA
+            System.out.println("Manually deleting related data...");
+            boolean relatedDataDeleted = deleteAllRelatedData(roomId);
+            System.out.println("Related data deletion result: " + relatedDataDeleted);
+            
+            // Then try to delete the room
+            System.out.println("Trying to delete room...");
+            boolean result = roomDAO.delete(roomId);
+            System.out.println("Room deletion result: " + result);
+            
+            if (!result) {
+                System.out.println("JPA delete failed, trying Native SQL delete...");
+                result = roomDAO.deleteWithNativeSQL(roomId);
+                System.out.println("Native SQL delete result: " + result);
+            }
+            
+            return result;
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi xóa phòng: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    private boolean deleteAllRelatedData(UUID roomId) {
+        try {
+            System.out.println("=== DEBUG: deleteAllRelatedData ===");
+            System.out.println("Room ID: " + roomId);
+            
+            // Get all tables in this room
+            List<Table> tablesInRoom = tableDAO.findByRoomId(roomId);
+            System.out.println("Found " + (tablesInRoom != null ? tablesInRoom.size() : 0) + " tables in room");
+            
+            if (tablesInRoom != null && !tablesInRoom.isEmpty()) {
+                for (Table table : tablesInRoom) {
+                    System.out.println("Deleting table: " + table.getTableId());
+                    
+                    // Force load table sessions to avoid lazy loading issues
+                    try {
+                        table.getTableSessions().size(); // This will trigger lazy loading
+                        System.out.println("Table has " + table.getTableSessions().size() + " sessions");
+                    } catch (Exception e) {
+                        System.out.println("Could not load table sessions: " + e.getMessage());
+                    }
+                    
+                    // Delete the table (cascade should handle the rest)
+                    boolean tableDeleted = tableDAO.delete(table.getTableId());
+                    System.out.println("Table deletion result: " + tableDeleted);
+                }
+            }
+            
+            System.out.println("All related data deleted successfully");
+            return true;
+        } catch (Exception e) {
+            System.err.println("❌ Error deleting related data: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -195,7 +280,7 @@ public class RoomTableService {
 
     // TableSession operations
     public com.liteflow.model.inventory.TableSession getActiveSessionByTableId(UUID tableId) {
-        jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+        EntityManager em = this.emf.createEntityManager();
         try {
             jakarta.persistence.Query q = em.createQuery(
                 "SELECT ts FROM TableSession ts " +
@@ -216,9 +301,78 @@ public class RoomTableService {
         }
     }
     
+    // Method to get table sessions (alias for existing method)
+    public java.util.List<com.liteflow.model.inventory.TableSession> getTableSessions(UUID tableId) {
+        return getTableSessionsByTableId(tableId);
+    }
+    
+    // Method to get table payments
+    @SuppressWarnings("unchecked")
+    public java.util.List<com.liteflow.model.inventory.PaymentTransaction> getTablePayments(UUID tableId) {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT pt FROM PaymentTransaction pt " +
+                "JOIN pt.session ts " +
+                "WHERE ts.table.tableId = :tableId " +
+                "ORDER BY pt.processedAt DESC"
+            );
+            q.setParameter("tableId", tableId);
+            return q.getResultList();
+        } catch (Exception e) {
+            System.err.println("Error getting table payments: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+    
+    // Method to get session orders
+    @SuppressWarnings("unchecked")
+    public java.util.List<com.liteflow.model.inventory.Order> getSessionOrders(UUID sessionId) {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT o FROM Order o " +
+                "WHERE o.session.sessionId = :sessionId " +
+                "ORDER BY o.orderDate DESC"
+            );
+            q.setParameter("sessionId", sessionId);
+            return q.getResultList();
+        } catch (Exception e) {
+            System.err.println("Error getting session orders: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+    
+    // Method to get order details
+    @SuppressWarnings("unchecked")
+    public java.util.List<com.liteflow.model.inventory.OrderDetail> getOrderDetails(UUID orderId) {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT od FROM OrderDetail od " +
+                "WHERE od.order.orderId = :orderId " +
+                "ORDER BY od.orderDetailId"
+            );
+            q.setParameter("orderId", orderId);
+            return q.getResultList();
+        } catch (Exception e) {
+            System.err.println("Error getting order details: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public java.util.List<com.liteflow.model.inventory.TableSession> getTableSessionsByTableId(UUID tableId) {
-        jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+        EntityManager em = this.emf.createEntityManager();
         try {
             jakarta.persistence.Query q = em.createQuery(
                 "SELECT ts FROM TableSession ts " +
@@ -238,7 +392,7 @@ public class RoomTableService {
 
     // Tổng giá trị các đơn đang phục vụ dựa trên tổng OrderDetail.totalPrice của các phiên Active
     public java.math.BigDecimal getTotalActiveSessionsAmount() {
-        jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+        EntityManager em = this.emf.createEntityManager();
         try {
             jakarta.persistence.Query q = em.createQuery(
                 "SELECT COALESCE(SUM(od.totalPrice), 0) " +
@@ -258,6 +412,44 @@ public class RoomTableService {
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi tính tổng giá trị phiên đang phục vụ: " + e.getMessage());
             return java.math.BigDecimal.ZERO;
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
+     * Get current table count for a specific room
+     */
+    public int getCurrentTableCountForRoom(UUID roomId) {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            String jpql = "SELECT COUNT(t) FROM Table t WHERE t.room.roomId = :roomId AND t.isActive = true";
+            TypedQuery<Long> query = em.createQuery(jpql, Long.class);
+            query.setParameter("roomId", roomId);
+            Long count = query.getSingleResult();
+            return count != null ? count.intValue() : 0;
+        } catch (Exception e) {
+            System.err.println("Error getting current table count for room: " + e.getMessage());
+            return 0;
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
+     * Get current total capacity for a specific room
+     */
+    public int getCurrentTotalCapacityForRoom(UUID roomId) {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            String jpql = "SELECT COALESCE(SUM(t.capacity), 0) FROM Table t WHERE t.room.roomId = :roomId AND t.isActive = true";
+            TypedQuery<Long> query = em.createQuery(jpql, Long.class);
+            query.setParameter("roomId", roomId);
+            Long totalCapacity = query.getSingleResult();
+            return totalCapacity != null ? totalCapacity.intValue() : 0;
+        } catch (Exception e) {
+            System.err.println("Error getting current total capacity for room: " + e.getMessage());
+            return 0;
         } finally {
             em.close();
         }

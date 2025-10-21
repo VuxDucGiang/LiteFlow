@@ -103,20 +103,29 @@ public class GenericDAO<T, ID> extends BaseDAO<T, ID> {
         EntityManager em = emf.createEntityManager();
         var tx = em.getTransaction();
         try {
+            System.out.println("=== DEBUG: GenericDAO.delete ===");
+            System.out.println("Entity class: " + entityClass.getSimpleName());
+            System.out.println("ID to delete: " + id);
+            
             tx.begin();
             T entity = em.find(entityClass, id);
             if (entity != null) {
+                System.out.println("Entity found: " + entity);
                 em.remove(entity);
                 tx.commit();
+                System.out.println("✅ Entity deleted successfully");
                 return true;
+            } else {
+                System.out.println("❌ Entity not found with ID: " + id);
+                tx.rollback();
+                return false;
             }
-            tx.rollback();
-            return false;
         } catch (Exception e) {
+            System.err.println("❌ Exception in GenericDAO.delete: " + e.getMessage());
+            e.printStackTrace();
             if (tx.isActive()) {
                 tx.rollback();
             }
-            e.printStackTrace();
             return false;
         } finally {
             em.close();
@@ -244,7 +253,7 @@ public class GenericDAO<T, ID> extends BaseDAO<T, ID> {
     public List<T> findAll() {
         EntityManager em = emf.createEntityManager();
         try {
-            return em.createQuery("SELECT e FROM " + entityClass.getSimpleName() + " e", entityClass)
+            return em.createQuery("SELECT e FROM " + entityClass.getSimpleName() + " e ORDER BY e.createdAt DESC", entityClass)
                     .getResultList();
         } catch (Exception e) {
             System.err.println("❌ Error in findAll: " + e.getMessage());

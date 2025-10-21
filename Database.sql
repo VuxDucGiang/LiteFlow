@@ -195,21 +195,25 @@ CREATE TABLE InventoryLogs (
 -- =======================================================
 -- 4. ROOMS & TABLES (Must be created before TableSessions)
 -- =======================================================
+-- Tạo lại bảng Rooms với đầy đủ trường
 CREATE TABLE Rooms (
     RoomID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Name NVARCHAR(100) NOT NULL,
     Description NVARCHAR(500),
+    TableCount INT DEFAULT 0,           -- Số lượng bàn
+    TotalCapacity INT DEFAULT 0,        -- Tổng sức chứa
     CreatedAt DATETIME2 DEFAULT SYSDATETIME()
 );
 
+-- Tạo lại bảng Tables
 CREATE TABLE Tables (
     TableID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     RoomID UNIQUEIDENTIFIER NULL,
     TableNumber NVARCHAR(50) NOT NULL,
-    TableName NVARCHAR(100) NOT NULL,  -- Tên hiển thị (vd: "Bàn 1", "Bàn VIP")
-    Capacity INT NOT NULL DEFAULT 4,   -- Sức chứa
+    TableName NVARCHAR(100) NOT NULL,
+    Capacity INT NOT NULL DEFAULT 4,
     Status NVARCHAR(50) DEFAULT 'Available' CHECK (Status IN ('Available', 'Occupied', 'Reserved', 'Maintenance')),
-    IsActive BIT DEFAULT 1,            -- Bàn có hoạt động không
+    IsActive BIT DEFAULT 1,
     CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
     UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
     
