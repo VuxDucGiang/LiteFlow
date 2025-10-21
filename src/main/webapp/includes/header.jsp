@@ -242,9 +242,9 @@
      
       </div>
       <div class="nav-right">
-        <div class="nav-icon" title="Nhà bếp">
-          <i class='bx bx-home'></i>
-        </div>
+        <a href="${pageContext.request.contextPath}/kitchen" class="nav-icon" title="Nhà bếp" target="_blank">
+          <i class='bx bxs-bowl-hot'></i>
+        </a>
         <div class="nav-icon" title="Lễ tân">
           <i class='bx bx-calendar'></i>
         </div>
