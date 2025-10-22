@@ -27,6 +27,12 @@ public class Room implements Serializable {
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;
 
+    @Column(name = "TableCount")
+    private Integer tableCount = 0;
+
+    @Column(name = "TotalCapacity")
+    private Integer totalCapacity = 0;
+
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Table> tables = new ArrayList<>();
 
@@ -60,7 +66,7 @@ public class Room implements Serializable {
         }
     }
 
-    public int getTableCount() {
+    public int getActualTableCount() {
         return tables != null ? tables.size() : 0;
     }
 
@@ -109,6 +115,22 @@ public class Room implements Serializable {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Integer getTableCount() {
+        return tableCount != null ? tableCount : 0;
+    }
+
+    public void setTableCount(Integer tableCount) {
+        this.tableCount = tableCount;
+    }
+
+    public Integer getTotalCapacity() {
+        return totalCapacity != null ? totalCapacity : 0;
+    }
+
+    public void setTotalCapacity(Integer totalCapacity) {
+        this.totalCapacity = totalCapacity;
     }
 
     public List<Table> getTables() {

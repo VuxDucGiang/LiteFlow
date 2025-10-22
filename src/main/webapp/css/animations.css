@@ -448,7 +448,7 @@
   .animate-glow,
   .animate-morphing,
   .animate-liquid {
-    animation: none !important;
+    animation: none;
   }
   
   .interactive,
@@ -458,8 +458,8 @@
   .interactive-scale:active,
   .interactive-rotate:hover,
   .interactive-skew:hover {
-    transform: none !important;
-    transition: none !important;
+    transform: none;
+    transition: none;
   }
 }
 

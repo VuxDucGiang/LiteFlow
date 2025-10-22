@@ -150,8 +150,15 @@
           <div class="header-icon">
             <i class='bx bx-cog'></i>
           </div>
-          <div class="header-icon">
-            <i class='bx bx-user'></i>
+          <div class="nav-item dropdown header-icon">
+            <a href="#" class="nav-link dropdown-toggle" aria-expanded="false">
+              <i class='bx bx-user'></i>
+            </a>
+            <div class="dropdown-menu" style="right: 0; left: auto;">
+              <a href="${pageContext.request.contextPath}/logout" class="dropdown-item">
+                <i class='bx bx-log-out'></i> Đăng xuất
+              </a>
+            </div>
           </div>
         </div>
       </div>
