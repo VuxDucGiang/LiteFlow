@@ -36,6 +36,14 @@
     <!-- Timesheet entities -->
     <class>com.liteflow.model.timesheet.ShiftPayRule</class>
     <class>com.liteflow.model.timesheet.EmployeeShiftTimesheet</class>
+    <!-- Procurement entities -->
+    <class>com.liteflow.model.procurement.Supplier</class>
+    <class>com.liteflow.model.procurement.PurchaseOrder</class>
+    <class>com.liteflow.model.procurement.PurchaseOrderItem</class>
+    <class>com.liteflow.model.procurement.GoodsReceipt</class>
+    <class>com.liteflow.model.procurement.GoodsReceiptItem</class>
+    <class>com.liteflow.model.procurement.Invoice</class>
+    <class>com.liteflow.model.procurement.InvoiceItem</class>
     <class>com.liteflow.model.timesheet.EmployeeAttendance</class>
     <!-- External info entities -->
     <class>com.liteflow.model.external.HolidayCalendar</class>

@@ -9,13 +9,23 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
-@WebServlet(urlPatterns = {"/procurement/po"})
+// @WebServlet(urlPatterns = {"/procurement/po"}) // Disabled - using web.xml mapping
 public class PurchaseOrderServlet extends HttpServlet {
     private final ProcurementService service = new ProcurementService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, jakarta.servlet.ServletException {
+        // CRITICAL: Set response headers to prevent chunked encoding issues
+        resp.setContentType("text/html; charset=UTF-8");
+        resp.setCharacterEncoding("UTF-8");
+        resp.setHeader("Transfer-Encoding", "identity");
+        resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        resp.setHeader("Pragma", "no-cache");
+        resp.setHeader("Expires", "0");
+        
         try {
+            System.out.println("=== PurchaseOrderServlet.doGet START ===");
+            
             List<PurchaseOrder> purchaseOrders = service.getAllPOs();
             List<com.liteflow.model.procurement.Supplier> suppliers = service.getAllSuppliers();
             
@@ -25,12 +35,28 @@ public class PurchaseOrderServlet extends HttpServlet {
             req.setAttribute("purchaseOrders", purchaseOrders);
             req.setAttribute("suppliers", suppliers);
             
-            req.getRequestDispatcher("/procurement/purchase-orders.jsp").forward(req, resp);
+            System.out.println("DEBUG: Forwarding to po.jsp");
+            req.getRequestDispatcher("/procurement/po.jsp").forward(req, resp);
+            System.out.println("=== PurchaseOrderServlet.doGet END ===");
+            
         } catch (Exception e) {
             System.err.println("ERROR in PurchaseOrderServlet.doGet: " + e.getMessage());
             e.printStackTrace();
-            req.setAttribute("error", "Không thể tải dữ liệu đơn đặt hàng: " + e.getMessage());
-            req.getRequestDispatcher("/procurement/purchase-orders.jsp").forward(req, resp);
+            
+            // Send error response directly to avoid JSP issues
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.getWriter().write(
+                "<!DOCTYPE html>\n" +
+                "<html>\n" +
+                "<head><title>PO Error</title></head>\n" +
+                "<body>\n" +
+                "    <h1>Lỗi tải trang đơn đặt hàng</h1>\n" +
+                "    <p><strong>Lỗi:</strong> " + e.getMessage() + "</p>\n" +
+                "    <pre>" + e.toString() + "</pre>\n" +
+                "    <p><a href=\"/LiteFlow/dashboard\">Quay về Dashboard</a></p>\n" +
+                "</body>\n" +
+                "</html>"
+            );
         }
     }
 

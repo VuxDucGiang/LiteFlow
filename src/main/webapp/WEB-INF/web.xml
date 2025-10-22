@@ -60,17 +60,32 @@
         <url-pattern>/schedule</url-pattern>
     </servlet-mapping>
     
-    <!-- Test Employee Servlet Configuration -->
+    <!-- Test Employee Servlet Configuration - REMOVED (class not found) -->
+    
+    <!-- Purchase Order Servlet Configuration -->
     <servlet>
-        <servlet-name>TestEmployeeServlet</servlet-name>
-        <servlet-class>com.liteflow.controller.TestEmployeeServlet</servlet-class>
-        <load-on-startup>4</load-on-startup>
+        <servlet-name>PurchaseOrderServlet</servlet-name>
+        <servlet-class>com.liteflow.web.procurement.PurchaseOrderServlet</servlet-class>
+        <load-on-startup>10</load-on-startup>
     </servlet>
     <servlet-mapping>
-        <servlet-name>TestEmployeeServlet</servlet-name>
-        <url-pattern>/test-employees</url-pattern>
+        <servlet-name>PurchaseOrderServlet</servlet-name>
+        <url-pattern>/procurement/po</url-pattern>
     </servlet-mapping>
     
+    <!-- PO Test Servlet Configuration - REMOVED -->
+    
+    <!-- Supplier Servlet Configuration -->
+    <servlet>
+        <servlet-name>SupplierServlet</servlet-name>
+        <servlet-class>com.liteflow.web.procurement.SupplierServlet</servlet-class>
+        <load-on-startup>12</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>SupplierServlet</servlet-name>
+        <url-pattern>/procurement/supplier</url-pattern>
+    </servlet-mapping>
+
     <!-- Character Encoding Filter -->
     <filter>
         <filter-name>CharacterEncodingFilter</filter-name>
