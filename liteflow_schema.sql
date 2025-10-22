@@ -1,5 +1,6 @@
 ﻿USE master;
 GO
+
 IF DB_ID('LiteFlowDBO') IS NOT NULL
 BEGIN
     ALTER DATABASE LiteFlowDBO SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -195,7 +196,6 @@ CREATE TABLE InventoryLogs (
 -- =======================================================
 -- 4. ROOMS & TABLES (Must be created before TableSessions)
 -- =======================================================
--- Tạo lại bảng Rooms với đầy đủ trường
 CREATE TABLE Rooms (
     RoomID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     Name NVARCHAR(100) NOT NULL,
@@ -204,16 +204,14 @@ CREATE TABLE Rooms (
     TotalCapacity INT DEFAULT 0,        -- Tổng sức chứa
     CreatedAt DATETIME2 DEFAULT SYSDATETIME()
 );
-
--- Tạo lại bảng Tables
 CREATE TABLE Tables (
     TableID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     RoomID UNIQUEIDENTIFIER NULL,
     TableNumber NVARCHAR(50) NOT NULL,
-    TableName NVARCHAR(100) NOT NULL,
-    Capacity INT NOT NULL DEFAULT 4,
+    TableName NVARCHAR(100) NOT NULL,  -- Tên hiển thị (vd: "Bàn 1", "Bàn VIP")
+    Capacity INT NOT NULL DEFAULT 4,   -- Sức chứa
     Status NVARCHAR(50) DEFAULT 'Available' CHECK (Status IN ('Available', 'Occupied', 'Reserved', 'Maintenance')),
-    IsActive BIT DEFAULT 1,
+    IsActive BIT DEFAULT 1,            -- Bàn có hoạt động không
     CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
     UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
     
@@ -409,6 +407,7 @@ CREATE TABLE EmployeeShifts (
     Location NVARCHAR(200) NULL,
     Status NVARCHAR(50) NOT NULL DEFAULT 'Scheduled' 
         CHECK (Status IN ('Scheduled', 'Completed', 'Cancelled')),
+    IsRecurring BIT NOT NULL DEFAULT 0,
     CreatedBy UNIQUEIDENTIFIER NULL,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
