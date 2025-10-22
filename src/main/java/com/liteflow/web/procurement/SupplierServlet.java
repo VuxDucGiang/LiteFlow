@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-@WebServlet(urlPatterns = {"/procurement/supplier"})
+// @WebServlet(urlPatterns = {"/procurement/supplier"}) // Disabled - using web.xml mapping
 public class SupplierServlet extends HttpServlet {
     private final ProcurementService service = new ProcurementService();
 
