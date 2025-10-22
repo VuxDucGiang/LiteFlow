@@ -1,4 +1,85 @@
-﻿-- ============================================================
+﻿
+USE LiteFlowDBO;
+GO
+
+-- ============================================================
+-- 🗑️ DELETE ALL EXISTING DATA (CLEAN SLATE)
+-- ============================================================
+-- Delete in reverse order of dependencies to avoid foreign key constraints
+
+-- Delete payment transactions first
+DELETE FROM PaymentTransactions;
+GO
+
+-- Delete order details
+DELETE FROM OrderDetails;
+GO
+
+-- Delete orders
+DELETE FROM Orders;
+GO
+
+-- Delete table sessions
+DELETE FROM TableSessions;
+GO
+
+-- Delete scheduling data (shifts -> assignments -> templates)
+DELETE FROM EmployeeShifts;
+GO
+DELETE FROM EmployeeShiftAssignments;
+GO
+DELETE FROM ShiftTemplates;
+GO
+
+-- Delete employees
+DELETE FROM Employees;
+GO
+
+-- Delete user roles
+DELETE FROM UserRoles;
+GO
+
+-- Delete users
+DELETE FROM Users;
+GO
+
+-- Delete roles
+DELETE FROM Roles;
+GO
+
+-- Delete product stock
+DELETE FROM ProductStock;
+GO
+
+-- Delete inventory
+DELETE FROM Inventory;
+GO
+
+-- Delete product categories mapping
+DELETE FROM ProductsCategories;
+GO
+
+-- Delete product variants
+DELETE FROM ProductVariant;
+GO
+
+-- Delete products
+DELETE FROM Products;
+GO
+
+-- Delete categories
+DELETE FROM Categories;
+GO
+
+-- Delete tables
+DELETE FROM Tables;
+GO
+
+-- Delete rooms
+DELETE FROM Rooms;
+GO
+
+-- ============================================================
 -- 1️⃣0 PAYROLL & COMPENSATION - SAMPLE DATA
 -- ============================================================
 
@@ -116,87 +197,6 @@ GO
 -- SAMPLE DATA FOR LITEFLOW CAFE ☕
 -- Version: 2025-10
 -- ================================
-
-USE LiteFlowDBO;
-GO
-
--- ============================================================
--- 🗑️ DELETE ALL EXISTING DATA (CLEAN SLATE)
--- ============================================================
--- Delete in reverse order of dependencies to avoid foreign key constraints
-
--- Delete payment transactions first
-DELETE FROM PaymentTransactions;
-GO
-
--- Delete order details
-DELETE FROM OrderDetails;
-GO
-
--- Delete orders
-DELETE FROM Orders;
-GO
-
--- Delete table sessions
-DELETE FROM TableSessions;
-GO
-
--- Delete scheduling data (shifts -> assignments -> templates)
-DELETE FROM EmployeeShifts;
-GO
-DELETE FROM EmployeeShiftAssignments;
-GO
-DELETE FROM ShiftTemplates;
-GO
-
--- Delete employees
-DELETE FROM Employees;
-GO
-
--- Delete user roles
-DELETE FROM UserRoles;
-GO
-
--- Delete users
-DELETE FROM Users;
-GO
-
--- Delete roles
-DELETE FROM Roles;
-GO
-
--- Delete product stock
-DELETE FROM ProductStock;
-GO
-
--- Delete inventory
-DELETE FROM Inventory;
-GO
-
--- Delete product categories mapping
-DELETE FROM ProductsCategories;
-GO
-
--- Delete product variants
-DELETE FROM ProductVariant;
-GO
-
--- Delete products
-DELETE FROM Products;
-GO
-
--- Delete categories
-DELETE FROM Categories;
-GO
-
--- Delete tables
-DELETE FROM Tables;
-GO
-
--- Delete rooms
-DELETE FROM Rooms;
-GO
-
 -- ============================================================
 -- 1️⃣ CATEGORIES
 -- ============================================================
