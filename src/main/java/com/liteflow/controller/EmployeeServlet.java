@@ -156,8 +156,75 @@ public class EmployeeServlet extends HttpServlet {
     }
 
     private void handleUpdateEmployee(HttpServletRequest request, HttpServletResponse response) {
-        // Implementation for update
-        System.out.println("Update employee functionality");
+        System.out.println("=== DEBUG: Updating Employee ===");
+
+        String employeeCode = request.getParameter("employeeCode");
+        if (employeeCode == null || employeeCode.trim().isEmpty()) {
+            request.setAttribute("error", "Thiếu mã nhân viên để cập nhật");
+            return;
+        }
+
+        try {
+            var optEmp = employeeService.getEmployeeByCode(employeeCode.trim());
+            if (optEmp.isEmpty()) {
+                request.setAttribute("error", "Không tìm thấy nhân viên: " + employeeCode);
+                return;
+            }
+
+            Employee employee = optEmp.get();
+
+            String fullName = request.getParameter("fullName");
+            String nationalID = request.getParameter("nationalID");
+            String phone = request.getParameter("phone");
+            String email = request.getParameter("email");
+            String position = request.getParameter("position");
+            String gender = request.getParameter("gender");
+            String address = request.getParameter("address");
+            String employmentStatus = request.getParameter("employmentStatus");
+            String bankName = request.getParameter("bankName");
+            String bankAccount = request.getParameter("bankAccount");
+            String notes = request.getParameter("notes");
+            String salaryStr = request.getParameter("salary");
+            String birthDateStr = request.getParameter("birthDate");
+
+            if (fullName != null) employee.setFullName(fullName.trim());
+            if (nationalID != null) employee.setNationalID(nationalID.trim());
+            if (phone != null) employee.setPhone(phone.trim());
+            if (email != null) employee.setEmail(email.trim());
+            if (position != null) employee.setPosition(position.trim());
+            if (gender != null) employee.setGender(gender.trim());
+            if (address != null) employee.setAddress(address.trim());
+            if (employmentStatus != null) employee.setEmploymentStatus(employmentStatus.trim());
+            if (bankName != null) employee.setBankName(bankName.trim());
+            if (bankAccount != null) employee.setBankAccount(bankAccount.trim());
+            if (notes != null) employee.setNotes(notes.trim());
+
+            if (salaryStr != null && !salaryStr.trim().isEmpty()) {
+                try {
+                    employee.setSalary(new java.math.BigDecimal(salaryStr.trim()));
+                } catch (NumberFormatException nfe) {
+                    System.err.println("⚠️ Salary parse error: " + salaryStr);
+                }
+            }
+
+            if (birthDateStr != null && !birthDateStr.trim().isEmpty()) {
+                try {
+                    employee.setBirthDate(java.time.LocalDate.parse(birthDateStr.trim()));
+                } catch (Exception pe) {
+                    System.err.println("⚠️ BirthDate parse error: " + birthDateStr);
+                }
+            }
+
+            boolean ok = employeeService.updateEmployee(employee);
+            if (ok) {
+                request.setAttribute("success", "Cập nhật nhân viên thành công");
+            } else {
+                request.setAttribute("error", "Cập nhật nhân viên thất bại");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi cập nhật nhân viên: " + e.getMessage());
+            request.setAttribute("error", "Có lỗi xảy ra khi cập nhật");
+        }
     }
 
     private void handleDeleteEmployee(HttpServletRequest request, HttpServletResponse response) {

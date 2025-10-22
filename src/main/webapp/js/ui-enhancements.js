@@ -577,9 +577,13 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
       e.preventDefault();
-      const target = document.querySelector(this.getAttribute('href'));
-      if (target) {
-        smoothScrollTo(target);
+      const href = this.getAttribute('href');
+      // Only process if href has more than just '#'
+      if (href && href.length > 1) {
+        const target = document.querySelector(href);
+        if (target) {
+          smoothScrollTo(target);
+        }
       }
     });
   });

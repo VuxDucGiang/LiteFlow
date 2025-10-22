@@ -1,121 +1,3 @@
-﻿-- ============================================================
--- 1️⃣0 PAYROLL & COMPENSATION - SAMPLE DATA
--- ============================================================
-
--- Create sample Pay Policies
-INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
-SELECT N'Chính sách chuẩn VN', N'Mặc định cho nhân viên toàn thời gian', 1.5, 1.2, 1.5, 2.0, 15, 'VND', 1, u.UserID
-FROM Users u WHERE u.Email = 'hr@liteflow.vn';
-
-INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
-SELECT N'Chính sách tăng cuối tuần', N'Tăng lương giờ cho cuối tuần', 1.5, 1.2, 1.75, 2.0, 15, 'VND', 1, u.UserID
-FROM Users u WHERE u.Email = 'hr@liteflow.vn';
-GO
-
--- Per-employee compensation configurations
-INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
-SELECT e.EmployeeID, 'Fixed', p.PolicyID, 12000000, NULL, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Thu nhập cố định', uHR.UserID
-FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'cashier1@liteflow.vn'
-JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
-CROSS JOIN Users uHR
-WHERE uHR.Email = 'hr@liteflow.vn';
-
-INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
-SELECT e.EmployeeID, 'PerShift', p.PolicyID, NULL, NULL, 100000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Pha chế tính theo ca', uHR.UserID
-FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
-JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
-CROSS JOIN Users uHR
-WHERE uHR.Email = 'hr@liteflow.vn';
-
-INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
-SELECT e.EmployeeID, 'Hybrid', p.PolicyID, 8000000, 20000, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Kho: lương cơ bản + theo giờ', uHR.UserID
-FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'inventory@liteflow.vn'
-JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
-CROSS JOIN Users uHR
-WHERE uHR.Email = 'hr@liteflow.vn';
-GO
-
--- Shift pay rules (by template/position, with weekend uplift)
-INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
-SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekday', 'Hourly', 25000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ ngày thường'
-FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
-
-INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
-SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekend', 'Hourly', 30000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ cuối tuần'
-FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
-
-INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
-SELECT t.TemplateID, N'Thu ngân / Cashier', 'Any', 'Hourly', 28000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Áp dụng mọi ngày'
-FROM ShiftTemplates t WHERE t.Name = N'Ca Tối';
-GO
-
--- Timesheets (actual worked times)
--- Employee1 morning shift today (07:00 - 12:00, 15 min break)
-INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, ApprovedBy, ApprovedAt, Notes)
-SELECT e.EmployeeID,
-       s.ShiftID,
-       CAST(SYSDATETIME() AS DATE),
-       DATEADD(MINUTE, -5, s.StartAt),
-       DATEADD(MINUTE, 10, s.EndAt),
-       15,
-       'Approved',
-       'Manual',
-       4.75,
-       uHR.UserID,
-       SYSDATETIME(),
-       N'Check-in sớm 5 phút; check-out muộn 10 phút'
-FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
-JOIN EmployeeShifts s ON s.EmployeeID = e.EmployeeID AND CONVERT(date, s.StartAt) = CAST(SYSDATETIME() AS DATE) AND s.Title = N'Ca Sáng'
-CROSS JOIN Users uHR
-WHERE uHR.Email = 'hr@liteflow.vn';
-GO
-
--- Holidays and exchange rates
-INSERT INTO HolidayCalendar (HolidayDate, Name, Region, DayType, IsPaidHoliday)
-VALUES ('2025-09-02', N'Quốc khánh Việt Nam', 'VN', 'Public', 1);
-
-INSERT INTO ExchangeRates (Currency, RateToVND, RateDate, Source)
-VALUES ('USD', 24800.000000, CAST(SYSDATETIME() AS DATE), N'Static Sample'),
-       ('VND', 1.000000, CAST(SYSDATETIME() AS DATE), N'Parity');
-GO
-
--- Pay period for current month and a payroll run
-DECLARE @StartOfMonth DATE = DATEADD(DAY, 1, EOMONTH(SYSDATETIME(), -1));
-DECLARE @EndOfMonth DATE = EOMONTH(SYSDATETIME(), 0);
-
-DECLARE @PeriodID UNIQUEIDENTIFIER = NEWID();
-INSERT INTO PayPeriods (PayPeriodID, Name, PeriodType, StartDate, EndDate, Status)
-VALUES (@PeriodID, FORMAT(@StartOfMonth, 'yyyy-MM') + N' - Kỳ lương', 'Monthly', @StartOfMonth, @EndOfMonth, 'Open');
-
-DECLARE @RunID UNIQUEIDENTIFIER = NEWID();
-INSERT INTO PayrollRuns (PayrollRunID, PayPeriodID, RunNumber, Status, CalculatedAt, Notes)
-VALUES (@RunID, @PeriodID, 1, 'Calculated', SYSDATETIME(), N'Chạy lương mẫu cho kỳ hiện tại');
-
--- Payroll entries for two employees (same batch to keep @RunID)
-INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
-SELECT @RunID, e.EmployeeID, 'Fixed', 12000000, NULL, NULL, NULL, NULL, 0, 0, 0, 500000, 0, 12500000, 12500000
-FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
-SELECT @RunID, e.EmployeeID, 'PerShift', NULL, NULL, 100000, 4.75, 1, 0, 0, 0, 0, 0, 100000, 100000
-FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn';
-
--- One payroll adjustment (allowance) for barista (same batch)
-INSERT INTO PayrollAdjustments (PayrollRunID, EmployeeID, AdjustmentType, Amount, Reason, CreatedBy, CreatedAt)
-SELECT @RunID, e.EmployeeID, 'Allowance', 50000, N'Phụ cấp chuyên cần', uHR.UserID, SYSDATETIME()
-FROM Employees e
-JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
-CROSS JOIN Users uHR
-WHERE uHR.Email = 'hr@liteflow.vn';
-GO
--- ================================
--- SAMPLE DATA FOR LITEFLOW CAFE ☕
--- Version: 2025-10
--- ================================
 
 USE LiteFlowDBO;
 GO
@@ -390,27 +272,82 @@ GO
 
 
 -- ============================================================
--- 7️⃣ ROOMS & TABLES
+-- 7️⃣ ROOMS & TABLES - QUÁN ĂN THỰC TẾ
 -- ============================================================
-INSERT INTO Rooms (Name, Description) VALUES
-(N'Tầng 1', N'Khu vực tầng 1'),
-(N'Tầng 2', N'Khu vực tầng 2'),
-(N'VIP', N'Phòng VIP riêng tư');
+INSERT INTO Rooms (Name, Description, TableCount, TotalCapacity) VALUES
+(N'Khu Vực Lễ Tân', N'Khu vực gần lễ tân, tiện lợi cho khách hàng vãng lai', 8, 32),
+(N'Phòng Gia Đình', N'Phòng dành cho gia đình, không gian ấm cúng, phù hợp cho trẻ em', 6, 24),
+(N'Phòng Họp', N'Phòng họp riêng tư cho khách VIP, trang bị đầy đủ tiện nghi', 4, 20),
+(N'Phòng Ngoài Trời', N'Khu vực ngoài trời, thoáng mát, phù hợp cho khách hàng thích không gian tự nhiên', 5, 20),
+(N'Phòng Làm Việc', N'Phòng yên tĩnh cho khách hàng làm việc, có wifi tốt', 8, 32),
+(N'Khu Vực Bar', N'Khu vực bar với không gian mở, phù hợp cho nhóm bạn', 6, 24),
+(N'Phòng VIP', N'Phòng VIP cao cấp, không gian sang trọng, phục vụ khách hàng đặc biệt', 3, 12),
+(N'Tầng 2', N'Tầng 2 với view đẹp, không gian yên tĩnh và riêng tư', 7, 28);
 GO
 
 INSERT INTO Tables (RoomID, TableNumber, TableName, Capacity, Status) VALUES
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-01', 'Bàn 1', 4, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-02', 'Bàn 2', 4, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-03', 'Bàn 3', 6, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-04', 'Bàn 4', 2, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 1'), 'T1-05', 'Bàn 5', 4, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-01', 'Bàn 6', 4, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-02', 'Bàn 7', 8, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-03', 'Bàn 8', 6, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-04', 'Bàn 9', 4, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-01', 'Bàn VIP 1', 6, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-02', 'Bàn VIP 2', 8, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'VIP'), 'VIP-03', 'Bàn VIP 3', 4, 'Available');
+-- Khu Vực Lễ Tân (8 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-01', N'Bàn Lễ Tân 1', 2, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-02', N'Bàn Lễ Tân 2', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-03', N'Bàn Lễ Tân 3', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-04', N'Bàn Lễ Tân 4', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-05', N'Bàn Lễ Tân 5', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-06', N'Bàn Lễ Tân 6', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-07', N'Bàn Lễ Tân 7', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-08', N'Bàn Lễ Tân 8', 4, 'Available'),
+
+-- Phòng Gia Đình (6 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Gia Đình'), 'GD-01', N'Bàn Gia Đình 1', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Gia Đình'), 'GD-02', N'Bàn Gia Đình 2', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Gia Đình'), 'GD-03', N'Bàn Gia Đình 3', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Gia Đình'), 'GD-04', N'Bàn Gia Đình 4', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Gia Đình'), 'GD-05', N'Bàn Gia Đình 5', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Gia Đình'), 'GD-06', N'Bàn Gia Đình 6', 2, 'Available'),
+
+-- Phòng Họp (4 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'H-01', N'Bàn Họp 1', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'H-02', N'Bàn Họp 2', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'H-03', N'Bàn Họp 3', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'H-04', N'Bàn Họp 4', 4, 'Available'),
+
+-- Phòng Ngoài Trời (5 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-01', N'Bàn Ngoài Trời 1', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-02', N'Bàn Ngoài Trời 2', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-03', N'Bàn Ngoài Trời 3', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-04', N'Bàn Ngoài Trời 4', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-05', N'Bàn Ngoài Trời 5', 4, 'Available'),
+
+-- Phòng Làm Việc (8 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-01', N'Bàn Làm Việc 1', 2, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-02', N'Bàn Làm Việc 2', 2, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-03', N'Bàn Làm Việc 3', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-04', N'Bàn Làm Việc 4', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-05', N'Bàn Làm Việc 5', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-06', N'Bàn Làm Việc 6', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-07', N'Bàn Làm Việc 7', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Làm Việc'), 'LV-08', N'Bàn Làm Việc 8', 4, 'Available'),
+
+-- Khu Vực Bar (6 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Bar'), 'B-01', N'Bàn Bar 1', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Bar'), 'B-02', N'Bàn Bar 2', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Bar'), 'B-03', N'Bàn Bar 3', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Bar'), 'B-04', N'Bàn Bar 4', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Bar'), 'B-05', N'Bàn Bar 5', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Bar'), 'B-06', N'Bàn Bar 6', 2, 'Available'),
+
+-- Phòng VIP (3 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng VIP'), 'VIP-01', N'Bàn VIP 1', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng VIP'), 'VIP-02', N'Bàn VIP 2', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng VIP'), 'VIP-03', N'Bàn VIP 3', 4, 'Available'),
+
+-- Tầng 2 (7 bàn)
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-01', N'Bàn Tầng 2 - 1', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-02', N'Bàn Tầng 2 - 2', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-03', N'Bàn Tầng 2 - 3', 6, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-04', N'Bàn Tầng 2 - 4', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-05', N'Bàn Tầng 2 - 5', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-06', N'Bàn Tầng 2 - 6', 4, 'Available'),
+((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Tầng 2'), 'T2-07', N'Bàn Tầng 2 - 7', 2, 'Available');
 GO
 -- ============================================================
 -- 8️⃣ EMPLOYEES (Liên kết 1-1 với bảng Users)
@@ -793,41 +730,6 @@ WHERE TableID IN (
 );
 GO
 
--- ============================================================
--- 1️⃣ THÊM PHÒNG VÀ BÀN MẪU
--- ============================================================
-
--- Thêm phòng mới
-INSERT INTO Rooms (Name, Description) VALUES
-(N'Phòng Ngoài Trời', N'Khu vực ngoài trời, thoáng mát'),
-(N'Phòng Họp', N'Phòng họp riêng tư cho khách VIP'),
-(N'Khu Vực Lễ Tân', N'Khu vực gần lễ tân, tiện lợi');
-GO
-
--- Thêm bàn mẫu với các trạng thái khác nhau
-INSERT INTO Tables (RoomID, TableNumber, TableName, Capacity, Status) VALUES
--- Phòng Ngoài Trời
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-01', N'Bàn Ngoài Trời 1', 4, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-02', N'Bàn Ngoài Trời 2', 6, 'Occupied'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-03', N'Bàn Ngoài Trời 3', 8, 'Reserved'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Ngoài Trời'), 'NT-04', N'Bàn Ngoài Trời 4', 2, 'Maintenance'),
-
--- Phòng Họp
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'PH-01', N'Bàn Họp 1', 10, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'PH-02', N'Bàn Họp 2', 12, 'Occupied'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Phòng Họp'), 'PH-03', N'Bàn Họp 3', 8, 'Available'),
-
--- Khu Vực Lễ Tân
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-01', N'Bàn Lễ Tân 1', 2, 'Available'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-02', N'Bàn Lễ Tân 2', 4, 'Occupied'),
-((SELECT TOP 1 RoomID FROM Rooms WHERE Name = N'Khu Vực Lễ Tân'), 'LT-03', N'Bàn Lễ Tân 3', 2, 'Available');
-
--- Thêm bàn không có phòng (test case)
-INSERT INTO Tables (RoomID, TableNumber, TableName, Capacity, Status) VALUES
-(NULL, 'NO-ROOM-01', 'Bàn Không Phòng 1', 4, 'Available'),
-(NULL, 'NO-ROOM-02', 'Bàn Không Phòng 2', 6, 'Occupied');
-
-GO
 
 -- ============================================================
 -- 2️⃣ THÊM TABLE SESSIONS MẪU (Lịch sử giao dịch)
@@ -1180,4 +1082,301 @@ BEGIN
     SET @counter = @counter + 1;
 END
 
+GO
+
+-- ============================================================
+-- 8️⃣ SEED ATTENDANCE STATUS FOR CURRENT WEEK
+-- ============================================================
+USE LiteFlowDBO;
+GO
+
+DECLARE @Mon DATE;
+DECLARE @today2 DATE = CAST(SYSDATETIME() AS DATE);
+SET @Mon = DATEADD(DAY, -((DATEPART(WEEKDAY, @today2) + 5) % 7), @today2); -- Monday
+
+-- Barista employee (employee1@liteflow.vn): Mon-Fri work, Wed paid leave, Thu unpaid leave
+DECLARE @EmpBarista UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+);
+
+IF @EmpBarista IS NOT NULL
+BEGIN
+  -- Mon: Work 07:05 - 12:10
+  MERGE EmployeeAttendance AS t
+  USING (SELECT @EmpBarista AS EmployeeID, @Mon AS WorkDate) s
+  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
+  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:05', CheckOutTime = '12:10', UpdatedAt = SYSDATETIME()
+  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
+    VALUES (@EmpBarista, @Mon, 'Work', '07:05', '12:10');
+
+  -- Tue: Work 07:00 - 12:00
+  MERGE EmployeeAttendance AS t
+  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 1, @Mon) AS WorkDate) s
+  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
+  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:00', CheckOutTime = '12:00', UpdatedAt = SYSDATETIME()
+  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
+    VALUES (@EmpBarista, DATEADD(DAY, 1, @Mon), 'Work', '07:00', '12:00');
+
+  -- Wed: Leave Paid
+  MERGE EmployeeAttendance AS t
+  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 2, @Mon) AS WorkDate) s
+  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
+  WHEN MATCHED THEN UPDATE SET Status = 'LeavePaid', CheckInTime = NULL, CheckOutTime = NULL, UpdatedAt = SYSDATETIME()
+  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status)
+    VALUES (@EmpBarista, DATEADD(DAY, 2, @Mon), 'LeavePaid');
+
+  -- Thu: Leave Unpaid
+  MERGE EmployeeAttendance AS t
+  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 3, @Mon) AS WorkDate) s
+  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
+  WHEN MATCHED THEN UPDATE SET Status = 'LeaveUnpaid', CheckInTime = NULL, CheckOutTime = NULL, UpdatedAt = SYSDATETIME()
+  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status)
+    VALUES (@EmpBarista, DATEADD(DAY, 3, @Mon), 'LeaveUnpaid');
+
+  -- Fri: Work 07:10 - 12:05
+  MERGE EmployeeAttendance AS t
+  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 4, @Mon) AS WorkDate) s
+  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
+  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:10', CheckOutTime = '12:05', UpdatedAt = SYSDATETIME()
+  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
+    VALUES (@EmpBarista, DATEADD(DAY, 4, @Mon), 'Work', '07:10', '12:05');
+END
+GO
+
+-- Cashier employee (cashier1@liteflow.vn): Work Tue/Thu evening
+DECLARE @EmpCashier UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
+);
+
+IF @EmpCashier IS NOT NULL
+BEGIN
+  -- Tue: Work 17:00 - 22:00
+  MERGE EmployeeAttendance AS t
+  USING (SELECT @EmpCashier AS EmployeeID, DATEADD(DAY, 1, @Mon) AS WorkDate) s
+  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
+  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '17:00', CheckOutTime = '22:00', UpdatedAt = SYSDATETIME()
+  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
+    VALUES (@EmpCashier, DATEADD(DAY, 1, @Mon), 'Work', '17:00', '22:00');
+
+  -- Thu: Work 17:05 - 22:10
+  MERGE EmployeeAttendance AS t
+  USING (SELECT @EmpCashier AS EmployeeID, DATEADD(DAY, 3, @Mon) AS WorkDate) s
+  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
+  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '17:05', CheckOutTime = '22:10', UpdatedAt = SYSDATETIME()
+  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
+    VALUES (@EmpCashier, DATEADD(DAY, 3, @Mon), 'Work', '17:05', '22:10');
+END
+GO
+
+-- ============================================================
+-- 9️⃣ SEED BONUS/PENALTY EVENTS FOR CURRENT WEEK
+-- ============================================================
+USE LiteFlowDBO;
+GO
+
+-- ============================================================
+-- 🔟 SEED DỮ LIỆU MẪU LỊCH SỬ CHẤM CÔNG (Timesheets with mixed sources)
+-- ============================================================
+USE LiteFlowDBO;
+GO
+
+DECLARE @Today DATE = CAST(SYSDATETIME() AS DATE);
+
+DECLARE @EmpBaristaTS UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+);
+
+IF @EmpBaristaTS IS NOT NULL
+BEGIN
+  -- Xóa dữ liệu timesheet trong ngày để seed lại demo rõ ràng
+  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpBaristaTS AND WorkDate = @Today;
+
+  -- Chấm công tự động: check-in đúng giờ template, check-out muộn 5'
+  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
+  SELECT @EmpBaristaTS,
+         s.ShiftID,
+         @Today,
+         DATEADD(HOUR, 7, CAST(@Today AS DATETIME2)),
+         DATEADD(MINUTE, 5, DATEADD(HOUR, 12, CAST(@Today AS DATETIME2))),
+         15,
+         'Approved',
+         'Auto',
+         4.75,
+         N'Chấm công tự động (mặc định hệ thống)'
+  FROM EmployeeShifts s
+  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpBaristaTS
+  WHERE CONVERT(date, s.StartAt) = @Today;
+END
+GO
+
+DECLARE @EmpCashierTS UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
+);
+
+IF @EmpCashierTS IS NOT NULL
+BEGIN
+  -- Xóa để seed lại
+  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpCashierTS AND WorkDate = @Today;
+
+  -- Chấm công bằng máy chấm công: import
+  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
+  SELECT @EmpCashierTS,
+         s.ShiftID,
+         @Today,
+         DATEADD(HOUR, 17, CAST(@Today AS DATETIME2)),
+         DATEADD(HOUR, 22, CAST(@Today AS DATETIME2)),
+         0,
+         'Approved',
+         'Import',
+         5.00,
+         N'Chấm công bằng máy (import file)'
+  FROM EmployeeShifts s
+  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpCashierTS
+  WHERE CONVERT(date, s.StartAt) = @Today;
+END
+GO
+
+DECLARE @HRUser UNIQUEIDENTIFIER = (SELECT TOP 1 UserID FROM Users WHERE Email = 'hr@liteflow.vn');
+
+-- Recompute week anchors and employee IDs in this batch
+DECLARE @Mon DATE;
+DECLARE @today2 DATE = CAST(SYSDATETIME() AS DATE);
+SET @Mon = DATEADD(DAY, -((DATEPART(WEEKDAY, @today2) + 5) % 7), @today2);
+
+DECLARE @EmpBarista UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+);
+
+DECLARE @EmpCashier UNIQUEIDENTIFIER = (
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
+);
+
+IF @EmpBarista IS NOT NULL
+BEGIN
+  INSERT INTO EmployeeCompEvents (EmployeeID, WorkDate, EventType, Amount, Reason, CreatedBy)
+  VALUES (@EmpBarista, DATEADD(DAY, 1, @Mon), 'Bonus', 50000, N'Thưởng hiệu suất ca sáng', @HRUser);
+
+  INSERT INTO EmployeeCompEvents (EmployeeID, WorkDate, EventType, Amount, Reason, CreatedBy)
+  VALUES (@EmpBarista, DATEADD(DAY, 4, @Mon), 'Penalty', 20000, N'Đi trễ 10 phút', @HRUser);
+END
+
+IF @EmpCashier IS NOT NULL
+BEGIN
+  INSERT INTO EmployeeCompEvents (EmployeeID, WorkDate, EventType, Amount, Reason, CreatedBy)
+  VALUES (@EmpCashier, DATEADD(DAY, 3, @Mon), 'Bonus', 30000, N'Hỗ trợ đóng ca tối', @HRUser);
+END
+GO
+-- ============================================================
+-- 1️⃣0 PAYROLL & COMPENSATION - SAMPLE DATA
+-- ============================================================
+
+-- Create sample Pay Policies
+INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
+SELECT N'Chính sách chuẩn VN', N'Mặc định cho nhân viên toàn thời gian', 1.5, 1.2, 1.5, 2.0, 15, 'VND', 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+
+INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
+SELECT N'Chính sách tăng cuối tuần', N'Tăng lương giờ cho cuối tuần', 1.5, 1.2, 1.75, 2.0, 15, 'VND', 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+GO
+
+-- Per-employee compensation configurations
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'Fixed', p.PolicyID, 12000000, NULL, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Thu nhập cố định', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'cashier1@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'PerShift', p.PolicyID, NULL, NULL, 100000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Pha chế tính theo ca', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'Hybrid', p.PolicyID, 8000000, 20000, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Kho: lương cơ bản + theo giờ', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'inventory@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+
+-- Shift pay rules (by template/position, with weekend uplift)
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekday', 'Hourly', 25000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ ngày thường'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
+
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekend', 'Hourly', 30000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ cuối tuần'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
+
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Thu ngân / Cashier', 'Any', 'Hourly', 28000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Áp dụng mọi ngày'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Tối';
+GO
+
+-- Timesheets (actual worked times)
+-- Employee1 morning shift today (07:00 - 12:00, 15 min break)
+INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, ApprovedBy, ApprovedAt, Notes)
+SELECT e.EmployeeID,
+       s.ShiftID,
+       CAST(SYSDATETIME() AS DATE),
+       DATEADD(MINUTE, -5, s.StartAt),
+       DATEADD(MINUTE, 10, s.EndAt),
+       15,
+       'Approved',
+       'Manual',
+       4.75,
+       uHR.UserID,
+       SYSDATETIME(),
+       N'Check-in sớm 5 phút; check-out muộn 10 phút'
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN EmployeeShifts s ON s.EmployeeID = e.EmployeeID AND CONVERT(date, s.StartAt) = CAST(SYSDATETIME() AS DATE) AND s.Title = N'Ca Sáng'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+
+-- Holidays and exchange rates
+INSERT INTO HolidayCalendar (HolidayDate, Name, Region, DayType, IsPaidHoliday)
+VALUES ('2025-09-02', N'Quốc khánh Việt Nam', 'VN', 'Public', 1);
+
+INSERT INTO ExchangeRates (Currency, RateToVND, RateDate, Source)
+VALUES ('USD', 24800.000000, CAST(SYSDATETIME() AS DATE), N'Static Sample'),
+       ('VND', 1.000000, CAST(SYSDATETIME() AS DATE), N'Parity');
+GO
+
+-- Pay period for current month and a payroll run
+DECLARE @StartOfMonth DATE = DATEADD(DAY, 1, EOMONTH(SYSDATETIME(), -1));
+DECLARE @EndOfMonth DATE = EOMONTH(SYSDATETIME(), 0);
+
+DECLARE @PeriodID UNIQUEIDENTIFIER = NEWID();
+INSERT INTO PayPeriods (PayPeriodID, Name, PeriodType, StartDate, EndDate, Status)
+VALUES (@PeriodID, FORMAT(@StartOfMonth, 'yyyy-MM') + N' - Kỳ lương', 'Monthly', @StartOfMonth, @EndOfMonth, 'Open');
+
+DECLARE @RunID UNIQUEIDENTIFIER = NEWID();
+INSERT INTO PayrollRuns (PayrollRunID, PayPeriodID, RunNumber, Status, CalculatedAt, Notes)
+VALUES (@RunID, @PeriodID, 1, 'Calculated', SYSDATETIME(), N'Chạy lương mẫu cho kỳ hiện tại');
+
+-- Payroll entries for two employees (same batch to keep @RunID)
+INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
+SELECT @RunID, e.EmployeeID, 'Fixed', 12000000, NULL, NULL, NULL, NULL, 0, 0, 0, 500000, 0, 12500000, 12500000
+FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
+SELECT @RunID, e.EmployeeID, 'PerShift', NULL, NULL, 100000, 4.75, 1, 0, 0, 0, 0, 0, 100000, 100000
+FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn';
+
+-- One payroll adjustment (allowance) for barista (same batch)
+INSERT INTO PayrollAdjustments (PayrollRunID, EmployeeID, AdjustmentType, Amount, Reason, CreatedBy, CreatedAt)
+SELECT @RunID, e.EmployeeID, 'Allowance', 50000, N'Phụ cấp chuyên cần', uHR.UserID, SYSDATETIME()
+FROM Employees e
+JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
 GO

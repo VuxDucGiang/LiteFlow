@@ -499,6 +499,25 @@ body {
   background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+/* Món đã gửi bếp */
+.order-item.notified {
+  background: #e8f5e9;
+  border-left: 4px solid #4caf50;
+}
+
+/* Món mới chưa gửi */
+.order-item.new {
+  background: #fff3e0;
+  border-left: 4px solid #ff9800;
+}
+
+/* Món một phần đã gửi */
+.order-item.partial {
+  background: #fff9c4;
+  border-left: 4px solid #ffc107;
 }
 
 .item-info {
@@ -506,6 +525,43 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.notified-badge,
+.new-badge,
+.partial-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.notified-badge {
+  background: #4caf50;
+  color: white;
+}
+
+.new-badge {
+  background: #ff9800;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.partial-badge {
+  background: #ffc107;
+  color: #333;
+  font-size: 10px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .item-name {
@@ -516,6 +572,29 @@ body {
 .item-price {
   font-size: 12px;
   color: #6c757d;
+}
+
+.item-note-input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.item-note-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.item-note-input::placeholder {
+  color: #adb5bd;
+  font-style: italic;
 }
 
 .quantity-controls {
@@ -630,9 +709,16 @@ body {
 }
 
 .action-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
   flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .action-buttons {
+    grid-template-columns: 1fr;
+  }
 }
 
 .btn {
@@ -674,6 +760,22 @@ body {
 .btn-secondary:hover {
   background: #5a6268;
   transform: translateY(-2px);
+}
+
+.btn-warning {
+  background: #ff9800;
+  color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: #fb8c00;
+  transform: translateY(-2px);
+}
+
+.btn-warning:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Scrollbar Styling */
