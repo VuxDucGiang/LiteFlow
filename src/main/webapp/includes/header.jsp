@@ -69,7 +69,31 @@
             }
           });
           
-          // No hover effects - click only for dropdown
+          // Hover effects with delay for better UX
+          let headerHoverTimeout;
+          
+          dropdown.addEventListener('mouseenter', function() {
+            if (window.innerWidth > 768) {
+              console.log('🖱️ Header hover enter:', dropdown);
+              // Clear any pending close timeout
+              if (headerHoverTimeout) {
+                clearTimeout(headerHoverTimeout);
+                headerHoverTimeout = null;
+              }
+              dropdown.classList.add('show', 'active');
+            }
+          });
+          
+          dropdown.addEventListener('mouseleave', function() {
+            if (window.innerWidth > 768) {
+              console.log('🖱️ Header hover leave:', dropdown);
+              // Add delay before closing
+              headerHoverTimeout = setTimeout(function() {
+                dropdown.classList.remove('show', 'active');
+                console.log('⏰ Header delayed close dropdown');
+              }, 300); // 300ms delay
+            }
+          });
         }
       });
       
@@ -183,32 +207,51 @@
             <a href="${pageContext.request.contextPath}/schedule" class="dropdown-item">
               <i class='bx bx-calendar'></i> Lịch làm việc
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/attendance" class="dropdown-item">
               <i class='bx bx-time'></i> Bảng chấm công
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/employee/paysheet.jsp" class="dropdown-item">
               <i class='bx bx-money'></i> Bảng lương
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/employee/setupEmployee.jsp" class="dropdown-item">
               <i class='bx bx-cog'></i> Thiết lập nhân viên
             </a>
           </div>
         </div>
-        <a href="#" class="nav-item">
-          <i class='bx bx-cart'></i> Bán Online
-        </a>
-        <a href="#" class="nav-item">
-          <i class='bx bx-wallet'></i> Sổ quỹ
-        </a>
+        <div class="nav-item dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class='bx bx-shopping-bag'></i> Mua sắm
+            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+          </a>
+          <div class="dropdown-menu">
+            <a href="${pageContext.request.contextPath}/procurement/dashboard" class="dropdown-item">
+              <i class='bx bxs-dashboard'></i> Tổng quan
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/supplier" class="dropdown-item">
+              <i class='bx bx-store'></i> Nhà cung cấp
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/po" class="dropdown-item">
+              <i class='bx bx-receipt'></i> Đơn đặt hàng
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/gr" class="dropdown-item">
+              <i class='bx bx-package'></i> Nhận hàng
+            </a>
+            <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
+              <i class='bx bx-file'></i> Hóa đơn
+            </a>
+          </div>
+        </div>
+        
+    
         <a href="#" class="nav-item">
           <i class='bx bx-bar-chart'></i> Báo cáo
         </a>
      
       </div>
       <div class="nav-right">
-        <div class="nav-icon" title="Nhà bếp">
-          <i class='bx bx-home'></i>
-        </div>
+        <a href="${pageContext.request.contextPath}/kitchen" class="nav-icon" title="Nhà bếp" target="_blank">
+          <i class='bx bxs-bowl-hot'></i>
+        </a>
         <div class="nav-icon" title="Lễ tân">
           <i class='bx bx-calendar'></i>
         </div>

@@ -6,6 +6,7 @@ import io.jsonwebtoken.security.Keys;
 import java.security.Key;
 import java.time.Instant;
 import java.util.*;
+import java.util.Arrays;
 
 /**
  * JwtUtil: - Subject = userId (UUID string) - Claim "roles" luôn là
@@ -45,7 +46,7 @@ public final class JwtUtil {
         if (claims != null && !claims.isEmpty()) {
             b.addClaims(claims);
         }
-        b.claim("roles", roles != null ? roles : List.of());
+        b.claim("roles", roles != null ? roles : Collections.emptyList());
 
         long ttl = ttlSeconds > 0 ? ttlSeconds : DEFAULT_TTL_SECONDS;
         b.setExpiration(Date.from(now.plusSeconds(ttl)));
@@ -67,14 +68,17 @@ public final class JwtUtil {
         String userId = c.getSubject();
         List<String> roles = new ArrayList<>();
         Object raw = c.get("roles");
-        if (raw instanceof List<?> lst) {
+        if (raw instanceof List<?>) {
+            List<?> lst = (List<?>) raw;
             for (Object o : lst) {
-                if (o instanceof String s) {
+                if (o instanceof String) {
+                    String s = (String) o;
                     roles.add(s);
                 }
             }
-        } else if (raw instanceof String s) {
-            roles = List.of(s);
+        } else if (raw instanceof String) {
+            String s = (String) raw;
+            roles = Arrays.asList(s);
         }
         return new UserContext(userId, roles, c);
     }
@@ -89,8 +93,28 @@ public final class JwtUtil {
         return header.trim();
     }
 
-    public record UserContext(String userId, List<String> roles, Claims claims) {
+    public static class UserContext {
+        private final String userId;
+        private final List<String> roles;
+        private final Claims claims;
 
+        public UserContext(String userId, List<String> roles, Claims claims) {
+            this.userId = userId;
+            this.roles = roles;
+            this.claims = claims;
+        }
+
+        public String userId() {
+            return userId;
+        }
+
+        public List<String> roles() {
+            return roles;
+        }
+
+        public Claims claims() {
+            return claims;
+        }
     }
 
     public static String issue(String subject,
@@ -111,7 +135,7 @@ public final class JwtUtil {
         if (claims != null) {
             builder.addClaims(claims);
         }
-        builder.claim("roles", roles != null ? roles : List.of());
+        builder.claim("roles", roles != null ? roles : Collections.emptyList());
 
         builder.setExpiration(Date.from(now.plusSeconds(ttlSeconds)));
 

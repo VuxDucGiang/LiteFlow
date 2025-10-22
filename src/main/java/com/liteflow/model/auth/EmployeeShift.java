@@ -36,6 +36,9 @@ public class EmployeeShift implements Serializable {
     @Column(name = "Status", length = 50, nullable = false)
     private String status = "Scheduled";
 
+    @Column(name = "IsRecurring", nullable = false)
+    private Boolean isRecurring = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CreatedBy")
     private User createdBy;
@@ -122,6 +125,14 @@ public class EmployeeShift implements Serializable {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Boolean getIsRecurring() {
+        return isRecurring;
+    }
+
+    public void setIsRecurring(Boolean isRecurring) {
+        this.isRecurring = isRecurring;
     }
 
     public User getCreatedBy() {

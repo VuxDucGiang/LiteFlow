@@ -62,10 +62,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
-    // Hover handlers for desktop
+    // Hover handlers for desktop with delay
+    let hoverTimeout;
+    
     dropdown.addEventListener('mouseenter', function() {
       if (window.innerWidth > 768) {
         console.log('🖱️ Mouse enter:', dropdown);
+        // Clear any pending close timeout
+        if (hoverTimeout) {
+          clearTimeout(hoverTimeout);
+          hoverTimeout = null;
+        }
         dropdown.classList.add('show', 'active');
       }
     });
@@ -73,7 +80,11 @@ document.addEventListener('DOMContentLoaded', function() {
     dropdown.addEventListener('mouseleave', function() {
       if (window.innerWidth > 768) {
         console.log('🖱️ Mouse leave:', dropdown);
-        dropdown.classList.remove('show', 'active');
+        // Add delay before closing
+        hoverTimeout = setTimeout(function() {
+          dropdown.classList.remove('show', 'active');
+          console.log('⏰ Delayed close dropdown');
+        }, 300); // 300ms delay
       }
     });
   });
@@ -145,6 +156,32 @@ setTimeout(function() {
         } else {
           dropdown.classList.add('show', 'active');
           console.log('✅ Delayed opened dropdown');
+        }
+      });
+      
+      // Add hover handlers for delayed initialization too
+      let delayedHoverTimeout;
+      
+      dropdown.addEventListener('mouseenter', function() {
+        if (window.innerWidth > 768) {
+          console.log('🖱️ Delayed mouse enter:', dropdown);
+          // Clear any pending close timeout
+          if (delayedHoverTimeout) {
+            clearTimeout(delayedHoverTimeout);
+            delayedHoverTimeout = null;
+          }
+          dropdown.classList.add('show', 'active');
+        }
+      });
+      
+      dropdown.addEventListener('mouseleave', function() {
+        if (window.innerWidth > 768) {
+          console.log('🖱️ Delayed mouse leave:', dropdown);
+          // Add delay before closing
+          delayedHoverTimeout = setTimeout(function() {
+            dropdown.classList.remove('show', 'active');
+            console.log('⏰ Delayed close dropdown (delayed init)');
+          }, 300); // 300ms delay
         }
       });
     }

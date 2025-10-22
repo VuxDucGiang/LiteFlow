@@ -528,3 +528,315 @@ BEGIN
     END
 END;
 GO
+
+
+-- =======================================================
+-- 12. PAYROLL & COMPENSATION
+-- =======================================================
+
+-- Pay periods define the time windows for payroll
+CREATE TABLE PayPeriods (
+    PayPeriodID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Name NVARCHAR(100) NOT NULL,
+    PeriodType NVARCHAR(20) NOT NULL CHECK (PeriodType IN ('Monthly', 'Biweekly', 'Weekly')),
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL,
+    Status NVARCHAR(20) NOT NULL DEFAULT 'Open' CHECK (Status IN ('Open', 'Processing', 'Closed')),
+    LockedAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT CK_PayPeriods_DateRange CHECK (EndDate >= StartDate)
+);
+
+-- A payroll run calculates and approves payments for a given period
+CREATE TABLE PayrollRuns (
+    PayrollRunID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    PayPeriodID UNIQUEIDENTIFIER NOT NULL,
+    RunNumber INT NOT NULL DEFAULT 1,
+    Status NVARCHAR(20) NOT NULL DEFAULT 'Draft' CHECK (Status IN ('Draft', 'Calculated', 'Approved', 'Paid', 'Cancelled')),
+    CalculatedAt DATETIME2 NULL,
+    ApprovedBy UNIQUEIDENTIFIER NULL,
+    ApprovedAt DATETIME2 NULL,
+    Notes NVARCHAR(1000) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_PayrollRuns_Period FOREIGN KEY (PayPeriodID) REFERENCES PayPeriods(PayPeriodID) ON DELETE CASCADE,
+    CONSTRAINT FK_PayrollRuns_ApprovedBy FOREIGN KEY (ApprovedBy) REFERENCES Users(UserID) ON DELETE SET NULL
+);
+
+-- Concrete payroll results per employee for a run
+CREATE TABLE PayrollEntries (
+    PayrollEntryID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    PayrollRunID UNIQUEIDENTIFIER NOT NULL,
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    CompensationType NVARCHAR(20) NOT NULL CHECK (CompensationType IN ('Fixed', 'PerShift', 'Hybrid')),
+    BaseSalary DECIMAL(12,2) NULL,
+    HourlyRate DECIMAL(12,2) NULL,
+    PerShiftRate DECIMAL(12,2) NULL,
+    HoursWorked DECIMAL(9,2) NULL,
+    ShiftsWorked INT NULL,
+    OvertimeHours DECIMAL(9,2) NULL,
+    HolidayHours DECIMAL(9,2) NULL,
+    Allowances DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    Bonuses DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    Deductions DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    GrossPay DECIMAL(12,2) NOT NULL,
+    NetPay DECIMAL(12,2) NOT NULL,
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'VND',
+    ExchangeRate DECIMAL(18,6) NULL, -- against VND on calculation date (if applicable)
+    PaidInCurrency NVARCHAR(3) NOT NULL DEFAULT 'VND',
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_PayrollEntries_Run FOREIGN KEY (PayrollRunID) REFERENCES PayrollRuns(PayrollRunID) ON DELETE CASCADE,
+    CONSTRAINT FK_PayrollEntries_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE
+);
+
+-- Manual adjustments per employee within a payroll run
+CREATE TABLE PayrollAdjustments (
+    AdjustmentID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    PayrollRunID UNIQUEIDENTIFIER NOT NULL,
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    AdjustmentType NVARCHAR(20) NOT NULL CHECK (AdjustmentType IN ('Allowance', 'Bonus', 'Deduction', 'Penalty')),
+    Amount DECIMAL(12,2) NOT NULL,
+    Reason NVARCHAR(500) NULL,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    ApprovedBy UNIQUEIDENTIFIER NULL,
+    ApprovedAt DATETIME2 NULL,
+
+    CONSTRAINT FK_PayrollAdjustments_Run FOREIGN KEY (PayrollRunID) REFERENCES PayrollRuns(PayrollRunID) ON DELETE CASCADE,
+    CONSTRAINT FK_PayrollAdjustments_Emp FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT FK_PayrollAdjustments_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    CONSTRAINT FK_PayrollAdjustments_ApprovedBy FOREIGN KEY (ApprovedBy) REFERENCES Users(UserID)
+);
+
+-- Indexes for payroll entities
+CREATE INDEX IX_PayPeriods_Status ON PayPeriods(Status);
+CREATE INDEX IX_PayrollRuns_Period ON PayrollRuns(PayPeriodID);
+CREATE INDEX IX_PayrollEntries_Run ON PayrollEntries(PayrollRunID);
+CREATE INDEX IX_PayrollEntries_Employee ON PayrollEntries(EmployeeID);
+GO
+
+-- =======================================================
+-- 13. COMPENSATION CONFIGURATION & POLICIES
+-- =======================================================
+
+-- Global pay policy presets (can be linked to employees)
+CREATE TABLE PayPolicies (
+    PolicyID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Name NVARCHAR(100) NOT NULL UNIQUE,
+    Description NVARCHAR(500) NULL,
+    OvertimeMultiplier DECIMAL(5,2) NOT NULL DEFAULT 1.50,
+    NightShiftMultiplier DECIMAL(5,2) NOT NULL DEFAULT 1.20,
+    WeekendMultiplier DECIMAL(5,2) NOT NULL DEFAULT 1.50,
+    HolidayMultiplier DECIMAL(5,2) NOT NULL DEFAULT 2.00,
+    MaxDailyHours DECIMAL(5,2) NULL,
+    MinBreakMinutes INT NOT NULL DEFAULT 0 CHECK (MinBreakMinutes >= 0 AND MinBreakMinutes <= 720),
+    SocialInsuranceRate DECIMAL(5,4) NULL,
+    HealthInsuranceRate DECIMAL(5,4) NULL,
+    UnemploymentInsuranceRate DECIMAL(5,4) NULL,
+    PITFlatRate DECIMAL(5,4) NULL,
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'VND',
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_PayPolicies_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID) ON DELETE SET NULL
+);
+
+-- Per-employee compensation settings (fixed salary, per-shift, or hybrid) with effective ranges
+CREATE TABLE EmployeeCompensation (
+    CompensationID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    CompensationType NVARCHAR(20) NOT NULL CHECK (CompensationType IN ('Fixed', 'PerShift', 'Hybrid')),
+    PolicyID UNIQUEIDENTIFIER NULL,
+    BaseMonthlySalary DECIMAL(12,2) NULL,
+    HourlyRate DECIMAL(12,2) NULL,
+    PerShiftRate DECIMAL(12,2) NULL,
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'VND',
+    EffectiveFrom DATE NOT NULL,
+    EffectiveTo DATE NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    Notes NVARCHAR(500) NULL,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_EmployeeComp_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT FK_EmployeeComp_Policy FOREIGN KEY (PolicyID) REFERENCES PayPolicies(PolicyID) ON DELETE SET NULL,
+    CONSTRAINT CK_EmployeeComp_DateRange CHECK (EffectiveTo IS NULL OR EffectiveTo >= EffectiveFrom)
+);
+GO
+
+-- Prevent overlapping active compensation windows for the same employee
+CREATE OR ALTER TRIGGER TRG_EmployeeComp_NoOverlap
+ON EmployeeCompensation
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN EmployeeCompensation c
+          ON c.EmployeeID = i.EmployeeID
+         AND c.CompensationID <> i.CompensationID
+         AND c.IsActive = 1 AND i.IsActive = 1
+         AND (ISNULL(i.EffectiveTo, '9999-12-31') >= ISNULL(c.EffectiveFrom, '0001-01-01'))
+         AND (ISNULL(c.EffectiveTo, '9999-12-31') >= ISNULL(i.EffectiveFrom, '0001-01-01'))
+    )
+    BEGIN
+        THROW 51002, N'Nhân viên đã có cấu hình lương chồng lấp thời gian.', 1;
+    END
+END;
+GO
+
+CREATE INDEX IX_EmployeeComp_Employee ON EmployeeCompensation(EmployeeID);
+CREATE INDEX IX_EmployeeComp_Active ON EmployeeCompensation(IsActive);
+CREATE INDEX IX_EmployeeComp_Effective ON EmployeeCompensation(EffectiveFrom, EffectiveTo);
+GO
+
+-- =======================================================
+-- 14. SHIFT PAY RULES (Per template/position, weekday/weekend/holiday)
+-- =======================================================
+
+CREATE TABLE ShiftPayRules (
+    RuleID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    TemplateID UNIQUEIDENTIFIER NULL,
+    Position NVARCHAR(100) NULL,
+    DayType NVARCHAR(20) NOT NULL CHECK (DayType IN ('Any', 'Weekday', 'Weekend', 'Holiday')),
+    RateType NVARCHAR(20) NOT NULL CHECK (RateType IN ('Hourly', 'PerShift')),
+    Rate DECIMAL(12,2) NOT NULL,
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'VND',
+    EffectiveFrom DATE NOT NULL,
+    EffectiveTo DATE NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    Notes NVARCHAR(500) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_ShiftPayRules_Template FOREIGN KEY (TemplateID) REFERENCES ShiftTemplates(TemplateID) ON DELETE SET NULL,
+    CONSTRAINT CK_ShiftPayRules_DateRange CHECK (EffectiveTo IS NULL OR EffectiveTo >= EffectiveFrom)
+);
+
+CREATE INDEX IX_ShiftPayRules_Template ON ShiftPayRules(TemplateID);
+CREATE INDEX IX_ShiftPayRules_Effective ON ShiftPayRules(EffectiveFrom, EffectiveTo);
+CREATE INDEX IX_ShiftPayRules_IsActive ON ShiftPayRules(IsActive);
+GO
+
+-- =======================================================
+-- 15. TIMESHEETS (Actual working time capture)
+-- =======================================================
+
+CREATE TABLE EmployeeShiftTimesheets (
+    TimesheetID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    ShiftID UNIQUEIDENTIFIER NULL,
+    WorkDate DATE NOT NULL,
+    CheckInAt DATETIME2 NOT NULL,
+    CheckOutAt DATETIME2 NOT NULL,
+    BreakMinutes INT NOT NULL DEFAULT 0 CHECK (BreakMinutes >= 0 AND BreakMinutes <= 720),
+    Status NVARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Approved', 'Rejected')),
+    Source NVARCHAR(20) NOT NULL DEFAULT 'Manual' CHECK (Source IN ('Manual', 'Auto', 'Import')),
+    HoursWorked DECIMAL(9,2) NULL,
+    ApprovedBy UNIQUEIDENTIFIER NULL,
+    ApprovedAt DATETIME2 NULL,
+    Notes NVARCHAR(500) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_Timesheets_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID),
+    CONSTRAINT FK_Timesheets_Shift FOREIGN KEY (ShiftID) REFERENCES EmployeeShifts(ShiftID) ON DELETE SET NULL,
+    CONSTRAINT FK_Timesheets_ApprovedBy FOREIGN KEY (ApprovedBy) REFERENCES Users(UserID),
+    CONSTRAINT CK_Timesheets_TimeRange CHECK (CheckOutAt > CheckInAt)
+);
+
+CREATE INDEX IX_Timesheets_Employee ON EmployeeShiftTimesheets(EmployeeID);
+CREATE INDEX IX_Timesheets_Date ON EmployeeShiftTimesheets(WorkDate);
+CREATE INDEX IX_Timesheets_Status ON EmployeeShiftTimesheets(Status);
+GO
+
+-- =======================================================
+-- 16. EXTERNAL INFO (Holidays, Exchange Rates)
+-- =======================================================
+
+CREATE TABLE HolidayCalendar (
+    HolidayID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    HolidayDate DATE NOT NULL,
+    Name NVARCHAR(200) NOT NULL,
+    Region NVARCHAR(50) NOT NULL DEFAULT 'VN',
+    DayType NVARCHAR(20) NOT NULL DEFAULT 'Public' CHECK (DayType IN ('Public', 'Company', 'Special')),
+    IsPaidHoliday BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT UX_HolidayCalendar UNIQUE (HolidayDate, Region)
+);
+
+CREATE TABLE ExchangeRates (
+    RateID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Currency NVARCHAR(3) NOT NULL,
+    RateToVND DECIMAL(18,6) NOT NULL,
+    RateDate DATE NOT NULL,
+    Source NVARCHAR(100) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT CK_ExchangeRates_Positive CHECK (RateToVND > 0),
+    CONSTRAINT UX_ExchangeRates UNIQUE (Currency, RateDate)
+);
+GO
+
+-- =======================================================
+-- 17. ATTENDANCE STATUS (Daily per-employee)
+-- =======================================================
+CREATE TABLE EmployeeAttendance (
+    AttendanceID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    WorkDate DATE NOT NULL,
+    Status NVARCHAR(20) NOT NULL CHECK (Status IN ('Work', 'LeavePaid', 'LeaveUnpaid')),
+    CheckInTime TIME NULL,
+    CheckOutTime TIME NULL,
+    Notes NVARCHAR(500) NULL,
+    IsLate BIT NULL,
+    IsOvertime BIT NULL,
+    IsEarlyLeave BIT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_EmployeeAttendance_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT UX_EmployeeAttendance UNIQUE (EmployeeID, WorkDate)
+);
+GO
+
+CREATE INDEX IX_EmployeeAttendance_Employee ON EmployeeAttendance(EmployeeID);
+CREATE INDEX IX_EmployeeAttendance_WorkDate ON EmployeeAttendance(WorkDate);
+GO
+
+-- =======================================================
+-- 18. COMPENSATION EVENTS (Per-day Bonuses/Penalties)
+-- =======================================================
+CREATE TABLE EmployeeCompEvents (
+    EventID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    WorkDate DATE NULL,
+    EventType NVARCHAR(20) NOT NULL CHECK (EventType IN ('Bonus', 'Penalty')),
+    Amount DECIMAL(12,2) NOT NULL CHECK (Amount >= 0),
+    Reason NVARCHAR(500) NULL,
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    ApprovedBy UNIQUEIDENTIFIER NULL,
+    ApprovedAt DATETIME2 NULL,
+
+    CONSTRAINT FK_CompEvents_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+    CONSTRAINT FK_CompEvents_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES Users(UserID),
+    CONSTRAINT FK_CompEvents_ApprovedBy FOREIGN KEY (ApprovedBy) REFERENCES Users(UserID)
+);
+GO
+
+CREATE INDEX IX_EmployeeCompEvents_Employee ON EmployeeCompEvents(EmployeeID);
+CREATE INDEX IX_EmployeeCompEvents_WorkDate ON EmployeeCompEvents(WorkDate);
+CREATE INDEX IX_EmployeeCompEvents_Type ON EmployeeCompEvents(EventType);
+GO

@@ -8,7 +8,7 @@
       <div class="footer-main">
         <div class="footer-brand">
           <div class="footer-logo">
-            <img src="${pageContext.request.contextPath}/img/logo.png" alt="LiteFlow Logo" class="logo-image">
+     <!--       <img src="${pageContext.request.contextPath}/img/logo.png" alt="LiteFlow Logo" class="logo-image"> -->
             <span class="brand-name">LiteFlow</span>
           </div>
           <p class="brand-description">
@@ -161,10 +161,17 @@
           }
         });
         
-        // Hover events for desktop
+        // Hover events for desktop with delay
+        let footerHoverTimeout;
+        
         dropdown.addEventListener('mouseenter', function() {
           if (window.innerWidth > 768) {
             console.log('🖱️ Hover enter:', dropdown);
+            // Clear any pending close timeout
+            if (footerHoverTimeout) {
+              clearTimeout(footerHoverTimeout);
+              footerHoverTimeout = null;
+            }
             dropdown.classList.add('show', 'active');
           }
         });
@@ -172,7 +179,11 @@
         dropdown.addEventListener('mouseleave', function() {
           if (window.innerWidth > 768) {
             console.log('🖱️ Hover leave:', dropdown);
-            dropdown.classList.remove('show', 'active');
+            // Add delay before closing
+            footerHoverTimeout = setTimeout(function() {
+              dropdown.classList.remove('show', 'active');
+              console.log('⏰ Footer delayed close dropdown');
+            }, 300); // 300ms delay
           }
         });
       }

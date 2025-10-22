@@ -1,4 +1,118 @@
-﻿-- ================================
+﻿-- ============================================================
+-- 1️⃣0 PAYROLL & COMPENSATION - SAMPLE DATA
+-- ============================================================
+
+-- Create sample Pay Policies
+INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
+SELECT N'Chính sách chuẩn VN', N'Mặc định cho nhân viên toàn thời gian', 1.5, 1.2, 1.5, 2.0, 15, 'VND', 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+
+INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
+SELECT N'Chính sách tăng cuối tuần', N'Tăng lương giờ cho cuối tuần', 1.5, 1.2, 1.75, 2.0, 15, 'VND', 1, u.UserID
+FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+GO
+
+-- Per-employee compensation configurations
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'Fixed', p.PolicyID, 12000000, NULL, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Thu nhập cố định', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'cashier1@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'PerShift', p.PolicyID, NULL, NULL, 100000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Pha chế tính theo ca', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+
+INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
+SELECT e.EmployeeID, 'Hybrid', p.PolicyID, 8000000, 20000, NULL, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Kho: lương cơ bản + theo giờ', uHR.UserID
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'inventory@liteflow.vn'
+JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+
+-- Shift pay rules (by template/position, with weekend uplift)
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekday', 'Hourly', 25000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ ngày thường'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
+
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Nhân viên pha chế / Barista', 'Weekend', 'Hourly', 30000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Giờ cuối tuần'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Sáng';
+
+INSERT INTO ShiftPayRules (TemplateID, Position, DayType, RateType, Rate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes)
+SELECT t.TemplateID, N'Thu ngân / Cashier', 'Any', 'Hourly', 28000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Áp dụng mọi ngày'
+FROM ShiftTemplates t WHERE t.Name = N'Ca Tối';
+GO
+
+-- Timesheets (actual worked times)
+-- Employee1 morning shift today (07:00 - 12:00, 15 min break)
+INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, ApprovedBy, ApprovedAt, Notes)
+SELECT e.EmployeeID,
+       s.ShiftID,
+       CAST(SYSDATETIME() AS DATE),
+       DATEADD(MINUTE, -5, s.StartAt),
+       DATEADD(MINUTE, 10, s.EndAt),
+       15,
+       'Approved',
+       'Manual',
+       4.75,
+       uHR.UserID,
+       SYSDATETIME(),
+       N'Check-in sớm 5 phút; check-out muộn 10 phút'
+FROM Employees e
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN EmployeeShifts s ON s.EmployeeID = e.EmployeeID AND CONVERT(date, s.StartAt) = CAST(SYSDATETIME() AS DATE) AND s.Title = N'Ca Sáng'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+
+-- Holidays and exchange rates
+INSERT INTO HolidayCalendar (HolidayDate, Name, Region, DayType, IsPaidHoliday)
+VALUES ('2025-09-02', N'Quốc khánh Việt Nam', 'VN', 'Public', 1);
+
+INSERT INTO ExchangeRates (Currency, RateToVND, RateDate, Source)
+VALUES ('USD', 24800.000000, CAST(SYSDATETIME() AS DATE), N'Static Sample'),
+       ('VND', 1.000000, CAST(SYSDATETIME() AS DATE), N'Parity');
+GO
+
+-- Pay period for current month and a payroll run
+DECLARE @StartOfMonth DATE = DATEADD(DAY, 1, EOMONTH(SYSDATETIME(), -1));
+DECLARE @EndOfMonth DATE = EOMONTH(SYSDATETIME(), 0);
+
+DECLARE @PeriodID UNIQUEIDENTIFIER = NEWID();
+INSERT INTO PayPeriods (PayPeriodID, Name, PeriodType, StartDate, EndDate, Status)
+VALUES (@PeriodID, FORMAT(@StartOfMonth, 'yyyy-MM') + N' - Kỳ lương', 'Monthly', @StartOfMonth, @EndOfMonth, 'Open');
+
+DECLARE @RunID UNIQUEIDENTIFIER = NEWID();
+INSERT INTO PayrollRuns (PayrollRunID, PayPeriodID, RunNumber, Status, CalculatedAt, Notes)
+VALUES (@RunID, @PeriodID, 1, 'Calculated', SYSDATETIME(), N'Chạy lương mẫu cho kỳ hiện tại');
+
+-- Payroll entries for two employees (same batch to keep @RunID)
+INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
+SELECT @RunID, e.EmployeeID, 'Fixed', 12000000, NULL, NULL, NULL, NULL, 0, 0, 0, 500000, 0, 12500000, 12500000
+FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
+SELECT @RunID, e.EmployeeID, 'PerShift', NULL, NULL, 100000, 4.75, 1, 0, 0, 0, 0, 0, 100000, 100000
+FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn';
+
+-- One payroll adjustment (allowance) for barista (same batch)
+INSERT INTO PayrollAdjustments (PayrollRunID, EmployeeID, AdjustmentType, Amount, Reason, CreatedBy, CreatedAt)
+SELECT @RunID, e.EmployeeID, 'Allowance', 50000, N'Phụ cấp chuyên cần', uHR.UserID, SYSDATETIME()
+FROM Employees e
+JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+CROSS JOIN Users uHR
+WHERE uHR.Email = 'hr@liteflow.vn';
+GO
+-- ================================
 -- SAMPLE DATA FOR LITEFLOW CAFE ☕
 -- Version: 2025-10
 -- ================================
