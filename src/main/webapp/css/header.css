@@ -268,10 +268,7 @@ body{
 
 .nav-item.active{
   background: rgba(255,255,255,0.2);
-  border-bottom: 3px solid var(--secondary-400);
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-3);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 0 -3px var(--secondary-400);
 }
 
 .nav-item.active::after {
@@ -294,7 +291,7 @@ body{
 /* Dropdown Menu Styles */
 .nav-item.dropdown {
   position: relative;
-  padding: var(--space-2) 0;
+  padding: 7px; 
   z-index: 9999 !important;
   overflow: visible !important;
   /* Prevent dropdown from extending too far */
@@ -545,7 +542,7 @@ body{
 .content{
   flex: 1;
   padding: var(--space-6);
-  max-width: 1400px;
+  max-width: 1900px;
   margin: 0 auto;
   width: 100%;
   position: relative;

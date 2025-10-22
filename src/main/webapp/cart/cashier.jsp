@@ -134,6 +134,9 @@
           <button class="btn btn-secondary" id="clearOrder">
             <i class='bx bx-trash'></i> Xóa đơn
           </button>
+          <button class="btn btn-warning" id="notifyKitchenBtn" disabled>
+            <i class='bx bx-bell'></i> Thông báo bếp
+          </button>
           <button class="btn btn-primary" id="checkoutBtn" disabled>
             <i class='bx bx-check'></i> Thanh toán
           </button>
@@ -371,14 +374,17 @@ function renderMenu() {
         `<img src="\${imageUrl}" alt="\${item.name}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;">` : 
         imageUrl;
       
+      // Display size if available
+      const itemName = item.size ? item.name + ' (' + item.size + ')' : item.name;
+      
       return `
-        <div class="menu-item" data-item-id="\${item.id}">
+        <div class="menu-item" data-item-id="\${item.variantId}">
           <div class="menu-item-image">\${displayImage}</div>
           <div class="menu-item-info">
-            <h4>\${item.name}</h4>
+            <h4>\${itemName}</h4>
             <p class="price">\${parseFloat(item.price || 0).toLocaleString('vi-VN')}đ</p>
           </div>
-          <button class="add-to-cart-btn" onclick="addToCart('\${item.id}')">
+          <button class="add-to-cart-btn" onclick="addToCart('\${item.variantId}')">
             <i class='bx bx-plus'></i>
           </button>
         </div>
@@ -401,31 +407,58 @@ function populateMenuCategories() {
       menuCategories.appendChild(button);
     });
   }
+  
+  // Setup event listeners cho category buttons sau khi tạo xong
+  document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      currentCategory = this.dataset.category;
+      renderMenu();
+    });
+  });
 }
 
 // Add item to cart
-function addToCart(itemId) {
+function addToCart(variantId) {
   if (!selectedTable) {
     alert('Vui lòng chọn bàn trước khi thêm món!');
     return;
   }
   
-  const item = menuItems.find(i => i.id === itemId);
+  const item = menuItems.find(i => i.variantId === variantId);
   if (!item) {
     alert('Không tìm thấy món ăn!');
     return;
   }
   
-  const existingItem = orderItems.find(i => i.id === itemId);
+  const existingItem = orderItems.find(i => i.variantId === variantId);
   
   if (existingItem) {
     existingItem.quantity += 1;
+    
+    // Track số lượng đã notify để chỉ gửi phần mới
+    if (existingItem.notified && existingItem.notifiedQuantity) {
+      // Nếu đã notify trước đó, giữ số lượng đã notify
+      // Phần tăng thêm sẽ được gửi ở lần notify tiếp theo
+    } else if (existingItem.notified) {
+      // Nếu đã notify nhưng chưa có notifiedQuantity, set lại
+      existingItem.notifiedQuantity = existingItem.quantity - 1; // số lượng cũ đã gửi
+    }
   } else {
+    // Display name with size if available
+    const itemName = item.name || 'Món ăn';
+    const itemSize = item.size;
+    const displayName = itemSize ? itemName + ' (' + itemSize + ')' : itemName;
+    
     orderItems.push({
       id: item.id,
-      name: item.name,
+      variantId: item.variantId,
+      name: displayName,
       price: parseFloat(item.price || 0),
-      quantity: 1
+      quantity: 1,
+      notifiedQuantity: 0, // Chưa notify món nào
+      note: '' // Ghi chú cho món
     });
   }
   
@@ -434,24 +467,33 @@ function addToCart(itemId) {
 }
 
 // Remove item from cart
-function removeFromCart(itemId) {
-  orderItems = orderItems.filter(item => item.id !== itemId);
+function removeFromCart(variantId) {
+  orderItems = orderItems.filter(item => item.variantId !== variantId);
   renderOrderItems();
   updateBill();
 }
 
 // Update item quantity
-function updateQuantity(itemId, newQuantity) {
+function updateQuantity(variantId, newQuantity) {
   if (newQuantity <= 0) {
-    removeFromCart(itemId);
+    removeFromCart(variantId);
     return;
   }
   
-  const item = orderItems.find(i => i.id === itemId);
+  const item = orderItems.find(i => i.variantId === variantId);
   if (item) {
     item.quantity = newQuantity;
     renderOrderItems();
     updateBill();
+  }
+}
+
+// Update item note
+function updateNote(variantId, note) {
+  const item = orderItems.find(i => i.variantId === variantId);
+  if (item) {
+    item.note = note;
+    console.log('Updated note for', item.name, ':', note);
   }
 }
 
@@ -469,26 +511,58 @@ function renderOrderItems() {
     return;
   }
   
-  orderItemsContainer.innerHTML = orderItems.map(item => `
-    <div class="order-item">
-      <div class="item-info">
-        <span class="item-name">\${item.name}</span>
-        <span class="item-price">\${item.price.toLocaleString('vi-VN')}đ</span>
-      </div>
-      <div class="quantity-controls">
-        <button onclick="updateQuantity(\${item.id}, \${item.quantity - 1})">
-          <i class='bx bx-minus'></i>
+  orderItemsContainer.innerHTML = orderItems.map((item, index) => {
+    const itemName = item.name || 'Món ăn';
+    const itemPrice = (item.price || 0).toLocaleString('vi-VN');
+    const itemQuantity = item.quantity || 1;
+    const itemVariantId = item.variantId || '';
+    const itemNote = item.note || '';
+    const notifiedQty = item.notifiedQuantity || 0;
+    const newQty = itemQuantity - notifiedQty;
+    
+    // Xác định trạng thái: toàn bộ đã gửi, một phần, hoặc chưa gửi
+    let isNotified, notifiedBadge;
+    if (newQty === 0) {
+      // Tất cả đã gửi bếp
+      isNotified = 'notified';
+      notifiedBadge = '<span class="notified-badge">✓ Đã gửi bếp</span>';
+    } else if (notifiedQty > 0) {
+      // Một phần đã gửi
+      isNotified = 'partial';
+      notifiedBadge = '<span class="partial-badge">Đã gửi: ' + notifiedQty + ' | Mới: ' + newQty + '</span>';
+    } else {
+      // Chưa gửi món nào
+      isNotified = 'new';
+      notifiedBadge = '<span class="new-badge">Mới</span>';
+    }
+    
+    return `
+      <div class="order-item ` + isNotified + `">
+        <div class="item-info">
+          <span class="item-name">` + itemName + `</span>
+          ` + notifiedBadge + `
+          <span class="item-price">` + itemPrice + `đ</span>
+          <input type="text" 
+                 class="item-note-input" 
+                 placeholder="Ghi chú (vd: không hành, ít đá...)"
+                 value="` + itemNote + `"
+                 onchange="updateNote('` + itemVariantId + `', this.value)">
+        </div>
+        <div class="quantity-controls">
+          <button onclick="updateQuantity('` + itemVariantId + `', ` + (itemQuantity - 1) + `)">
+            <i class='bx bx-minus'></i>
+          </button>
+          <span class="quantity">` + itemQuantity + `</span>
+          <button onclick="updateQuantity('` + itemVariantId + `', ` + (itemQuantity + 1) + `)">
+            <i class='bx bx-plus'></i>
+          </button>
+        </div>
+        <button class="remove-btn" onclick="removeFromCart('` + itemVariantId + `')">
+          <i class='bx bx-trash'></i>
         </button>
-        <span class="quantity">\${item.quantity}</span>
-        <button onclick="updateQuantity(\${item.id}, \${item.quantity + 1})">
-          <i class='bx bx-plus'></i>
-        </button>
       </div>
-      <button class="remove-btn" onclick="removeFromCart(\${item.id})">
-        <i class='bx bx-trash'></i>
-      </button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // Update bill
@@ -501,9 +575,170 @@ function updateBill() {
   document.getElementById('vat').textContent = vat.toLocaleString('vi-VN') + 'đ';
   document.getElementById('total').textContent = total.toLocaleString('vi-VN') + 'đ';
   
-  // Enable/disable checkout button
-  const checkoutBtn = document.getElementById('checkoutBtn');
-  checkoutBtn.disabled = orderItems.length === 0 || !selectedTable;
+  // Enable/disable buttons
+  const hasItemsAndTable = orderItems.length > 0 && selectedTable;
+  document.getElementById('checkoutBtn').disabled = !hasItemsAndTable;
+  document.getElementById('notifyKitchenBtn').disabled = !hasItemsAndTable;
+}
+
+// Load orders của bàn đang có khách
+async function loadTableOrders(tableId) {
+  console.log('Loading orders for table:', tableId);
+  
+  try {
+    const response = await fetch('${pageContext.request.contextPath}/api/order/table/' + tableId);
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('Loaded orders:', result.orders);
+      
+      // Convert orders từ database sang format orderItems
+      orderItems = result.orders.map(item => {
+        // Display name with size
+        const itemName = item.name || 'Món ăn';
+        const itemSize = item.size;
+        const displayName = itemSize ? itemName + ' (' + itemSize + ')' : itemName;
+        const qty = parseInt(item.quantity || 1);
+        
+        return {
+          id: item.productId,
+          variantId: item.variantId,
+          name: displayName,
+          price: parseFloat(item.price || 0),
+          quantity: qty,
+          notified: true, // Đã được gửi bếp
+          notifiedQuantity: qty, // Số lượng đã gửi = số lượng hiện tại (từ DB)
+          status: item.status, // Pending, Preparing, Ready, etc.
+          note: item.note || '' // Ghi chú từ DB
+        };
+      });
+      
+      // Merge items có cùng variantId (group by variant)
+      const mergedItems = [];
+      orderItems.forEach(item => {
+        const existing = mergedItems.find(i => i.variantId === item.variantId);
+        if (existing) {
+          existing.quantity += item.quantity;
+          existing.notifiedQuantity += item.notifiedQuantity;
+          // Merge notes: nếu có note mới, append; nếu không giữ note cũ
+          if (item.note && item.note !== existing.note) {
+            existing.note = existing.note ? existing.note + '; ' + item.note : item.note;
+          }
+        } else {
+          mergedItems.push(item);
+        }
+      });
+      orderItems = mergedItems;
+      
+      renderOrderItems();
+      updateBill();
+      
+      console.log('Orders loaded successfully:', orderItems.length, 'items');
+    } else {
+      console.error('Error loading orders:', result.message);
+      // Không hiện alert nếu bàn chưa có orders
+      orderItems = [];
+      renderOrderItems();
+      updateBill();
+    }
+  } catch (error) {
+    console.error('Error loading table orders:', error);
+    orderItems = [];
+    renderOrderItems();
+    updateBill();
+  }
+}
+
+// Notify kitchen - send order to kitchen
+async function notifyKitchen() {
+  if (orderItems.length === 0) {
+    alert('Vui lòng chọn ít nhất một món!');
+    return;
+  }
+  
+  if (!selectedTable) {
+    alert('Vui lòng chọn bàn!');
+    return;
+  }
+  
+  // Tạo danh sách món cần gửi bếp
+  const itemsToNotify = [];
+  
+  orderItems.forEach(item => {
+    const notifiedQty = item.notifiedQuantity || 0;
+    const currentQty = item.quantity || 0;
+    const newQty = currentQty - notifiedQty;
+    
+    if (newQty > 0) {
+      // Có món mới chưa gửi
+      itemsToNotify.push({
+        variantId: item.variantId,
+        quantity: newQty, // CHỈ GỬI số lượng mới
+        unitPrice: item.price,
+        note: item.note || '', // Ghi chú
+        originalItem: item // Reference để update sau
+      });
+    }
+  });
+  
+  if (itemsToNotify.length === 0) {
+    alert('⚠️ Tất cả món đã được thông báo bếp!\n\nVui lòng thêm món mới nếu khách gọi thêm.');
+    return;
+  }
+  
+  // Prepare order data
+  const orderData = {
+    tableId: selectedTable.id,
+    items: itemsToNotify.map(item => ({
+      variantId: item.variantId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      note: item.note || ''
+    }))
+  };
+  
+  console.log('Sending NEW items to kitchen:', orderData);
+  console.log('Total items in order:', orderItems.length);
+  console.log('Items to notify:', itemsToNotify.length);
+  
+  try {
+    const response = await fetch('${pageContext.request.contextPath}/api/order/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Tính tổng số món đã gửi
+      const totalNewQty = itemsToNotify.reduce((sum, item) => sum + item.quantity, 0);
+      
+      alert('✅ Đã gửi thông báo đến bếp thành công!\n\n' + 
+            'Số món: ' + totalNewQty + '\n' +
+            'Đơn hàng: ' + result.orderId);
+      
+      // Cập nhật notifiedQuantity cho các món vừa gửi
+      itemsToNotify.forEach(item => {
+        item.originalItem.notified = true;
+        item.originalItem.notifiedQuantity = item.originalItem.quantity;
+      });
+      
+      // Render lại để hiển thị TẤT CẢ món
+      renderOrderItems();
+      updateBill();
+      
+      console.log('Order created successfully:', result.orderId);
+      console.log('All items after notify:', orderItems);
+    } else {
+      alert('❌ Lỗi: ' + result.message);
+    }
+  } catch (error) {
+    console.error('Error notifying kitchen:', error);
+    alert('❌ Không thể gửi thông báo đến bếp. Vui lòng thử lại.');
+  }
 }
 
 // Setup tab system
@@ -537,10 +772,11 @@ function setupEventListeners() {
       const tableId = tableItem.dataset.tableId;
       const tableStatus = tableItem.dataset.status;
       
-      if (tableStatus === 'occupied') {
-        alert('Bàn này đang có khách!');
-        return;
-      }
+      // CHO PHÉP click vào bàn có khách để xem/thêm món
+      // if (tableStatus === 'occupied') {
+      //   alert('Bàn này đang có khách!');
+      //   return;
+      // }
       
       selectedTable = (window.tables || tables || []).find(t => t.id === tableId);
       if (selectedTable) {
@@ -554,6 +790,16 @@ function setupEventListeners() {
           }
         }
         document.getElementById('selectedTableInfo').textContent = tableInfo;
+        
+        // Load orders nếu bàn đang có khách
+        if (tableStatus === 'occupied') {
+          loadTableOrders(tableId);
+        } else {
+          // Bàn trống - xóa orders cũ
+          orderItems = [];
+          renderOrderItems();
+        }
+        
         renderTables();
         updateBill();
       }
@@ -570,15 +816,7 @@ function setupEventListeners() {
     });
   });
 
-  // Menu categories
-  document.querySelectorAll('.category-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      currentCategory = this.dataset.category;
-      renderMenu();
-    });
-  });
+  // Menu categories - đã được setup trong populateMenuCategories()
 
   // Menu search
   document.getElementById('menuSearch').addEventListener('input', renderMenu);
@@ -599,6 +837,11 @@ function setupEventListeners() {
     }
   });
   
+  // Notify kitchen button
+  document.getElementById('notifyKitchenBtn').addEventListener('click', function() {
+    notifyKitchen();
+  });
+  
   // Payment methods
   document.querySelectorAll('.payment-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -608,30 +851,67 @@ function setupEventListeners() {
   });
 
   // Checkout
-  document.getElementById('checkoutBtn').addEventListener('click', function() {
+  document.getElementById('checkoutBtn').addEventListener('click', async function() {
     if (orderItems.length === 0) {
       alert('Vui lòng chọn ít nhất một món!');
-    return;
-  }
+      return;
+    }
 
-  if (!selectedTable) {
-    alert('Vui lòng chọn bàn!');
-    return;
-  }
+    if (!selectedTable) {
+      alert('Vui lòng chọn bàn!');
+      return;
+    }
 
     const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const vat = Math.round(total * 0.1);
     const finalTotal = total + vat;
     
+    // Lấy payment method được chọn
+    const selectedPaymentBtn = document.querySelector('.payment-btn.active');
+    const paymentMethod = selectedPaymentBtn ? selectedPaymentBtn.dataset.method : 'cash';
+    
     if (confirm(`Xác nhận thanh toán cho \${selectedTable.name}?\nTổng tiền: \${finalTotal.toLocaleString('vi-VN')}đ`)) {
-  alert('Thanh toán thành công!');
-      // Reset order
-      orderItems = [];
-  selectedTable = null;
-      document.getElementById('selectedTableInfo').textContent = 'Chưa chọn bàn';
-      renderOrderItems();
-  renderTables();
-      updateBill();
+      try {
+        // Gọi API checkout
+        const response = await fetch('${pageContext.request.contextPath}/api/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tableId: selectedTable.id,
+            paymentMethod: paymentMethod
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert('✅ Thanh toán thành công!\n\nTổng tiền: ' + finalTotal.toLocaleString('vi-VN') + 'đ');
+          
+          // Reset order và bàn
+          orderItems = [];
+          selectedTable = null;
+          document.getElementById('selectedTableInfo').textContent = 'Chưa chọn bàn';
+          
+          // Reset payment method selection
+          document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
+          
+          renderOrderItems();
+          renderTables(); // Refresh để update trạng thái bàn
+          updateBill();
+          
+          // Reload tables để cập nhật status
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          alert('❌ Lỗi: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error during checkout:', error);
+        alert('❌ Không thể thanh toán. Vui lòng thử lại.');
+      }
     }
   });
 }

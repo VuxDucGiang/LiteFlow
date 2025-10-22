@@ -66,6 +66,19 @@
 }
 </style>
 
+<c:if test="${param.embed == '1'}">
+  <style>
+    /* Hide global chrome when embedded */
+    .top-header, .main-nav, .utf8-footer, .floating-support { display: none !important; }
+    .main .content { padding: 0 !important; }
+    .schedule-container { padding: 8px !important; }
+    body { background: transparent; }
+    /* Hide page title and search bar in embed mode */
+    .schedule-header h1 { display: none !important; }
+    .schedule-header form { display: none !important; }
+  </style>
+</c:if>
+
 <div class="schedule-container">
   <!-- Header Section -->
   <div class="schedule-header">
@@ -74,6 +87,9 @@
       <!-- Search/Filter Bar -->
       <form method="get" action="${pageContext.request.contextPath}/schedule" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap; background:#fff; padding:8px 12px; border:1px solid #e5e7eb; border-radius:10px;">
         <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+        <c:if test="${param.embed == '1'}">
+          <input type="hidden" name="embed" value="1" />
+        </c:if>
         <select name="employeeCode" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
           <option value="">Chọn nhân viên</option>
           <c:forEach var="e" items="${employees}">
@@ -89,7 +105,7 @@
         <button type="submit" class="btn btn-primary" title="Tìm kiếm" style="display:flex; align-items:center; justify-content:center; width:40px; height:36px; padding:0;">
           <i class='bx bx-search'></i>
         </button>
-        <a href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}" class="btn btn-light" title="Hủy lọc" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0;">
+        <a href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}<c:if test='${param.embed == "1"}'> &amp;embed=1</c:if>" class="btn btn-light" title="Hủy lọc" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0;">
           <i class='bx bx-filter-alt-off'></i>
         </a>
       </form>
@@ -99,7 +115,7 @@
           <button type="button" class="chip-label" id="openCalendar">${controlLabel}</button>
           <a class="chip-btn next" href="${pageContext.request.contextPath}/schedule?weekStart=${nextWeekStart}${filterQuery}"><i class='bx bx-chevron-right'></i></a>
         </div>
-        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}${filterQuery}">Tuần này</a>
+        <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}${filterQuery}<c:if test='${param.embed == "1"}'> &amp;embed=1</c:if>">Tuần này</a>
       </div>
       <button class="btn btn-primary" id="openAddShift" type="button">
         <i class='bx bx-plus'></i> Thêm lịch làm việc
@@ -213,6 +229,10 @@
     <form id="addShiftForm" method="post" action="${pageContext.request.contextPath}/schedule" style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
       <input type="hidden" name="action" value="create" />
       <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+      <c:if test="${param.embed == '1'}">
+        <input type="hidden" name="embed" value="1" />
+        <input type="hidden" name="redirectEmployeeCode" value="${selectedEmployeeCode}" />
+      </c:if>
 
       <div style="grid-column:1 / -1;">
         <label style="font-size:12px; color:#6b7280; display:block;">Nhân viên</label>
@@ -314,20 +334,24 @@
       <h3 style="margin:0; font-size:18px; font-weight:600;">Thêm lịch làm việc nhanh</h3>
       <button type="button" id="closeQuickAddShift" style="background:transparent; border:none; font-size:20px; cursor:pointer; padding:6px 10px; border-radius:6px;">✕</button>
     </div>
-    <form id="quickAddShiftForm" method="post" action="${pageContext.request.contextPath}/schedule" style="padding:20px; display:grid; gap:16px;">
+    <form id="quickAddShiftForm" method="post" action="${pageContext.request.contextPath}/schedule" style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;">
       <input type="hidden" name="action" value="create" />
       <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+      <c:if test="${param.embed == '1'}">
+        <input type="hidden" name="embed" value="1" />
+        <input type="hidden" name="redirectEmployeeCode" value="${selectedEmployeeCode}" />
+      </c:if>
       <input type="hidden" name="date" id="quickDate" />
       <input type="hidden" name="startTime" id="quickStartTime" />
       <input type="hidden" name="endTime" id="quickEndTime" />
 
       <!-- Thông tin ca làm việc được điền sẵn -->
-      <div style="background:#f8fafc; padding:12px; border-radius:8px; border-left:4px solid #3b82f6;">
+      <div style="background:#f8fafc; padding:12px; border-radius:8px; border-left:4px solid #3b82f6; grid-column:1 / -1;">
         <div style="font-size:14px; color:#374151; font-weight:500;">Ca làm việc</div>
         <div id="quickShiftInfo" style="font-size:13px; color:#6b7280; margin-top:4px;"></div>
       </div>
 
-      <div>
+      <div style="grid-column:1 / -1;">
         <label style="font-size:12px; color:#6b7280;">Nhân viên *</label>
         <div id="quickEmployeeChecklist" style="display:grid; grid-template-columns:repeat(1, minmax(0,1fr)); gap:8px; max-height:200px; overflow:auto; padding:8px; border:1px solid #e5e7eb; border-radius:8px;">
           <c:forEach var="e" items="${employees}">
@@ -349,13 +373,13 @@
         <input id="quickLocation" name="location" type="text" placeholder="VD: Quầy, Bếp..." style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
       </div>
 
-      <div>
+      <div style="grid-column:1 / -1;">
         <label for="quickNotes" style="font-size:12px; color:#6b7280;">Ghi chú</label>
         <input id="quickNotes" name="notes" type="text" placeholder="Ghi chú thêm" style="width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px;" />
       </div>
 
       <!-- Toggle lặp lại hằng tuần -->
-      <div style="margin-top:8px; padding-top:16px; border-top:1px solid #eee;">
+      <div style="grid-column:1 / -1; margin-top:8px; padding-top:16px; border-top:1px solid #eee;">
         <div style="display:flex; align-items:center; justify-content:space-between;">
           <div>
             <label style="font-size:14px; color:#374151; font-weight:500;">Lặp lại hằng tuần</label>
@@ -389,7 +413,7 @@
         </div>
       </div>
 
-      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <div style="grid-column:1 / -1; display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
         <button type="button" id="cancelQuickAddShift" class="btn btn-light">Hủy</button>
         <button type="submit" class="btn btn-primary">Thêm ca</button>
       </div>
@@ -634,7 +658,27 @@
   var openBtn = document.getElementById('openAddShift');
   var closeBtn = document.getElementById('closeAddShift');
   var cancelBtn = document.getElementById('cancelAddShift');
-  function open(){ overlay.style.display = 'flex'; }
+  function open(){
+    overlay.style.display = 'flex';
+    // In embed mode, pre-select current employee and hide checklist
+    var isEmbed = ('<c:out value="${param.embed}"/>' === '1');
+    var selectedEmp = '<c:out value="${selectedEmployeeCode}"/>';
+    if (isEmbed && selectedEmp) {
+      var checklist = document.getElementById('employeeChecklist');
+      if (checklist) {
+        // Uncheck all first
+        Array.prototype.slice.call(checklist.querySelectorAll('input[type="checkbox"][name="employeeCode"]')).forEach(function(cb){
+          cb.checked = (cb.value === selectedEmp);
+        });
+        // Hide the entire employee selector section
+        if (checklist.parentElement) {
+          checklist.parentElement.style.display = 'none';
+        } else {
+          checklist.style.display = 'none';
+        }
+      }
+    }
+  }
   function close(){ overlay.style.display = 'none'; }
   if (openBtn) openBtn.addEventListener('click', open);
   if (closeBtn) closeBtn.addEventListener('click', close);
@@ -846,7 +890,22 @@
   var cancelBtn = document.getElementById('cancelQuickAddShift');
   var form = document.getElementById('quickAddShiftForm');
   
-  function open(){ if (overlay) overlay.style.display = 'flex'; }
+  function open(){
+    if (overlay) overlay.style.display = 'flex';
+    // In embed mode, pre-select current employee and hide quick checklist
+    var isEmbed = ('<c:out value="${param.embed}"/>' === '1');
+    var selectedEmp = '<c:out value="${selectedEmployeeCode}"/>';
+    if (isEmbed && selectedEmp) {
+      var quickChecklist = document.getElementById('quickEmployeeChecklist');
+      if (quickChecklist) {
+        Array.prototype.slice.call(quickChecklist.querySelectorAll('input[name="employeeCode"]')).forEach(function(cb){
+          cb.checked = (cb.value === selectedEmp);
+        });
+        if (quickChecklist.parentElement) quickChecklist.parentElement.style.display = 'none';
+        else quickChecklist.style.display = 'none';
+      }
+    }
+  }
   function close(){ if (overlay) overlay.style.display = 'none'; }
   
   if (closeBtn) closeBtn.addEventListener('click', close);
@@ -959,10 +1018,22 @@
   });
   // Validate checklist trước khi submit Quick Add
   if (form) form.addEventListener('submit', function(e){
+    var isEmbed = ('<c:out value="${param.embed}"/>' === '1');
     var checked = document.querySelectorAll('#quickEmployeeChecklist input[name="employeeCode"]:checked');
-    if (!checked.length) {
+    if (!checked.length && !isEmbed) {
       e.preventDefault();
       alert('Vui lòng chọn ít nhất một nhân viên.');
+      return;
+    }
+    if (isEmbed && !checked.length) {
+      var selectedEmp = '<c:out value="${selectedEmployeeCode}"/>';
+      if (selectedEmp) {
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'employeeCode';
+        hidden.value = selectedEmp;
+        form.appendChild(hidden);
+      }
     }
   });
 })();

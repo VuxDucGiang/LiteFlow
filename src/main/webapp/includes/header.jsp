@@ -150,8 +150,15 @@
           <div class="header-icon">
             <i class='bx bx-cog'></i>
           </div>
-          <div class="header-icon">
-            <i class='bx bx-user'></i>
+          <div class="nav-item dropdown header-icon">
+            <a href="#" class="nav-link dropdown-toggle" aria-expanded="false">
+              <i class='bx bx-user'></i>
+            </a>
+            <div class="dropdown-menu" style="right: 0; left: auto;">
+              <a href="${pageContext.request.contextPath}/logout" class="dropdown-item">
+                <i class='bx bx-log-out'></i> Đăng xuất
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -200,10 +207,10 @@
             <a href="${pageContext.request.contextPath}/schedule" class="dropdown-item">
               <i class='bx bx-calendar'></i> Lịch làm việc
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/attendance" class="dropdown-item">
               <i class='bx bx-time'></i> Bảng chấm công
             </a>
-            <a href="#" class="dropdown-item">
+            <a href="${pageContext.request.contextPath}/employee/paysheet.jsp" class="dropdown-item">
               <i class='bx bx-money'></i> Bảng lương
             </a>
             <a href="${pageContext.request.contextPath}/employee/setupEmployee.jsp" class="dropdown-item">
@@ -234,21 +241,17 @@
             </a>
           </div>
         </div>
-        <a href="#" class="nav-item">
-          <i class='bx bx-cart'></i> Bán Online
-        </a>
-        <a href="#" class="nav-item">
-          <i class='bx bx-wallet'></i> Sổ quỹ
-        </a>
+        
+    
         <a href="#" class="nav-item">
           <i class='bx bx-bar-chart'></i> Báo cáo
         </a>
      
       </div>
       <div class="nav-right">
-        <div class="nav-icon" title="Nhà bếp">
-          <i class='bx bx-home'></i>
-        </div>
+        <a href="${pageContext.request.contextPath}/kitchen" class="nav-icon" title="Nhà bếp" target="_blank">
+          <i class='bx bxs-bowl-hot'></i>
+        </a>
         <div class="nav-icon" title="Lễ tân">
           <i class='bx bx-calendar'></i>
         </div>
