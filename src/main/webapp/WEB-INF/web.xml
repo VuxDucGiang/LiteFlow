@@ -32,6 +32,11 @@
         <servlet-name>RoomTableServlet</servlet-name>
         <servlet-class>com.liteflow.controller.RoomTableServlet</servlet-class>
         <load-on-startup>2</load-on-startup>
+        <multipart-config>
+            <max-file-size>10485760</max-file-size> <!-- 10MB -->
+            <max-request-size>10485760</max-request-size> <!-- 10MB -->
+            <file-size-threshold>0</file-size-threshold>
+        </multipart-config>
     </servlet>
     <servlet-mapping>
         <servlet-name>RoomTableServlet</servlet-name>

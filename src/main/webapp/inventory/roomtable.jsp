@@ -67,22 +67,29 @@
         <div>
             <a href="#" class="btn btn-success" onclick="addRoom()">Thêm phòng</a>
             <a href="#" class="btn btn-primary" onclick="addTable()">Thêm bàn</a>
+            <button class="btn btn-success" onclick="showImportModal()">
+                Nhập Excel
+            </button>
+            <button class="btn btn-primary" onclick="exportToExcel()">
+                Xuất Excel
+            </button>
         </div>
     </div>
 
     <!-- Rooms Section -->
     <div class="room-table-container">
         <div class="section-title">Danh sách phòng</div>
-        <c:choose>
-            <c:when test="${empty rooms}">
-                <div class="empty-state">
-                    <h3>Chưa có phòng nào</h3>
-                    <p>Hãy thêm phòng đầu tiên để bắt đầu quản lý</p>
-                    <a href="#" class="btn btn-success" onclick="addRoom()" style="margin-top: 1rem;">Thêm phòng</a>
-                </div>
-            </c:when>
-            <c:otherwise>
-                <table class="table">
+        
+        <!-- Empty state (always present, hidden when there are rooms) -->
+        <div class="empty-state" <c:if test="${not empty rooms}">style="display: none;"</c:if>>
+            <h3>Chưa có phòng nào</h3>
+            <p>Hãy thêm phòng đầu tiên để bắt đầu quản lý</p>
+            <a href="#" class="btn btn-success" onclick="addRoom()" style="margin-top: 1rem;">Thêm phòng</a>
+        </div>
+        
+        <!-- Rooms table (hidden when there are no rooms) -->
+        <c:if test="${not empty rooms}">
+            <table class="table">
                     <thead>
                         <tr>
                             <th class="sortable" onclick="sortTable(0, 'string', 'rooms')">
@@ -185,22 +192,22 @@
                         </select>
                     </div>
                 </div>
-            </c:otherwise>
-        </c:choose>
+        </c:if>
     </div>
 
     <!-- Tables Section -->
     <div class="room-table-container">
         <div class="section-title">Danh sách bàn</div>
-        <c:choose>
-            <c:when test="${empty tables}">
-                <div class="empty-state">
-                    <h3>Chưa có bàn nào</h3>
-                    <p>Hãy thêm bàn đầu tiên để bắt đầu quản lý</p>
-                    <a href="#" class="btn btn-success" onclick="addTable()" style="margin-top: 1rem;">Thêm bàn</a>
-                </div>
-            </c:when>
-            <c:otherwise>
+        
+        <!-- Empty state (always present, hidden when there are tables) -->
+        <div class="empty-state" <c:if test="${not empty tables}">style="display: none;"</c:if>>
+            <h3>Chưa có bàn nào</h3>
+            <p>Hãy thêm bàn đầu tiên để bắt đầu quản lý</p>
+            <a href="#" class="btn btn-success" onclick="addTable()" style="margin-top: 1rem;">Thêm bàn</a>
+        </div>
+        
+        <!-- Tables table (hidden when there are no tables) -->
+        <c:if test="${not empty tables}">
                 <table class="table">
                     <thead>
                         <tr>
@@ -233,7 +240,7 @@
                     </thead>
                     <tbody>
                         <c:forEach var="table" items="${tables}">
-                            <tr data-table-id="${table.tableId}">
+                            <tr data-table-id="${table.tableId}" <c:if test="${table.room != null}">data-room-id="${table.room.roomId}"</c:if>>
                                 <td>
                                     <span class="table-number">${table.tableNumber}</span>
                                 </td>
@@ -318,8 +325,7 @@
                         </select>
                     </div>
                 </div>
-            </c:otherwise>
-        </c:choose>
+        </c:if>
     </div>
 </div>
 
@@ -690,6 +696,121 @@
                 Đóng
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Import Excel Modal -->
+<div id="importExcelModal" class="modal">
+    <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h2>Nhập dữ liệu từ Excel</h2>
+            <span class="close" onclick="closeImportModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="import-instructions">
+                <h3>Hướng dẫn nhập dữ liệu</h3>
+                <div class="instruction-content">
+                    <div class="instruction-section">
+                        <h4>Sheet "Rooms" (Phòng):</h4>
+                        <ul>
+                            <li><strong>Cột A:</strong> Tên phòng (bắt buộc)</li>
+                            <li><strong>Cột B:</strong> Mô tả phòng (tùy chọn)</li>
+                            <li><strong>Cột C:</strong> Số lượng bàn tối đa (bắt buộc)</li>
+                            <li><strong>Cột D:</strong> Tổng sức chứa (bắt buộc)</li>
+                        </ul>
+                        <div class="template-download">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('rooms')">
+                                📥 Tải về mẫu phòng
+                            </button>
+                        </div>
+                    </div>
+                            <div class="instruction-section">
+                                <h4>Sheet "Tables" (Bàn):</h4>
+                                <ul>
+                                    <li><strong>Cột A:</strong> Số bàn (bắt buộc)</li>
+                                    <li><strong>Cột B:</strong> Tên bàn (bắt buộc)</li>
+                                    <li><strong>Cột C:</strong> Tên phòng (tùy chọn)</li>
+                                    <li><strong>Cột D:</strong> Sức chứa (bắt buộc)</li>
+                                </ul>
+                                <div class="template-download">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('tables')">
+                                        📥 Tải về mẫu bàn
+                                    </button>
+                                </div>
+                            </div>
+                </div>
+            </div>
+            
+            <div class="file-upload-section">
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">
+                        <h4>Kéo thả file Excel vào đây hoặc</h4>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('excelFile').click()">
+                            Chọn file Excel
+                        </button>
+                        <p class="file-info">Hỗ trợ định dạng: .xlsx, .xls</p>
+                    </div>
+                </div>
+                <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+                
+                <div class="file-preview" id="filePreview" style="display: none;">
+                    <div class="preview-content">
+                        <div class="file-icon">📊</div>
+                        <div class="file-details">
+                            <div class="file-name" id="fileName"></div>
+                            <div class="file-size" id="fileSize"></div>
+                        </div>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeFile()">Xóa</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="import-options">
+                <h4>Tùy chọn nhập:</h4>
+                <div class="option-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="skipDuplicates" checked>
+                        <span class="checkmark"></span>
+                        Bỏ qua dữ liệu trùng lặp
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="validateData" checked>
+                        <span class="checkmark"></span>
+                        Kiểm tra tính hợp lệ của dữ liệu
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="createMissingRooms">
+                        <span class="checkmark"></span>
+                        Tự động tạo phòng nếu chưa tồn tại
+                    </label>
+                </div>
+            </div>
+            
+            <div class="import-progress" id="importProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Đang xử lý...</div>
+            </div>
+            
+            <div class="import-results" id="importResults" style="display: none;">
+                <h4>Kết quả nhập dữ liệu:</h4>
+                <div class="result-summary" id="resultSummary"></div>
+                <div class="result-details" id="resultDetails"></div>
+            </div>
+        </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" onclick="closeImportModal()">
+                        Hủy
+                    </button>
+                    <button type="button" class="btn btn-primary" id="checkBtn" onclick="checkFile()" disabled>
+                        Kiểm tra file
+                    </button>
+                    <button type="button" class="btn btn-success" id="importBtn" onclick="startImport()" disabled style="display: none;">
+                        Bắt đầu nhập
+                    </button>
+                </div>
     </div>
 </div>
 
