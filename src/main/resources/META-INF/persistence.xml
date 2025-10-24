@@ -36,15 +36,16 @@
     <!-- Timesheet entities -->
     <class>com.liteflow.model.timesheet.ShiftPayRule</class>
     <class>com.liteflow.model.timesheet.EmployeeShiftTimesheet</class>
+    <class>com.liteflow.model.timesheet.EmployeeAttendance</class>
     <!-- Procurement entities -->
     <class>com.liteflow.model.procurement.Supplier</class>
+    <class>com.liteflow.model.procurement.SupplierSLA</class>
     <class>com.liteflow.model.procurement.PurchaseOrder</class>
     <class>com.liteflow.model.procurement.PurchaseOrderItem</class>
     <class>com.liteflow.model.procurement.GoodsReceipt</class>
     <class>com.liteflow.model.procurement.GoodsReceiptItem</class>
     <class>com.liteflow.model.procurement.Invoice</class>
     <class>com.liteflow.model.procurement.InvoiceItem</class>
-    <class>com.liteflow.model.timesheet.EmployeeAttendance</class>
     <!-- External info entities -->
     <class>com.liteflow.model.external.HolidayCalendar</class>
     <class>com.liteflow.model.external.ExchangeRate</class>
@@ -52,7 +53,7 @@
       <property name="jakarta.persistence.jdbc.driver" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
       <property name="jakarta.persistence.jdbc.url" value="jdbc:sqlserver://localhost:1433;databaseName=LiteFlowDBO;encrypt=true;trustServerCertificate=true;"/>
       <property name="jakarta.persistence.jdbc.user" value="sa"/>
-      <property name="jakarta.persistence.jdbc.password" value="AcademicAssistant"/>
+      <property name="jakarta.persistence.jdbc.password" value="abc123"/>
       <!-- Hibernate settings -->
       <property name="hibernate.dialect" value="org.hibernate.dialect.SQLServerDialect"/>
       <property name="hibernate.hbm2ddl.auto" value="none"/>

@@ -91,6 +91,17 @@
         <url-pattern>/procurement/supplier</url-pattern>
     </servlet-mapping>
 
+    <!-- PO Items Servlet Configuration -->
+    <servlet>
+        <servlet-name>POItemsServlet</servlet-name>
+        <servlet-class>com.liteflow.web.procurement.POItemsServlet</servlet-class>
+        <load-on-startup>13</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>POItemsServlet</servlet-name>
+        <url-pattern>/procurement/po-items</url-pattern>
+    </servlet-mapping>
+
     <!-- Character Encoding Filter -->
     <filter>
         <filter-name>CharacterEncodingFilter</filter-name>

@@ -317,19 +317,151 @@ WHERE s.Name IN (N'Công ty Cà phê Trung Nguyên', N'Nhà cung cấp Sữa Vin
 GO
 
 -- ============================================================
+-- 5.1️⃣ GOODS RECEIPT ITEMS (Chi tiết phiếu nhận hàng) - 🆕
+-- ============================================================
+-- Cà phê Trung Nguyên - Nhận đầy đủ
+INSERT INTO GoodsReceiptItems (ReceiptID, POItemID, ProductName, OrderedQuantity, ReceivedQuantity, UnitPrice, QualityStatus, Notes)
+SELECT 
+    gr.ReceiptID,
+    poi.ItemID,
+    poi.ItemName,
+    poi.Quantity,
+    poi.Quantity,  -- Nhận đủ 100%
+    poi.UnitPrice,
+    'OK',
+    N'Chất lượng tốt, đóng gói cẩn thận'
+FROM GoodsReceipts gr
+JOIN PurchaseOrders po ON gr.POID = po.POID
+JOIN PurchaseOrderItems poi ON poi.POID = po.POID
+JOIN Suppliers s ON po.SupplierID = s.SupplierID
+WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'APPROVED';
+
+-- Sữa Vinamilk - Nhận thiếu 2 hộp (98/100)
+INSERT INTO GoodsReceiptItems (ReceiptID, POItemID, ProductName, OrderedQuantity, ReceivedQuantity, UnitPrice, QualityStatus, DiscrepancyReason, Notes)
+SELECT 
+    gr.ReceiptID,
+    poi.ItemID,
+    poi.ItemName,
+    poi.Quantity,
+    98,  -- Nhận thiếu 2 hộp
+    poi.UnitPrice,
+    'OK',
+    N'Thiếu 2 hộp - NCC cam kết giao bù trong lần sau',
+    N'Chất lượng tốt, HSD còn 6 tháng'
+FROM GoodsReceipts gr
+JOIN PurchaseOrders po ON gr.POID = po.POID
+JOIN PurchaseOrderItems poi ON poi.POID = po.POID
+JOIN Suppliers s ON po.SupplierID = s.SupplierID
+WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'APPROVED';
+
+-- Cà phê Espresso (COMPLETED) - Nhận đủ nhưng có 5 gói lỗi
+INSERT INTO GoodsReceiptItems (ReceiptID, POItemID, ProductName, OrderedQuantity, ReceivedQuantity, UnitPrice, QualityStatus, DefectiveQuantity, Notes)
+SELECT 
+    gr.ReceiptID,
+    poi.ItemID,
+    poi.ItemName,
+    poi.Quantity,
+    poi.Quantity,
+    poi.UnitPrice,
+    'DEFECTIVE',
+    5,
+    N'Có 5 gói bị rách bao bì - đã trả lại NCC'
+FROM GoodsReceipts gr
+JOIN PurchaseOrders po ON gr.POID = po.POID
+JOIN PurchaseOrderItems poi ON poi.POID = po.POID
+JOIN Suppliers s ON po.SupplierID = s.SupplierID
+WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'COMPLETED';
+GO
+
+-- ============================================================
 -- 6️⃣ INVOICES (Hóa đơn)
 -- ============================================================
-INSERT INTO Invoices (POID, SupplierID, InvoiceDate, TotalAmount, Matched, MatchNote)
+-- Invoice từ Cà phê Trung Nguyên - Khớp hoàn toàn
+INSERT INTO Invoices (POID, SupplierID, InvoiceDate, TotalAmount, Matched, MatchNote, MatchStatus)
 SELECT 
     po.POID,
     po.SupplierID,
     DATEADD(DAY, -1, SYSDATETIME()),
     po.TotalAmount,
     1,
-    N'Khớp với đơn hàng'
+    N'Matched - All items verified',
+    'MATCHED'
 FROM PurchaseOrders po
 JOIN Suppliers s ON s.SupplierID = po.SupplierID
-WHERE s.Name IN (N'Công ty Cà phê Trung Nguyên', N'Nhà cung cấp Sữa Vinamilk') AND po.Status = 'APPROVED';
+WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'APPROVED';
+
+-- Invoice từ Vinamilk - Chênh lệch (tính tiền 100 hộp nhưng chỉ nhận 98)
+INSERT INTO Invoices (POID, SupplierID, InvoiceDate, TotalAmount, Matched, MatchNote, MatchStatus)
+SELECT 
+    po.POID,
+    po.SupplierID,
+    DATEADD(DAY, -1, SYSDATETIME()),
+    po.TotalAmount,  -- Tính đủ 100 hộp
+    0,
+    N'Quantity mismatch: Invoice 100, Received 98',
+    'MISMATCHED'
+FROM PurchaseOrders po
+JOIN Suppliers s ON s.SupplierID = po.SupplierID
+WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'APPROVED';
+GO
+
+-- ============================================================
+-- 6.1️⃣ INVOICE ITEMS (Chi tiết hóa đơn) - 🆕
+-- ============================================================
+-- Invoice Items cho Cà phê Trung Nguyên - Matched
+INSERT INTO InvoiceItems (InvoiceID, POItemID, ProductName, Quantity, UnitPrice, Matched, MatchNote)
+SELECT 
+    i.InvoiceID,
+    poi.ItemID,
+    poi.ItemName,
+    poi.Quantity,
+    poi.UnitPrice,
+    1,
+    N'Matched with PO and GR'
+FROM Invoices i
+JOIN PurchaseOrders po ON i.POID = po.POID
+JOIN PurchaseOrderItems poi ON poi.POID = po.POID
+JOIN Suppliers s ON po.SupplierID = s.SupplierID
+WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'APPROVED';
+
+-- Invoice Items cho Vinamilk - Mismatched (Invoice 100, Received 98)
+INSERT INTO InvoiceItems (InvoiceID, POItemID, ProductName, Quantity, UnitPrice, Matched, DiscrepancyQuantity, MatchNote)
+SELECT 
+    i.InvoiceID,
+    poi.ItemID,
+    poi.ItemName,
+    poi.Quantity,      -- Invoice: 100
+    poi.UnitPrice,
+    0,                 -- Not matched
+    -2,                -- Received 2 less than invoiced
+    N'Quantity discrepancy: Invoiced 100, Received 98 (-2)'
+FROM Invoices i
+JOIN PurchaseOrders po ON i.POID = po.POID
+JOIN PurchaseOrderItems poi ON poi.POID = po.POID
+JOIN Suppliers s ON po.SupplierID = s.SupplierID
+WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'APPROVED';
+
+-- Manual Invoice (không có PO) - Mua khẩn cấp
+DECLARE @ManualSupplierID UNIQUEIDENTIFIER;
+SELECT @ManualSupplierID = SupplierID FROM Suppliers WHERE Name = N'Nhà cung cấp Trái cây tươi';
+
+DECLARE @ManualInvoiceID UNIQUEIDENTIFIER = NEWID();
+INSERT INTO Invoices (InvoiceID, POID, SupplierID, InvoiceDate, TotalAmount, Matched, MatchNote, MatchStatus)
+VALUES (
+    @ManualInvoiceID,
+    NULL,  -- Không có PO
+    @ManualSupplierID,
+    SYSDATETIME(),
+    350000,
+    1,
+    N'Manual invoice - Emergency purchase',
+    'MATCHED'
+);
+
+INSERT INTO InvoiceItems (InvoiceID, POItemID, ProductName, Quantity, UnitPrice, Matched, MatchNote)
+VALUES 
+(@ManualInvoiceID, NULL, N'Cam tươi (Khẩn cấp)', 10, 15000, 1, N'Manual entry - no PO'),
+(@ManualInvoiceID, NULL, N'Dưa hấu (Khẩn cấp)', 5, 20000, 1, N'Manual entry - no PO');
 GO
 
 -- ============================================================
@@ -347,25 +479,30 @@ GO
 -- ============================================================
 -- 8️⃣ SUMMARY AND VERIFICATION
 -- ============================================================
-DECLARE @SupplierCount INT, @POCount INT, @POItemCount INT, @GRCount INT, @InvoiceCount INT;
+DECLARE @SupplierCount INT, @POCount INT, @POItemCount INT, @GRCount INT, @GRItemCount INT, @InvoiceCount INT, @InvItemCount INT;
 
 SELECT @SupplierCount = COUNT(*) FROM Suppliers;
 SELECT @POCount = COUNT(*) FROM PurchaseOrders;
 SELECT @POItemCount = COUNT(*) FROM PurchaseOrderItems;
 SELECT @GRCount = COUNT(*) FROM GoodsReceipts;
+SELECT @GRItemCount = COUNT(*) FROM GoodsReceiptItems;
 SELECT @InvoiceCount = COUNT(*) FROM Invoices;
+SELECT @InvItemCount = COUNT(*) FROM InvoiceItems;
 
 PRINT '========================================';
-PRINT 'PROCUREMENT SAMPLE DATA INSERTED SUCCESSFULLY!';
+PRINT '✅ PROCUREMENT SAMPLE DATA - 3-WAY MATCHING READY!';
 PRINT '========================================';
 PRINT 'Total Suppliers: ' + CAST(@SupplierCount AS NVARCHAR(10));
 PRINT 'Total Purchase Orders: ' + CAST(@POCount AS NVARCHAR(10));
 PRINT 'Total Purchase Order Items: ' + CAST(@POItemCount AS NVARCHAR(10));
 PRINT 'Total Goods Receipts: ' + CAST(@GRCount AS NVARCHAR(10));
+PRINT '🆕 Total Goods Receipt Items: ' + CAST(@GRItemCount AS NVARCHAR(10));
 PRINT 'Total Invoices: ' + CAST(@InvoiceCount AS NVARCHAR(10));
+PRINT '🆕 Total Invoice Items: ' + CAST(@InvItemCount AS NVARCHAR(10));
 PRINT '========================================';
 
--- Display status breakdown
+-- Display PO status breakdown
+PRINT '📦 Purchase Orders by Status:';
 SELECT 
     Status,
     COUNT(*) as Count,
@@ -374,7 +511,43 @@ FROM PurchaseOrders
 GROUP BY Status
 ORDER BY Status;
 
+-- Display Invoice matching status
+PRINT '🧾 Invoices by Match Status:';
+SELECT 
+    MatchStatus,
+    COUNT(*) as Count,
+    SUM(TotalAmount) as TotalAmount
+FROM Invoices
+GROUP BY MatchStatus
+ORDER BY MatchStatus;
+
+-- Display GR discrepancies
+PRINT '⚠️ Goods Receipt Discrepancies:';
+SELECT 
+    ProductName,
+    OrderedQuantity,
+    ReceivedQuantity,
+    Discrepancy,
+    DiscrepancyPercent,
+    QualityStatus
+FROM GoodsReceiptItems
+WHERE Discrepancy <> 0 OR QualityStatus <> 'OK';
+
+-- Display Invoice discrepancies
+PRINT '⚠️ Invoice Item Discrepancies:';
+SELECT 
+    ProductName,
+    Quantity,
+    DiscrepancyQuantity,
+    DiscrepancyAmount,
+    Matched
+FROM InvoiceItems
+WHERE Matched = 0;
+
 PRINT '========================================';
-PRINT 'Purchase Orders by Status:';
+PRINT '🎯 3-Way Matching Implementation Complete!';
+PRINT '   - GoodsReceiptItems: Track actual received quantities';
+PRINT '   - InvoiceItems: Track invoiced quantities';
+PRINT '   - Ready for automatic matching logic';
 PRINT '========================================';
 GO

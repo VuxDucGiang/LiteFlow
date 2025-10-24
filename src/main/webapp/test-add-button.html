@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST - Nút Thêm Sản Phẩm</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <!-- CRITICAL: Define functions BEFORE any HTML -->
+    <script>
+        console.log('🚀 Loading test functions...');
+        
+        window.addManualItemRow = function() {
+            console.log('🔘 addManualItemRow called');
+            
+            var container = document.getElementById('manualItemsContainer');
+            if (!container) {
+                console.error('❌ Container not found');
+                alert('Lỗi: Không tìm thấy container');
+                return;
+            }
+            
+            var newRow = document.createElement('div');
+            newRow.className = 'manual-item-row';
+            newRow.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1.5fr 60px;gap:12px;margin-bottom:12px;align-items:center;padding:12px;background:white;border-radius:8px;border:1px solid #e5e7eb';
+            
+            newRow.innerHTML = '<input type="text" name="itemName[]" placeholder="Tên sản phẩm" style="padding:10px 14px;border:1px solid #d1d5db;border-radius:6px;font-size:14px">' +
+                '<input type="number" name="itemQuantity[]" placeholder="Số lượng" style="padding:10px 14px;border:1px solid #d1d5db;border-radius:6px;font-size:14px" min="1" value="1">' +
+                '<input type="number" name="itemPrice[]" placeholder="Đơn giá (₫)" style="padding:10px 14px;border:1px solid #d1d5db;border-radius:6px;font-size:14px" step="1000" min="0">' +
+                '<button type="button" onclick="removeManualItemRow(this)" class="btn btn-danger" style="padding:10px;height:42px;border-radius:6px"><i class="bx bx-trash"></i></button>';
+            
+            container.appendChild(newRow);
+            var total = container.querySelectorAll('.manual-item-row').length;
+            console.log('✅ Row added! Total:', total);
+            
+            updateStatus('success', '✅ Thêm thành công! Tổng cộng: ' + total + ' sản phẩm');
+        };
+        
+        window.removeManualItemRow = function(button) {
+            console.log('🗑️ removeManualItemRow called');
+            
+            var container = document.getElementById('manualItemsContainer');
+            var rows = container.querySelectorAll('.manual-item-row');
+            
+            if (rows.length > 1) {
+                button.closest('.manual-item-row').remove();
+                var remaining = rows.length - 1;
+                console.log('✅ Row removed! Remaining:', remaining);
+                updateStatus('success', '✅ Xóa thành công! Còn lại: ' + remaining + ' sản phẩm');
+            } else {
+                alert('Phải có ít nhất 1 sản phẩm');
+                updateStatus('error', '❌ Không thể xóa! Phải có ít nhất 1 sản phẩm');
+            }
+        };
+        
+        function updateStatus(type, message) {
+            var status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.textContent = message;
+        }
+        
+        console.log('✅ Functions loaded:', typeof window.addManualItemRow, typeof window.removeManualItemRow);
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #ef4444;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+        
+        #manualItemsContainer {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 20px;
+            background: #f9fafb;
+            margin-bottom: 20px;
+        }
+        
+        .manual-item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1.5fr 60px;
+            gap: 12px;
+            margin-bottom: 12px;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        input {
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        
+        .btn {
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            padding: 10px;
+            height: 42px;
+            border-radius: 6px;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        #addItemBtn {
+            background: #6366f1;
+            color: white;
+            margin-top: 12px;
+            width: 100%;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        #addItemBtn:hover {
+            background: #4f46e5;
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+        
+        .instructions {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h3 {
+            color: #92400e;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            color: #78350f;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .console-output {
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 30px;
+        }
+        
+        .console-output div {
+            margin: 5px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .console-output div:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h1>🧪 TEST NÚT THÊM SẢN PHẨM</h1>
+            <p>Kiểm tra chức năng thêm/xóa sản phẩm động</p>
+        </div>
+        
+        <div class="content">
+            <div class="instructions">
+                <h3>📋 Hướng dẫn test:</h3>
+                <ol>
+                    <li>Mở <strong>Console</strong> (F12) để xem logs chi tiết</li>
+                    <li>Click nút <strong>"Thêm sản phẩm"</strong> để thêm row mới</li>
+                    <li>Click <strong>icon 🗑️</strong> để xóa row (phải có ít nhất 1 row)</li>
+                    <li>Kiểm tra console logs và status message</li>
+                </ol>
+            </div>
+            
+            <div id="status" class="status success">
+                ✅ Trang đã sẵn sàng. Click "Thêm sản phẩm" để bắt đầu!
+            </div>
+            
+            <div class="form-group">
+                <label>📦 Danh sách sản phẩm</label>
+                <div id="manualItemsContainer">
+                    <div class="manual-item-row">
+                        <input type="text" name="itemName[]" placeholder="Tên sản phẩm" value="Sản phẩm mẫu">
+                        <input type="number" name="itemQuantity[]" placeholder="Số lượng" min="1" value="1">
+                        <input type="number" name="itemPrice[]" placeholder="Đơn giá (₫)" step="1000" min="0" value="50000">
+                        <button type="button" onclick="removeManualItemRow(this)" class="btn btn-danger">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="button" id="addItemBtn" class="btn" onclick="addManualItemRow()">
+                    <i class='bx bx-plus'></i> Thêm sản phẩm
+                </button>
+            </div>
+            
+            <div class="console-output" id="consoleOutput">
+                <div style="color: #60a5fa; font-weight: bold;">📊 Console Output:</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Override console.log to show in page
+        var originalLog = console.log;
+        var originalError = console.error;
+        
+        console.log = function() {
+            originalLog.apply(console, arguments);
+            var output = document.getElementById('consoleOutput');
+            var div = document.createElement('div');
+            div.style.color = '#10b981';
+            div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + Array.from(arguments).join(' ');
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        };
+        
+        console.error = function() {
+            originalError.apply(console, arguments);
+            var output = document.getElementById('consoleOutput');
+            var div = document.createElement('div');
+            div.style.color = '#ef4444';
+            div.textContent = '[ERROR] ' + Array.from(arguments).join(' ');
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        };
+        
+        // Log when page loads
+        window.addEventListener('load', function() {
+            console.log('✅ Test page loaded successfully');
+            console.log('✅ window.addManualItemRow type:', typeof window.addManualItemRow);
+            console.log('✅ window.removeManualItemRow type:', typeof window.removeManualItemRow);
+            console.log('⏳ Ready for testing...');
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
