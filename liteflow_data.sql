@@ -26,6 +26,9 @@ DELETE FROM TableSessions;
 GO
 
 -- Delete scheduling data (shifts -> assignments -> templates)
+-- Must delete in correct order due to foreign key constraints
+DELETE FROM EmployeeShiftTimesheets;
+GO
 DELETE FROM EmployeeShifts;
 GO
 DELETE FROM EmployeeShiftAssignments;
@@ -33,7 +36,7 @@ GO
 DELETE FROM ShiftTemplates;
 GO
 
--- Delete employees
+-- Delete employees (after deleting timesheets)
 DELETE FROM Employees;
 GO
 
@@ -208,24 +211,58 @@ GO
 -- ============================================================
 -- USERS
 INSERT INTO Users (Email, Phone, GoogleID, PasswordHash, TwoFactorSecret, DisplayName, IsActive, Meta)
-VALUES
-('owner@liteflow.vn', '0901000001', 'google-oauth2|1234567890', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', '2FA1', N'Nguyễn Văn A - Owner', 1, N'{"role":"Owner"}'),
-('cashier1@liteflow.vn', '0901000002', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Trần Thị B - Cashier', 1, N'{"role":"Cashier"}'),
-('inventory@liteflow.vn', '0901000003', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', '2FA3', N'Lê Văn C - Inventory', 1, N'{"role":"Inventory Manager"}'),
-('procurement@liteflow.vn', '0901000004', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Phạm Thị D - Procurement', 1, N'{"role":"Procurement Officer"}'),
-('hr@liteflow.vn', '0901000005', 'google-oauth2|987654321', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', '2FA5', N'Hoàng Văn E - HR', 1, N'{"role":"HR Officer"}'),
-('employee1@liteflow.vn', '0901000006', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Đỗ Thị F - Staff', 1, N'{"role":"Employee"}');
+SELECT 'owner@liteflow.vn', '0901000001', 'google-oauth2|1234567890', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', '2FA1', N'Nguyễn Văn A - Owner', 1, N'{"role":"Owner"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'owner@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, GoogleID, PasswordHash, TwoFactorSecret, DisplayName, IsActive, Meta)
+SELECT 'cashier1@liteflow.vn', '0901000002', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Trần Thị B - Cashier', 1, N'{"role":"Cashier"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'cashier1@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, GoogleID, PasswordHash, TwoFactorSecret, DisplayName, IsActive, Meta)
+SELECT 'inventory@liteflow.vn', '0901000003', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', '2FA3', N'Lê Văn C - Inventory', 1, N'{"role":"Inventory Manager"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'inventory@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, GoogleID, PasswordHash, TwoFactorSecret, DisplayName, IsActive, Meta)
+SELECT 'procurement@liteflow.vn', '0901000004', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Phạm Thị D - Procurement', 1, N'{"role":"Procurement Officer"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'procurement@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, GoogleID, PasswordHash, TwoFactorSecret, DisplayName, IsActive, Meta)
+SELECT 'hr@liteflow.vn', '0901000005', 'google-oauth2|987654321', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', '2FA5', N'Hoàng Văn E - HR', 1, N'{"role":"HR Officer"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'hr@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, GoogleID, PasswordHash, TwoFactorSecret, DisplayName, IsActive, Meta)
+SELECT 'employee1@liteflow.vn', '0901000006', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Đỗ Thị F - Staff', 1, N'{"role":"Employee"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'employee1@liteflow.vn');
 GO
 
 -- ROLES
-INSERT INTO Roles (Name, Description) VALUES
-('Owner', 'System owner/manager'),
-('Cashier', 'Point of Sale operator'),
-('Inventory Manager', 'Manage stock and products'),
-('Procurement Officer', 'Manage purchase orders and suppliers'),
-('HR Officer', 'Handle HR and payroll'),
-('Employee', 'General staff'),
-('Admin', 'Administrator with full access');
+INSERT INTO Roles (Name, Description) 
+SELECT 'Owner', 'System owner/manager'
+WHERE NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Owner');
+
+INSERT INTO Roles (Name, Description) 
+SELECT 'Cashier', 'Point of Sale operator'
+WHERE NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Cashier');
+
+INSERT INTO Roles (Name, Description) 
+SELECT 'Inventory Manager', 'Manage stock and products'
+WHERE NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Inventory Manager');
+
+INSERT INTO Roles (Name, Description) 
+SELECT 'Procurement Officer', 'Manage purchase orders and suppliers'
+WHERE NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Procurement Officer');
+
+INSERT INTO Roles (Name, Description) 
+SELECT 'HR Officer', 'Handle HR and payroll'
+WHERE NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'HR Officer');
+
+INSERT INTO Roles (Name, Description) 
+SELECT 'Employee', 'General staff'
+WHERE NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Employee');
+
+INSERT INTO Roles (Name, Description) 
+SELECT 'Admin', 'Administrator with full access'
+WHERE NOT EXISTS (SELECT 1 FROM Roles WHERE Name = 'Admin');
 GO
 
 -- USERROLES
@@ -374,7 +411,8 @@ SELECT
     '0011223344',
     N'Vietcombank - CN TP.HCM',
     N'Người sáng lập và quản lý chính'
-FROM Users u WHERE u.Email = 'owner@liteflow.vn';
+FROM Users u WHERE u.Email = 'owner@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP001');
 
 
 INSERT INTO Employees 
@@ -398,7 +436,8 @@ SELECT
     '1234567890',
     N'Techcombank - CN Sài Gòn',
     N'Phụ trách thu ngân và POS'
-FROM Users u WHERE u.Email = 'cashier1@liteflow.vn';
+FROM Users u WHERE u.Email = 'cashier1@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP002');
 
 INSERT INTO Employees 
 (UserID, EmployeeCode, FullName, Gender, BirthDate, NationalID, Phone, Email, Address, AvatarURL, 
@@ -421,7 +460,8 @@ SELECT
     '222333444',
     N'ACB - CN Nam Sài Gòn',
     N'Kiểm soát nhập, xuất và tồn kho'
-FROM Users u WHERE u.Email = 'inventory@liteflow.vn';
+FROM Users u WHERE u.Email = 'inventory@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP003');
 
 INSERT INTO Employees 
 (UserID, EmployeeCode, FullName, Gender, BirthDate, NationalID, Phone, Email, Address, AvatarURL, 
@@ -444,7 +484,8 @@ SELECT
     '5566778899',
     N'Sacombank - CN Quận 5',
     N'Tạm nghỉ phép 2 tuần do lý do cá nhân'
-FROM Users u WHERE u.Email = 'procurement@liteflow.vn';
+FROM Users u WHERE u.Email = 'procurement@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP004');
 
 INSERT INTO Employees 
 (UserID, EmployeeCode, FullName, Gender, BirthDate, NationalID, Phone, Email, Address, AvatarURL, 
@@ -467,7 +508,8 @@ SELECT
     '4455667788',
     N'Vietinbank - CN Bình Thạnh',
     N'Phụ trách chấm công, lương thưởng và tuyển dụng'
-FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+FROM Users u WHERE u.Email = 'hr@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP005');
 
 INSERT INTO Employees 
 (UserID, EmployeeCode, FullName, Gender, BirthDate, NationalID, Phone, Email, Address, AvatarURL, 
@@ -490,7 +532,8 @@ SELECT
     '6677889900',
     N'MB Bank - CN Quận 3',
     N'Pha chế đồ uống, hỗ trợ khách hàng tại quầy'
-FROM Users u WHERE u.Email = 'employee1@liteflow.vn';
+FROM Users u WHERE u.Email = 'employee1@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP006');
 GO
 
 -- ============================================================
@@ -1273,11 +1316,13 @@ GO
 -- Create sample Pay Policies
 INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
 SELECT N'Chính sách chuẩn VN', N'Mặc định cho nhân viên toàn thời gian', 1.5, 1.2, 1.5, 2.0, 15, 'VND', 1, u.UserID
-FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+FROM Users u WHERE u.Email = 'hr@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM PayPolicies WHERE Name = N'Chính sách chuẩn VN');
 
 INSERT INTO PayPolicies (Name, Description, OvertimeMultiplier, NightShiftMultiplier, WeekendMultiplier, HolidayMultiplier, MinBreakMinutes, Currency, IsActive, CreatedBy)
 SELECT N'Chính sách tăng cuối tuần', N'Tăng lương giờ cho cuối tuần', 1.5, 1.2, 1.75, 2.0, 15, 'VND', 1, u.UserID
-FROM Users u WHERE u.Email = 'hr@liteflow.vn';
+FROM Users u WHERE u.Email = 'hr@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM PayPolicies WHERE Name = N'Chính sách tăng cuối tuần');
 GO
 
 -- Per-employee compensation configurations
@@ -1344,11 +1389,16 @@ GO
 
 -- Holidays and exchange rates
 INSERT INTO HolidayCalendar (HolidayDate, Name, Region, DayType, IsPaidHoliday)
-VALUES ('2025-09-02', N'Quốc khánh Việt Nam', 'VN', 'Public', 1);
+SELECT '2025-09-02', N'Quốc khánh Việt Nam', 'VN', 'Public', 1
+WHERE NOT EXISTS (SELECT 1 FROM HolidayCalendar WHERE HolidayDate = '2025-09-02' AND Region = 'VN');
 
 INSERT INTO ExchangeRates (Currency, RateToVND, RateDate, Source)
-VALUES ('USD', 24800.000000, CAST(SYSDATETIME() AS DATE), N'Static Sample'),
-       ('VND', 1.000000, CAST(SYSDATETIME() AS DATE), N'Parity');
+SELECT 'USD', 24800.000000, CAST(SYSDATETIME() AS DATE), N'Static Sample'
+WHERE NOT EXISTS (SELECT 1 FROM ExchangeRates WHERE Currency = 'USD' AND RateDate = CAST(SYSDATETIME() AS DATE));
+
+INSERT INTO ExchangeRates (Currency, RateToVND, RateDate, Source)
+SELECT 'VND', 1.000000, CAST(SYSDATETIME() AS DATE), N'Parity'
+WHERE NOT EXISTS (SELECT 1 FROM ExchangeRates WHERE Currency = 'VND' AND RateDate = CAST(SYSDATETIME() AS DATE));
 GO
 
 -- Pay period for current month and a payroll run
