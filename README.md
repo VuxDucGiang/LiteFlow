@@ -1,289 +1,433 @@
-# 🧪 AI-Assisted Unit Testing Project – Cashier System Feature
+# 🚀 LiteFlow - Enterprise Resource Planning System
 
-## 📍 Overview
-This project demonstrates how AI (ChatGPT/Cursor) was used to **analyze, design, and implement unit tests** for the `Cashier System` feature in LiteFlow - a Java-based restaurant management application.  
-The goal is to achieve high-quality, maintainable, and well-documented tests with **≥85% code coverage**, following clean testing conventions and AI-assisted workflow. The Cashier System is a critical POS (Point of Sale) component handling table management, menu selection, order creation, kitchen notifications, and payment processing.
+**A comprehensive ERP solution for restaurant and hospitality management with advanced POS, inventory control, and workforce management capabilities.**
+
+---
+
+## 📘 Overview
+
+**LiteFlow** is a full-featured Enterprise Resource Planning (ERP) system specifically designed for the restaurant and hospitality industry. Built with modern Java technologies and enterprise-grade security, LiteFlow streamlines operations across multiple business domains including point-of-sale transactions, kitchen operations, inventory tracking, employee scheduling, and procurement management.
+
+The system addresses critical pain points in restaurant management by providing:
+- **Real-time order processing** with kitchen integration
+- **Intelligent inventory tracking** with automated stock alerts
+- **Workforce management** with attendance and scheduling
+- **Secure multi-role access control** with 2FA authentication
+- **Procurement automation** with supplier and invoice management
+
+**Key Concept:** Unified platform that integrates front-of-house operations (POS, table management) with back-office functions (inventory, procurement, HR) to optimize efficiency and reduce operational costs.
 
 ---
 
 ## ⚙️ Tech Stack
-| Component | Description |
-|------------|-------------|
-| **Language** | Java 11 |
-| **Framework** | JSP + Servlets + JSTL |
-| **Test Framework** | JUnit 5.8.2 |
-| **Mocking** | Mockito 4.0 |
-| **API Testing** | REST Assured 5.0 |
-| **Coverage Tool** | JaCoCo |
-| **Build Tool** | Maven 3.6+ |
-| **Database** | MySQL 8.0 (Production), H2 (Testing) |
-| **AI Tools Used** | ChatGPT (GPT-4), Cursor AI |
-| **Version Control** | Git & GitHub |
+
+### Backend
+- **Language:** Java 11/16
+- **Framework:** Jakarta EE 11 (Servlets, JSP, JSTL)
+- **ORM:** Hibernate 6.4.4 + JPA
+- **Build Tool:** Maven 3.6+
+- **Application Server:** Apache Tomcat 10+
+
+### Database & Caching
+- **Primary Database:** Microsoft SQL Server
+- **JDBC Driver:** MS SQL Server JDBC 12.6.1
+- **Caching Layer:** Redis (Jedis 5.1.0)
+
+### Security & Authentication
+- **Password Hashing:** BCrypt (jBCrypt 0.4)
+- **JWT Authentication:** JJWT 0.11.5
+- **Two-Factor Authentication:** TOTP (java-otp 0.4.0)
+- **OAuth2:** Google Sign-In Integration
+
+### Additional Libraries
+- **Excel Processing:** Apache POI 5.2.5
+- **Email Service:** Jakarta Mail 2.0.1
+- **JSON Processing:** Jackson Databind 2.17.2
+
+### Testing & Quality Assurance
+- **Testing Framework:** JUnit 5.10.0
+- **Mocking:** Mockito 5.5.0
+- **Assertions:** AssertJ 3.24.2
+- **Code Coverage:** JaCoCo 0.8.10
 
 ---
 
-## 🚀 How to Run the Project
+## 🧠 Key Features
 
-### 🧩 1. Clone & Open
-```bash
-git clone https://github.com/your-username/LiteFlow.git
-cd LiteFlow-master
-```
+### 🔐 Authentication & User Management
+- Multi-role access control (Admin, Manager, Cashier, Kitchen Staff, Employee)
+- Secure login with BCrypt password hashing
+- Two-Factor Authentication (2FA) with TOTP
+- Google OAuth2 integration
+- Password recovery via email OTP
+- Session management with JWT tokens
 
-### 🧪 2. Run Tests
-```bash
-mvn clean test
-```
+### 💰 Point of Sale (POS) System
+- Real-time table/room management with status tracking
+- Interactive menu browsing and order creation
+- Split bill and payment processing
+- Order history and session tracking
+- Kitchen notification integration
 
-✅ All tests should pass successfully (`All tests passed` in console).  
-Expected execution time: **<15 seconds** (includes backend + API tests).
+### 🍳 Kitchen Management
+- Real-time order queue display
+- Order status workflow (Pending → Preparing → Ready → Served)
+- Multi-station order distribution
+- Priority order handling
 
----
+### 📦 Inventory Management
+- Product catalog with variants (size, options)
+- Stock level tracking with low-stock alerts
+- Room/table-based inventory organization
+- Dynamic pricing management
+- Excel import/export functionality
 
-## 📊 3. Generate Coverage Report
-To generate the JaCoCo HTML coverage report:
-```bash
-mvn jacoco:report
-```
+### 👥 Employee & HR Management
+- Employee profile management
+- Attendance tracking system
+- Schedule management and shift planning
+- Payroll calculation (paysheet generation)
+- Role-based access assignment
 
-Then open:
-```
-target/site/jacoco/index.html
-```
+### 🛒 Procurement System
+- Supplier database management
+- Purchase Order (PO) creation and tracking
+- Goods receipt recording
+- Invoice matching and verification
+- Procurement dashboard with analytics
 
-### 🎯 Expected Results
-| Metric | Target | Actual |
-|--------|---------|--------|
-| Line Coverage | ≥85% | 88% |
-| Branch Coverage | ≥80% | 83% |
-| Method Coverage | ≥90% | 92% |
-| Overall | ✅ Achieved High Coverage |
-
-📁 **Report Location:** `/target/site/jacoco/index.html`  
-📸 **Evidence:** See `/reports/screenshots/coverage_pass.png`
-
-### 📦 Components Tested
-- **CashierServlet** - Initial data loading
-- **CreateOrderServlet** - Order creation & kitchen notification
-- **CheckoutServlet** - Payment processing
-- **GetSessionOrdersServlet** - Order retrieval
-- **Frontend JavaScript** - UI logic & API integration
-
----
-
-## 🧱 Test Suite Summary
-
-### ✅ Total Test Cases: 50+
-| Category | Description | Count |
-|-----------|--------------|-------|
-| 🟢 Happy Path | Normal POS workflows & correct outputs | 18 |
-| 🟠 Edge Cases | Boundary conditions, empty states, filters | 15 |
-| 🔴 Error Scenarios | Invalid inputs, null checks, API failures | 12 |
-| 🔵 Integration Tests | End-to-end order workflows | 8 |
-
-### 🧩 Example Test
-```java
-@Test
-@DisplayName("Should create order and update table status when valid data provided")
-void should_createOrder_when_validDataProvided() {
-    // Arrange
-    String tableId = "table1";
-    OrderRequest orderRequest = new OrderRequest(tableId);
-    orderRequest.addItem("variant123", 2, 50000.0, "No onions");
-    
-    when(mockTableDAO.findById(tableId)).thenReturn(createMockTable(tableId, "available"));
-    when(mockOrderDAO.save(any(Order.class))).thenReturn(true);
-
-    // Act
-    OrderResponse response = createOrderServlet.createOrder(orderRequest);
-
-    // Assert
-    assertTrue(response.isSuccess());
-    assertNotNull(response.getOrderId());
-    verify(mockTableDAO).updateStatus(tableId, "occupied");
-}
-```
-💡 *Result:* This ensures orders are created correctly and table status updates automatically.
+### 📊 Dashboard & Analytics
+- Real-time business metrics
+- Sales performance tracking
+- Inventory status overview
+- Employee performance monitoring
 
 ---
 
-## 🤖 AI Prompts Summary
+## 🧩 Project Structure
 
-### 🔹 Prompt Workflow (Analysis → Design → Implementation → Debug)
-1. **S01 – Analysis:** Ask AI to analyze the `Cashier System` (cashier.jsp + servlets) and identify critical components to test.  
-2. **S02 – Design:** Generate comprehensive test plan with 50+ test cases covering backend servlets, API endpoints, and frontend JavaScript functions.  
-3. **S03 – Documentation:** Create detailed testing README with test naming conventions, AAA pattern, and coverage targets.  
-4. **S04 – Implementation:** Write JUnit 5 test code with Mockito for servlets and REST Assured for API testing.  
-5. **S05 – Debug & Refine:** Review coverage report and refine test cases to achieve ≥85% coverage.
-
-### 📋 Key AI Prompts Used
-- "Analyze cashier.jsp and identify all backend servlets and frontend functions to test"
-- "Create comprehensive testing README following JUnit 5 best practices"
-- "Write unit tests for CashierServlet with Mockito mocking"
-- "Generate integration tests for complete order workflow"
-
-🧾 **Full logs:** `/prompts/log.md`  
-📸 **Screenshots:** `/prompts/screenshots/`  
-📚 **Testing Guide:** `CASHIER_TESTING_README.md`
-
----
-
-## 📂 Project Structure
 ```
 LiteFlow-master/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/liteflow/
-│   │   │   ├── controller/
-│   │   │   │   ├── CashierServlet.java
-│   │   │   │   ├── CreateOrderServlet.java
-│   │   │   │   ├── CheckoutServlet.java
-│   │   │   │   └── GetSessionOrdersServlet.java
-│   │   │   ├── dao/
-│   │   │   │   ├── TableDAO.java
-│   │   │   │   ├── OrderDAO.java
-│   │   │   │   └── ProductVariantDAO.java
-│   │   │   └── model/
-│   │   │       ├── Order.java
-│   │   │       ├── Table.java
-│   │   │       └── MenuItem.java
+│   │   │   ├── controller/          # Servlets (CashierServlet, CreateOrderServlet, etc.)
+│   │   │   ├── dao/                 # Data Access Objects
+│   │   │   ├── model/               # Entity models (User, Order, Product, etc.)
+│   │   │   ├── service/             # Business logic layer
+│   │   │   ├── filter/              # Authentication & authorization filters
+│   │   │   ├── util/                # Helper utilities (PasswordUtil, JWTUtil, etc.)
+│   │   │   └── config/              # Configuration classes
+│   │   ├── resources/
+│   │   │   └── META-INF/
+│   │   │       └── persistence.xml  # JPA configuration
 │   │   └── webapp/
-│   │       ├── cart/
-│   │       │   └── cashier.jsp
-│   │       └── css/
-│   │           └── cashier.css
+│   │       ├── auth/                # Login, signup, OTP pages
+│   │       ├── cart/                # Cashier/POS interface
+│   │       ├── employee/            # Employee management pages
+│   │       ├── inventory/           # Inventory management
+│   │       ├── kitchen/             # Kitchen display system
+│   │       ├── procurement/         # Procurement module
+│   │       ├── css/                 # Stylesheets
+│   │       ├── js/                  # JavaScript files
+│   │       ├── includes/            # Header, footer components
+│   │       └── WEB-INF/
+│   │           └── web.xml          # Servlet configuration
 │   └── test/
-│       └── java/com/liteflow/
-│           ├── controller/
-│           │   ├── CashierServletTest.java
-│           │   ├── CreateOrderServletTest.java
-│           │   ├── CheckoutServletTest.java
-│           │   └── GetSessionOrdersServletTest.java
-│           └── dao/
-│               ├── TableDAOTest.java
-│               └── OrderDAOTest.java
-├── target/site/jacoco/
-├── reports/
-│   ├── junit/
-│   ├── jacoco/
-│   └── screenshots/
-├── prompts/
-│   ├── log.md
-│   └── screenshots/
-├── CASHIER_TESTING_README.md
-└── pom.xml
+│       └── java/com/liteflow/       # Unit & integration tests
+├── database/
+│   ├── liteflow_schema.sql          # Database schema
+│   ├── liteflow_data.sql            # Sample data
+│   ├── PROCUREMENT_SAMPLE_DATA.sql  # Procurement test data
+│   └── Pro_ipdate.sql               # Procurement updates
+├── target/
+│   ├── LiteFlow.war                 # Deployable WAR file
+│   └── site/jacoco/                 # Code coverage reports
+├── prompts/                         # AI-assisted development logs
+├── pom.xml                          # Maven configuration
+└── README.md                        # This file
 ```
 
-🧱 **Highlights**
-- Tests follow **AAA pattern** (Arrange – Act – Assert).  
-- Code adheres to **DRY principle** (no duplication).  
-- Uses `@BeforeEach` for setup and `@AfterEach` for cleanup.  
-- Clear naming convention: `should_[expectedBehavior]_when_[condition]()`.  
-- **Mockito** for mocking HttpServletRequest/Response and DAOs.  
-- **REST Assured** for API endpoint testing.  
-- **H2 in-memory database** for isolated test execution.
+---
+
+## 🚀 How to Run
+
+### Prerequisites
+Before running LiteFlow, ensure you have the following installed:
+- **Java Development Kit (JDK) 11 or higher**
+- **Apache Maven 3.6+**
+- **Microsoft SQL Server** (2019 or later recommended)
+- **Apache Tomcat 10+** (or compatible Jakarta EE server)
+- **Redis Server** (optional, for caching)
+- **Git** (for cloning the repository)
 
 ---
 
-## 🧠 Lessons Learned
-- AI tools are effective when **given structured prompts** with examples and clear output formats.  
-- Using **AI refinement workflow** (analyze → design → document → implement → refine) helped achieve 85%+ coverage efficiently.  
-- **CASHIER_TESTING_README.md** serves as comprehensive blueprint before writing actual tests.  
-- Testing JSP + Servlet architecture requires proper mocking of HttpServletRequest/Response.  
-- Strong naming convention `should_[behavior]_when_[condition]()` significantly improves test readability.  
-- Mockito is essential for isolating servlet logic from database and external dependencies.  
-- REST Assured simplifies API endpoint testing with readable syntax.
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/your-username/LiteFlow.git
+cd LiteFlow-master
+```
 
 ---
 
-## ⚠️ Known Limitations
-- Current test suite focuses on backend servlets and API endpoints.  
-- Frontend JavaScript functions testing requires additional framework (Jest/Jasmine).  
-- Integration tests use H2 in-memory database instead of actual MySQL.  
-- Future improvements:
-  - Add Selenium/WebDriver for full UI testing
-  - Add performance/load testing for concurrent order processing
-  - Add security testing for SQL injection and XSS vulnerabilities
+### Step 2: Set Up the Database
+
+#### 2.1 Create Database
+1. Open **SQL Server Management Studio (SSMS)** or your preferred SQL client
+2. Execute the schema creation script:
+```sql
+-- Run this file to create database structure
+source database/liteflow_schema.sql
+```
+
+#### 2.2 Load Sample Data
+```sql
+-- Load initial data (users, roles, products, etc.)
+source database/liteflow_data.sql
+
+-- [Optional] Load procurement test data
+source database/PROCUREMENT_SAMPLE_DATA.sql
+```
+
+#### 2.3 Update Database Connection
+Edit the file: `src/main/resources/META-INF/persistence.xml`
+
+```xml
+<property name="jakarta.persistence.jdbc.url" 
+          value="jdbc:sqlserver://localhost:1433;databaseName=LiteFlowDBO;encrypt=false"/>
+<property name="jakarta.persistence.jdbc.user" value="YOUR_USERNAME"/>
+<property name="jakarta.persistence.jdbc.password" value="YOUR_PASSWORD"/>
+```
+
+**Note:** Replace `YOUR_USERNAME` and `YOUR_PASSWORD` with your SQL Server credentials.
 
 ---
 
-## 👥 Team & Roles
-| Member | Role | Responsibility |
-|---------|------|----------------|
-| [Your Name] | Lead Developer | Overall architecture & backend servlet tests |
-| [Team Member 1] | QA Engineer | Test design, API testing & coverage validation |
-| [Team Member 2] | AI Specialist | Prompt engineering & documentation |
-| [Team Member 3] | Frontend Developer | JavaScript function testing & integration tests |
-
-*Note: Update with your actual team members*
+### Step 3: Configure Redis (Optional)
+If using Redis for caching:
+1. Install and start Redis server on default port `6379`
+2. No additional configuration needed (Jedis client auto-connects to localhost:6379)
 
 ---
 
-## 🎬 Demo Instructions
-1. **Introduce LiteFlow Cashier System** – 1 min  
-   - Brief overview of POS functionality
-   - Show cashier.jsp interface
-   
-2. **Explain AI-Assisted Testing Workflow** – 2 min  
-   - How AI helped analyze and design tests
-   - Show CASHIER_TESTING_README.md
-   
-3. **Run Tests Live** – 3 min  
-   - Execute: `mvn clean test`
-   - Show test results in console
-   - Highlight 50+ test cases passing
-   
-4. **Show Coverage Report** – 2 min  
-   - Open: `target/site/jacoco/index.html`
-   - Demonstrate 85%+ coverage achieved
-   - Navigate through CashierServlet, CreateOrderServlet
-   
-5. **Walk Through Key Test Cases** – 3 min  
-   - Show 1 servlet unit test (with Mockito)
-   - Show 1 API integration test (with REST Assured)
-   - Explain AAA pattern and naming convention
-   
-6. **Highlight AI Contributions** – 2 min  
-   - Show AI prompts used
-   - Explain refinement iterations
-   
-7. **Wrap Up & Q&A** – 2 min  
+### Step 4: Build the Project
+```bash
+# Clean and compile the project
+mvn clean install
 
-🕒 Total time: **15 minutes** ✅
+# Skip tests during build (optional)
+mvn clean install -DskipTests
+```
+
+**Expected output:**
+```
+[INFO] BUILD SUCCESS
+[INFO] Total time: 45.123 s
+```
+
+The WAR file will be generated at: `target/LiteFlow.war`
 
 ---
 
-## 🏁 Final Results
+### Step 5: Deploy to Tomcat
 
-| Metric | Result |
-|--------|---------|
-| ✅ Tests Passed | 50+ test cases (100% passing) |
-| ✅ Coverage | 88% line, 83% branch, 92% method |
-| ✅ AI Prompts Log | Complete (with screenshots & rationale) |
-| ✅ Test Documentation | Comprehensive CASHIER_TESTING_README.md |
-| ✅ Code Quality | Excellent (AAA pattern, Mockito, DRY principle) |
-| ✅ Naming Convention | Consistent `should_[behavior]_when_[condition]()` |
-| ✅ Demo Readiness | On-time, clear, confident |
-| 🏆 **Overall Evaluation Target:** | **95–100 points (A+)** |
+#### Option A: Manual Deployment
+1. Copy `target/LiteFlow.war` to Tomcat's `webapps/` directory
+2. Start Tomcat:
+```bash
+# Windows
+catalina.bat start
+
+# Linux/Mac
+./catalina.sh start
+```
+
+#### Option B: Maven Tomcat Plugin (Development)
+Add this to your `pom.xml` (if not already present):
+```xml
+<plugin>
+    <groupId>org.apache.tomcat.maven</groupId>
+    <artifactId>tomcat7-maven-plugin</artifactId>
+    <version>2.2</version>
+    <configuration>
+        <url>http://localhost:8080/manager/text</url>
+        <server>TomcatServer</server>
+        <path>/LiteFlow</path>
+    </configuration>
+</plugin>
+```
+
+Then deploy:
+```bash
+mvn tomcat7:deploy
+```
 
 ---
 
-## 📚 Additional Resources
+### Step 6: Access the Application
 
-- **Testing Guide:** [CASHIER_TESTING_README.md](CASHIER_TESTING_README.md) - Comprehensive testing blueprint
-- **JUnit 5 Docs:** [https://junit.org/junit5/docs/current/user-guide/](https://junit.org/junit5/docs/current/user-guide/)
-- **Mockito Docs:** [https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html](https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html)
-- **REST Assured:** [https://rest-assured.io/](https://rest-assured.io/)
+Once Tomcat is running, open your browser and navigate to:
+
+```
+http://localhost:8080/LiteFlow
+```
+
+#### Default Login Credentials
+After loading sample data, use these accounts to test different roles:
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | admin@liteflow.com | Admin123! |
+| **Manager** | manager@liteflow.com | Manager123! |
+| **Cashier** | cashier@liteflow.com | Cashier123! |
+| **Kitchen** | kitchen@liteflow.com | Kitchen123! |
+
+**⚠️ Security Warning:** Change default passwords immediately in production environments!
 
 ---
 
-## 🔗 Quick Links
+### Step 7: Run Tests (Optional)
+```bash
+# Run all unit tests
+mvn test
 
-- 📖 [Testing README](CASHIER_TESTING_README.md)
-- 📊 [Coverage Report](target/site/jacoco/index.html)
-- 📝 [Prompt Logs](prompts/log.md)
-- 🗄️ [Database Schema](liteflow_schema.sql)
+# Generate code coverage report
+mvn jacoco:report
+
+# View coverage report
+open target/site/jacoco/index.html
+```
+
+**Expected Coverage:**
+- Line Coverage: ≥85%
+- Branch Coverage: ≥80%
+- Method Coverage: ≥90%
 
 ---
 
-*© 2025 – LiteFlow AI-Assisted Testing Project, FPT University*
+### Troubleshooting
+
+#### Issue: Database Connection Failed
+**Solution:** Verify SQL Server is running and credentials in `persistence.xml` are correct.
+
+#### Issue: Port 8080 Already in Use
+**Solution:** Change Tomcat port in `conf/server.xml` or kill the process using port 8080.
+
+#### Issue: 404 Error After Deployment
+**Solution:** Ensure WAR file is properly extracted in `webapps/LiteFlow/` directory.
+
+#### Issue: JWT Token Errors
+**Solution:** Check that JWT secret key is properly configured in environment variables or config files.
+
+---
+
+## 🧑‍💻 Contributors
+
+**Development Team - FPT University SWP391 Project (Fall 2025)**
+
+| Member | Student ID | Role | Responsibilities |
+|--------|------------|------|------------------|
+| **[Your Name]** | SE123456 | Project Lead & Backend Developer | System architecture, authentication, core servlets |
+| **[Member 2]** | SE123457 | Frontend Developer | UI/UX design, JSP pages, CSS styling |
+| **[Member 3]** | SE123458 | Database Administrator | Database design, SQL optimization, data migration |
+| **[Member 4]** | SE123459 | QA Engineer | Testing strategy, unit tests, coverage reports |
+| **[Member 5]** | SE123460 | DevOps & Integration | Deployment, CI/CD, documentation |
+
+> **Note:** This is a university project developed as part of the Software Project (SWP391) course at FPT University.
+
+---
+
+## 📞 Contact & Support
+
+- **Project Repository:** [GitHub - LiteFlow](https://github.com/your-username/LiteFlow)
+- **Issues & Bug Reports:** [GitHub Issues](https://github.com/your-username/LiteFlow/issues)
+- **Documentation:** [Wiki](https://github.com/your-username/LiteFlow/wiki)
+- **Email:** liteflow.team@fpt.edu.vn
+
+---
+
+## 🧾 License
+
+**Educational Use Only**
+
+This project is developed by students at **FPT University** as part of the **SWP391 - Software Project** course. All rights are owned by the development team.
+
+### Terms of Use
+- ✅ Free to use for **educational and learning purposes**
+- ✅ Can be modified and extended for **academic projects**
+- ❌ **Not licensed for commercial use** without permission
+- ❌ **Not for redistribution** as a standalone product
+
+For commercial licensing inquiries, please contact the development team.
+
+---
+
+## 🙏 Acknowledgments
+
+- **FPT University** - For providing the learning environment and resources
+- **Instructor Team** - For guidance and support throughout the project
+- **Open Source Community** - For the amazing libraries and tools used in this project
+- **Stack Overflow & GitHub** - For countless solutions and inspirations
+
+---
+
+## 📚 Additional Documentation
+
+- 📖 [API Documentation](docs/API.md)
+- 🧪 [Testing Guide](prompts/CASHIER_TESTING_README.md)
+- 🗄️ [Database Schema](database/liteflow_schema.sql)
+- 📝 [Development Logs](prompts/log.md)
+- 🎨 [UI/UX Guidelines](docs/UI_GUIDELINES.md)
+
+---
+
+## 🔄 Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| **1.0.0** | October 2025 | Initial release with core ERP modules |
+| **0.9.0** | September 2025 | Beta release with procurement module |
+| **0.8.0** | August 2025 | Alpha release with POS and inventory |
+
+---
+
+## 🌟 Features Roadmap
+
+### ✅ Completed
+- User authentication with 2FA
+- POS system with table management
+- Kitchen display system
+- Basic inventory management
+- Employee management
+- Procurement module
+
+### 🚧 In Progress
+- Advanced analytics dashboard
+- Mobile responsive design
+- REST API for mobile app integration
+
+### 📋 Planned
+- Multi-language support (English, Vietnamese)
+- Cloud deployment (AWS/Azure)
+- Mobile application (iOS/Android)
+- Advanced reporting with PDF export
+- Integration with payment gateways
+- Customer loyalty program
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the LiteFlow Team**
+
+⭐ Star this repository if you find it helpful!
+
+[Report Bug](https://github.com/your-username/LiteFlow/issues) · [Request Feature](https://github.com/your-username/LiteFlow/issues) · [Documentation](https://github.com/your-username/LiteFlow/wiki)
+
+---
+
+*© 2025 LiteFlow Development Team - FPT University*
+
+</div>
+
