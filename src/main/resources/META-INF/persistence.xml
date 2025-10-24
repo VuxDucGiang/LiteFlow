@@ -39,6 +39,7 @@
     <class>com.liteflow.model.timesheet.EmployeeAttendance</class>
     <!-- Procurement entities -->
     <class>com.liteflow.model.procurement.Supplier</class>
+    <class>com.liteflow.model.procurement.SupplierSLA</class>
     <class>com.liteflow.model.procurement.PurchaseOrder</class>
     <class>com.liteflow.model.procurement.PurchaseOrderItem</class>
     <class>com.liteflow.model.procurement.GoodsReceipt</class>

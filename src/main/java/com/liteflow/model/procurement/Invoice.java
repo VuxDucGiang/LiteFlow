@@ -35,6 +35,15 @@ public class Invoice {
     @Column(name = "MatchNote")
     private String matchNote;
 
+    @Column(name = "MatchStatus")
+    private String matchStatus = "PENDING";  // PENDING | MATCHED | MISMATCHED | PARTIAL_MATCH
+
+    @Column(name = "MatchedBy", columnDefinition = "uniqueidentifier")
+    private UUID matchedBy;
+
+    @Column(name = "MatchedAt")
+    private LocalDateTime matchedAt;
+
     // Getters & Setters
     public UUID getInvoiceID() { return invoiceID; }
     public void setInvoiceID(UUID invoiceID) { this.invoiceID = invoiceID; }
@@ -50,4 +59,13 @@ public class Invoice {
     public void setMatched(Boolean matched) { this.matched = matched; }
     public String getMatchNote() { return matchNote; }
     public void setMatchNote(String matchNote) { this.matchNote = matchNote; }
+    
+    public String getMatchStatus() { return matchStatus; }
+    public void setMatchStatus(String matchStatus) { this.matchStatus = matchStatus; }
+    
+    public UUID getMatchedBy() { return matchedBy; }
+    public void setMatchedBy(UUID matchedBy) { this.matchedBy = matchedBy; }
+    
+    public LocalDateTime getMatchedAt() { return matchedAt; }
+    public void setMatchedAt(LocalDateTime matchedAt) { this.matchedAt = matchedAt; }
 }

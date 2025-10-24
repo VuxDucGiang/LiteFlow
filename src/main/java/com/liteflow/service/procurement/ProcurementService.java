@@ -17,7 +17,10 @@ public class ProcurementService {
     private final PurchaseOrderDAO poDAO = new PurchaseOrderDAO();
     private final PurchaseOrderItemDAO itemDAO = new PurchaseOrderItemDAO();
     private final GoodsReceiptDAO grDAO = new GoodsReceiptDAO();
+    private final GoodsReceiptItemDAO grItemDAO = new GoodsReceiptItemDAO();
     private final InvoiceDAO invDAO = new InvoiceDAO();
+    private final InvoiceItemDAO invItemDAO = new InvoiceItemDAO();
+    private final InvoiceMatchingService matchingService = new InvoiceMatchingService();
 
     /* ============================================================
        1. QUẢN LÝ NHÀ CUNG CẤP & SLA
@@ -78,6 +81,11 @@ public class ProcurementService {
 
     public List<PurchaseOrder> getAllPOs() { return poDAO.getAll(); }
     
+    public List<PurchaseOrderItem> getPOItems(UUID poid) {
+        // Use DAO's optimized query instead of filtering getAll()
+        return itemDAO.findByPOID(poid);
+    }
+    
     public List<PurchaseOrder> getPOsPendingApproval() {
         return poDAO.getAll().stream()
                 .filter(po -> "PENDING".equals(po.getStatus()))
@@ -124,26 +132,128 @@ public class ProcurementService {
     }
 
     /* ============================================================
-       5. ĐỐI CHIẾU HÓA ĐƠN NHÀ CUNG CẤP
+       5. ĐỐI CHIẾU HÓA ĐƠN NHÀ CUNG CẤP (3-WAY MATCHING)
     ============================================================ */
-    public UUID matchInvoice(UUID poid, UUID supplierID, double invoiceAmount) {
+    
+    /**
+     * DTO for Invoice Items
+     */
+    public static class InvoiceItemDTO {
+        public String productName;
+        public int quantity;
+        public double unitPrice;
+    }
+    
+    /**
+     * Create invoice from PO with actual invoice items and perform 3-way matching
+     * @param poid Purchase Order ID
+     * @param supplierID Supplier ID
+     * @param invoiceNumber Invoice number from supplier
+     * @param invoiceDate Invoice date
+     * @param invoiceItems Actual items from supplier invoice
+     * @return Created invoice ID
+     */
+    public UUID matchInvoice(UUID poid, UUID supplierID, String invoiceNumber, 
+                            LocalDateTime invoiceDate, List<InvoiceItemDTO> invoiceItems) {
         PurchaseOrder po = poDAO.findById(poid);
         if (po == null) return null;
+        
+        // Calculate total from actual invoice items
+        double totalAmount = 0;
+        for (InvoiceItemDTO item : invoiceItems) {
+            totalAmount += item.quantity * item.unitPrice;
+        }
+        
+        // Create invoice with actual data
         Invoice inv = new Invoice();
         inv.setPoid(poid);
         inv.setSupplierID(supplierID);
-        inv.setTotalAmount(invoiceAmount);
-        double poTotal = po.getTotalAmount();
-        boolean matched = invoiceAmount <= poTotal;
-        inv.setMatched(matched);
-        inv.setMatchNote(matched ? "OK" : "Overpriced");
+        inv.setTotalAmount(totalAmount);
+        inv.setInvoiceDate(invoiceDate != null ? invoiceDate : LocalDateTime.now());
+        inv.setMatchStatus("PENDING");
         invDAO.insert(inv);
-
-        if (matched) {
+        
+        // Get PO items to find matching poItemID
+        List<PurchaseOrderItem> poItems = itemDAO.findByPOID(poid);
+        Map<String, Integer> poItemMap = new HashMap<>();
+        for (PurchaseOrderItem poItem : poItems) {
+            poItemMap.put(poItem.getItemName().toLowerCase().trim(), poItem.getItemID());
+        }
+        
+        // Create invoice items from ACTUAL invoice data (not copied from PO)
+        for (InvoiceItemDTO itemDTO : invoiceItems) {
+            InvoiceItem invItem = new InvoiceItem();
+            invItem.setInvoiceID(inv.getInvoiceID());
+            invItem.setProductName(itemDTO.productName);
+            invItem.setQuantity(itemDTO.quantity);
+            invItem.setUnitPrice(itemDTO.unitPrice);
+            
+            // Try to match with PO item by name
+            String itemKey = itemDTO.productName.toLowerCase().trim();
+            if (poItemMap.containsKey(itemKey)) {
+                invItem.setPoItemID(poItemMap.get(itemKey));
+            }
+            
+            invItemDAO.insert(invItem);
+        }
+        
+        // Perform 3-way matching (now comparing actual invoice items vs PO items)
+        InvoiceMatchingService.MatchingResult result = matchingService.performThreeWayMatch(inv.getInvoiceID());
+        
+        // Update PO status if matched
+        if (result.matched) {
             po.setStatus("COMPLETED");
             poDAO.update(po);
         }
+        
         return inv.getInvoiceID();
+    }
+    
+    /**
+     * Legacy method - kept for backward compatibility
+     * @deprecated Use matchInvoice with items instead
+     */
+    @Deprecated
+    public UUID matchInvoice(UUID poid, UUID supplierID, double invoiceAmount) {
+        // Create dummy items from PO for backward compatibility
+        List<PurchaseOrderItem> poItems = itemDAO.findByPOID(poid);
+        List<InvoiceItemDTO> items = new ArrayList<>();
+        for (PurchaseOrderItem poItem : poItems) {
+            InvoiceItemDTO dto = new InvoiceItemDTO();
+            dto.productName = poItem.getItemName();
+            dto.quantity = poItem.getQuantity();
+            dto.unitPrice = poItem.getUnitPrice();
+            items.add(dto);
+        }
+        return matchInvoice(poid, supplierID, null, LocalDateTime.now(), items);
+    }
+    
+    /**
+     * Perform 3-way matching on existing invoice
+     */
+    public InvoiceMatchingService.MatchingResult performMatching(UUID invoiceID) {
+        return matchingService.performThreeWayMatch(invoiceID);
+    }
+    
+    /**
+     * Auto-approve invoice if within tolerance
+     */
+    public boolean autoApproveInvoice(UUID invoiceID, UUID approvedBy) {
+        return matchingService.autoApproveIfEligible(invoiceID, approvedBy);
+    }
+
+    /**
+     * Create manual invoice (without PO)
+     */
+    public UUID createManualInvoice(Invoice invoice) {
+        if (invoice.getInvoiceID() == null) {
+            invoice.setInvoiceID(UUID.randomUUID());
+        }
+        if (invoice.getInvoiceDate() == null) {
+            invoice.setInvoiceDate(LocalDateTime.now());
+        }
+        invDAO.insert(invoice);
+        return invoice.getInvoiceID();
     }
 
     /* ============================================================
@@ -290,5 +400,97 @@ public class ProcurementService {
         }
         
         return report;
+    }
+    
+    /* ============================================================
+       8. INVOICE MANAGEMENT (Quản lý hóa đơn)
+    ============================================================ */
+    
+    /**
+     * Lấy tất cả invoices
+     */
+    public List<Invoice> getAllInvoices() {
+        return invDAO.getAll();
+    }
+    
+    /**
+     * Lấy invoice theo ID
+     */
+    public Invoice getInvoiceById(UUID invoiceID) {
+        return invDAO.findById(invoiceID);
+    }
+    
+    /**
+     * Lấy invoices theo PO
+     */
+    public List<Invoice> getInvoicesByPO(UUID poid) {
+        return invDAO.getAll().stream()
+                .filter(inv -> inv.getPoid() != null && inv.getPoid().equals(poid))
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * Lấy invoices theo supplier
+     */
+    public List<Invoice> getInvoicesBySupplier(UUID supplierID) {
+        return invDAO.getAll().stream()
+                .filter(inv -> inv.getSupplierID() != null && inv.getSupplierID().equals(supplierID))
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * Lấy invoices chưa khớp
+     */
+    public List<Invoice> getUnmatchedInvoices() {
+        return invDAO.getAll().stream()
+                .filter(inv -> inv.getMatched() != null && !inv.getMatched())
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * Resolve invoice discrepancy
+     */
+    public boolean resolveInvoiceDiscrepancy(UUID invoiceID, String note) {
+        Invoice invoice = invDAO.findById(invoiceID);
+        if (invoice == null) return false;
+        
+        invoice.setMatched(true);
+        invoice.setMatchNote(note);
+        return invDAO.update(invoice);
+    }
+    
+    /**
+     * Update invoice
+     */
+    public boolean updateInvoice(Invoice invoice) {
+        return invDAO.update(invoice);
+    }
+    
+    /**
+     * Delete invoice
+     */
+    public boolean deleteInvoice(UUID invoiceID) {
+        return invDAO.delete(invoiceID);
+    }
+    
+    /**
+     * Get total invoice amount by supplier
+     */
+    public double getTotalInvoiceAmountBySupplier(UUID supplierID) {
+        return invDAO.getAll().stream()
+                .filter(inv -> inv.getSupplierID() != null && inv.getSupplierID().equals(supplierID))
+                .mapToDouble(inv -> inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0)
+                .sum();
+    }
+    
+    /**
+     * Get invoices by date range
+     */
+    public List<Invoice> getInvoicesByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return invDAO.getAll().stream()
+                .filter(inv -> inv.getInvoiceDate() != null && 
+                              !inv.getInvoiceDate().isBefore(startDate) && 
+                              !inv.getInvoiceDate().isAfter(endDate))
+                .collect(java.util.stream.Collectors.toList());
     }
 }

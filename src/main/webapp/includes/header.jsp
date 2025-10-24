@@ -189,12 +189,28 @@
         <a href="${pageContext.request.contextPath}/roomtable" class="nav-item ${param.page == 'rooms' ? 'active' : ''}">
           <i class='bx bx-store'></i> Phòng/Bàn
         </a>
-        <a href="#" class="nav-item">
-          <i class='bx bx-receipt'></i> Giao dịch
-        </a>
-        <a href="#" class="nav-item">
-          <i class='bx bx-group'></i> Đối tác
-        </a>
+        <div class="nav-item dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class='bx bx-receipt'></i> Giao dịch
+            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+          </a>
+          <div class="dropdown-menu">
+            <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
+              <i class='bx bx-file-blank'></i> Hóa đơn nhập hàng
+            </a>
+          </div>
+        </div>
+        <div class="nav-item dropdown">
+          <a href="#" class="nav-link dropdown-toggle">
+            <i class='bx bx-group'></i> Đối tác
+            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+          </a>
+          <div class="dropdown-menu">
+            <a href="${pageContext.request.contextPath}/procurement/supplier" class="dropdown-item">
+              <i class='bx bx-store'></i> Nhà cung cấp
+            </a>
+          </div>
+        </div>
         <div class="nav-item dropdown">
           <a href="#" class="nav-link dropdown-toggle">
             <i class='bx bx-user'></i> Nhân viên
@@ -227,17 +243,11 @@
             <a href="${pageContext.request.contextPath}/procurement/dashboard" class="dropdown-item">
               <i class='bx bxs-dashboard'></i> Tổng quan
             </a>
-            <a href="${pageContext.request.contextPath}/procurement/supplier" class="dropdown-item">
-              <i class='bx bx-store'></i> Nhà cung cấp
-            </a>
             <a href="${pageContext.request.contextPath}/procurement/po" class="dropdown-item">
               <i class='bx bx-receipt'></i> Đơn đặt hàng
             </a>
             <a href="${pageContext.request.contextPath}/procurement/gr" class="dropdown-item">
               <i class='bx bx-package'></i> Nhận hàng
-            </a>
-            <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
-              <i class='bx bx-file'></i> Hóa đơn
             </a>
           </div>
         </div>

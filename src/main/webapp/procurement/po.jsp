@@ -325,26 +325,29 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 10000;
             left: 0;
             top: 0;
             width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
+            height: 100vh;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         
         .modal-content {
             background-color: white;
-            margin: 5% auto;
+            margin: 80px auto 20px auto;
             padding: 0;
             border-radius: 15px;
             width: 90%;
             max-width: 800px;
-            max-height: 90vh;
+            max-height: calc(100vh - 80px);
             overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             animation: modalSlideIn 0.3s ease;
+            position: relative;
         }
         
         @keyframes modalSlideIn {
@@ -919,11 +922,37 @@
         }
 
         function openCreateModal() {
-            document.getElementById('createModal').style.display = 'block';
+            const modal = document.getElementById('createModal');
+            const mainNav = document.querySelector('.main-nav');
+            const body = document.body;
+            
+            // Show modal
+            modal.style.display = 'block';
+            
+            // Hide main-nav
+            if (mainNav) {
+                mainNav.style.display = 'none';
+            }
+            
+            // Lock body scroll
+            body.style.overflow = 'hidden';
         }
 
         function closeModal() {
-            document.getElementById('createModal').style.display = 'none';
+            const modal = document.getElementById('createModal');
+            const mainNav = document.querySelector('.main-nav');
+            const body = document.body;
+            
+            // Hide modal
+            modal.style.display = 'none';
+            
+            // Show main-nav again
+            if (mainNav) {
+                mainNav.style.display = 'flex';
+            }
+            
+            // Unlock body scroll
+            body.style.overflow = 'auto';
         }
 
         function exportPOs() {
@@ -1015,7 +1044,22 @@
         }
 
         function closeModal() {
-            document.getElementById('createModal').style.display = 'none';
+            const modal = document.getElementById('createModal');
+            const mainNav = document.querySelector('.main-nav');
+            const body = document.body;
+            
+            // Hide modal
+            modal.style.display = 'none';
+            
+            // Show main-nav again
+            if (mainNav) {
+                mainNav.style.display = 'flex';
+            }
+            
+            // Unlock body scroll
+            body.style.overflow = 'auto';
+            
+            // Reset form
             resetForm();
         }
 
