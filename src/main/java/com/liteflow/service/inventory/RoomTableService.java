@@ -52,8 +52,8 @@ public class RoomTableService {
             System.out.println("Room TableCount: " + room.getTableCount());
             System.out.println("Room TotalCapacity: " + room.getTotalCapacity());
             
-            // Set created date
-            room.setCreatedAt(java.time.LocalDateTime.now());
+            // Ngày tạo sẽ được tự động thiết lập trong @PrePersist
+            // Không cần thiết lập thủ công ở đây
             
             System.out.println("Calling roomDAO.insert...");
             boolean result = roomDAO.insert(room);
@@ -124,32 +124,100 @@ public class RoomTableService {
             System.out.println("=== DEBUG: deleteAllRelatedData ===");
             System.out.println("Room ID: " + roomId);
             
-            // Get all tables in this room
-            List<Table> tablesInRoom = tableDAO.findByRoomId(roomId);
-            System.out.println("Found " + (tablesInRoom != null ? tablesInRoom.size() : 0) + " tables in room");
+            EntityManager em = emf.createEntityManager();
+            var tx = em.getTransaction();
             
-            if (tablesInRoom != null && !tablesInRoom.isEmpty()) {
-                for (Table table : tablesInRoom) {
-                    System.out.println("Deleting table: " + table.getTableId());
-                    
-                    // Force load table sessions to avoid lazy loading issues
-                    try {
-                        table.getTableSessions().size(); // This will trigger lazy loading
-                        System.out.println("Table has " + table.getTableSessions().size() + " sessions");
-                    } catch (Exception e) {
-                        System.out.println("Could not load table sessions: " + e.getMessage());
-                    }
-                    
-                    // Delete the table (cascade should handle the rest)
-                    boolean tableDeleted = tableDAO.delete(table.getTableId());
-                    System.out.println("Table deletion result: " + tableDeleted);
+            try {
+                tx.begin();
+                
+                // Step 1: Delete PaymentTransactions for all tables in this room
+                try {
+                    System.out.println("Step 1: Deleting PaymentTransactions...");
+                    int deletedPayments = em.createNativeQuery(
+                        "DELETE FROM PaymentTransactions WHERE SessionID IN (" +
+                        "SELECT ts.SessionID FROM TableSessions ts " +
+                        "INNER JOIN Tables t ON ts.TableID = t.TableID " +
+                        "WHERE t.RoomID = ?)", 
+                        Integer.class
+                    ).setParameter(1, roomId).executeUpdate();
+                    System.out.println("Deleted " + deletedPayments + " payment transactions");
+                } catch (Exception e) {
+                    System.out.println("Step 1 failed (continuing): " + e.getMessage());
                 }
+                
+                // Step 2: Delete OrderDetails for all tables in this room
+                try {
+                    System.out.println("Step 2: Deleting OrderDetails...");
+                    int deletedOrderDetails = em.createNativeQuery(
+                        "DELETE FROM OrderDetails WHERE OrderID IN (" +
+                        "SELECT o.OrderID FROM Orders o " +
+                        "INNER JOIN TableSessions ts ON o.SessionID = ts.SessionID " +
+                        "INNER JOIN Tables t ON ts.TableID = t.TableID " +
+                        "WHERE t.RoomID = ?)", 
+                        Integer.class
+                    ).setParameter(1, roomId).executeUpdate();
+                    System.out.println("Deleted " + deletedOrderDetails + " order details");
+                } catch (Exception e) {
+                    System.out.println("Step 2 failed (continuing): " + e.getMessage());
+                }
+                
+                // Step 3: Delete Orders for all tables in this room
+                try {
+                    System.out.println("Step 3: Deleting Orders...");
+                    int deletedOrders = em.createNativeQuery(
+                        "DELETE FROM Orders WHERE SessionID IN (" +
+                        "SELECT ts.SessionID FROM TableSessions ts " +
+                        "INNER JOIN Tables t ON ts.TableID = t.TableID " +
+                        "WHERE t.RoomID = ?)", 
+                        Integer.class
+                    ).setParameter(1, roomId).executeUpdate();
+                    System.out.println("Deleted " + deletedOrders + " orders");
+                } catch (Exception e) {
+                    System.out.println("Step 3 failed (continuing): " + e.getMessage());
+                }
+                
+                // Step 4: Delete TableSessions for all tables in this room
+                try {
+                    System.out.println("Step 4: Deleting TableSessions...");
+                    int deletedSessions = em.createNativeQuery(
+                        "DELETE FROM TableSessions WHERE TableID IN (" +
+                        "SELECT TableID FROM Tables WHERE RoomID = ?)", 
+                        Integer.class
+                    ).setParameter(1, roomId).executeUpdate();
+                    System.out.println("Deleted " + deletedSessions + " table sessions");
+                } catch (Exception e) {
+                    System.out.println("Step 4 failed (continuing): " + e.getMessage());
+                }
+                
+                // Step 5: Delete all tables in this room
+                try {
+                    System.out.println("Step 5: Deleting Tables...");
+                    int deletedTables = em.createNativeQuery(
+                        "DELETE FROM Tables WHERE RoomID = ?", 
+                        Integer.class
+                    ).setParameter(1, roomId).executeUpdate();
+                    System.out.println("Deleted " + deletedTables + " tables");
+                } catch (Exception e) {
+                    System.out.println("Step 5 failed (continuing): " + e.getMessage());
+                }
+                
+                tx.commit();
+                System.out.println("All room related data deleted successfully");
+                return true;
+                
+            } catch (Exception e) {
+                System.err.println("❌ Error deleting room related data: " + e.getMessage());
+                e.printStackTrace();
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                return false;
+            } finally {
+                em.close();
             }
             
-            System.out.println("All related data deleted successfully");
-            return true;
         } catch (Exception e) {
-            System.err.println("❌ Error deleting related data: " + e.getMessage());
+            System.err.println("❌ Error deleting room related data: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -188,12 +256,8 @@ public class RoomTableService {
     
     public boolean addTable(Table table) {
         try {
-            // Set created date
-            table.setCreatedAt(new java.util.Date());
-            // Set default status if not set
-            if (table.getStatus() == null || table.getStatus().trim().isEmpty()) {
-                table.setStatus("Available");
-            }
+            // Ngày tạo và trạng thái sẽ được tự động thiết lập trong @PrePersist
+            // Không cần thiết lập thủ công ở đây
             return tableDAO.insert(table);
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi thêm bàn: " + e.getMessage());
@@ -214,9 +278,117 @@ public class RoomTableService {
     
     public boolean deleteTable(UUID tableId) {
         try {
-            return tableDAO.delete(tableId);
+            System.out.println("=== DEBUG: RoomTableService.deleteTable ===");
+            System.out.println("Table ID to delete: " + tableId);
+            
+            // Check if table exists first
+            Table table = tableDAO.findById(tableId);
+            if (table == null) {
+                System.out.println("❌ Table not found with ID: " + tableId);
+                return false;
+            }
+            
+            System.out.println("Table found: " + table.getTableName());
+            
+            // First, manually delete all related data using JPA
+            System.out.println("Manually deleting related data...");
+            boolean relatedDataDeleted = deleteAllTableRelatedData(tableId);
+            System.out.println("Related data deletion result: " + relatedDataDeleted);
+            
+            // Then try to delete the table
+            System.out.println("Trying to delete table...");
+            boolean result = tableDAO.delete(tableId);
+            System.out.println("Table deletion result: " + result);
+            
+            return result;
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi xóa bàn: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    private boolean deleteAllTableRelatedData(UUID tableId) {
+        try {
+            System.out.println("=== DEBUG: deleteAllTableRelatedData ===");
+            System.out.println("Table ID: " + tableId);
+            
+            EntityManager em = emf.createEntityManager();
+            var tx = em.getTransaction();
+            
+            try {
+                tx.begin();
+                
+                // Step 1: Delete PaymentTransactions for this table
+                try {
+                    System.out.println("Step 1: Deleting PaymentTransactions...");
+                    int deletedPayments = em.createNativeQuery(
+                        "DELETE FROM PaymentTransactions WHERE SessionID IN (" +
+                        "SELECT SessionID FROM TableSessions WHERE TableID = ?)", 
+                        Integer.class
+                    ).setParameter(1, tableId).executeUpdate();
+                    System.out.println("Deleted " + deletedPayments + " payment transactions");
+                } catch (Exception e) {
+                    System.out.println("Step 1 failed (continuing): " + e.getMessage());
+                }
+                
+                // Step 2: Delete OrderDetails for this table
+                try {
+                    System.out.println("Step 2: Deleting OrderDetails...");
+                    int deletedOrderDetails = em.createNativeQuery(
+                        "DELETE FROM OrderDetails WHERE OrderID IN (" +
+                        "SELECT o.OrderID FROM Orders o " +
+                        "INNER JOIN TableSessions ts ON o.SessionID = ts.SessionID " +
+                        "WHERE ts.TableID = ?)", 
+                        Integer.class
+                    ).setParameter(1, tableId).executeUpdate();
+                    System.out.println("Deleted " + deletedOrderDetails + " order details");
+                } catch (Exception e) {
+                    System.out.println("Step 2 failed (continuing): " + e.getMessage());
+                }
+                
+                // Step 3: Delete Orders for this table
+                try {
+                    System.out.println("Step 3: Deleting Orders...");
+                    int deletedOrders = em.createNativeQuery(
+                        "DELETE FROM Orders WHERE SessionID IN (" +
+                        "SELECT SessionID FROM TableSessions WHERE TableID = ?)", 
+                        Integer.class
+                    ).setParameter(1, tableId).executeUpdate();
+                    System.out.println("Deleted " + deletedOrders + " orders");
+                } catch (Exception e) {
+                    System.out.println("Step 3 failed (continuing): " + e.getMessage());
+                }
+                
+                // Step 4: Delete TableSessions for this table
+                try {
+                    System.out.println("Step 4: Deleting TableSessions...");
+                    int deletedSessions = em.createNativeQuery(
+                        "DELETE FROM TableSessions WHERE TableID = ?", 
+                        Integer.class
+                    ).setParameter(1, tableId).executeUpdate();
+                    System.out.println("Deleted " + deletedSessions + " table sessions");
+                } catch (Exception e) {
+                    System.out.println("Step 4 failed (continuing): " + e.getMessage());
+                }
+                
+                tx.commit();
+                System.out.println("All table related data deleted successfully");
+                return true;
+                
+            } catch (Exception e) {
+                System.err.println("❌ Error deleting table related data: " + e.getMessage());
+                e.printStackTrace();
+                if (tx.isActive()) {
+                    tx.rollback();
+                }
+                return false;
+            } finally {
+                em.close();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error deleting table related data: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -452,6 +624,25 @@ public class RoomTableService {
             return 0;
         } finally {
             em.close();
+        }
+    }
+    
+    // Helper methods for Excel import
+    public Room getRoomByName(String name) {
+        try {
+            return roomDAO.findSingleByName(name);
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi tìm phòng theo tên: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    public Table getTableByNumber(String tableNumber) {
+        try {
+            return tableDAO.findByTableNumber(tableNumber);
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi tìm bàn theo số: " + e.getMessage());
+            return null;
         }
     }
 }

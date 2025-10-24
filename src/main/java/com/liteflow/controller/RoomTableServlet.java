@@ -7,11 +7,15 @@ import com.liteflow.model.inventory.Order;
 import com.liteflow.model.inventory.OrderDetail;
 import com.liteflow.model.inventory.PaymentTransaction;
 import com.liteflow.service.inventory.RoomTableService;
+import com.liteflow.service.inventory.ExcelService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -19,11 +23,13 @@ import org.json.JSONArray;
 public class RoomTableServlet extends HttpServlet {
 
     private RoomTableService roomTableService;
+    private ExcelService excelService;
     private String cachedJsonString = null; // Cache JSON string to avoid "Stream closed" error
 
     @Override
     public void init() throws ServletException {
         roomTableService = new RoomTableService();
+        excelService = new ExcelService();
     }
 
     @Override
@@ -115,6 +121,16 @@ public class RoomTableServlet extends HttpServlet {
             } else if ("getAllRooms".equals(action)) {
                 response.setContentType("application/json");
                 getAllRooms(request, response);
+            } else if ("importExcel".equals(action)) {
+                response.setContentType("application/json");
+                importExcel(request, response);
+            } else if ("checkExcel".equals(action)) {
+                response.setContentType("application/json");
+                checkExcel(request, response);
+            } else if ("exportExcel".equals(action)) {
+                exportExcel(request, response);
+            } else if ("downloadTemplate".equals(action)) {
+                downloadTemplate(request, response);
             } else {
                 response.setContentType("application/json");
                 response.getWriter().write("{\"success\": false, \"message\": \"Hành động không hợp lệ: '" + action + "'\"}");
@@ -1290,6 +1306,189 @@ public class RoomTableServlet extends HttpServlet {
             System.err.println("❌ Lỗi trong getAllRooms: " + e.getMessage());
             e.printStackTrace();
             response.getWriter().write("[]");
+        }
+    }
+    
+    /**
+     * Import Excel file
+     */
+    private void importExcel(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            System.out.println("=== DEBUG: Import Excel ===");
+            
+            // Get multipart data
+            Part filePart = request.getPart("file");
+            if (filePart == null) {
+                response.getWriter().write("{\"success\": false, \"message\": \"Không tìm thấy file\"}");
+                return;
+            }
+            
+            String fileName = filePart.getSubmittedFileName();
+            System.out.println("File name: " + fileName);
+            
+            // Get options
+            boolean skipDuplicates = "true".equals(request.getParameter("skipDuplicates"));
+            boolean validateData = "true".equals(request.getParameter("validateData"));
+            boolean createMissingRooms = "true".equals(request.getParameter("createMissingRooms"));
+            
+            System.out.println("Options - skipDuplicates: " + skipDuplicates + 
+                             ", validateData: " + validateData + 
+                             ", createMissingRooms: " + createMissingRooms);
+            
+            // Process file
+            try (InputStream inputStream = filePart.getInputStream()) {
+                Map<String, Object> result = excelService.importFromExcel(
+                    inputStream, fileName, skipDuplicates, validateData, createMissingRooms);
+                
+                // Convert result to JSON
+                JSONObject jsonResult = new JSONObject(result);
+                response.getWriter().write(jsonResult.toString());
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi import Excel: " + e.getMessage());
+            e.printStackTrace();
+            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi khi xử lý file: " + e.getMessage() + "\"}");
+        }
+    }
+    
+    /**
+     * Export to Excel
+     */
+    private void exportExcel(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            System.out.println("=== DEBUG: Export Excel ===");
+            
+            // Generate Excel file
+            byte[] excelData = excelService.exportToExcel();
+            
+            if (excelData.length == 0) {
+                response.getWriter().write("{\"success\": false, \"message\": \"Không có dữ liệu để xuất\"}");
+                return;
+            }
+            
+            // Set response headers
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=\"roomtable_data.xlsx\"");
+            response.setContentLength(excelData.length);
+            
+            // Write Excel data to response
+            try (OutputStream outputStream = response.getOutputStream()) {
+                outputStream.write(excelData);
+                outputStream.flush();
+            }
+            
+            System.out.println("✅ Excel export completed successfully");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi export Excel: " + e.getMessage());
+            e.printStackTrace();
+            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi khi xuất file: " + e.getMessage() + "\"}");
+        }
+    }
+    
+    /**
+     * Check Excel File
+     */
+    private void checkExcel(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            System.out.println("=== DEBUG: Check Excel ===");
+            
+            // Get uploaded file
+            Part filePart = request.getPart("excelFile");
+            if (filePart == null || filePart.getSize() == 0) {
+                response.getWriter().write("{\"success\": false, \"message\": \"Không có file được upload\"}");
+                return;
+            }
+            
+            // Get import options
+            boolean skipDuplicates = "true".equals(request.getParameter("skipDuplicates"));
+            boolean validateData = "true".equals(request.getParameter("validateData"));
+            boolean createMissingRooms = "true".equals(request.getParameter("createMissingRooms"));
+            
+            System.out.println("Skip duplicates: " + skipDuplicates);
+            System.out.println("Validate data: " + validateData);
+            System.out.println("Create missing rooms: " + createMissingRooms);
+            
+            // Check Excel file
+            Map<String, Object> checkResult = excelService.checkExcelFile(
+                filePart.getInputStream(), 
+                filePart.getSubmittedFileName(),
+                skipDuplicates, 
+                validateData, 
+                createMissingRooms
+            );
+            
+            // Convert result to JSON
+            StringBuilder jsonResponse = new StringBuilder();
+            jsonResponse.append("{");
+            jsonResponse.append("\"success\": ").append(checkResult.get("success"));
+            jsonResponse.append(", \"totalRooms\": ").append(checkResult.get("totalRooms"));
+            jsonResponse.append(", \"totalTables\": ").append(checkResult.get("totalTables"));
+            jsonResponse.append(", \"errors\": [");
+            
+            @SuppressWarnings("unchecked")
+            List<String> errors = (List<String>) checkResult.get("errors");
+            if (errors != null && !errors.isEmpty()) {
+                for (int i = 0; i < errors.size(); i++) {
+                    if (i > 0) jsonResponse.append(", ");
+                    jsonResponse.append("\"").append(errors.get(i).replace("\"", "\\\"")).append("\"");
+                }
+            }
+            
+            jsonResponse.append("]");
+            jsonResponse.append("}");
+            
+            response.getWriter().write(jsonResponse.toString());
+            System.out.println("✅ Check Excel completed successfully");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi check Excel: " + e.getMessage());
+            e.printStackTrace();
+            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi khi kiểm tra file: " + e.getMessage() + "\"}");
+        }
+    }
+
+    /**
+     * Download Template
+     */
+    private void downloadTemplate(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            System.out.println("=== DEBUG: Download Template ===");
+            
+            String templateType = request.getParameter("templateType");
+            System.out.println("Template type: " + templateType);
+            
+            // Generate template Excel file
+            byte[] templateData = excelService.generateTemplate(templateType);
+            
+            if (templateData.length == 0) {
+                response.getWriter().write("{\"success\": false, \"message\": \"Không thể tạo template\"}");
+                return;
+            }
+            
+            // Set response headers
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            String fileName = "rooms".equals(templateType) ? "mau_phong.xlsx" : "mau_ban.xlsx";
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+            response.setContentLength(templateData.length);
+            
+            // Write template data to response
+            try (OutputStream outputStream = response.getOutputStream()) {
+                outputStream.write(templateData);
+                outputStream.flush();
+            }
+            
+            System.out.println("✅ Template download completed successfully");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi download template: " + e.getMessage());
+            e.printStackTrace();
+            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi khi tải template: " + e.getMessage() + "\"}");
         }
     }
     

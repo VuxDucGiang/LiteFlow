@@ -6,6 +6,7 @@ package com.liteflow.model.inventory;
 
 import jakarta.persistence.*;
 import java.util.*;
+import java.time.LocalDateTime;
 
 @Entity
 @jakarta.persistence.Table(name = "Tables")
@@ -35,16 +36,44 @@ public class Table {
     @Column(name = "IsActive", nullable = false)
     private Boolean isActive = true;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "CreatedAt")
-    private Date createdAt;
+    private LocalDateTime createdAt;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "UpdatedAt")
-    private Date updatedAt;
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "table", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TableSession> tableSessions;
+
+    @PrePersist
+    protected void onCreate() {
+        if (tableId == null) {
+            tableId = UUID.randomUUID();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
+        // Đảm bảo trạng thái luôn là Available khi tạo mới
+        if (status == null) {
+            status = "Available";
+        }
+        // Đảm bảo isActive luôn là true khi tạo mới
+        if (isActive == null) {
+            isActive = true;
+        }
+        // Đảm bảo capacity có giá trị mặc định
+        if (capacity == null) {
+            capacity = 4;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public Table() {
         this.tableSessions = new ArrayList<>();
@@ -109,19 +138,19 @@ public class Table {
         this.isActive = isActive;
     }
 
-    public Date getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Date createdAt) {
+    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    public Date getUpdatedAt() {
+    public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(Date updatedAt) {
+    public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 

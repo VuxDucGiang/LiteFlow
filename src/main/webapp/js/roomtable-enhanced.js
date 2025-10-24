@@ -94,6 +94,9 @@ function addNewRoomToList(roomName, roomDescription, tableCount, totalCapacity, 
     // Insert at the top of the table
     roomsTableBody.insertBefore(newRow, roomsTableBody.firstChild);
     
+    // Hide empty state if it exists
+    hideRoomsEmptyState();
+    
     // Format the date
     formatAllDates();
     
@@ -420,8 +423,18 @@ function removeRoomFromList(roomId) {
             rowToRemove.parentNode.removeChild(rowToRemove);
             console.log('✅ Room row removed from DOM (immediate)');
             
+            // Remove all tables belonging to this room
+            removeTablesByRoomId(roomId);
+            
             // Force update room count after removal
             updateRoomCount();
+            
+            // Check if this was the last room and show empty state
+            const remainingRows = roomsTableBody.querySelectorAll('tr[data-room-id]');
+            if (remainingRows.length === 0) {
+                console.log('🏠 No rooms left, showing empty state');
+                showRoomsEmptyState();
+            }
             
             // Smart pagination refresh after deletion
             console.log('🔄 Calling refreshPaginationAfterDeletion (immediate)...');
@@ -462,6 +475,9 @@ function removeRoomFromList(roomId) {
                             row.parentNode.removeChild(row);
                             console.log('✅ Room row removed from DOM (fallback)');
                             
+                            // Remove all tables belonging to this room
+                            removeTablesByRoomId(roomId);
+                            
                             // Force update room count after removal
                             setTimeout(() => {
                                 updateRoomCount();
@@ -501,6 +517,9 @@ function removeRoomFromList(roomId) {
                                 if (row.parentNode) {
                                     row.parentNode.removeChild(row);
                                     console.log('✅ Room row removed from DOM (name fallback)');
+                                    
+                                    // Remove all tables belonging to this room
+                                    removeTablesByRoomId(roomId);
                                     
                                     // Force update room count after removal
                                     setTimeout(() => {
@@ -1005,6 +1024,24 @@ function generateTempId() {
 // Function to update room count in statistics
 function updateRoomCount() {
     console.log('Updating room count...');
+    
+    // Check if we're in empty state
+    const roomsContainer = document.querySelector('.room-table-container');
+    const emptyState = roomsContainer?.querySelector('.empty-state');
+    const isEmptyStateVisible = emptyState && emptyState.style.display !== 'none';
+    
+    if (isEmptyStateVisible) {
+        // We're in empty state, set count to 0
+        const roomCountElement = document.querySelector('.stat-card .stat-number');
+        if (roomCountElement) {
+            const oldCount = roomCountElement.textContent;
+            roomCountElement.textContent = '0';
+            console.log(`Room count updated (empty state): ${oldCount} → 0`);
+        }
+        return;
+    }
+    
+    // Normal case: count rows in tbody
     const roomsTableBody = document.querySelector('.room-table-container tbody');
     if (roomsTableBody) {
         const roomCount = roomsTableBody.children.length;
@@ -1026,7 +1063,45 @@ function updateRoomCount() {
 // Function to update table count in statistics
 function updateTableCount() {
     console.log('Updating table count...');
-    const tablesTableBody = document.querySelectorAll('.room-table-container')[1]?.querySelector('tbody');
+    
+    // Check if we're in empty state
+    const tablesContainer = document.querySelectorAll('.room-table-container')[1];
+    const emptyState = tablesContainer?.querySelector('.empty-state');
+    const isEmptyStateVisible = emptyState && emptyState.style.display !== 'none';
+    
+    if (isEmptyStateVisible) {
+        // We're in empty state, set counts to 0
+        const tableCountElements = document.querySelectorAll('.stat-card .stat-number');
+        
+        // Update total tables count (second stat card)
+        if (tableCountElements.length >= 2) {
+            const totalTablesElement = tableCountElements[1];
+            const oldCount = totalTablesElement.textContent;
+            totalTablesElement.textContent = '0';
+            console.log(`Total tables count updated (empty state): ${oldCount} → 0`);
+        }
+        
+        // Update available tables count (third stat card)
+        if (tableCountElements.length >= 3) {
+            const availableTablesElement = tableCountElements[2];
+            const oldCount = availableTablesElement.textContent;
+            availableTablesElement.textContent = '0';
+            console.log(`Available tables count updated (empty state): ${oldCount} → 0`);
+        }
+        
+        // Update occupied tables count (fourth stat card)
+        if (tableCountElements.length >= 4) {
+            const occupiedTablesElement = tableCountElements[3];
+            const oldCount = occupiedTablesElement.textContent;
+            occupiedTablesElement.textContent = '0';
+            console.log(`Occupied tables count updated (empty state): ${oldCount} → 0`);
+        }
+        
+        return;
+    }
+    
+    // Normal case: count rows in tbody
+    const tablesTableBody = tablesContainer?.querySelector('tbody');
     if (tablesTableBody) {
         const tableCount = tablesTableBody.children.length;
         console.log('Current table count:', tableCount);
@@ -1175,9 +1250,16 @@ function addNewTableToList(tableNumber, tableName, roomName, capacity, status, t
     const actualTableId = tableId || generateTempId();
     console.log('Using table ID:', actualTableId);
     
+    // Get room ID if room name is provided
+    const actualRoomId = roomName ? getRoomIdByName(roomName) : null;
+    console.log('Using room ID:', actualRoomId);
+    
     // Create new row for the table
     const newRow = document.createElement('tr');
     newRow.setAttribute('data-table-id', actualTableId);
+    if (actualRoomId) {
+        newRow.setAttribute('data-room-id', actualRoomId);
+    }
     newRow.innerHTML = `
         <td>
             <span class="table-number">${escapeHtml(tableNumber)}</span>
@@ -1222,6 +1304,9 @@ function addNewTableToList(tableNumber, tableName, roomName, capacity, status, t
     
     // Update table count in statistics
     updateTableCount();
+    
+    // Hide empty state if it exists
+    hideTablesEmptyState();
     
     // Refresh pagination and go to page 1 to show new table
     refreshPagination(false, true);
@@ -3129,9 +3214,16 @@ function removeTableFromList(tableId) {
             // Update table count stats
             updateTableCount();
             
+            // Check if this was the last table and show empty state
+            const remainingRows = tableBody.querySelectorAll('tr[data-table-id]');
+            if (remainingRows.length === 0) {
+                console.log('🪑 No tables left, showing empty state');
+                showTablesEmptyState();
+            }
+            
             // Smart pagination refresh after deletion
             console.log('🔄 Calling refreshPaginationAfterDeletion (immediate)...');
-        refreshPaginationAfterDeletion();
+            refreshPaginationAfterDeletion();
         } else {
             console.warn('⚠️ Parent node not found for row to remove:', rowToRemove);
         }
@@ -3139,6 +3231,113 @@ function removeTableFromList(tableId) {
         console.warn('Table row not found for ID:', tableId);
     }
 };
+
+// Function to remove all tables belonging to a specific room
+function removeTablesByRoomId(roomId) {
+    console.log('🗑️ Removing all tables for room:', roomId);
+    
+    const tablesContainer = document.querySelectorAll('.room-table-container')[1];
+    if (!tablesContainer) {
+        console.error('Tables container not found');
+        return;
+    }
+    
+    // Check if we're in empty state
+    const tablesEmptyState = tablesContainer.querySelector('.empty-state');
+    const isTablesEmptyStateVisible = tablesEmptyState && tablesEmptyState.style.display !== 'none';
+    
+    if (isTablesEmptyStateVisible) {
+        console.log('🪑 Tables already in empty state, skipping removal');
+        return;
+    }
+    
+    const tableBody = tablesContainer.querySelector('.table tbody');
+    if (!tableBody) {
+        console.log('🪑 Tables table body not found, likely in empty state');
+        return;
+    }
+    
+    // Find all rows that belong to this room
+    const rowsToRemove = tableBody.querySelectorAll(`tr[data-room-id="${roomId}"]`);
+    
+    console.log(`Found ${rowsToRemove.length} tables belonging to room ${roomId}`);
+    
+    // Remove each row
+    rowsToRemove.forEach((row, index) => {
+        console.log(`Removing table ${index + 1} for room ${roomId}`);
+        
+        if (row.parentNode) {
+            row.parentNode.removeChild(row);
+            console.log(`✅ Table row ${index + 1} removed from DOM`);
+        }
+    });
+    
+    // Update table count stats after removing all tables
+    if (rowsToRemove.length > 0) {
+        updateTableCount();
+        console.log('🔄 Updated table count after removing room tables');
+        
+        // Check if no tables left and show empty state
+        const remainingTableRows = tableBody.querySelectorAll('tr[data-table-id]');
+        if (remainingTableRows.length === 0) {
+            console.log('🪑 No tables left after removing room tables, showing empty state');
+            showTablesEmptyState();
+        }
+    }
+}
+
+// Function to update data-room-id for existing table rows on page load
+function updateTableRoomIds() {
+    console.log('🔄 Updating data-room-id for existing table rows...');
+    
+    const tablesContainer = document.querySelectorAll('.room-table-container')[1];
+    if (!tablesContainer) {
+        console.error('Tables container not found');
+        return;
+    }
+    
+    // Check if we're in empty state
+    const tablesEmptyState = tablesContainer.querySelector('.empty-state');
+    const isTablesEmptyStateVisible = tablesEmptyState && tablesEmptyState.style.display !== 'none';
+    
+    if (isTablesEmptyStateVisible) {
+        console.log('🔄 Tables in empty state, skipping room ID update');
+        return;
+    }
+    
+    const tableBody = tablesContainer.querySelector('.table tbody');
+    if (!tableBody) {
+        console.log('🔄 Tables table body not found, likely in empty state');
+        return;
+    }
+    
+    const tableRows = tableBody.querySelectorAll('tr[data-table-id]');
+    console.log(`Found ${tableRows.length} table rows to update`);
+    
+    tableRows.forEach((row, index) => {
+        // Check if row already has data-room-id
+        if (row.hasAttribute('data-room-id')) {
+            console.log(`Row ${index + 1} already has data-room-id`);
+            return;
+        }
+        
+        // Get room name from the room badge
+        const roomBadge = row.querySelector('.room-badge');
+        if (roomBadge) {
+            const roomName = roomBadge.textContent.trim();
+            const roomId = getRoomIdByName(roomName);
+            
+            if (roomId) {
+                row.setAttribute('data-room-id', roomId);
+                console.log(`✅ Updated row ${index + 1} with room ID: ${roomId} for room: ${roomName}`);
+            } else {
+                console.log(`⚠️ Could not find room ID for room: ${roomName}`);
+            }
+        } else {
+            console.log(`Row ${index + 1} has no room badge`);
+        }
+    });
+}
 
 window.searchItems = function() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -4869,6 +5068,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update capacity badges with warning colors
         updateCapacityBadges();
+        
+        // Update data-room-id for existing table rows
+        updateTableRoomIds();
         console.log('✅ Capacity badges updated with warning colors');
     }, 100);
     
@@ -5277,6 +5479,132 @@ window.updateRoomLimits = function() {
     }, 300); // Wait for CSS transition to complete
 };
 
+// Function to show empty state for rooms
+function showRoomsEmptyState() {
+    console.log('🏠 Showing rooms empty state');
+    
+    const roomsContainer = document.querySelector('.room-table-container');
+    if (!roomsContainer) {
+        console.error('Rooms container not found');
+        return;
+    }
+    
+    // Hide the table
+    const existingTable = roomsContainer.querySelector('.table');
+    if (existingTable) {
+        existingTable.style.display = 'none';
+    }
+    
+    // Hide pagination container
+    const paginationContainer = roomsContainer.querySelector('.pagination-container');
+    if (paginationContainer) {
+        paginationContainer.style.display = 'none';
+    }
+    
+    // Show existing empty state if it exists
+    const existingEmptyState = roomsContainer.querySelector('.empty-state');
+    if (existingEmptyState) {
+        existingEmptyState.style.display = 'block';
+        console.log('✅ Existing rooms empty state shown');
+    } else {
+        console.warn('⚠️ No existing empty state found for rooms');
+    }
+}
+
+// Function to show empty state for tables
+function showTablesEmptyState() {
+    console.log('🪑 Showing tables empty state');
+    
+    const tablesContainer = document.querySelectorAll('.room-table-container')[1];
+    if (!tablesContainer) {
+        console.error('Tables container not found');
+        return;
+    }
+    
+    // Hide the table
+    const existingTable = tablesContainer.querySelector('.table');
+    if (existingTable) {
+        existingTable.style.display = 'none';
+    }
+    
+    // Hide pagination container
+    const paginationContainer = tablesContainer.querySelector('.pagination-container');
+    if (paginationContainer) {
+        paginationContainer.style.display = 'none';
+    }
+    
+    // Show existing empty state if it exists
+    const existingEmptyState = tablesContainer.querySelector('.empty-state');
+    if (existingEmptyState) {
+        existingEmptyState.style.display = 'block';
+        console.log('✅ Existing tables empty state shown');
+    } else {
+        console.warn('⚠️ No existing empty state found for tables');
+    }
+}
+
+// Function to hide empty state for rooms
+function hideRoomsEmptyState() {
+    console.log('🏠 Hiding rooms empty state');
+    
+    const roomsContainer = document.querySelector('.room-table-container');
+    if (!roomsContainer) {
+        console.error('Rooms container not found');
+        return;
+    }
+    
+    // Show the table
+    const existingTable = roomsContainer.querySelector('.table');
+    if (existingTable) {
+        existingTable.style.display = '';
+    }
+    
+    // Show pagination container
+    const paginationContainer = roomsContainer.querySelector('.pagination-container');
+    if (paginationContainer) {
+        paginationContainer.style.display = '';
+    }
+    
+    // Hide existing empty state if it exists
+    const existingEmptyState = roomsContainer.querySelector('.empty-state');
+    if (existingEmptyState) {
+        existingEmptyState.style.display = 'none';
+    }
+    
+    console.log('✅ Rooms empty state hidden');
+}
+
+// Function to hide empty state for tables
+function hideTablesEmptyState() {
+    console.log('🪑 Hiding tables empty state');
+    
+    const tablesContainer = document.querySelectorAll('.room-table-container')[1];
+    if (!tablesContainer) {
+        console.error('Tables container not found');
+        return;
+    }
+    
+    // Show the table
+    const existingTable = tablesContainer.querySelector('.table');
+    if (existingTable) {
+        existingTable.style.display = '';
+    }
+    
+    // Show pagination container
+    const paginationContainer = tablesContainer.querySelector('.pagination-container');
+    if (paginationContainer) {
+        paginationContainer.style.display = '';
+    }
+    
+    // Hide existing empty state if it exists
+    const existingEmptyState = tablesContainer.querySelector('.empty-state');
+    if (existingEmptyState) {
+        existingEmptyState.style.display = 'none';
+    }
+    
+    console.log('✅ Tables empty state hidden');
+}
+
 // Function to update room dropdown with new room
 function updateRoomDropdownWithNewRoom(roomId, roomName, tableCount, totalCapacity) {
     const roomSelect = document.getElementById('roomId');
@@ -5386,8 +5714,20 @@ function rebuildRoomDropdown() {
     }
     
     // Get all rooms from the table
-    const roomsTableBody = document.querySelector('.room-table-container tbody');
-    if (!roomsTableBody) return;
+    const roomsContainer = document.querySelector('.room-table-container');
+    const roomsEmptyState = roomsContainer?.querySelector('.empty-state');
+    const isRoomsEmptyStateVisible = roomsEmptyState && roomsEmptyState.style.display !== 'none';
+    
+    if (isRoomsEmptyStateVisible) {
+        console.log('🔄 Rooms in empty state, skipping dropdown rebuild');
+        return;
+    }
+    
+    const roomsTableBody = roomsContainer ? roomsContainer.querySelector('tbody') : null;
+    if (!roomsTableBody) {
+        console.log('🔄 Rooms table body not found, likely in empty state');
+        return;
+    }
     
     const rows = roomsTableBody.querySelectorAll('tr[data-room-id]');
     
@@ -5709,54 +6049,83 @@ function initializePagination() {
     allContainers.forEach((container, index) => {
         const title = container.querySelector('.section-title');
         const tbody = container.querySelector('tbody');
+        const emptyState = container.querySelector('.empty-state');
+        const isEmptyStateVisible = emptyState && emptyState.style.display !== 'none';
         console.log(`🔢 Container ${index + 1}:`, {
             title: title ? title.textContent : 'No title',
             hasTbody: !!tbody,
+            hasEmptyState: !!emptyState,
+            isEmptyStateVisible: isEmptyStateVisible,
             rowCount: tbody ? tbody.querySelectorAll('tr').length : 0
         });
     });
     
-    // Initialize rooms pagination - use more specific selector
+    // Initialize rooms pagination - check empty state first
     const roomsContainer = document.querySelector('.room-table-container');
-    const roomsTableBody = roomsContainer ? roomsContainer.querySelector('tbody') : null;
+    const roomsEmptyState = roomsContainer?.querySelector('.empty-state');
+    const isRoomsEmptyStateVisible = roomsEmptyState && roomsEmptyState.style.display !== 'none';
     
-    if (roomsTableBody) {
-        const roomsRows = roomsTableBody.querySelectorAll('tr');
-        console.log('🔢 Found rooms rows:', roomsRows.length);
-        console.log('🔢 Rooms rows details:', Array.from(roomsRows).map((row, index) => ({
-            index: index + 1,
-            roomId: row.getAttribute('data-room-id'),
-            roomName: row.querySelector('.room-name') ? row.querySelector('.room-name').textContent.trim() : 'No name'
-        })));
-        
-        roomsPagination.totalItems = roomsRows.length;
-        roomsPagination.totalPages = Math.ceil(roomsPagination.totalItems / roomsPagination.itemsPerPage);
-        console.log('🔢 Rooms pagination:', roomsPagination);
-        updateRoomsPagination();
-        showRoomsPage(1);
-        console.log('🔢 Rooms page 1 shown');
+    if (isRoomsEmptyStateVisible) {
+        console.log('🔢 Rooms in empty state, skipping pagination initialization');
+        roomsPagination.totalItems = 0;
+        roomsPagination.totalPages = 0;
+        roomsPagination.currentPage = 1;
     } else {
-        console.error('🔢 Rooms table body not found!');
-        console.error('🔢 Rooms container:', roomsContainer);
-        console.error('🔢 All containers:', document.querySelectorAll('.room-table-container'));
+        // Normal case: initialize with tbody
+        const roomsTableBody = roomsContainer ? roomsContainer.querySelector('tbody') : null;
+        
+        if (roomsTableBody) {
+            const roomsRows = roomsTableBody.querySelectorAll('tr');
+            console.log('🔢 Found rooms rows:', roomsRows.length);
+            console.log('🔢 Rooms rows details:', Array.from(roomsRows).map((row, index) => ({
+                index: index + 1,
+                roomId: row.getAttribute('data-room-id'),
+                roomName: row.querySelector('.room-name') ? row.querySelector('.room-name').textContent.trim() : 'No name'
+            })));
+            
+            roomsPagination.totalItems = roomsRows.length;
+            roomsPagination.totalPages = Math.ceil(roomsPagination.totalItems / roomsPagination.itemsPerPage);
+            console.log('🔢 Rooms pagination:', roomsPagination);
+            updateRoomsPagination();
+            showRoomsPage(1);
+            console.log('🔢 Rooms page 1 shown');
+        } else {
+            console.log('🔢 Rooms table body not found, likely in empty state');
+            roomsPagination.totalItems = 0;
+            roomsPagination.totalPages = 0;
+            roomsPagination.currentPage = 1;
+        }
     }
     
-    // Initialize tables pagination - use more specific selector
+    // Initialize tables pagination - check empty state first
     const tablesContainer = document.querySelectorAll('.room-table-container')[1];
-    const tablesTableBody = tablesContainer ? tablesContainer.querySelector('tbody') : null;
+    const tablesEmptyState = tablesContainer?.querySelector('.empty-state');
+    const isTablesEmptyStateVisible = tablesEmptyState && tablesEmptyState.style.display !== 'none';
     
-    if (tablesTableBody) {
-        const tablesRows = tablesTableBody.querySelectorAll('tr');
-        console.log('🔢 Found tables rows:', tablesRows.length);
-        tablesPagination.totalItems = tablesRows.length;
-        tablesPagination.totalPages = Math.ceil(tablesPagination.totalItems / tablesPagination.itemsPerPage);
-        console.log('🔢 Tables pagination:', tablesPagination);
-        updateTablesPagination();
-        showTablesPage(1);
-        console.log('🔢 Tables page 1 shown');
+    if (isTablesEmptyStateVisible) {
+        console.log('🔢 Tables in empty state, skipping pagination initialization');
+        tablesPagination.totalItems = 0;
+        tablesPagination.totalPages = 0;
+        tablesPagination.currentPage = 1;
     } else {
-        console.error('🔢 Tables table body not found!');
-        console.error('🔢 Tables container:', tablesContainer);
+        // Normal case: initialize with tbody
+        const tablesTableBody = tablesContainer ? tablesContainer.querySelector('tbody') : null;
+        
+        if (tablesTableBody) {
+            const tablesRows = tablesTableBody.querySelectorAll('tr');
+            console.log('🔢 Found tables rows:', tablesRows.length);
+            tablesPagination.totalItems = tablesRows.length;
+            tablesPagination.totalPages = Math.ceil(tablesPagination.totalItems / tablesPagination.itemsPerPage);
+            console.log('🔢 Tables pagination:', tablesPagination);
+            updateTablesPagination();
+            showTablesPage(1);
+            console.log('🔢 Tables page 1 shown');
+        } else {
+            console.log('🔢 Tables table body not found, likely in empty state');
+            tablesPagination.totalItems = 0;
+            tablesPagination.totalPages = 0;
+            tablesPagination.currentPage = 1;
+        }
     }
     
     console.log('✅ Pagination initialized:', { roomsPagination, tablesPagination });
@@ -5893,10 +6262,17 @@ function showRoomsPage(page) {
     console.log(`📄 showRoomsPage called with page: ${page}`);
     
     const roomsContainer = document.querySelector('.room-table-container');
+    const roomsEmptyState = roomsContainer?.querySelector('.empty-state');
+    const isRoomsEmptyStateVisible = roomsEmptyState && roomsEmptyState.style.display !== 'none';
+    
+    if (isRoomsEmptyStateVisible) {
+        console.log('📄 Rooms in empty state, skipping page show');
+        return;
+    }
+    
     const roomsTableBody = roomsContainer ? roomsContainer.querySelector('tbody') : null;
     if (!roomsTableBody) {
-        console.error('📄 Rooms table body not found!');
-        console.error('📄 Rooms container:', roomsContainer);
+        console.log('📄 Rooms table body not found, likely in empty state');
         return;
     }
     
@@ -5957,10 +6333,17 @@ function showRoomsPage(page) {
 // Show specific tables page
 function showTablesPage(page) {
     const tablesContainer = document.querySelectorAll('.room-table-container')[1];
+    const tablesEmptyState = tablesContainer?.querySelector('.empty-state');
+    const isTablesEmptyStateVisible = tablesEmptyState && tablesEmptyState.style.display !== 'none';
+    
+    if (isTablesEmptyStateVisible) {
+        console.log('📄 Tables in empty state, skipping page show');
+        return;
+    }
+    
     const tablesTableBody = tablesContainer ? tablesContainer.querySelector('tbody') : null;
     if (!tablesTableBody) {
-        console.error('📄 Tables table body not found!');
-        console.error('📄 Tables container:', tablesContainer);
+        console.log('📄 Tables table body not found, likely in empty state');
         return;
     }
     
@@ -6014,79 +6397,105 @@ function goToTablesPage(page) {
     }
 }
 
-// Smart pagination refresh after deletion
+// Smart pagination refresh after deletion (updated to handle empty state)
 function refreshPaginationAfterDeletion() {
     console.log('🔄 Smart pagination refresh after deletion...');
+    
+    // Check rooms pagination
+    const roomsContainer = document.querySelector('.room-table-container');
+    const roomsEmptyState = roomsContainer?.querySelector('.empty-state');
+    const isRoomsEmptyStateVisible = roomsEmptyState && roomsEmptyState.style.display !== 'none';
+    
+    if (isRoomsEmptyStateVisible) {
+        console.log('🏠 Rooms in empty state, skipping pagination refresh');
+    } else {
+        // Recalculate rooms pagination
+        const roomsTableBody = roomsContainer ? roomsContainer.querySelector('tbody') : null;
+        if (roomsTableBody) {
+            const roomsRows = roomsTableBody.querySelectorAll('tr');
+            const newTotalItems = roomsRows.length;
+            const newTotalPages = Math.ceil(newTotalItems / roomsPagination.itemsPerPage);
+            
+            console.log('📊 Pagination after deletion (Rooms):', {
+                oldTotalItems: roomsPagination.totalItems,
+                newTotalItems: newTotalItems,
+                oldTotalPages: roomsPagination.totalPages,
+                newTotalPages: newTotalPages,
+                currentPage: roomsPagination.currentPage
+            });
+            
+            roomsPagination.totalItems = newTotalItems;
+            roomsPagination.totalPages = newTotalPages;
+            
+            // Adjust current page if needed
+            if (roomsPagination.currentPage > roomsPagination.totalPages && roomsPagination.totalPages > 0) {
+                roomsPagination.currentPage = roomsPagination.totalPages;
+            }
+            
+            updateRoomsPagination();
+            showRoomsPage(roomsPagination.currentPage);
+        } else {
+            console.log('🏠 Rooms table body not found, likely in empty state');
+        }
+    }
+    
+    // Check tables pagination
+    const tablesContainer2 = document.querySelectorAll('.room-table-container')[1];
+    const tablesEmptyState = tablesContainer2?.querySelector('.empty-state');
+    const isTablesEmptyStateVisible = tablesEmptyState && tablesEmptyState.style.display !== 'none';
+    
+    if (isTablesEmptyStateVisible) {
+        console.log('🪑 Tables in empty state, skipping pagination refresh');
+    } else {
+        // Recalculate tables pagination
+        const tablesTableBody = tablesContainer2 ? tablesContainer2.querySelector('tbody') : null;
+        if (tablesTableBody) {
+            const tablesRows = tablesTableBody.querySelectorAll('tr');
+            const newTotalItems = tablesRows.length;
+            const newTotalPages = Math.ceil(newTotalItems / tablesPagination.itemsPerPage);
+            
+            console.log('📊 Pagination after deletion (Tables):', {
+                oldTotalItems: tablesPagination.totalItems,
+                newTotalItems: newTotalItems,
+                oldTotalPages: tablesPagination.totalPages,
+                newTotalPages: newTotalPages,
+                currentPage: tablesPagination.currentPage
+            });
+            
+            tablesPagination.totalItems = newTotalItems;
+            tablesPagination.totalPages = newTotalPages;
+            
+            // Adjust current page if needed
+            if (tablesPagination.currentPage > tablesPagination.totalPages && tablesPagination.totalPages > 0) {
+                tablesPagination.currentPage = tablesPagination.totalPages;
+            }
+            
+            updateTablesPagination();
+            showTablesPage(tablesPagination.currentPage);
+        } else {
+            console.log('🪑 Tables table body not found, likely in empty state');
+        }
+    }
+}
+
+// Refresh pagination after data changes
+function refreshPagination(forceGoToPage1 = false, isNewItemAdded = false) {
+    console.log('🔄 Refreshing pagination...', { forceGoToPage1, isNewItemAdded });
     
     // Recalculate rooms pagination
     const roomsContainer = document.querySelector('.room-table-container');
     const roomsTableBody = roomsContainer ? roomsContainer.querySelector('tbody') : null;
     if (roomsTableBody) {
         const roomsRows = roomsTableBody.querySelectorAll('tr');
-        const newTotalItems = roomsRows.length;
-        const newTotalPages = Math.ceil(newTotalItems / roomsPagination.itemsPerPage);
+        roomsPagination.totalItems = roomsRows.length;
+        roomsPagination.totalPages = Math.ceil(roomsPagination.totalItems / roomsPagination.itemsPerPage);
         
-        console.log('🔍 DOM State Check (Rooms):', {
-            containerFound: !!roomsContainer,
-            tbodyFound: !!roomsTableBody,
-            totalRowsInDOM: roomsRows.length,
-            rowDetails: Array.from(roomsRows).map((row, index) => ({
-                index: index + 1,
-                roomId: row.getAttribute('data-room-id'),
-                roomName: row.querySelector('.room-name') ? row.querySelector('.room-name').textContent.trim() : 'No name',
-                hasPaginationHidden: row.classList.contains('pagination-hidden')
-            }))
-        });
-        
-        console.log('📊 Pagination after deletion (Rooms):', {
-            oldTotalItems: roomsPagination.totalItems,
-            newTotalItems: newTotalItems,
-            oldTotalPages: roomsPagination.totalPages,
-            newTotalPages: newTotalPages,
-            currentPage: roomsPagination.currentPage
-        });
-        
-        // Update pagination state
-        roomsPagination.totalItems = newTotalItems;
-        roomsPagination.totalPages = newTotalPages;
-        
-        // Smart page adjustment logic to ensure current page is always full
-        if (newTotalPages === 0) {
-            // No items left
+        if (forceGoToPage1) {
             roomsPagination.currentPage = 1;
-            console.log('📄 No items left, staying on page 1');
-        } else if (roomsPagination.currentPage > newTotalPages) {
-            // Current page is beyond total pages, go to last page
-            roomsPagination.currentPage = newTotalPages;
-            console.log('📄 Current page beyond total, going to last page:', newTotalPages);
-        } else {
-            // Check if current page needs to be refilled from next pages
-            const currentPageStartIndex = (roomsPagination.currentPage - 1) * roomsPagination.itemsPerPage;
-            const currentPageEndIndex = currentPageStartIndex + roomsPagination.itemsPerPage;
-            const itemsOnCurrentPage = Math.min(roomsPagination.itemsPerPage, newTotalItems - currentPageStartIndex);
-            
-            console.log('📄 Current page analysis (Rooms):', {
-                currentPage: roomsPagination.currentPage,
-                startIndex: currentPageStartIndex,
-                endIndex: currentPageEndIndex,
-                itemsOnCurrentPage: itemsOnCurrentPage,
-                totalItems: newTotalItems
-            });
-            
-            // If current page has fewer items than itemsPerPage, we need to refill it
-            if (itemsOnCurrentPage < roomsPagination.itemsPerPage && roomsPagination.currentPage < newTotalPages) {
-                console.log('📄 Current page not full, rows will be pulled from next pages automatically');
-            }
-            
-            // Stay on current page - the showRoomsPage will handle pulling rows from next pages
-            console.log('📄 Staying on current page:', roomsPagination.currentPage);
         }
         
-        // Update UI
         updateRoomsPagination();
         showRoomsPage(roomsPagination.currentPage);
-        
-        console.log('✅ Smart pagination refresh completed (Rooms)');
     }
     
     // Recalculate tables pagination
@@ -6094,72 +6503,73 @@ function refreshPaginationAfterDeletion() {
     const tablesTableBody = tablesContainer ? tablesContainer.querySelector('tbody') : null;
     if (tablesTableBody) {
         const tablesRows = tablesTableBody.querySelectorAll('tr');
-        const newTotalItems = tablesRows.length;
-        const newTotalPages = Math.ceil(newTotalItems / tablesPagination.itemsPerPage);
+        tablesPagination.totalItems = tablesRows.length;
+        tablesPagination.totalPages = Math.ceil(tablesPagination.totalItems / tablesPagination.itemsPerPage);
         
-        console.log('🔍 DOM State Check (Tables):', {
-            containerFound: !!tablesContainer,
-            tbodyFound: !!tablesTableBody,
-            totalRowsInDOM: tablesRows.length,
-            rowDetails: Array.from(tablesRows).map((row, index) => ({
-                index: index + 1,
-                tableId: row.getAttribute('data-table-id'),
-                tableName: row.querySelector('.table-name') ? row.querySelector('.table-name').textContent.trim() : 'No name',
-                hasPaginationHidden: row.classList.contains('pagination-hidden')
-            }))
-        });
-        
-        console.log('📊 Pagination after deletion (Tables):', {
-            oldTotalItems: tablesPagination.totalItems,
-            newTotalItems: newTotalItems,
-            oldTotalPages: tablesPagination.totalPages,
-            newTotalPages: newTotalPages,
-            currentPage: tablesPagination.currentPage
-        });
-        
-        // Update pagination state
-        tablesPagination.totalItems = newTotalItems;
-        tablesPagination.totalPages = newTotalPages;
-        
-        // Smart page adjustment logic to ensure current page is always full
-        if (newTotalPages === 0) {
-            // No items left
+        if (forceGoToPage1) {
             tablesPagination.currentPage = 1;
-            console.log('📄 No items left, staying on page 1');
-        } else if (tablesPagination.currentPage > newTotalPages) {
-            // Current page is beyond total pages, go to last page
-            tablesPagination.currentPage = newTotalPages;
-            console.log('📄 Current page beyond total, going to last page:', newTotalPages);
-        } else {
-            // Check if current page needs to be refilled from next pages
-            const currentPageStartIndex = (tablesPagination.currentPage - 1) * tablesPagination.itemsPerPage;
-            const currentPageEndIndex = currentPageStartIndex + tablesPagination.itemsPerPage;
-            const itemsOnCurrentPage = Math.min(tablesPagination.itemsPerPage, newTotalItems - currentPageStartIndex);
-            
-            console.log('📄 Current page analysis (Tables):', {
-                currentPage: tablesPagination.currentPage,
-                startIndex: currentPageStartIndex,
-                endIndex: currentPageEndIndex,
-                itemsOnCurrentPage: itemsOnCurrentPage,
-                totalItems: newTotalItems
-            });
-            
-            // If current page has fewer items than itemsPerPage, we need to refill it
-            if (itemsOnCurrentPage < tablesPagination.itemsPerPage && tablesPagination.currentPage < newTotalPages) {
-                console.log('📄 Current page not full, rows will be pulled from next pages automatically');
-            }
-            
-            // Stay on current page - the showTablesPage will handle pulling rows from next pages
-            console.log('📄 Staying on current page:', tablesPagination.currentPage);
         }
         
-        // Update UI
         updateTablesPagination();
         showTablesPage(tablesPagination.currentPage);
-        
-        console.log('✅ Smart pagination refresh completed (Tables)');
     }
 }
+
+// Force refresh pagination (used when data changes significantly)
+function forceRefreshPagination() {
+    console.log('🚨 Force refreshing pagination...');
+    
+    // Force refresh rooms pagination
+    const roomsContainer = document.querySelector('.room-table-container');
+    const roomsTableBody = roomsContainer ? roomsContainer.querySelector('tbody') : null;
+    if (roomsTableBody) {
+        const roomsRows = roomsTableBody.querySelectorAll('tr');
+        roomsPagination.totalItems = roomsRows.length;
+        roomsPagination.totalPages = Math.ceil(roomsPagination.totalItems / roomsPagination.itemsPerPage);
+        roomsPagination.currentPage = 1;
+        
+        updateRoomsPagination();
+        showRoomsPage(1);
+    }
+    
+    // Force refresh tables pagination
+    const tablesContainer = document.querySelectorAll('.room-table-container')[1];
+    const tablesTableBody = tablesContainer ? tablesContainer.querySelector('tbody') : null;
+    if (tablesTableBody) {
+        const tablesRows = tablesTableBody.querySelectorAll('tr');
+        tablesPagination.totalItems = tablesRows.length;
+        tablesPagination.totalPages = Math.ceil(tablesPagination.totalItems / tablesPagination.itemsPerPage);
+        tablesPagination.currentPage = 1;
+        
+        updateTablesPagination();
+        showTablesPage(1);
+    }
+}
+
+// Initialize Enhanced Room Table Manager
+function initializeEnhancedRoomTableManager() {
+    console.log('🚀 Initializing Enhanced Room Table Manager');
+    
+    // Initialize pagination
+    initializePagination();
+    
+    // Update room dropdown
+    updateAllRoomOptions();
+    
+    // Update capacity badges
+    updateCapacityBadges();
+    
+    console.log('✅ Enhanced Room Table Manager initialized');
+}
+
+// Auto-initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeEnhancedRoomTableManager();
+});
+
+// Export functions for global access
+window.initializeEnhancedRoomTableManager = initializeEnhancedRoomTableManager;
+window.forceRefreshPagination = forceRefreshPagination;
 
 // Refresh pagination after data changes
 function refreshPagination(forceGoToPage1 = false, isNewItemAdded = false) {
@@ -6360,3 +6770,647 @@ window.changeTablesPageSize = function(newSize) {
 
 // Export for global access
 window.RoomTableManager = RoomTableManager;
+
+// ============================================================
+// IMPORT/EXPORT EXCEL FUNCTIONALITY
+// ============================================================
+
+let selectedFile = null;
+
+// Show Import Modal
+window.showImportModal = function() {
+    const modal = document.getElementById('importExcelModal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Reset modal state
+        resetImportModal();
+        
+        // Setup drag and drop
+        setupDragAndDrop();
+        
+        // Add click outside handler specifically for this modal
+        modal.onclick = function(event) {
+            if (event.target === modal) {
+                closeImportModal();
+            }
+        };
+    }
+};
+
+// Close Import Modal
+window.closeImportModal = function() {
+    const modal = document.getElementById('importExcelModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Remove click outside handler
+        modal.onclick = null;
+        
+        resetImportModal();
+    }
+};
+
+// Reset Import Modal
+function resetImportModal() {
+    selectedFile = null;
+    
+    // Reset file input
+    const fileInput = document.getElementById('excelFile');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    // Hide file preview
+    const filePreview = document.getElementById('filePreview');
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    if (filePreview) filePreview.style.display = 'none';
+    if (fileUploadArea) fileUploadArea.style.display = 'block';
+    
+    // Hide progress and results
+    const progress = document.getElementById('importProgress');
+    const results = document.getElementById('importResults');
+    if (progress) progress.style.display = 'none';
+    if (results) results.style.display = 'none';
+    
+    // Reset buttons
+    const checkBtn = document.getElementById('checkBtn');
+    const importBtn = document.getElementById('importBtn');
+    if (checkBtn) {
+        checkBtn.disabled = true;
+        checkBtn.style.display = 'inline-block';
+    }
+    if (importBtn) {
+        importBtn.disabled = true;
+        importBtn.style.display = 'none';
+    }
+}
+
+// Setup Drag and Drop
+function setupDragAndDrop() {
+    const uploadArea = document.getElementById('fileUploadArea');
+    if (!uploadArea) return;
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    // Highlight drop area when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    // Handle dropped files
+    uploadArea.addEventListener('drop', handleDrop, false);
+}
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function highlight(e) {
+    const uploadArea = document.getElementById('fileUploadArea');
+    uploadArea.classList.add('dragover');
+}
+
+function unhighlight(e) {
+    const uploadArea = document.getElementById('fileUploadArea');
+    uploadArea.classList.remove('dragover');
+}
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    
+    if (files.length > 0) {
+        handleFileSelect({ target: { files: files } });
+    }
+}
+
+// Handle File Selection
+window.handleFileSelect = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel' // .xls
+    ];
+    
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
+        showNotification('error', 'Vui lòng chọn file Excel (.xlsx hoặc .xls)', 'Định dạng file không hợp lệ');
+        return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+        showNotification('error', 'File quá lớn', 'Kích thước file không được vượt quá 10MB');
+        return;
+    }
+
+    selectedFile = file;
+    showFilePreview(file);
+    
+    // Enable check button and reset import button
+    const checkBtn = document.getElementById('checkBtn');
+    const importBtn = document.getElementById('importBtn');
+    if (checkBtn) {
+        checkBtn.disabled = false;
+        checkBtn.style.display = 'inline-block';
+    }
+    if (importBtn) {
+        importBtn.disabled = true;
+        importBtn.style.display = 'none';
+    }
+};
+
+// Show File Preview
+function showFilePreview(file) {
+    const filePreview = document.getElementById('filePreview');
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+
+    if (filePreview && fileUploadArea && fileName && fileSize) {
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        
+        fileUploadArea.style.display = 'none';
+        filePreview.style.display = 'block';
+    }
+}
+
+// Format File Size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Remove File
+window.removeFile = function() {
+    selectedFile = null;
+    const fileInput = document.getElementById('excelFile');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    const filePreview = document.getElementById('filePreview');
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    if (filePreview) filePreview.style.display = 'none';
+    if (fileUploadArea) fileUploadArea.style.display = 'block';
+    
+    const importBtn = document.getElementById('importBtn');
+    if (importBtn) {
+        importBtn.disabled = true;
+    }
+};
+
+// Check File
+window.checkFile = function() {
+    if (!selectedFile) {
+        showNotification('error', 'Chưa chọn file', 'Vui lòng chọn file Excel để kiểm tra');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('excelFile', selectedFile);
+    formData.append('action', 'checkExcel');
+    
+    // Get import options
+    const skipDuplicates = document.getElementById('skipDuplicates').checked;
+    const validateData = document.getElementById('validateData').checked;
+    const createMissingRooms = document.getElementById('createMissingRooms').checked;
+    
+    formData.append('skipDuplicates', skipDuplicates);
+    formData.append('validateData', validateData);
+    formData.append('createMissingRooms', createMissingRooms);
+    
+    // Show progress
+    showProgress();
+    
+    fetch('roomtable', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        
+        if (data.success) {
+            // Show check results
+            showCheckResults(data);
+            
+            // Enable import button if no errors
+            if (data.errors && data.errors.length === 0) {
+                const checkBtn = document.getElementById('checkBtn');
+                const importBtn = document.getElementById('importBtn');
+                if (checkBtn) {
+                    checkBtn.style.display = 'none';
+                }
+                if (importBtn) {
+                    importBtn.disabled = false;
+                    importBtn.style.display = 'inline-block';
+                }
+            }
+        } else {
+            showNotification('error', 'Lỗi kiểm tra file', data.message || 'Có lỗi xảy ra khi kiểm tra file');
+        }
+    })
+    .catch(error => {
+        hideProgress();
+        console.error('Error checking file:', error);
+        showNotification('error', 'Lỗi kiểm tra file', 'Có lỗi xảy ra khi kiểm tra file');
+    });
+};
+
+// Show Check Results
+function showCheckResults(data) {
+    const importResults = document.getElementById('importResults');
+    const resultSummary = document.getElementById('resultSummary');
+    const resultDetails = document.getElementById('resultDetails');
+    
+    if (!importResults || !resultSummary || !resultDetails) return;
+    
+    // Show results section
+    importResults.style.display = 'block';
+    
+    // Summary
+    let summaryHtml = `
+        <div class="result-item">
+            <div class="result-number">${data.totalRooms || 0}</div>
+            <div class="result-label">Phòng</div>
+        </div>
+        <div class="result-item">
+            <div class="result-number">${data.totalTables || 0}</div>
+            <div class="result-label">Bàn</div>
+        </div>
+        <div class="result-item">
+            <div class="result-number">${data.errors ? data.errors.length : 0}</div>
+            <div class="result-label">Lỗi</div>
+        </div>
+    `;
+    resultSummary.innerHTML = summaryHtml;
+    
+    // Details
+    if (data.errors && data.errors.length > 0) {
+        let detailsHtml = '<h5>Danh sách lỗi:</h5><ul>';
+        data.errors.forEach(error => {
+            detailsHtml += `<li class="error-item">${error}</li>`;
+        });
+        detailsHtml += '</ul>';
+        resultDetails.innerHTML = detailsHtml;
+    } else {
+        resultDetails.innerHTML = '<div class="success-message">✅ File hợp lệ, có thể bắt đầu nhập dữ liệu!</div>';
+    }
+}
+
+// Start Import Process
+window.startImport = function() {
+    if (!selectedFile) {
+        showNotification('error', 'Vui lòng chọn file Excel', 'Chưa có file nào được chọn');
+        return;
+    }
+
+    // Show progress
+    const progress = document.getElementById('importProgress');
+    const results = document.getElementById('importResults');
+    const importBtn = document.getElementById('importBtn');
+    
+    if (progress) progress.style.display = 'block';
+    if (results) results.style.display = 'none';
+    if (importBtn) {
+        importBtn.disabled = true;
+        importBtn.textContent = '⏳ Đang xử lý...';
+    }
+
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('action', 'importExcel');
+    formData.append('skipDuplicates', document.getElementById('skipDuplicates').checked);
+    formData.append('validateData', document.getElementById('validateData').checked);
+    formData.append('createMissingRooms', document.getElementById('createMissingRooms').checked);
+
+    // Simulate progress
+    simulateProgress();
+
+    // Send request
+    fetch('roomtable', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        showImportResults(data);
+        
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.textContent = '✅ Hoàn thành';
+        }
+    })
+    .catch(error => {
+        console.error('Import error:', error);
+        hideProgress();
+        showNotification('error', 'Lỗi khi nhập dữ liệu', error.message);
+        
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.textContent = '✅ Bắt đầu nhập';
+        }
+    });
+};
+
+// Simulate Progress
+function simulateProgress() {
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        
+        if (progressFill) {
+            progressFill.style.width = progress + '%';
+        }
+        
+        if (progressText) {
+            if (progress < 30) {
+                progressText.textContent = 'Đang đọc file Excel...';
+            } else if (progress < 60) {
+                progressText.textContent = 'Đang kiểm tra dữ liệu...';
+            } else if (progress < 90) {
+                progressText.textContent = 'Đang lưu vào cơ sở dữ liệu...';
+            } else {
+                progressText.textContent = 'Hoàn thành!';
+            }
+        }
+    }, 200);
+
+    // Store interval ID for cleanup
+    window.importProgressInterval = interval;
+}
+
+// Show Progress
+function showProgress() {
+    const progressDiv = document.getElementById('importProgress');
+    if (progressDiv) {
+        progressDiv.style.display = 'block';
+    }
+    
+    // Reset progress bar
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    if (progressFill) {
+        progressFill.style.width = '0%';
+    }
+    if (progressText) {
+        progressText.textContent = 'Đang kiểm tra file...';
+    }
+    
+    // Simulate progress
+    simulateProgress();
+}
+
+// Hide Progress
+function hideProgress() {
+    if (window.importProgressInterval) {
+        clearInterval(window.importProgressInterval);
+        window.importProgressInterval = null;
+    }
+    
+    const progressFill = document.getElementById('progressFill');
+    if (progressFill) {
+        progressFill.style.width = '100%';
+    }
+}
+
+// Show Import Results
+function showImportResults(data) {
+    const results = document.getElementById('importResults');
+    const summary = document.getElementById('resultSummary');
+    const details = document.getElementById('resultDetails');
+    
+    if (!results || !summary || !details) return;
+
+    // Build summary
+    let summaryHtml = '';
+    if (data.rooms) {
+        summaryHtml += `
+            <div class="result-item success">
+                <div class="result-number">${data.rooms.success || 0}</div>
+                <div class="result-label">Phòng thành công</div>
+            </div>
+            <div class="result-item error">
+                <div class="result-number">${data.rooms.error || 0}</div>
+                <div class="result-label">Phòng lỗi</div>
+            </div>
+        `;
+    }
+    
+    if (data.tables) {
+        summaryHtml += `
+            <div class="result-item success">
+                <div class="result-number">${data.tables.success || 0}</div>
+                <div class="result-label">Bàn thành công</div>
+            </div>
+            <div class="result-item error">
+                <div class="result-number">${data.tables.error || 0}</div>
+                <div class="result-label">Bàn lỗi</div>
+            </div>
+        `;
+    }
+
+    summary.innerHTML = summaryHtml;
+
+    // Build details
+    let detailsHtml = '';
+    if (data.message) {
+        detailsHtml += `<p><strong>Thông báo:</strong> ${data.message}</p>`;
+    }
+    
+    if (data.errors && data.errors.length > 0) {
+        detailsHtml += '<p><strong>Chi tiết lỗi:</strong></p><ul>';
+        data.errors.forEach(error => {
+            detailsHtml += `<li>${error}</li>`;
+        });
+        detailsHtml += '</ul>';
+    }
+
+    details.innerHTML = detailsHtml;
+    results.style.display = 'block';
+
+    // Show notification
+    if (data.success) {
+        showNotification('success', 'Nhập dữ liệu thành công', data.message);
+        // Refresh the page to show new data
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    } else {
+        showNotification('warning', 'Nhập dữ liệu hoàn thành với lỗi', data.message);
+    }
+};
+
+// Export to Excel
+window.exportToExcel = function() {
+    showNotification('info', 'Đang xuất dữ liệu...', 'Vui lòng chờ trong giây lát');
+    
+    // Create a form to submit the export request
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'roomtable';
+    form.style.display = 'none';
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'exportExcel';
+    
+    form.appendChild(actionInput);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+};
+
+// Download Template
+window.downloadTemplate = function(type) {
+    showNotification('info', 'Đang tải template...', 'Vui lòng chờ trong giây lát');
+    
+    // Create a form to submit the template download request
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'roomtable';
+    form.style.display = 'none';
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'downloadTemplate';
+    
+    const typeInput = document.createElement('input');
+    typeInput.type = 'hidden';
+    typeInput.name = 'templateType';
+    typeInput.value = type;
+    
+    form.appendChild(actionInput);
+    form.appendChild(typeInput);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+};
+
+// Enhanced Notification System
+function showNotification(type, title, message) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => notification.remove());
+
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    
+    const icon = getNotificationIcon(type);
+    notification.innerHTML = `
+        <div class="notification-icon">${icon}</div>
+        <div class="notification-content">
+            <div class="notification-title">${title}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+        <div class="notification-close" onclick="this.parentElement.remove()">×</div>
+        <div class="notification-progress"></div>
+    `;
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Show notification
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    return icons[type] || 'ℹ️';
+}
+
+// Update modal click outside handler
+window.onclick = function (event) {
+    const roomModal = document.getElementById('addRoomModal');
+    const tableModal = document.getElementById('addTableModal');
+    const importModal = document.getElementById('importExcelModal');
+    
+    // Close room modal when clicking outside
+    if (event.target === roomModal) {
+        closeAddRoomModal();
+    }
+    
+    // Close table modal when clicking outside
+    if (event.target === tableModal) {
+        closeAddTableModal();
+    }
+    
+    // Close import modal when clicking outside
+    if (event.target === importModal) {
+        closeImportModal();
+    }
+}
+
+// Alternative approach: Add event listener to document for better compatibility
+document.addEventListener('click', function(event) {
+    const roomModal = document.getElementById('addRoomModal');
+    const tableModal = document.getElementById('addTableModal');
+    const importModal = document.getElementById('importExcelModal');
+    
+    // Check if click is outside modal content
+    if (roomModal && roomModal.style.display === 'block') {
+        if (event.target === roomModal) {
+            closeAddRoomModal();
+        }
+    }
+    
+    if (tableModal && tableModal.style.display === 'block') {
+        if (event.target === tableModal) {
+            closeAddTableModal();
+        }
+    }
+    
+    if (importModal && importModal.style.display === 'block') {
+        if (event.target === importModal) {
+            closeImportModal();
+        }
+    }
+});
