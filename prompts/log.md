@@ -53,7 +53,7 @@ Lưu trữ kết quả vào:
 
 ### **Input Prompt:**
 
-``` 
+```
 [CONTEXT CHAIN]
 Tiếp nối kết quả từ PROMPT 1 - "Initial Analysis & Planning", nơi đã hoàn tất việc phân tích nghiệp vụ và xác định phạm vi kiểm thử cho core feature “Cashier Order” trong dự án LiteFlow (hệ thống quản lý nhà hàng sử dụng Jakarta EE + Servlet).
 
@@ -63,8 +63,8 @@ Mục tiêu kiểm thử: đảm bảo luồng đặt món tại quầy hoạt �
 
 [BẢN GHI NHỚ]
 - Không sinh code ở bước này.
-- Tập trung vào thiết kế test case logic.
-- Kết quả của bước này sẽ là đầu vào cho PROMPT 3 (Test Code Generation).
+- Tập trung vào thiết kế test case logic, logic rõ ràng, cân bằng về độ bao phủ.
+- Kết quả của bước này sẽ là đầu vào cho PROMPT tiếp theo (Test Code Generation).
 
 [MAIN TASK]
 Hãy tạo **Test Case Matrix chi tiết cho Cashier Feature** với **15 basic test cases**, chia theo 3 nhóm:
@@ -97,27 +97,27 @@ Error Scenarios (7 cases):
 TC-ERR-001: ...
 ...
 
-css
-Sao chép mã
-
-Yêu cầu không sinh code, chỉ tạo bảng test case logic rõ ràng, cân bằng về độ bao phủ, và phù hợp với luồng Cashier Order.
 
 Lưu trữ kết quả đầu ra vào:  
 `prompts/outputs/Output_PR2.md`
 ```
 
-promt3
 ---
 
-Tiếp nối kết quả từ PROMPT 2 - "Basic Test Case Design", hệ thống đã có 15 test cases cơ bản bao phủ các luồng thành công, biên, và lỗi validation cho module “Cashier Order” trong dự án LiteFlow (nền tảng quản lý nhà hàng sử dụng Jakarta EE + Servlet).
+## 📋 **PROMPT 3: REAL-WORLD SCENARIOS DESIGN**
 
-Bước tiếp theo trong quy trình kiểm thử AI (AI Testing Workflow) là **thiết kế 5 test cases thực tế (real-world scenarios)** phản ánh các lỗi nghiêm trọng thường xảy ra trong môi trường **production restaurant system**.
+### **Input Prompt:**
 
-[BẢN GHI NHỚ]
-- Không sinh code trong bước này.  
-- Chỉ thiết kế và mô tả chi tiết logic các test case.  
-- Kết quả dùng làm đầu vào cho PROMPT 4 (Test Implementation).  
-- Sử dụng tiếng Việt cho ví dụ minh họa và context người dùng.
+```
+Tiếp nối kết quả từ PROMPT 2 - "Basic Test Case Design", hệ thống đã có 15 test cases cơ bản bao phủ các luồng thành công, biên, và lỗi validation cho module "Cashier Order" trong dự án LiteFlow.
+
+Bước tiếp theo trong quy trình kiểm thử AI (AI Testing Workflow) là **thiết kế các test cases thực tế (real-world scenarios)** phản ánh các lỗi nghiêm trọng thường xảy ra trong môi trường **production restaurant system**.
+
+Yêu cầu : 
+- Không sinh code ở bước này.
+- Tập trung vào thiết kế test case logic, logic rõ ràng, cân bằng về độ bao phủ.
+- Kết quả của bước này sẽ là đầu vào cho PROMPT tiếp theo (Test Code Generation).
+- Các test case được đề ra ở bước này sẽ sử dụng form tương tự như các test case ở Prompt 2 về mặt thông tin và ouput
 
 [MAIN TASK]
 Hãy tạo **5 test cases thực tế quan trọng nhất (critical real-world scenarios)** cho feature “Cashier Order”, tập trung vào các nhóm rủi ro thường gặp trong sản phẩm thực tế:
@@ -127,33 +127,6 @@ Hãy tạo **5 test cases thực tế quan trọng nhất (critical real-world s
 3. **Data Type Mismatches** – sai kiểu dữ liệu từ frontend (ví dụ quantity = "2" thay vì 2).  
 4. **Network Problems** – request bị rỗng, JSON lỗi định dạng.  
 5. **User Behavior** – người dùng thao tác sai (double-click, duplicate items).  
-
-Mỗi test case phải bao gồm:
-- Test ID  
-- Scenario Title  
-- Description (mô tả chi tiết tình huống)  
-- Priority (CRITICAL / HIGH / MEDIUM)  
-- Test Objective  
-- Expected Behavior  
-- Impact (ảnh hưởng tới hệ thống hoặc khách hàng)  
-- Comment `"REAL SCENARIO"` giải thích vì sao lỗi này từng hoặc có thể xảy ra trong production.
-
-[OUTPUT FORMAT]
-Kết quả đầu ra phải được trình bày **dưới dạng Markdown**, theo cấu trúc sau:
-
-📊 REAL-WORLD TEST CASE MATRIX (5 critical cases)
-Critical Production Scenarios:
-TC-REAL-001: Security - Negative Price Attack
-
-Scenario: ...
-
-Priority: ...
-
-Test: ...
-
-Impact: ...
-
-Sử dụng ví dụ tiếng Việt (ví dụ “Không hành, ít đường 😊”) để minh họa các tình huống người dùng thực tế trong nhà hàng.
 
 Lưu trữ kết quả đầu ra vào:  
 `prompts/outputs/Output_PR3.md`
@@ -167,14 +140,14 @@ Lưu trữ kết quả đầu ra vào:
 ```
 Tiếp nối kết quả từ PROMPT 3 - “Real-World Scenarios Design”, ta đã có tổng cộng **20 test cases** (15 basic + 5 real-world) cho core feature “Cashier Order” của dự án LiteFlow (Jakarta EE + Servlet).
 
-Các test cases bao phủ toàn bộ luồng nghiệp vụ quầy thu ngân (Cashier Order) gồm:  
+Các test cases bao phủ toàn bộ luồng nghiệp vụ quầy thu ngân (Cashier Order) gồm:  code for test 
 - Tạo order (CreateOrderServlet, OrderService)  
 - Xác thực dữ liệu nhập từ frontend  
 - Gửi request JSON qua endpoint POST /api/order/create  
 - Kiểm tra response JSON (success, message, orderId)  
 - Mô phỏng các lỗi dữ liệu, edge case, và tình huống production (negative price, malformed JSON, double-click, emoji…)
 
-[BẢN GHI NHỚ]
+Yêu cầu : 
 - Đây là **bước sinh mã tự động (AI Test Code Generation)**, nối tiếp kế hoạch và thiết kế test từ PR1 → PR2 → PR3.  
 - Yêu cầu sinh **test code hoàn chỉnh**, **không sinh lại test matrix**.  
 - Code phải **compile và chạy được trong dự án LiteFlow**, tuân theo chuẩn JUnit 5 + Mockito.  
@@ -206,33 +179,10 @@ Hãy sinh **test code hoàn chỉnh** cho 20 test cases của Cashier Feature, t
 - Xác nhận logic `verify(mockOrderService, never())` khi dữ liệu sai  
 - Test các lỗi phổ biến: null tableId, empty items, negative price, malformed JSON, duplicate item, invalid data type, emoji text  
 
-### 🧾 **Expected Output Structure**
-Sinh test code hoàn chỉnh gồm:
-1. **Setup section** (`@BeforeEach`) – khởi tạo mocks, servlet, writer.  
-2. **20 methods** (`@Test`) – 15 basic + 5 real-world test cases.  
-3. Mỗi test có `@DisplayName` và comment mô tả mục tiêu.  
-4. **Không sinh test matrix hay tài liệu giải thích** – chỉ sinh code thuần Java.  
-
 ### 🧠 **Coverage Target**
 - Line coverage ≥ 80%  
 - Branch coverage ≥ 70%  
 - Đảm bảo gọi đầy đủ các nhánh: valid, invalid, empty, malformed, and concurrency paths.
-
-// import statements...
-
-@ExtendWith(MockitoExtension.class)
-class CreateOrderServletTest {
-    // setup ...
-
-    @Test
-    @DisplayName("TC-REAL-001: Should reject order when price is negative (SECURITY)")
-    void should_rejectOrder_when_priceIsNegative() throws Exception {
-        // ...
-    }
-
-    // Các test case khác tương tự...
-}
-
 
 ### **Sample Test Code:**
 
@@ -240,10 +190,7 @@ class CreateOrderServletTest {
 @Test
 @DisplayName("TC-REAL-001: Should reject order when price is negative (SECURITY)")
 void should_rejectOrder_when_priceIsNegative() throws Exception {
-    // REAL SCENARIO: Hacker tries to exploit by sending negative prices
-    // This could lead to revenue loss if not validated properly
-    // Frontend validation can be bypassed using dev tools or API calls
-    
+   
     UUID tableId = UUID.randomUUID();
     String requestBody = "{"
             + "\"tableId\":\"" + tableId + "\","
@@ -265,7 +212,6 @@ void should_rejectOrder_when_priceIsNegative() throws Exception {
     verify(mockOrderService, never()).createOrderAndNotifyKitchen(any(), anyList(), any());
 }
 
-}
 ```
 
 ---
@@ -288,56 +234,6 @@ Requirements:
 - Clear and maintainable
 - Support multiple test scenarios
 - Support both basic and real-world tests
-```
-
-### **AI Output:**
-
-```java
-// Helper method to create mock request with JSON body
-private BufferedReader createMockRequestBody(String json) {
-    return new BufferedReader(new StringReader(json));
-}
-
-// Helper method to create valid order request JSON
-private String createValidOrderRequest(UUID tableId, int itemCount) {
-    StringBuilder json = new StringBuilder("{\"tableId\":\"" + tableId + "\",\"items\":[");
-    for (int i = 0; i < itemCount; i++) {
-        if (i > 0) json.append(",");
-        json.append("{")
-            .append("\"variantId\":\"").append(UUID.randomUUID()).append("\",")
-            .append("\"quantity\":").append(i + 1).append(",")
-            .append("\"unitPrice\":").append(50000 + (i * 10000)).append(",")
-            .append("\"note\":\"Item ").append(i + 1).append("\"")
-            .append("}");
-    }
-    json.append("]}");
-    return json.toString();
-}
-
-// Helper method to verify JSON response
-private void assertJsonResponse(String response, boolean expectedSuccess) {
-    assertTrue(response.contains("\"success\":" + expectedSuccess));
-    assertTrue(response.contains("\"message\""));
-}
-
-// Helper method to setup service mock for success
-private UUID setupSuccessfulOrderCreation(UUID tableId) {
-    UUID orderId = UUID.randomUUID();
-    when(mockOrderService.createOrderAndNotifyKitchen(eq(tableId), anyList(), any()))
-        .thenReturn(orderId);
-    return orderId;
-}
-
-// Helper for Vietnamese test data
-private String createVietnameseOrderRequest(UUID tableId, String vietnameseNote) {
-    return "{"
-        + "\"tableId\":\"" + tableId + "\","
-        + "\"items\":["
-        + "  {\"variantId\":\"" + UUID.randomUUID() + "\",\"quantity\":1,\"unitPrice\":45000,"
-        + "   \"note\":\"" + vietnameseNote + "\"}"
-        + "]"
-        + "}";
-}
 ```
 
 ---
@@ -363,7 +259,7 @@ Common issues cần fix:
 - UTF-8 encoding issues
 ```
 
-
+---
 
 ## 📋 **PROMPT 7: FINAL VALIDATION & DOCUMENTATION**
 
@@ -383,41 +279,7 @@ AI prompts summary
 6. Provide Maven commands to run tests
 ```
 
-### **AI Output:**
-
-```
-## ✅ FINAL VALIDATION CHECKLIST
-
-### **Test Suite Validation:**
-- [x] 20 test cases created (15 basic + 5 real-world)
-- [x] All tests passing (100% success rate)
-- [x] No compilation errors
-- [x] No test failures
-- [x] Proper naming conventions (should_behavior_when_condition)
-- [x] AAA pattern applied consistently
-- [x] Comprehensive assertions in each test
-
-### **Test Coverage Validation:**
-- [x] Happy Path: 4 tests (20%)
-- [x] Edge Cases: 4 tests (20%)
-- [x] Error Scenarios: 7 tests (35%)
-- [x] Real-World Scenarios: 5 tests (25%)
-- [x] Total Coverage: 20 tests
-
-### **Documentation Validation:**
-- [x] TEST_SUMMARY.md created
-- [x] REAL_WORLD_TEST_SCENARIOS.md created
-- [x] Test instructions provided
-- [x] Maven commands documented
-- [x] Prompt engineering log complete
-
-### **Code Quality Validation:**
-- [x] No code duplication
-- [x] Clear helper methods
-- [x] Proper mocking setup
-- [x] Reflection correctly used
-- [x] JSON parsing verified
-- [x] UTF-8 encoding tested
+---
 
 ### **Final Test Results:**
 ```
@@ -433,6 +295,7 @@ Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 ### **Maven Commands:**
+
 ```bash
 # Run all tests
 mvn test
@@ -474,6 +337,7 @@ mvn test -X
 > "Focus on quality over quantity - 5 critical tests beat 15 trivial ones!"
 
 **Focus Areas:**
+
 1. 🛡️ **Security First** - Prevent revenue loss and attacks
 2. 🌏 **Localization** - Vietnamese language and emojis
 3. 🐛 **Common Bugs** - Type mismatches, empty data, duplicates
@@ -527,6 +391,7 @@ mvn test -X
 Validate the complete test suite and create comprehensive documentation.
 
 ### **✅ Final Validation Results:**
+
 - **Tests run:** 20
 - **Passed:** 20 ✅
 - **Failed:** 0
@@ -535,6 +400,7 @@ Validate the complete test suite and create comprehensive documentation.
 - **Build Status:** ✅ SUCCESS
 
 ### **📚 Documentation Created:**
+
 1. ✅ `TEST_SUMMARY.md` - Comprehensive test report
 2. ✅ `README.md` - Complete user guide with installation
 3. ✅ `VALIDATION_CHECKLIST.md` - 150+ quality checkpoints
@@ -542,6 +408,7 @@ Validate the complete test suite and create comprehensive documentation.
 5. ✅ `Output_PR6_FinalReport.md` - Executive summary
 
 ### **📊 Final Metrics:**
+
 | Metric | Target | Achieved | Grade |
 |--------|--------|----------|-------|
 | Test Count | ≥ 20 | 20 | ✅ A+ |
@@ -552,6 +419,8 @@ Validate the complete test suite and create comprehensive documentation.
 ---
 
 **🎉 FINAL RESULT: SUCCESSFULLY COMPLETED AI-ASSISTED UNIT TESTING WITH COMPREHENSIVE DOCUMENTATION!**
+
+---
 
 *Date Completed:* October 25, 2025  
 *Project:* LiteFlow Restaurant Management System  
