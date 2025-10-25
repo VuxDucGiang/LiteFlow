@@ -2,6 +2,7 @@ package com.liteflow.cashier;
 
 import com.google.gson.Gson;
 import com.liteflow.service.OrderService;
+import com.liteflow.util.OrderDataUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.mockito.Mockito;
@@ -214,28 +215,21 @@ public class OrderTestHelper {
      * Generate random UUID for testing
      */
     public static UUID generateTestUUID() {
-        return UUID.randomUUID();
+        return OrderDataUtil.generateTestUUID();
     }
 
     /**
      * Generate deterministic UUID for testing (based on seed)
      */
     public static UUID generateTestUUID(int seed) {
-        String uuidString = String.format("%08d-0000-0000-0000-000000000000", seed);
-        return UUID.fromString(uuidString);
+        return OrderDataUtil.generateTestUUID(seed);
     }
 
     /**
      * Validate UUID format
      */
     public static boolean isValidUUID(String uuid) {
-        if (uuid == null) return false;
-        try {
-            UUID.fromString(uuid);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+        return OrderDataUtil.isValidUUID(uuid);
     }
 
     // =========================
