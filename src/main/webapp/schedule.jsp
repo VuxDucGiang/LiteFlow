@@ -7,6 +7,17 @@
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/schedule.css">
 
 <style>
+/* Prevent horizontal scroll */
+body, html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.app {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 /* Quick add shift styles */
 .clickable-cell {
   cursor: pointer !important;
