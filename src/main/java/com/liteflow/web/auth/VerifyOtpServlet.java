@@ -273,6 +273,10 @@ public class VerifyOtpServlet extends HttpServlet {
         session.removeAttribute("pendingAccessToken");
         session.removeAttribute("otpContext");
         session.setAttribute("UserLogin", user.getUserID().toString());
+        
+        // Set user roles vào session
+        List<String> roles = userService.getRoleNames(user.getUserID());
+        session.setAttribute("UserRoles", roles);
 
         // Đánh dấu user đã xác thực 2FA thành công để bỏ qua OTP trong 24h tiếp theo
         user.setLast2faVerifiedAt(java.time.LocalDateTime.now());

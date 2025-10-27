@@ -223,6 +223,7 @@ public class LoginServlet extends HttpServlet {
         claims.put("uid", user.getUserID().toString());
 
         List<String> roles = userService.getRoleNames(user.getUserID());
+        session.setAttribute("UserRoles", roles);
         String refreshToken = JwtUtil.issue(
                 UUID.randomUUID().toString(),
                 claims,

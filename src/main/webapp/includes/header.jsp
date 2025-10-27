@@ -169,57 +169,107 @@
   <nav class="main-nav">
     <div class="nav-content">
       <div class="nav-menu">
+        <!-- Tổng quan - luôn hiển thị -->
         <a href="${pageContext.request.contextPath}/dashboard.jsp" class="nav-item ${param.page == 'dashboard' ? 'active' : ''}">
           <i class='bx bxs-dashboard'></i> Tổng quan
         </a>
-        <div class="nav-item dropdown ${param.page == 'products' || param.page == 'setprice' ? 'active' : ''}">
-          <a href="#" class="nav-link dropdown-toggle">
-            <i class='bx bxs-package'></i> Hàng hóa
-            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
-          </a>
-          <div class="dropdown-menu">
-            <a href="${pageContext.request.contextPath}/products" class="dropdown-item">
-              <i class='bx bxs-category'></i> Danh mục
+        
+        <!-- Check nếu KHÔNG phải Employee thì hiển thị các menu khác -->
+        <c:set var="isEmployee" value="false" />
+        <c:forEach var="role" items="${sessionScope.UserRoles}">
+          <c:if test="${role == 'Employee'}">
+            <c:set var="isEmployee" value="true" />
+          </c:if>
+        </c:forEach>
+        
+        <c:if test="${!isEmployee}">
+          <!-- Hàng hóa -->
+          <div class="nav-item dropdown ${param.page == 'products' || param.page == 'setprice' ? 'active' : ''}">
+            <a href="#" class="nav-link dropdown-toggle">
+              <i class='bx bxs-package'></i> Hàng hóa
+              <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
             </a>
-            <a href="${pageContext.request.contextPath}/setprice" class="dropdown-item">
-              <i class='bx bx-dollar'></i> Thiết lập giá
-            </a>
+            <div class="dropdown-menu">
+              <a href="${pageContext.request.contextPath}/products" class="dropdown-item">
+                <i class='bx bxs-category'></i> Danh mục
+              </a>
+              <a href="${pageContext.request.contextPath}/setprice" class="dropdown-item">
+                <i class='bx bx-dollar'></i> Thiết lập giá
+              </a>
+            </div>
           </div>
-        </div>
-        <a href="${pageContext.request.contextPath}/roomtable" class="nav-item ${param.page == 'rooms' ? 'active' : ''}">
-          <i class='bx bx-store'></i> Phòng/Bàn
-        </a>
-        <div class="nav-item dropdown">
-          <a href="#" class="nav-link dropdown-toggle">
-            <i class='bx bx-receipt'></i> Giao dịch
-            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+          
+          <!-- Phòng/Bàn -->
+          <a href="${pageContext.request.contextPath}/roomtable" class="nav-item ${param.page == 'rooms' ? 'active' : ''}">
+            <i class='bx bx-store'></i> Phòng/Bàn
           </a>
-          <div class="dropdown-menu">
-            <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
-              <i class='bx bx-file-blank'></i> Hóa đơn nhập hàng
+          
+          <!-- Giao dịch -->
+          <div class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle">
+              <i class='bx bx-receipt'></i> Giao dịch
+              <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
             </a>
+            <div class="dropdown-menu">
+              <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
+                <i class='bx bx-file-blank'></i> Hóa đơn nhập hàng
+              </a>
+            </div>
           </div>
-        </div>
-        <div class="nav-item dropdown">
-          <a href="#" class="nav-link dropdown-toggle">
-            <i class='bx bx-group'></i> Đối tác
-            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+          
+          <!-- Đối tác -->
+          <div class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle">
+              <i class='bx bx-group'></i> Đối tác
+              <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+            </a>
+            <div class="dropdown-menu">
+              <a href="${pageContext.request.contextPath}/procurement/supplier" class="dropdown-item">
+                <i class='bx bx-store'></i> Nhà cung cấp
+              </a>
+            </div>
+          </div>
+          
+          <!-- Mua sắm -->
+          <div class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle">
+              <i class='bx bx-shopping-bag'></i> Mua sắm
+              <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+            </a>
+            <div class="dropdown-menu">
+              <a href="${pageContext.request.contextPath}/procurement/dashboard" class="dropdown-item">
+                <i class='bx bxs-dashboard'></i> Tổng quan
+              </a>
+              <a href="${pageContext.request.contextPath}/procurement/po" class="dropdown-item">
+                <i class='bx bx-receipt'></i> Đơn đặt hàng
+              </a>
+              <a href="${pageContext.request.contextPath}/procurement/gr" class="dropdown-item">
+                <i class='bx bx-package'></i> Nhận hàng
+              </a>
+            </div>
+          </div>
+          
+          <!-- Báo cáo -->
+          <a href="#" class="nav-item">
+            <i class='bx bx-bar-chart'></i> Báo cáo
           </a>
-          <div class="dropdown-menu">
-            <a href="${pageContext.request.contextPath}/procurement/supplier" class="dropdown-item">
-              <i class='bx bx-store'></i> Nhà cung cấp
-            </a>
-          </div>
-        </div>
+        </c:if>
+        
+        <!-- Nhân viên - hiển thị cho tất cả (nhưng với Employee chỉ hiển thị một số mục) -->
         <div class="nav-item dropdown">
           <a href="#" class="nav-link dropdown-toggle">
             <i class='bx bx-user'></i> Nhân viên
             <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
           </a>
           <div class="dropdown-menu">
-            <a href="${pageContext.request.contextPath}/employees" class="dropdown-item">
-              <i class='bx bx-group'></i> Danh sách nhân viên
-            </a>
+            <c:if test="${!isEmployee}">
+              <a href="${pageContext.request.contextPath}/employees" class="dropdown-item">
+                <i class='bx bx-group'></i> Danh sách nhân viên
+              </a>
+              <a href="${pageContext.request.contextPath}/employee/setupEmployee.jsp" class="dropdown-item">
+                <i class='bx bx-cog'></i> Thiết lập nhân viên
+              </a>
+            </c:if>
             <a href="${pageContext.request.contextPath}/schedule" class="dropdown-item">
               <i class='bx bx-calendar'></i> Lịch làm việc
             </a>
@@ -229,42 +279,19 @@
             <a href="${pageContext.request.contextPath}/employee/paysheet.jsp" class="dropdown-item">
               <i class='bx bx-money'></i> Bảng lương
             </a>
-            <a href="${pageContext.request.contextPath}/employee/setupEmployee.jsp" class="dropdown-item">
-              <i class='bx bx-cog'></i> Thiết lập nhân viên
-            </a>
           </div>
         </div>
-        <div class="nav-item dropdown">
-          <a href="#" class="nav-link dropdown-toggle">
-            <i class='bx bx-shopping-bag'></i> Mua sắm
-            <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
-          </a>
-          <div class="dropdown-menu">
-            <a href="${pageContext.request.contextPath}/procurement/dashboard" class="dropdown-item">
-              <i class='bx bxs-dashboard'></i> Tổng quan
-            </a>
-            <a href="${pageContext.request.contextPath}/procurement/po" class="dropdown-item">
-              <i class='bx bx-receipt'></i> Đơn đặt hàng
-            </a>
-            <a href="${pageContext.request.contextPath}/procurement/gr" class="dropdown-item">
-              <i class='bx bx-package'></i> Nhận hàng
-            </a>
-          </div>
-        </div>
-        
-    
-        <a href="#" class="nav-item">
-          <i class='bx bx-bar-chart'></i> Báo cáo
-        </a>
-     
       </div>
       <div class="nav-right">
-        <a href="${pageContext.request.contextPath}/kitchen" class="nav-icon" title="Nhà bếp" target="_blank">
-          <i class='bx bxs-bowl-hot'></i>
-        </a>
-        <div class="nav-icon" title="Lễ tân">
-          <i class='bx bx-calendar'></i>
-        </div>
+        <c:if test="${!isEmployee}">
+          <a href="${pageContext.request.contextPath}/kitchen" class="nav-icon" title="Nhà bếp" target="_blank">
+            <i class='bx bxs-bowl-hot'></i>
+          </a>
+          <div class="nav-icon" title="Lễ tân">
+            <i class='bx bx-calendar'></i>
+          </div>
+        </c:if>
+        <!-- Thu ngân - hiển thị cho tất cả -->
         <a href="${pageContext.request.contextPath}/cashier" class="nav-icon" title="Thu ngân" target="_blank">
           <i class='bx bx-file'></i>
         </a>
