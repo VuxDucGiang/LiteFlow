@@ -150,9 +150,28 @@
           <div class="header-icon">
             <i class='bx bx-cog'></i>
           </div>
-          <div class="nav-item dropdown header-icon">
-            <a href="#" class="nav-link dropdown-toggle" aria-expanded="false">
-              <i class='bx bx-user'></i>
+          <div class="nav-item dropdown" style="margin: 0;">
+            <a href="#" class="nav-link dropdown-toggle" aria-expanded="false" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #374151 !important;">
+              <i class='bx bx-user' style="color: #374151;"></i>
+              <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2;">
+                <span style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                  <c:choose>
+                    <c:when test="${not empty sessionScope.UserDisplayName}">
+                      ${sessionScope.UserDisplayName}
+                    </c:when>
+                    <c:otherwise>
+                      Tài khoản
+                    </c:otherwise>
+                  </c:choose>
+                </span>
+                <span style="font-size: 11px; color: #6b7280;">
+                  <c:if test="${not empty sessionScope.UserRoles}">
+                    <c:forEach var="role" items="${sessionScope.UserRoles}" varStatus="status">
+                      ${role}<c:if test="${!status.last}">, </c:if>
+                    </c:forEach>
+                  </c:if>
+                </span>
+              </div>
             </a>
             <div class="dropdown-menu" style="right: 0; left: auto;">
               <a href="${pageContext.request.contextPath}/logout" class="dropdown-item">

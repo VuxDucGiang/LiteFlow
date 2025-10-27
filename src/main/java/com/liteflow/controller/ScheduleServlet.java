@@ -200,13 +200,7 @@ public class ScheduleServlet extends HttpServlet {
                 if (anyCreated) {
                     StringBuilder url = new StringBuilder(req.getContextPath())
                             .append("/schedule?weekStart=").append(weekStartParam);
-                    String employeeFilter = req.getParameter("redirectEmployeeCode");
-                    if (employeeFilter == null || employeeFilter.isBlank()) {
-                        employeeFilter = req.getParameter("employeeCode"); // first value if multiple
-                    }
-                    if (employeeFilter != null && !employeeFilter.isBlank()) {
-                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
-                    }
+                    // Không thêm employeeCode vào URL để hiển thị toàn bộ lịch làm việc sau khi thêm
                     String templateName = req.getParameter("templateName");
                     if (templateName != null && !templateName.isBlank()) {
                         url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
@@ -232,13 +226,7 @@ public class ScheduleServlet extends HttpServlet {
                     StringBuilder url = new StringBuilder(req.getContextPath())
                             .append("/schedule?weekStart=")
                             .append(weekStartParam != null ? weekStartParam : LocalDate.now().toString());
-                    String employeeFilter = req.getParameter("redirectEmployeeCode");
-                    if (employeeFilter == null || employeeFilter.isBlank()) {
-                        employeeFilter = req.getParameter("employeeCode");
-                    }
-                    if (employeeFilter != null && !employeeFilter.isBlank()) {
-                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
-                    }
+                    // Không thêm employeeCode vào URL để hiển thị toàn bộ lịch làm việc sau khi xóa
                     String templateName = req.getParameter("templateName");
                     if (templateName != null && !templateName.isBlank()) {
                         url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
@@ -267,13 +255,7 @@ public class ScheduleServlet extends HttpServlet {
                     StringBuilder url = new StringBuilder(req.getContextPath())
                             .append("/schedule?weekStart=")
                             .append(weekStartParam != null ? weekStartParam : LocalDate.now().toString());
-                    String employeeFilter = req.getParameter("redirectEmployeeCode");
-                    if (employeeFilter == null || employeeFilter.isBlank()) {
-                        employeeFilter = req.getParameter("employeeCode");
-                    }
-                    if (employeeFilter != null && !employeeFilter.isBlank()) {
-                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
-                    }
+                    // Không thêm employeeCode vào URL để hiển thị toàn bộ lịch làm việc sau khi toggle
                     String templateName = req.getParameter("templateName");
                     if (templateName != null && !templateName.isBlank()) {
                         url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));

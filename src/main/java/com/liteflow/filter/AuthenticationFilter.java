@@ -127,6 +127,7 @@ public class AuthenticationFilter extends BaseFilter {
                     HttpSession session = getSession(req, true);
                     session.setAttribute("UserLogin", user.getUserID().toString());
                     session.setAttribute("UserRoles", roles);
+                    session.setAttribute("UserDisplayName", user.getDisplayName());
                 }
             } catch (JwtException e) {
                 auditService.logLoginFail("Invalid JWT", req.getRemoteAddr());
@@ -157,6 +158,10 @@ public class AuthenticationFilter extends BaseFilter {
                     @SuppressWarnings("unchecked")
                     List<String> sRoles = (List<String>) session.getAttribute("UserRoles");
                     roles = (sRoles != null) ? sRoles : userService.getRoleNames(user.getUserID());
+                    // Ensure displayName is set in session
+                    if (session.getAttribute("UserDisplayName") == null) {
+                        session.setAttribute("UserDisplayName", user.getDisplayName());
+                    }
                     java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("User found: " + user.getUserID() + ", Roles: " + roles);
                 }
             }
