@@ -30,6 +30,12 @@
       const dropdowns = document.querySelectorAll('.nav-item.dropdown');
       console.log('Found dropdowns:', dropdowns.length);
       
+      // CRITICAL: Close all dropdowns on page load
+      dropdowns.forEach(dropdown => {
+        dropdown.classList.remove('show', 'active');
+        console.log('✅ Closed dropdown on page load');
+      });
+      
       dropdowns.forEach((dropdown, index) => {
         const toggle = dropdown.querySelector('.nav-link.dropdown-toggle');
         const menu = dropdown.querySelector('.dropdown-menu');

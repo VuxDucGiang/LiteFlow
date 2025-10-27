@@ -99,17 +99,22 @@ GO
 -- ============================================================
 -- 2️⃣ PRODUCTS
 -- ============================================================
-INSERT INTO Products (Name, Description, ImageURL) VALUES
-(N'Cà phê đen', N'Cà phê phin truyền thống Việt Nam, đậm vị', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Cà phê sữa đá', N'Cà phê phin pha sữa đặc, vị ngọt béo', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Latte', N'Cà phê espresso với sữa nóng và lớp foam', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Trà đào cam sả', N'Trà đào kết hợp cam và sả, vị thanh mát', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Trà sữa trân châu', N'Trà sữa ngọt dịu kèm trân châu đen', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Sinh tố xoài', N'Sinh tố xoài tươi, ngọt mát', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Nước ép cam', N'Nước cam vắt tươi nguyên chất', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Bánh tiramisu', N'Bánh tiramisu Ý, mềm xốp, vị cà phê', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Croissant bơ', N'Bánh croissant Pháp, giòn thơm vị bơ', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F'),
-(N'Khoai tây chiên', N'Khoai tây chiên giòn vàng', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F');
+    INSERT INTO Products (Name, Description, ImageURL, ProductType, Status, Unit) VALUES
+-- Nhóm Dịch vụ (cà phê, trà - phục vụ trực tiếp tại quán)
+(N'Cà phê đen', N'Cà phê phin truyền thống Việt Nam, đậm vị', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Dịch vụ', N'Đang bán', N'Ly'),
+(N'Cà phê sữa đá', N'Cà phê phin pha sữa đặc, vị ngọt béo', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Dịch vụ', N'Đang bán', N'Ly'),
+(N'Latte', N'Cà phê espresso với sữa nóng và lớp foam', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Dịch vụ', N'Đang bán', N'Ly'),
+(N'Trà đào cam sả', N'Trà đào kết hợp cam và sả, vị thanh mát', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Dịch vụ', N'Đang bán', N'Ly'),
+(N'Trà sữa trân châu', N'Trà sữa ngọt dịu kèm trân châu đen', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Dịch vụ', N'Đang bán', N'Ly'),
+
+-- Nhóm Chế biến (thức ăn cần chế biến/pha chế)
+(N'Sinh tố xoài', N'Sinh tố xoài tươi, ngọt mát', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Chế biến', N'Đang bán', N'Ly'),
+(N'Nước ép cam', N'Nước cam vắt tươi nguyên chất', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Chế biến', N'Đang bán', N'Ly'),
+(N'Khoai tây chiên', N'Khoai tây chiên giòn vàng', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Chế biến', N'Đang bán', N'Phần'),
+
+-- Nhóm Hàng hóa thường (sản phẩm có sẵn, không cần chế biến)
+(N'Bánh tiramisu', N'Bánh tiramisu Ý, mềm xốp, vị cà phê', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Hàng hóa thường', N'Đang bán', N'Miếng'),
+(N'Croissant bơ', N'Bánh croissant Pháp, giòn thơm vị bơ', 'https://www.eatright.org/-/media/images/eatright-articles/eatright-article-feature-images/benefitsofcoffee_600x450.jpg?h=450&w=600&rev=6c8a9cd4a94d4cac8af8543054fd7b07&hash=F64F1F79DE48F33E3FB6A4FD5979C51F', N'Hàng hóa thường', N'Đang bán', N'Cái');
 GO
 
 
@@ -156,17 +161,17 @@ SELECT ProductID, 'M', 25000, 30000 FROM Products WHERE Name = N'Nước ép cam
 
 -- Bánh tiramisu
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, '1 miếng', 40000, 45000 FROM Products WHERE Name = N'Bánh tiramisu';
+SELECT ProductID, N'1 miếng', 40000, 45000 FROM Products WHERE Name = N'Bánh tiramisu';
 
 -- Croissant bơ
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, '1 cái', 20000, 25000 FROM Products WHERE Name = N'Croissant bơ';
+SELECT ProductID, N'1 cái', 20000, 25000 FROM Products WHERE Name = N'Croissant bơ';
 
 -- Khoai tây chiên
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'Phần nhỏ', 20000, 25000 FROM Products WHERE Name = N'Khoai tây chiên';
+SELECT ProductID, N'Phần nhỏ', 20000, 25000 FROM Products WHERE Name = N'Khoai tây chiên';
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'Phần lớn', 30000, 35000 FROM Products WHERE Name = N'Khoai tây chiên';
+SELECT ProductID, N'Phần lớn', 30000, 35000 FROM Products WHERE Name = N'Khoai tây chiên';
 GO
 
 
@@ -697,7 +702,7 @@ CROSS JOIN ProductVariant pv
 WHERE o.OrderNumber = 'ORD001' 
     AND p.Name = N'Bánh tiramisu' 
     AND pv.ProductID = p.ProductID 
-    AND pv.Size = '1 miếng';
+    AND pv.Size = N'1 miếng';
 
 INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
 SELECT 
@@ -745,7 +750,7 @@ CROSS JOIN ProductVariant pv
 WHERE o.OrderNumber = 'ORD002' 
     AND p.Name = N'Khoai tây chiên' 
     AND pv.ProductID = p.ProductID 
-    AND pv.Size = 'Phần lớn';
+    AND pv.Size = N'Phần lớn';
 
 -- Sample Payment Transactions (Giao dịch thanh toán)
 INSERT INTO PaymentTransactions (SessionID, OrderID, Amount, PaymentMethod, PaymentStatus, ProcessedBy)
@@ -946,7 +951,7 @@ CROSS JOIN ProductVariant pv
 WHERE o.OrderNumber = 'ORD-HISTORY-001' 
     AND p.Name = N'Bánh tiramisu' 
     AND pv.ProductID = p.ProductID 
-    AND pv.Size = '1 miếng';
+    AND pv.Size = N'1 miếng';
 
 -- Order Details cho session VIP
 INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
@@ -979,7 +984,7 @@ CROSS JOIN ProductVariant pv
 WHERE o.OrderNumber = 'ORD-HISTORY-002' 
     AND p.Name = N'Bánh tiramisu' 
     AND pv.ProductID = p.ProductID 
-    AND pv.Size = '1 miếng';
+    AND pv.Size = N'1 miếng';
 
 GO
 

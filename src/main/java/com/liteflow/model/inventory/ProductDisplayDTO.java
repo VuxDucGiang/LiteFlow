@@ -12,6 +12,10 @@ public class ProductDisplayDTO {
     private Boolean isDeleted;
     private String imageUrl;
     private String categoryName;
+    private String productType;
+    private String description;
+    private String status;
+    private String unit;
 
     public ProductDisplayDTO() {}
 
@@ -99,5 +103,37 @@ public class ProductDisplayDTO {
 
     public void setCategoryName(String categoryName) {
         this.categoryName = categoryName;
+    }
+
+    public String getProductType() {
+        return productType;
+    }
+
+    public void setProductType(String productType) {
+        this.productType = productType;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
     }
 }

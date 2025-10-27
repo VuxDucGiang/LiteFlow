@@ -33,6 +33,15 @@ public class Product implements Serializable {
     @Column(name = "IsDeleted", nullable = false)
     private Boolean isDeleted = false;
 
+    @Column(name = "ProductType", length = 50)
+    private String productType;
+
+    @Column(name = "Status", length = 50)
+    private String status;
+
+    @Column(name = "Unit", length = 50)
+    private String unit;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductVariant> productVariants = new ArrayList<>();
 
@@ -154,6 +163,22 @@ public class Product implements Serializable {
         this.isDeleted = isDeleted;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
+
     public List<ProductVariant> getProductVariants() {
         return productVariants;
     }
@@ -178,11 +203,20 @@ public class Product implements Serializable {
         this.userInteractions = userInteractions;
     }
 
+    public String getProductType() {
+        return productType;
+    }
+
+    public void setProductType(String productType) {
+        this.productType = productType;
+    }
+
     @Override
     public String toString() {
         return "Product{" +
                 "productId=" + productId +
                 ", name='" + name + '\'' +
+                ", productType='" + productType + '\'' +
                 ", isDeleted=" + isDeleted +
                 '}';
     }

@@ -1,13 +1,16 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="com.liteflow.model.inventory.ProductDisplayDTO" %>
+<%@ page import="java.text.DecimalFormat" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 
 <jsp:include page="../includes/header.jsp">
   <jsp:param name="page" value="products" />
 </jsp:include>
 
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/productlist.css">
+<script src="${pageContext.request.contextPath}/js/productlist-enhanced.js"></script>
 
 <div class="content">
     <!-- Statistics -->
@@ -40,16 +43,20 @@
         </div>
     </div>
 
-    <!-- Success/Error Messages -->
+    <!-- Success/Error Messages - Will use notification system -->
     <c:if test="${not empty success}">
-        <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #c3e6cb;">
-            ✅ ${success}
-        </div>
+        <script>
+            window.addEventListener('DOMContentLoaded', () => {
+                showNotification('${success}', 'success');
+            });
+        </script>
     </c:if>
     <c:if test="${not empty error}">
-        <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #f5c6cb;">
-            ❌ ${error}
-        </div>
+        <script>
+            window.addEventListener('DOMContentLoaded', () => {
+                showNotification('${error}', 'error');
+            });
+        </script>
     </c:if>
 
     <!-- Main Content Layout -->
@@ -64,8 +71,11 @@
             </div>
 
             <div class="filter-section">
-                <h3 class="filter-title">Danh Mục</h3>
-                <div class="filter-options">
+                <h3 class="filter-title collapsible" onclick="toggleFilterSection(this)">
+                    Danh Mục
+                    <span class="collapse-icon">▼</span>
+                </h3>
+                <div class="filter-options collapsed">
                     <c:choose>
                         <c:when test="${not empty categories}">
                             <c:forEach var="category" items="${categories}">
@@ -84,8 +94,11 @@
             </div>
 
             <div class="filter-section">
-                <h3 class="filter-title">Loại hàng</h3>
-                <div class="filter-options">
+                <h3 class="filter-title collapsible" onclick="toggleFilterSection(this)">
+                    Loại hàng
+                    <span class="collapse-icon">▼</span>
+                </h3>
+                <div class="filter-options collapsed">
                     <label class="filter-option">
                         <input type="checkbox" name="productType" value="regular" onchange="filterProducts()">
                         <span class="checkmark"></span>
@@ -104,36 +117,78 @@
                     <label class="filter-option">
                         <input type="checkbox" name="productType" value="combo" onchange="filterProducts()">
                         <span class="checkmark"></span>
-                        Combo - Đóng gói
-                    </label>
-                    <label class="filter-option">
-                        <input type="checkbox" name="productType" value="custom-combo" onchange="filterProducts()">
-                        <span class="checkmark"></span>
-                        Combo tùy chọn
+                        Combo
                     </label>
                 </div>
             </div>
 
             <div class="filter-section">
                 <h3 class="filter-title collapsible" onclick="toggleFilterSection(this)">
-                    Nhóm hàng
+                    Đơn vị tính
+                    <span class="collapse-icon">▼</span>
+                </h3>
+                <div class="filter-options collapsed">
+                    <c:choose>
+                        <c:when test="${not empty units}">
+                            <c:forEach var="unit" items="${units}">
+                                <label class="filter-option">
+                                    <input type="checkbox" name="unitFilter" value="${unit}" onchange="filterProducts()">
+                                    <span class="checkmark"></span>
+                                    ${unit}
+                                </label>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <p style="color: #666; font-style: italic;">Chưa có đơn vị tính nào từ sản phẩm</p>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-title collapsible" onclick="toggleFilterSection(this)">
+                    Tồn kho
                     <span class="collapse-icon">▼</span>
                 </h3>
                 <div class="filter-options collapsed">
                     <label class="filter-option">
-                        <input type="checkbox" name="productGroup" value="beverages" onchange="filterProducts()">
+                        <input type="checkbox" name="stockFilter" value="0" onchange="filterProducts()">
                         <span class="checkmark"></span>
-                        Đồ uống
+                        Bằng 0
                     </label>
                     <label class="filter-option">
-                        <input type="checkbox" name="productGroup" value="food" onchange="filterProducts()">
+                        <input type="checkbox" name="stockFilter" value="above0" onchange="filterProducts()">
                         <span class="checkmark"></span>
-                        Thức ăn
+                        Trên 0
                     </label>
                     <label class="filter-option">
-                        <input type="checkbox" name="productGroup" value="tobacco" onchange="filterProducts()">
+                        <input type="checkbox" name="stockFilter" value="above100" onchange="filterProducts()">
                         <span class="checkmark"></span>
-                        Thuốc lá
+                        Trên 100
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-title collapsible" onclick="toggleFilterSection(this)">
+                    Trạng thái
+                    <span class="collapse-icon">▼</span>
+                </h3>
+                <div class="filter-options collapsed">
+                    <label class="filter-option">
+                        <input type="checkbox" name="statusFilter" value="Đang bán" onchange="filterProducts()">
+                        <span class="checkmark"></span>
+                        Đang bán
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="statusFilter" value="Hết hàng" onchange="filterProducts()">
+                        <span class="checkmark"></span>
+                        Hết hàng
+                    </label>
+                    <label class="filter-option">
+                        <input type="checkbox" name="statusFilter" value="Dừng bán" onchange="filterProducts()">
+                        <span class="checkmark"></span>
+                        Dừng bán
                     </label>
                 </div>
             </div>
@@ -144,9 +199,9 @@
             <!-- Toolbar -->
             <div class="toolbar">
                 <div>
-                    <a href="#" class="btn btn-success" onclick="addProduct()">➕ Thêm mới</a>
-                    <button class="btn btn-primary" onclick="exportProducts()">📊 Xuất file</button>
-                    <button class="btn btn-primary" onclick="importProducts()">📥 Import</button>
+                    <a href="#" class="btn btn-success" onclick="addProduct()">Thêm mới</a>
+                    <button class="btn btn-primary" onclick="importProducts()">Nhập Excel</button>
+                    <button class="btn btn-primary" onclick="exportProducts()">Xuất Excel</button>
                 </div>
             </div>
 
@@ -192,6 +247,7 @@
                                         Trạng thái
                                         <span class="sort-icon"></span>
                                     </th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -204,17 +260,16 @@
                                         data-category="${p.categoryName}"
                                         data-price="${p.price}"
                                         data-stock="${p.stockAmount}"
-                                        data-image-url="${p.imageUrl}">
+                                        data-image-url="${p.imageUrl}"
+                                        data-product-type="${p.productType}"
+                                        data-description="${p.description}"
+                                        data-status="${p.status}"
+                                        data-unit="${p.unit}">
                                         <td>
                                             <span class="product-code">${p.productCode}</span>
                                         </td>
                                         <td>
                                             <div class="product-name">${p.productName}</div>
-                                            <c:if test="${not empty p.imageUrl}">
-                                                <img src="${pageContext.request.contextPath}/${p.imageUrl}" 
-                                                     alt="${p.productName}" class="product-image" 
-                                                     onerror="this.style.display='none'">
-                                            </c:if>
                                         </td>
                                         <td>${p.size}</td>
                                         <td>
@@ -224,7 +279,9 @@
                                         </td>
                                         <td>
                                             <span class="price">
-                                                <fmt:formatNumber value="${p.price}" pattern="#,###" /> ₫
+                                                <c:set var="priceInt" value="${Math.round(p.price)}" />
+                                                <fmt:formatNumber value="${priceInt}" pattern="#,###" var="priceFormatted"/>
+                                                ${fn:replace(priceFormatted, ',', '.')} ₫
                                             </span>
                                         </td>
                                         <td>
@@ -238,14 +295,61 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="status ${p.isDeleted ? 'inactive' : 'active'}">
-                                                ${p.isDeleted ? 'Đã ẩn' : 'Đang bán'}
+                                            <c:choose>
+                                                <c:when test="${p.isDeleted}">
+                                                    <span class="status inactive">Đã ẩn</span>
+                                                </c:when>
+                                                <c:when test="${p.stockAmount == 0}">
+                                                    <span class="status warning">Hết hàng</span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="status ${p.status == 'Đang bán' ? 'active' : (p.status == 'Hết hàng' ? 'warning' : 'danger')}">
+                                                        ${p.status != null ? p.status : 'Đang bán'}
                                             </span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
+                                        <td>
+                                            <div class="actions">
+                                                <button class="btn btn-warning btn-sm" onclick="editProduct('${p.productId}', event)">
+                                                    Sửa
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.productId}', '${p.size}', event); return false;">
+                                                    Xóa
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </c:forEach>
                             </tbody>
                         </table>
+                        
+                        <!-- Products Pagination -->
+                        <div class="pagination-container" id="productsPagination">
+                            <div class="pagination-info" id="productsPageInfo">
+                                Trang 1 / 1
+                            </div>
+                            <div class="pagination-controls">
+                                <button class="pagination-btn" id="productsPrevBtn" onclick="changeProductsPage(-1)" disabled>
+                                    ← Trước
+                                </button>
+                                <div class="pagination-numbers" id="productsPageNumbers">
+                                    <span class="pagination-number active">1</span>
+                                </div>
+                                <button class="pagination-btn" id="productsNextBtn" onclick="changeProductsPage(1)" disabled>
+                                    Sau →
+                                </button>
+                            </div>
+                            <div class="pagination-size">
+                                <label for="productsPageSize">Hiển thị:</label>
+                                <select id="productsPageSize" onchange="changeProductsPageSize(this.value)">
+                                    <option value="10" selected>10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
                     </c:otherwise>
                 </c:choose>
             </div>
@@ -253,447 +357,7 @@
     </div>
 </div>
 
-        <script>
-            // Biến để theo dõi trạng thái sắp xếp
-            let currentSortColumn = -1;
-            let currentSortDirection = 'asc';
-
-            function searchProducts() {
-                const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-                const rows = document.querySelectorAll('.table tbody tr');
-
-                if (searchTerm === '') {
-                    // Nếu không có từ khóa tìm kiếm, hiển thị tất cả
-                    rows.forEach(row => {
-                        row.style.display = '';
-                    });
-                    return;
-                }
-
-                rows.forEach(row => {
-                    const productCode = row.querySelector('.product-code').textContent.toLowerCase();
-                    const productName = row.querySelector('.product-name').textContent.toLowerCase();
-                    const productSize = row.cells[2].textContent.toLowerCase();
-                    const category = row.cells[3].querySelector('.category').textContent.toLowerCase();
-
-                    // Tìm kiếm trong mã sản phẩm, tên sản phẩm, kích thước và danh mục
-                    if (productCode.includes(searchTerm) || 
-                        productName.includes(searchTerm) || 
-                        productSize.includes(searchTerm) ||
-                        category.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-
-            function filterProducts() {
-                // Áp dụng tất cả bộ lọc
-                applyAllFilters();
-            }
-
-            function applyAllFilters() {
-                const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-                const categoryFilters = Array.from(document.querySelectorAll('input[name="categoryFilter"]:checked')).map(cb => cb.value);
-                const productTypeFilters = Array.from(document.querySelectorAll('input[name="productType"]:checked')).map(cb => cb.value);
-                const productGroupFilters = Array.from(document.querySelectorAll('input[name="productGroup"]:checked')).map(cb => cb.value);
-                const rows = document.querySelectorAll('.table tbody tr');
-
-                // Debug logging
-                console.log('🔍 Filtering products...');
-                console.log('Search term:', searchTerm);
-                console.log('Category filters:', categoryFilters);
-                console.log('Total rows:', rows.length);
-
-                rows.forEach((row, index) => {
-                    let showRow = true;
-                    
-                    // Áp dụng tìm kiếm
-                    if (searchTerm !== '') {
-                        const productCode = row.querySelector('.product-code').textContent.toLowerCase();
-                        const productName = row.querySelector('.product-name').textContent.toLowerCase();
-                        const productSize = row.cells[2].textContent.toLowerCase();
-                        const category = row.cells[3].querySelector('.category').textContent.toLowerCase();
-                        
-                        if (!productCode.includes(searchTerm) && 
-                            !productName.includes(searchTerm) && 
-                            !productSize.includes(searchTerm) &&
-                            !category.includes(searchTerm)) {
-                            showRow = false;
-                        }
-                    }
-                    
-                    // Áp dụng lọc theo danh mục từ sản phẩm
-                    if (showRow && categoryFilters.length > 0) {
-                        const category = row.cells[3].querySelector('.category').textContent.trim();
-                        console.log(`Row ${index}: category="${category}", filters=[${categoryFilters.join(', ')}]`);
-                        
-                        if (!categoryFilters.includes(category)) {
-                            showRow = false;
-                            console.log(`Row ${index}: HIDDEN - category "${category}" not in filters`);
-                        } else {
-                            console.log(`Row ${index}: SHOWN - category "${category}" matches filter`);
-                        }
-                    }
-                    
-                    if (showRow && productTypeFilters.length > 0) {
-                        // Logic lọc theo loại hàng
-                    }
-                    
-                    if (showRow && productGroupFilters.length > 0) {
-                        // Logic lọc theo nhóm hàng
-                    }
-
-                    row.style.display = showRow ? '' : 'none';
-                });
-                
-                console.log('✅ Filtering completed');
-            }
-
-            function toggleFilterSection(element) {
-                const options = element.nextElementSibling;
-                const icon = element.querySelector('.collapse-icon');
-                
-                if (options.classList.contains('collapsed')) {
-                    options.classList.remove('collapsed');
-                    icon.textContent = '▲';
-                } else {
-                    options.classList.add('collapsed');
-                    icon.textContent = '▼';
-                }
-            }
-
-            function toggleSelectAll() {
-                const selectAll = document.getElementById('selectAll');
-                const checkboxes = document.querySelectorAll('.product-checkbox');
-                
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = selectAll.checked;
-                });
-            }
-
-            function toggleGridView() {
-                // Toggle between table and grid view
-                const productTable = document.querySelector('.product-table');
-                const isGridView = productTable.classList.contains('grid-view');
-                
-                if (isGridView) {
-                    productTable.classList.remove('grid-view');
-                } else {
-                    productTable.classList.add('grid-view');
-                }
-            }
-
-            function orderProduct(productId) {
-                alert('Chức năng đặt hàng sẽ được triển khai cho ID: ' + productId);
-            }
-
-            function sortTable(columnIndex, dataType) {
-                const table = document.querySelector('.table');
-                const tbody = table.querySelector('tbody');
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                
-                // Xóa class sort cũ
-                document.querySelectorAll('.table th').forEach(th => {
-                    th.classList.remove('sort-asc', 'sort-desc');
-                });
-
-                // Xác định hướng sắp xếp
-                if (currentSortColumn === columnIndex) {
-                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
-                } else {
-                    currentSortDirection = 'asc';
-                }
-                currentSortColumn = columnIndex;
-
-                // Thêm class sort cho header hiện tại
-                const currentHeader = document.querySelectorAll('.table th')[columnIndex];
-                currentHeader.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
-
-                // Sắp xếp các hàng
-                rows.sort((a, b) => {
-                    let aValue, bValue;
-                    
-                    if (columnIndex === 0) { // Mã hàng
-                        aValue = a.cells[0].querySelector('.product-code').textContent.trim();
-                        bValue = b.cells[0].querySelector('.product-code').textContent.trim();
-                    } else if (columnIndex === 1) { // Tên hàng
-                        aValue = a.cells[1].querySelector('.product-name').textContent.trim();
-                        bValue = b.cells[1].querySelector('.product-name').textContent.trim();
-                    } else if (columnIndex === 2) { // Kích thước
-                        aValue = a.cells[2].textContent.trim();
-                        bValue = b.cells[2].textContent.trim();
-                    } else if (columnIndex === 3) { // Danh mục
-                        aValue = a.cells[3].querySelector('.category').textContent.trim();
-                        bValue = b.cells[3].querySelector('.category').textContent.trim();
-                    } else if (columnIndex === 4) { // Giá bán
-                        aValue = parseFloat(a.cells[4].querySelector('.price').textContent.replace(/[^\d]/g, ''));
-                        bValue = parseFloat(b.cells[4].querySelector('.price').textContent.replace(/[^\d]/g, ''));
-                    } else if (columnIndex === 5) { // Tồn kho
-                        aValue = parseFloat(a.cells[5].querySelector('.stock').textContent.replace(/[^\d]/g, ''));
-                        bValue = parseFloat(b.cells[5].querySelector('.stock').textContent.replace(/[^\d]/g, ''));
-                    } else if (columnIndex === 6) { // Trạng thái
-                        aValue = a.cells[6].querySelector('.status').textContent.trim();
-                        bValue = b.cells[6].querySelector('.status').textContent.trim();
-                    }
-
-                    // So sánh dựa trên kiểu dữ liệu
-                    let comparison = 0;
-                    if (dataType === 'number') {
-                        comparison = aValue - bValue;
-                    } else {
-                        comparison = aValue.localeCompare(bValue, 'vi', { numeric: true });
-                    }
-
-                    return currentSortDirection === 'asc' ? comparison : -comparison;
-                });
-
-                // Cập nhật DOM
-                rows.forEach(row => tbody.appendChild(row));
-            }
-
-            function addProduct() {
-                document.getElementById('addProductModal').style.display = 'block';
-                document.querySelector('#addProductModal h2').textContent = '➕ Thêm sản phẩm mới';
-                document.querySelector('#addProductForm input[name="action"]').value = 'create';
-                document.querySelector('#addProductForm .modal-footer button.btn.btn-success').textContent = '✅ Thêm sản phẩm';
-                // Reset hidden productId if exists
-                const idInput = document.querySelector('#addProductForm input[name="productId"]');
-                if (idInput) idInput.remove();
-            }
-
-            function closeAddProductModal() {
-                document.getElementById('addProductModal').style.display = 'none';
-                document.getElementById('addProductForm').reset();
-            }
-
-            function toggleCustomSize() {
-                const customSizeCheck = document.getElementById('customSizeCheck');
-                const customSizeInput = document.getElementById('customSizeInput');
-                const sizeCheckboxes = document.querySelectorAll('input[name="size"]');
-
-                if (customSizeCheck.checked) {
-                    // Nếu chọn tùy chọn nhập chữ, bỏ chọn tất cả S,M,L
-                    sizeCheckboxes.forEach(checkbox => {
-                        checkbox.checked = false;
-                    });
-                    customSizeInput.disabled = false;
-                    customSizeInput.focus();
-                } else {
-                    // Nếu bỏ chọn tùy chọn nhập chữ, disable input
-                    customSizeInput.disabled = true;
-                    customSizeInput.value = '';
-                }
-            }
-
-            function submitAddProduct() {
-                const form = document.getElementById('addProductForm');
-                const formData = new FormData(form);
-                const action = form.querySelector('input[name="action"]').value;
-
-                // Validate required fields
-                const name = formData.get('name');
-                const description = formData.get('description');
-                const price = formData.get('price');
-                const stock = formData.get('stock');
-
-                if (!name || name.trim() === '') {
-                    alert('Vui lòng nhập tên sản phẩm');
-                    document.getElementById('name').focus();
-                    return;
-                }
-
-                if (!price || parseFloat(price) <= 0) {
-                    alert('Vui lòng nhập giá bán hợp lệ');
-                    document.getElementById('price').focus();
-                    return;
-                }
-
-                if (!stock || parseInt(stock) < 0) {
-                    alert('Vui lòng nhập số lượng tồn kho hợp lệ');
-                    document.getElementById('stock').focus();
-                    return;
-                }
-
-                if (action === 'create') {
-                    if (!description || description.trim() === '') {
-                        alert('Vui lòng nhập mô tả sản phẩm');
-                        document.getElementById('description').focus();
-                        return;
-                    }
-                }
-
-                // Validate name length
-                if (name.trim().length > 100) {
-                    alert('Tên sản phẩm không được vượt quá 100 ký tự');
-                    document.getElementById('name').focus();
-                    return;
-                }
-
-                // Validate size selection
-                const sizeCheckboxes = document.querySelectorAll('input[name="size"]:checked');
-                const customSizeCheck = document.getElementById('customSizeCheck');
-                const customSizeInput = document.getElementById('customSizeInput');
-
-                if (customSizeCheck.checked) {
-                    if (!customSizeInput.value || customSizeInput.value.trim() === '') {
-                        alert('Vui lòng nhập size tùy chỉnh');
-                        customSizeInput.focus();
-                        return;
-                    }
-                } else if (sizeCheckboxes.length === 0) {
-                    alert('Vui lòng chọn ít nhất một size (S, M, L) hoặc nhập size tùy chỉnh');
-                    return;
-                }
-
-                // Validate URL format if provided
-                const imageUrl = formData.get('imageUrl');
-                if (imageUrl && imageUrl.trim() !== '') {
-                    try {
-                        new URL(imageUrl.trim());
-                    } catch (e) {
-                        alert('URL hình ảnh không hợp lệ');
-                        document.getElementById('imageUrl').focus();
-                        return;
-                    }
-                }
-
-                // Show loading state
-                const submitBtn = document.querySelector('#addProductForm button[type="button"]');
-                const originalText = submitBtn.textContent;
-                submitBtn.textContent = '⏳ Đang thêm...';
-                submitBtn.disabled = true;
-
-                // Submit form
-                form.submit();
-            }
-
-            // Mở modal sửa khi click vào dòng
-            document.addEventListener('click', function(e) {
-                const row = e.target.closest('tr.product-row');
-                if (!row) return;
-                openEditModalFromRow(row);
-            });
-
-            function openEditModalFromRow(row) {
-                const id = row.dataset.productId;
-                const name = row.dataset.productName || '';
-                const price = row.dataset.price || '';
-                const stock = row.dataset.stock || '';
-                const size = row.dataset.size || '';
-                const imageUrl = row.dataset.imageUrl || '';
-
-                // Reuse addProduct modal as edit modal
-                document.getElementById('addProductModal').style.display = 'block';
-                document.querySelector('#addProductModal h2').textContent = '✏️ Sửa sản phẩm';
-                document.querySelector('#addProductForm input[name="action"]').value = 'update';
-
-                // Add hidden productId input if not exists
-                let idInput = document.querySelector('#addProductForm input[name="productId"]');
-                if (!idInput) {
-                    idInput = document.createElement('input');
-                    idInput.type = 'hidden';
-                    idInput.name = 'productId';
-                    document.getElementById('addProductForm').appendChild(idInput);
-                }
-                idInput.value = id;
-
-                // Prefill fields
-                document.getElementById('name').value = name;
-                document.getElementById('price').value = price;
-                document.getElementById('stock').value = stock;
-                document.getElementById('imageUrl').value = imageUrl;
-
-                // Size prefill: write size into custom input and check custom toggle
-                const customSizeCheck = document.getElementById('customSizeCheck');
-                const customSizeInput = document.getElementById('customSizeInput');
-                const sizeCheckboxes = document.querySelectorAll('input[name="size"]');
-                sizeCheckboxes.forEach(cb => cb.checked = false);
-                if (size === 'S' || size === 'M' || size === 'L') {
-                    // If is standard size, check it
-                    const target = Array.from(sizeCheckboxes).find(cb => cb.value === size);
-                    if (target) target.checked = true;
-                    customSizeCheck.checked = false;
-                    customSizeInput.disabled = true;
-                    customSizeInput.value = '';
-                } else if (size) {
-                    customSizeCheck.checked = true;
-                    customSizeInput.disabled = false;
-                    customSizeInput.value = size;
-                }
-
-                // Change submit button to Update
-                document.querySelector('#addProductForm .modal-footer button.btn.btn-success').textContent = '💾 Cập nhật';
-            }
-
-            // Khi submit nếu action=update, ensure gửi size đúng
-            (function hookSubmit() {
-                const form = document.getElementById('addProductForm');
-                const originalSubmit = form.submit.bind(form);
-                form.submit = function() {
-                    const action = form.querySelector('input[name="action"]').value;
-                    if (action === 'update') {
-                        // Ensure one size value is sent
-                        const customSizeCheck = document.getElementById('customSizeCheck');
-                        const customSizeInput = document.getElementById('customSizeInput');
-                        const sizeChecked = document.querySelector('input[name="size"]:checked');
-                        let sizeValue = '';
-                        if (customSizeCheck.checked && customSizeInput.value.trim() !== '') {
-                            sizeValue = customSizeInput.value.trim();
-                        } else if (sizeChecked) {
-                            sizeValue = sizeChecked.value;
-                        }
-                        // Create/overwrite size input
-                        let hiddenSize = form.querySelector('input[name="size"][type="hidden"]');
-                        if (!hiddenSize) {
-                            hiddenSize = document.createElement('input');
-                            hiddenSize.type = 'hidden';
-                            hiddenSize.name = 'size';
-                            form.appendChild(hiddenSize);
-                        }
-                        hiddenSize.value = sizeValue;
-                    }
-                    originalSubmit();
-                };
-            })();
-
-            function hideProduct(productId) {
-                if (confirm('Bạn có chắc muốn ẩn sản phẩm này?')) {
-                    alert('Chức năng ẩn sản phẩm sẽ được triển khai cho ID: ' + productId);
-                }
-            }
-
-            function showProduct(productId) {
-                if (confirm('Bạn có chắc muốn hiện sản phẩm này?')) {
-                    alert('Chức năng hiện sản phẩm sẽ được triển khai cho ID: ' + productId);
-                }
-            }
-
-            function exportProducts() {
-                alert('Chức năng xuất file sẽ được triển khai');
-            }
-
-            function importProducts() {
-                alert('Chức năng import sẽ được triển khai');
-            }
-
-            // Auto search khi gõ
-            document.getElementById('searchInput').addEventListener('input', searchProducts);
-            
-            // Thêm event listener cho các checkbox filter
-            document.querySelectorAll('input[name="menuType"], input[name="productType"], input[name="productGroup"]').forEach(checkbox => {
-                checkbox.addEventListener('change', applyAllFilters);
-            });
-
-            // Close modal when clicking outside
-            window.onclick = function (event) {
-                const modal = document.getElementById('addProductModal');
-                if (event.target === modal) {
-                    closeAddProductModal();
-                }
-            }
-        </script>
+        <!-- JavaScript has been moved to productlist-enhanced.js -->
 
         <!-- Add Product Modal -->
         <div id="addProductModal" class="modal">
@@ -702,7 +366,7 @@
                     <h2>➕ Thêm sản phẩm mới</h2>
                     <span class="close" onclick="closeAddProductModal()">&times;</span>
                 </div>
-                <form id="addProductForm" action="products" method="post">
+                <form id="addProductForm" action="products" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="create">
                     <div class="modal-body">
                         <!-- Row 1: Tên sản phẩm và Giá bán -->
@@ -714,61 +378,144 @@
                             </div>
                             <div class="form-group">
                                 <label for="price">Giá bán *</label>
-                                <input type="number" id="price" name="price" required 
-                                       min="0" step="1000" placeholder="Nhập giá bán (VND)">
+                                <div style="position: relative;">
+                                    <input type="text" id="price" name="price" required 
+                                           placeholder="Nhập giá bán (>= 0 VND)"
+                                           style="padding-right: 30px;">
+                                    <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #666;">đ</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Row 2: Size (full width) -->
-                        <div class="form-row size-section">
+                        <!-- Row 2: Loại hàng và Danh mục -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="productType">Loại hàng *</label>
+                                <select id="productType" name="productType" required>
+                                    <option value="">-- Chọn loại hàng --</option>
+                                    <option value="Hàng hóa thường">Hàng hóa thường</option>
+                                    <option value="Chế biến">Chế biến</option>
+                                    <option value="Dịch vụ">Dịch vụ</option>
+                                    <option value="Combo">Combo</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="category">Danh mục *</label>
+                                <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                                    <select id="category" name="category" required style="flex: 1;">
+                                        <option value="">-- Chọn danh mục --</option>
+                                        <c:forEach var="category" items="${categories}">
+                                            <option value="${category}" data-category="${category}">${category}</option>
+                                        </c:forEach>
+                                    </select>
+                                    <button type="button" id="deleteCategoryBtn" onclick="deleteCurrentCategory()" 
+                                            style="padding: 0; min-width: 45px; max-width: 45px; width: 45px; height: 45px; flex-shrink: 0; display: none; align-items: center; justify-content: center; overflow: hidden; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 24px; font-weight: bold; line-height: 1;" 
+                                            title="Xóa danh mục này">
+                                        ×
+                                    </button>
+                                    <button type="button" onclick="showAddCategoryModal()" 
+                                            style="padding: 0; min-width: 45px; max-width: 45px; width: 45px; height: 45px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: linear-gradient(135deg, #667eea, #00c6ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 24px; font-weight: bold; line-height: 1;" 
+                                            title="Thêm danh mục mới">
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Size + Image (left) và Stock/Unit/Status + Description (right) -->
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Size *</label>
                                 <div class="size-options">
                                     <div class="size-checkboxes">
                                         <label class="size-checkbox">
-                                            <input type="checkbox" name="size" value="S" onchange="toggleCustomSize()">
+                                            <input type="radio" name="size" value="S" onchange="toggleCustomSize()">
                                             <span>S</span>
                                         </label>
                                         <label class="size-checkbox">
-                                            <input type="checkbox" name="size" value="M" onchange="toggleCustomSize()">
+                                            <input type="radio" name="size" value="M" onchange="toggleCustomSize()">
                                             <span>M</span>
                                         </label>
                                         <label class="size-checkbox">
-                                            <input type="checkbox" name="size" value="L" onchange="toggleCustomSize()">
+                                            <input type="radio" name="size" value="L" onchange="toggleCustomSize()">
                                             <span>L</span>
                                         </label>
                                     </div>
                                     <div class="custom-size">
                                         <label class="size-checkbox">
-                                            <input type="checkbox" id="customSizeCheck" onchange="toggleCustomSize()">
+                                            <input type="radio" name="size" id="customSizeCheck" value="custom" onchange="toggleCustomSize()">
                                             <span>Tùy chọn nhập chữ</span>
                                         </label>
                                         <input type="text" id="customSizeInput" name="customSize" 
-                                               placeholder="Nhập size tùy chỉnh" disabled>
+                                               placeholder="Nhập size tùy chỉnh" disabled
+                                               style="margin-top: 0.5rem;">
                                     </div>
                                 </div>
+                                
+                                <label for="imageInput" style="margin-top: 1rem;">Hình ảnh sản phẩm</label>
+                                <div class="image-upload-container">
+                                    <!-- Drag & Drop Area -->
+                                    <div id="imagePlaceholder" class="image-placeholder">
+                                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                            <polyline points="21 15 16 10 5 21"></polyline>
+                                        </svg>
+                                        <p>Kéo thả ảnh vào đây hoặc nhấn để chọn</p>
+                                    </div>
+                                    
+                                    <!-- Image Preview Container (with close button overlay) -->
+                                    <div id="imagePreviewContainer" class="image-preview-container" style="display: none; position: relative; width: fit-content; margin: 0 auto;">
+                                        <button type="button" id="removeImageBtn" onclick="removeImage()" class="image-close-btn">×</button>
+                                        <img id="imagePreview" src="" alt="Preview" class="image-preview">
+                                    </div>
+                                    
+                                    <!-- URL Input -->
+                                    <div class="url-input-container" style="margin-top: 10px;">
+                                        <input type="text" id="imageUrl" name="imageUrl" 
+                                               placeholder="Hoặc nhập URL hình ảnh (https://...)" 
+                                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                             </div>
-                            <div class="form-group">
-                                <div class="form-group">
-                                    <label for="description">Mô tả sản phẩm</label>
-                                    <textarea id="description" name="description"
-                                              placeholder="Nhập mô tả chi tiết về sản phẩm" rows="8"></textarea>
+                                    
+                                    <!-- File Input (Hidden) -->
+                                    <input type="file" id="imageInput" name="imageFile" accept="image/*" style="display: none;">
                                 </div>
                             </div>
-                        </div>
-
-
-                        <!-- Row 4: Stock và Image URL -->
-                        <div class="form-row">
                             <div class="form-group">
                                 <label for="stock">Số lượng tồn kho *</label>
                                 <input type="number" id="stock" name="stock" required 
-                                       min="0" placeholder="Nhập số lượng tồn kho">
+                                       min="0" max="10000" placeholder="Nhập số lượng tồn kho (0-10000)">
+                                
+                                <label for="unit" style="margin-top: 1rem;">Đơn vị tính *</label>
+                                <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                                    <select id="unit" name="unit" required style="flex: 1;">
+                                        <option value="">-- Chọn đơn vị tính --</option>
+                                        <c:forEach var="u" items="${units}">
+                                            <option value="${u}" data-unit="${u}">${u}</option>
+                                        </c:forEach>
+                                    </select>
+                                    <button type="button" id="deleteUnitBtn" onclick="deleteCurrentUnit()" 
+                                            style="padding: 0; min-width: 45px; max-width: 45px; width: 45px; height: 45px; flex-shrink: 0; display: none; align-items: center; justify-content: center; overflow: hidden; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 24px; font-weight: bold; line-height: 1;" 
+                                            title="Xóa đơn vị tính này">
+                                        ×
+                                    </button>
+                                    <button type="button" onclick="showAddUnitModal()" 
+                                            style="padding: 0; min-width: 45px; max-width: 45px; width: 45px; height: 45px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: linear-gradient(135deg, #667eea, #00c6ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 24px; font-weight: bold; line-height: 1;" 
+                                            title="Thêm đơn vị tính mới">
+                                        +
+                                    </button>
                             </div>
-                            <div class="form-group">
-                                <label for="imageUrl">URL hình ảnh</label>
-                                <input type="url" id="imageUrl" name="imageUrl" 
-                                       placeholder="https://example.com/image.jpg">
+                                
+                                <label for="status" style="margin-top: 1rem;">Trạng thái *</label>
+                                <select id="status" name="status" required>
+                                    <option value="Đang bán">Đang bán</option>
+                                    <option value="Hết hàng">Hết hàng</option>
+                                    <option value="Dừng bán">Dừng bán</option>
+                                </select>
+                                
+                                <label for="description" style="margin-top: 1rem;">Mô tả sản phẩm</label>
+                                <textarea id="description" name="description"
+                                      placeholder="Nhập mô tả chi tiết về sản phẩm (tùy chọn)" rows="8"></textarea>
                             </div>
                         </div>
                     </div>
@@ -776,11 +523,267 @@
                         <button type="button" class="btn btn-warning" onclick="closeAddProductModal()">
                             ❌ Hủy
                         </button>
-                        <button type="button" class="btn btn-success" onclick="submitAddProduct()">
+                        <button type="button" class="btn btn-success" onclick="submitAddProduct(event)">
                             ✅ Thêm sản phẩm
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+<!-- Add Category Modal -->
+<div id="addCategoryModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>➕ Thêm danh mục mới</h2>
+            <span class="close" onclick="closeAddCategoryModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="newCategoryName">Tên danh mục *</label>
+                <input type="text" id="newCategoryName" name="newCategoryName" 
+                       placeholder="Nhập tên danh mục">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-warning" onclick="closeAddCategoryModal()">
+                ❌ Hủy
+            </button>
+            <button type="button" class="btn btn-success" onclick="submitAddCategory()">
+                ✅ Thêm danh mục
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Unit Modal -->
+<div id="addUnitModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>➕ Thêm đơn vị tính mới</h2>
+            <span class="close" onclick="closeAddUnitModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="newUnitName">Tên đơn vị tính *</label>
+                <input type="text" id="newUnitName" name="newUnitName" 
+                       placeholder="Nhập tên đơn vị tính">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-warning" onclick="closeAddUnitModal()">
+                ❌ Hủy
+            </button>
+            <button type="button" class="btn btn-success" onclick="submitAddUnit()">
+                ✅ Thêm đơn vị tính
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Product Confirmation Modal -->
+<div id="deleteProductConfirmModal" class="modal">
+    <div class="modal-content delete-confirm-modal">
+        <div class="modal-header">
+            <h2>Xác nhận xóa sản phẩm</h2>
+            <span class="close" onclick="closeDeleteProductConfirmModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="delete-warning">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-content">
+                    <h3>Bạn có chắc chắn muốn xóa sản phẩm này?</h3>
+                    <p class="product-name-to-delete" id="productNameToDelete"></p>
+                    <div class="warning-details">
+                        <p><strong>Lưu ý:</strong></p>
+                        <ul>
+                            <li>Tất cả variant và stock của sản phẩm sẽ bị xóa</li>
+                            <li>Hình ảnh sản phẩm sẽ bị xóa khỏi server</li>
+                            <li>Hành động này không thể hoàn tác</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteProductConfirmModal()">
+                Hủy
+            </button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteProductBtn" onclick="confirmDeleteProduct()">
+                Xóa sản phẩm
+            </button>
+        </div>
+            </div>
+        </div>
+
+<!-- Delete Category Confirmation Modal -->
+<div id="deleteCategoryConfirmModal" class="modal">
+    <div class="modal-content delete-confirm-modal">
+        <div class="modal-header">
+            <h2>Xác nhận xóa danh mục</h2>
+            <span class="close" onclick="closeDeleteCategoryConfirmModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="delete-warning">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-content">
+                    <h3>Bạn có chắc chắn muốn xóa danh mục này?</h3>
+                    <p class="category-name-to-delete" id="categoryNameToDelete"></p>
+                    <div class="warning-details">
+                        <p><strong>Cảnh báo:</strong></p>
+                        <ul>
+                            <li>Danh mục sẽ bị xóa khỏi hệ thống</li>
+                            <li>Các sản phẩm thuộc danh mục này sẽ không còn danh mục</li>
+                            <li>Hành động này không thể hoàn tác</li>
+                        </ul>
+                        <p id="affectedProductsCount" class="affected-count"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteCategoryConfirmModal()">
+                Hủy
+            </button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteCategoryBtn" onclick="confirmDeleteCategory()">
+                Xóa danh mục
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Unit Confirmation Modal -->
+<div id="deleteUnitConfirmModal" class="modal">
+    <div class="modal-content delete-confirm-modal">
+        <div class="modal-header">
+            <h2>Xác nhận xóa đơn vị tính</h2>
+            <span class="close" onclick="closeDeleteUnitConfirmModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="delete-warning">
+                <div class="warning-icon">⚠️</div>
+                <div class="warning-content">
+                    <h3>Bạn có chắc chắn muốn xóa đơn vị tính này?</h3>
+                    <p class="unit-name-to-delete" id="unitNameToDelete"></p>
+                    <div class="warning-details">
+                        <p><strong>Cảnh báo:</strong></p>
+                        <ul>
+                            <li>Đơn vị tính sẽ bị xóa khỏi danh sách</li>
+                            <li>Các sản phẩm sử dụng đơn vị tính này sẽ không có đơn vị tính</li>
+                            <li>Hành động này không thể hoàn tác</li>
+                        </ul>
+                        <p id="affectedProductsByUnit" class="affected-count"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteUnitConfirmModal()">
+                Hủy
+            </button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteUnitBtn" onclick="confirmDeleteUnit()">
+                Xóa đơn vị tính
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Import Excel Modal -->
+<div id="importExcelModal" class="modal">
+    <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h2>Nhập dữ liệu sản phẩm từ Excel</h2>
+            <span class="close" onclick="closeImportModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="import-instructions">
+                <h3>Hướng dẫn nhập dữ liệu</h3>
+                <div class="instruction-content">
+                    <div class="instruction-section">
+                        <h4>Cấu trúc file Excel:</h4>
+                        <ul>
+                            <li><strong>Cột A:</strong> Tên sản phẩm (bắt buộc)</li>
+                            <li><strong>Cột B:</strong> Mô tả sản phẩm (tùy chọn)</li>
+                            <li><strong>Cột C:</strong> Loại hàng <span style="color: red;">CHỈ</span>: Hàng hóa thường / Chế biến / Dịch vụ / Combo (bắt buộc, chính xác)</li>
+                            <li><strong>Cột D:</strong> Size (S/M/L hoặc tùy chỉnh)</li>
+                            <li><strong>Cột E:</strong> Giá bán (bắt buộc, >= 1000)</li>
+                            <li><strong>Cột F:</strong> Số lượng tồn kho (bắt buộc, 0-10000)</li>
+                            <li><strong>Cột G:</strong> Trạng thái <span style="color: red;">CHỈ</span>: Đang bán / Hết hàng / Dừng bán (bắt buộc, chính xác)</li>
+                            <li><strong>Cột H:</strong> Đơn vị tính (Ly/Cái/Miếng/Phần - hoặc đơn vị mới)</li>
+                            <li><strong>Cột I:</strong> Danh mục (tùy chọn)</li>
+                        </ul>
+                        <div class="template-download">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('products')">
+                                📥 Tải về mẫu sản phẩm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="file-upload-section">
+                <div class="file-upload-area" id="fileUploadArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">
+                        <h4>Kéo thả file Excel vào đây hoặc</h4>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('excelFile').click()">
+                            Chọn file Excel
+                        </button>
+                        <p class="file-info">Hỗ trợ định dạng: .xlsx, .xls</p>
+                    </div>
+                </div>
+                <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+                
+                <div class="file-preview" id="filePreview" style="display: none;">
+                    <div class="preview-content">
+                        <div class="file-icon">📊</div>
+                        <div class="file-details">
+                            <div class="file-name" id="fileName"></div>
+                            <div class="file-size" id="fileSize"></div>
+                        </div>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeFile()">Xóa</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="import-options">
+                <h4>Tùy chọn nhập:</h4>
+                <div class="option-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="skipDuplicates" checked>
+                        Bỏ qua sản phẩm trùng lặp
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="validateData" checked>
+                        Kiểm tra tính hợp lệ của dữ liệu
+                    </label>
+                </div>
+            </div>
+            
+            <div class="import-progress" id="importProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Đang xử lý...</div>
+            </div>
+            
+            <div class="import-results" id="importResults" style="display: none;">
+                <h4>Kết quả nhập dữ liệu:</h4>
+                <div class="result-summary" id="resultSummary"></div>
+                <div class="result-details" id="resultDetails"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-warning" onclick="closeImportModal()">
+                Hủy
+            </button>
+            <button type="button" class="btn btn-primary" id="checkBtn" onclick="checkFile()" disabled>
+                Kiểm tra file
+            </button>
+            <button type="button" class="btn btn-success" id="importBtn" onclick="startImport()" disabled style="display: none;">
+                Bắt đầu nhập
+            </button>
+        </div>
             </div>
         </div>
 
