@@ -155,6 +155,7 @@
   border: 1px solid #e5e7eb;
   position: relative;
   width: 60%;
+  margin: 0 auto;
   height: 100%;
   aspect-ratio: 1;
 }
