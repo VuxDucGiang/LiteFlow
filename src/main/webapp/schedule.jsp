@@ -7,6 +7,17 @@
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/schedule.css">
 
 <style>
+/* Prevent horizontal scroll */
+body, html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.app {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 /* Quick add shift styles */
 .clickable-cell {
   cursor: pointer !important;
@@ -84,31 +95,33 @@
   <div class="schedule-header">
     <h1>Lịch làm việc</h1>
     <div class="header-actions" style="display:flex; align-items:center; gap:12px; flex-wrap:nowrap;">
-      <!-- Search/Filter Bar -->
-      <form method="get" action="${pageContext.request.contextPath}/schedule" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap; background:#fff; padding:8px 12px; border:1px solid #e5e7eb; border-radius:10px;">
-        <input type="hidden" name="weekStart" value="${currentWeekStart}" />
-        <c:if test="${param.embed == '1'}">
-          <input type="hidden" name="embed" value="1" />
-        </c:if>
-        <select name="employeeCode" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
-          <option value="">Chọn nhân viên</option>
-          <c:forEach var="e" items="${employees}">
-            <option value="${e.employeeCode}" <c:if test='${selectedEmployeeCode == e.employeeCode}'>selected</c:if>>${e.employeeCode} - ${e.fullName}</option>
-          </c:forEach>
-        </select>
-        <select name="templateName" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
-          <option value="">Chọn ca làm việc</option>
-          <c:forEach var="t" items="${templates}">
-            <option value="${t.name}" <c:if test='${selectedTemplateName == t.name}'>selected</c:if>>${t.name}</option>
-          </c:forEach>
-        </select>
-        <button type="submit" class="btn btn-primary" title="Tìm kiếm" style="display:flex; align-items:center; justify-content:center; width:40px; height:36px; padding:0;">
-          <i class='bx bx-search'></i>
-        </button>
-        <a href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}<c:if test='${param.embed == "1"}'> &amp;embed=1</c:if>" class="btn btn-light" title="Hủy lọc" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0;">
-          <i class='bx bx-filter-alt-off'></i>
-        </a>
-      </form>
+      <!-- Search/Filter Bar - chỉ hiển thị nếu không phải Employee -->
+      <c:if test="${!isEmployee}">
+        <form method="get" action="${pageContext.request.contextPath}/schedule" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap; background:#fff; padding:8px 12px; border:1px solid #e5e7eb; border-radius:10px;">
+          <input type="hidden" name="weekStart" value="${currentWeekStart}" />
+          <c:if test="${param.embed == '1'}">
+            <input type="hidden" name="embed" value="1" />
+          </c:if>
+          <select name="employeeCode" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
+            <option value="">Chọn nhân viên</option>
+            <c:forEach var="e" items="${employees}">
+              <option value="${e.employeeCode}" <c:if test='${selectedEmployeeCode == e.employeeCode}'>selected</c:if>>${e.employeeCode} - ${e.fullName}</option>
+            </c:forEach>
+          </select>
+          <select name="templateName" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
+            <option value="">Chọn ca làm việc</option>
+            <c:forEach var="t" items="${templates}">
+              <option value="${t.name}" <c:if test='${selectedTemplateName == t.name}'>selected</c:if>>${t.name}</option>
+            </c:forEach>
+          </select>
+          <button type="submit" class="btn btn-primary" title="Tìm kiếm" style="display:flex; align-items:center; justify-content:center; width:40px; height:36px; padding:0;">
+            <i class='bx bx-search'></i>
+          </button>
+          <a href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}<c:if test='${param.embed == "1"}'> &amp;embed=1</c:if>" class="btn btn-light" title="Hủy lọc" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0;">
+            <i class='bx bx-filter-alt-off'></i>
+          </a>
+        </form>
+      </c:if>
       <div class="schedule-toolbar" style="margin: 0 12px 0 0;">
         <div class="week-chip" id="weekChip">
           <a class="chip-btn prev" href="${pageContext.request.contextPath}/schedule?weekStart=${prevWeekStart}${filterQuery}"><i class='bx bx-chevron-left'></i></a>
@@ -117,9 +130,12 @@
         </div>
         <a class="btn btn-light" href="${pageContext.request.contextPath}/schedule?weekStart=${currentWeekStart}${filterQuery}<c:if test='${param.embed == "1"}'> &amp;embed=1</c:if>">Tuần này</a>
       </div>
-      <button class="btn btn-primary" id="openAddShift" type="button">
-        <i class='bx bx-plus'></i> Thêm lịch làm việc
-      </button>
+      <!-- Button thêm lịch - chỉ hiển thị nếu không phải Employee -->
+      <c:if test="${!isEmployee}">
+        <button class="btn btn-primary" id="openAddShift" type="button">
+          <i class='bx bx-plus'></i> Thêm lịch làm việc
+        </button>
+      </c:if>
     </div>
   </div>
 
@@ -166,13 +182,13 @@
                     <c:if test="${row.templateName == t.name}">
                       <c:choose>
                         <c:when test="${empty row.items}">
-                          <div class="empty-day clickable-cell" 
+                          <div class="empty-day<c:if test='${!isEmployee}'> clickable-cell</c:if>" 
                                data-date="${d.dateStr}"
                                data-day-label="${d.label}"
                                data-template-name="${t.name}"
                                data-start-time="${t.startTime.toString().substring(0,5)}"
                                data-end-time="${t.endTime.toString().substring(0,5)}"
-                               title="Click để thêm lịch làm việc">—</div>
+                               <c:if test='${!isEmployee}'>title="Click để thêm lịch làm việc"</c:if>>—</div>
                         </c:when>
                         <c:otherwise>
                           <c:forEach var="s" items="${row.items}">
@@ -201,13 +217,13 @@
                     </c:if>
                   </c:forEach>
                   <c:if test="${!rowFound}">
-                    <div class="empty-day clickable-cell" 
+                    <div class="empty-day<c:if test='${!isEmployee}'> clickable-cell</c:if>" 
                          data-date="${d.dateStr}"
                          data-day-label="${d.label}"
                          data-template-name="${t.name}"
                          data-start-time="${t.startTime.toString().substring(0,5)}"
                          data-end-time="${t.endTime.toString().substring(0,5)}"
-                         title="Click để thêm lịch làm việc">—</div>
+                         <c:if test='${!isEmployee}'>title="Click để thêm lịch làm việc"</c:if>>—</div>
                   </c:if>
                 </td>
               </c:forEach>
@@ -219,7 +235,8 @@
   </div>
 </div>
 
-<!-- Add Shift Modal -->
+<!-- Add Shift Modal - chỉ hiển thị nếu không phải Employee -->
+<c:if test="${!isEmployee}">
 <div id="addShiftOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1000;">
   <div style="background:#fff; width:95%; max-width:640px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden;">
     <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #eee;">
@@ -326,8 +343,10 @@
   </div>
   
 </div>
+</c:if>
 
-<!-- Quick Add Shift Modal -->
+<!-- Quick Add Shift Modal - chỉ hiển thị nếu không phải Employee -->
+<c:if test="${!isEmployee}">
 <div id="quickAddShiftOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1000;">
   <div style="background:#fff; width:95%; max-width:480px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden;">
     <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #eee;">
@@ -420,8 +439,10 @@
     </form>
   </div>
 </div>
+</c:if>
 
-<!-- Shift Detail Modal -->
+<!-- Shift Detail Modal - chỉ hiển thị nếu không phải Employee -->
+<c:if test="${!isEmployee}">
 <div id="shiftDetailOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1000;">
   <div style="background:#fff; width:95%; max-width:560px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden;">
     <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #eee;">
@@ -488,6 +509,7 @@
     </div>
   </div>
 </div>
+</c:if>
 <script>
 (function() {
   const gridBody = document.getElementById('scheduleBody');

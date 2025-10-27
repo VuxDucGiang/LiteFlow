@@ -8,6 +8,19 @@
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/schedule.css">
 
+<style>
+/* Prevent horizontal scroll */
+body, html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.app {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+</style>
+
 <div class="schedule-container">
   <div class="schedule-header">
     <h1>Bảng chấm công</h1>

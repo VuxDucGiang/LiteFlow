@@ -39,6 +39,13 @@ public class EmployeeService {
     }
 
     /**
+     * Tìm employee theo UserID
+     */
+    public Optional<Employee> getEmployeeByUserID(UUID userID) {
+        return Optional.ofNullable(employeeDAO.findByUserID(userID));
+    }
+
+    /**
      * Tạo employee mới
      */
     public boolean createEmployee(Employee employee) {

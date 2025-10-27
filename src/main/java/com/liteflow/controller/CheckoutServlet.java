@@ -112,6 +112,69 @@ public class CheckoutServlet extends HttpServlet {
                 updateQuery.setParameter("sessionId", session.getSessionId());
                 updateQuery.executeUpdate();
                 
+                // 5. Trừ số lượng sản phẩm trong kho sau khi thanh toán
+                String ordersQuery = "SELECT o FROM Order o WHERE o.session.sessionId = :sessionId";
+                Query ordersQueryObj = em.createQuery(ordersQuery);
+                ordersQueryObj.setParameter("sessionId", session.getSessionId());
+                
+                @SuppressWarnings("unchecked")
+                List<com.liteflow.model.inventory.Order> orders = ordersQueryObj.getResultList();
+                
+                for (com.liteflow.model.inventory.Order order : orders) {
+                    // Fetch order details to avoid LazyInitializationException
+                    order.getOrderDetails().size(); // This triggers lazy loading
+                    
+                    for (com.liteflow.model.inventory.OrderDetail orderDetail : order.getOrderDetails()) {
+                        // Fetch product variant to avoid LazyInitializationException
+                        orderDetail.getProductVariant();
+                        
+                        // Get the product variant ID and quantity
+                        UUID productVariantId = orderDetail.getProductVariant().getProductVariantId();
+                        Integer quantityToDeduct = orderDetail.getQuantity();
+                        
+                        if (quantityToDeduct == null || quantityToDeduct <= 0) {
+                            continue;
+                        }
+                        
+                        // Find ProductStock by ProductVariant
+                        String stockQuery = "SELECT ps FROM ProductStock ps WHERE ps.productVariant.productVariantId = :variantId";
+                        Query stockQueryObj = em.createQuery(stockQuery);
+                        stockQueryObj.setParameter("variantId", productVariantId);
+                        
+                        @SuppressWarnings("unchecked")
+                        List<com.liteflow.model.inventory.ProductStock> productStocks = stockQueryObj.getResultList();
+                        
+                        if (!productStocks.isEmpty()) {
+                            // Update the first stock record (should be unique per variant)
+                            com.liteflow.model.inventory.ProductStock productStock = productStocks.get(0);
+                            int currentAmount = productStock.getAmount() != null ? productStock.getAmount() : 0;
+                            int newAmount = Math.max(0, currentAmount - quantityToDeduct);
+                            
+                            System.out.println("📦 Deducting stock for ProductVariant: " + productVariantId);
+                            System.out.println("   Current amount: " + currentAmount);
+                            System.out.println("   Quantity to deduct: " + quantityToDeduct);
+                            System.out.println("   New amount: " + newAmount);
+                            
+                            productStock.setAmount(newAmount);
+                            em.merge(productStock);
+                            
+                            // Create inventory log for tracking
+                            com.liteflow.model.inventory.InventoryLog inventoryLog = new com.liteflow.model.inventory.InventoryLog();
+                            inventoryLog.setProductVariant(orderDetail.getProductVariant());
+                            inventoryLog.setActionType("Sale");
+                            inventoryLog.setQuantityChanged(-quantityToDeduct); // Negative for sale
+                            inventoryLog.setActionDate(LocalDateTime.now());
+                            inventoryLog.setStoreLocation(productStock.getInventory().getStoreLocation());
+                            
+                            em.persist(inventoryLog);
+                            
+                            System.out.println("✅ Stock updated successfully");
+                        } else {
+                            System.out.println("⚠️ No ProductStock found for ProductVariant: " + productVariantId);
+                        }
+                    }
+                }
+                
                 em.getTransaction().commit();
                 
                 // Trả về response thành công

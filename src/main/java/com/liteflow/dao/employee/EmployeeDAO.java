@@ -41,6 +41,30 @@ public class EmployeeDAO extends GenericDAO<Employee, UUID> {
     }
 
     /**
+     * Tìm employee theo UserID
+     */
+    public Employee findByUserID(UUID userID) {
+        if (userID == null) {
+            return null;
+        }
+        
+        EntityManager em = emf.createEntityManager();
+        try {
+            String jpql = "SELECT e FROM Employee e WHERE e.user.userID = :userID";
+            List<Employee> result = em.createQuery(jpql, Employee.class)
+                    .setParameter("userID", userID)
+                    .setMaxResults(1)
+                    .getResultList();
+            return result.isEmpty() ? null : result.get(0);
+        } catch (Exception e) {
+            System.err.println("❌ Error finding employee by userID: " + e.getMessage());
+            return null;
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
      * Tìm kiếm employees theo từ khóa
      */
     public List<Employee> searchEmployees(String searchTerm) {

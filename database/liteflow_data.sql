@@ -236,8 +236,8 @@ SELECT 'hr@liteflow.vn', '0901000005', 'google-oauth2|987654321', '$2a$12$CrcHqE
 WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'hr@liteflow.vn');
 
 INSERT INTO Users (Email, Phone, GoogleID, PasswordHash, TwoFactorSecret, DisplayName, IsActive, Meta)
-SELECT 'employee1@liteflow.vn', '0901000006', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Đỗ Thị F - Staff', 1, N'{"role":"Employee"}'
-WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'employee1@liteflow.vn');
+SELECT 'giangducx2312@gmail.com', '0901000006', NULL, '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', NULL, N'Đỗ Thị F - Staff', 1, N'{"role":"Employee"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'giangducx2312@gmail.com');
 GO
 
 -- ROLES
@@ -273,16 +273,22 @@ GO
 -- USERROLES
 INSERT INTO UserRoles (UserID, RoleID)
 SELECT u.UserID, r.RoleID FROM Users u JOIN Roles r ON u.Meta LIKE '%Owner%' AND r.Name = 'Owner'
+WHERE NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID)
 UNION ALL
 SELECT u.UserID, r.RoleID FROM Users u JOIN Roles r ON u.Meta LIKE '%Cashier%' AND r.Name = 'Cashier'
+WHERE NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID)
 UNION ALL
 SELECT u.UserID, r.RoleID FROM Users u JOIN Roles r ON u.Meta LIKE '%Inventory%' AND r.Name = 'Inventory Manager'
+WHERE NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID)
 UNION ALL
 SELECT u.UserID, r.RoleID FROM Users u JOIN Roles r ON u.Meta LIKE '%Procurement%' AND r.Name = 'Procurement Officer'
+WHERE NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID)
 UNION ALL
 SELECT u.UserID, r.RoleID FROM Users u JOIN Roles r ON u.Meta LIKE '%HR%' AND r.Name = 'HR Officer'
+WHERE NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID)
 UNION ALL
-SELECT u.UserID, r.RoleID FROM Users u JOIN Roles r ON u.Meta LIKE '%Employee%' AND r.Name = 'Employee';
+SELECT u.UserID, r.RoleID FROM Users u JOIN Roles r ON u.Meta LIKE '%Employee%' AND r.Name = 'Employee'
+WHERE NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID);
 GO
 
 -- ADMIN DEV ACCOUNT
@@ -309,7 +315,8 @@ INSERT INTO UserRoles (UserID, RoleID)
 SELECT u.UserID, r.RoleID
 FROM Users u
 JOIN Roles r ON r.Name = 'Admin'
-WHERE u.Email = 'admin@liteflow.com';
+WHERE u.Email = 'admin@liteflow.com'
+AND NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID);
 GO
 
 
@@ -537,7 +544,7 @@ SELECT
     '6677889900',
     N'MB Bank - CN Quận 3',
     N'Pha chế đồ uống, hỗ trợ khách hàng tại quầy'
-FROM Users u WHERE u.Email = 'employee1@liteflow.vn'
+FROM Users u WHERE u.Email = 'giangducx2312@gmail.com'
 AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP006');
 GO
 
@@ -563,7 +570,7 @@ GO
 INSERT INTO EmployeeShiftAssignments (EmployeeID, TemplateID, Weekday, EffectiveFrom, EffectiveTo, IsActive, CreatedBy)
 SELECT e.EmployeeID, t.TemplateID, v.Weekday, CAST(SYSDATETIME() AS DATE), NULL, 1, uHR.UserID
 FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'giangducx2312@gmail.com'
 JOIN ShiftTemplates t ON t.Name = N'Ca Sáng'
 CROSS JOIN (VALUES (1),(2),(3),(4),(5)) v(Weekday)
 CROSS JOIN Users uHR
@@ -592,7 +599,7 @@ SELECT e.EmployeeID, N'Ca Sáng', N'Phân công mẫu',
        N'Cửa hàng chính', 'Scheduled', @HR
 FROM Employees e
 JOIN Users u ON u.UserID = e.UserID
-WHERE u.Email = 'employee1@liteflow.vn';
+WHERE u.Email = 'giangducx2312@gmail.com';
 
 -- Employee1 tomorrow afternoon shift
 INSERT INTO EmployeeShifts (EmployeeID, Title, Notes, StartAt, EndAt, Location, Status, CreatedBy)
@@ -602,7 +609,7 @@ SELECT e.EmployeeID, N'Ca Chiều', N'Phân công mẫu',
        N'Cửa hàng chính', 'Scheduled', @HR
 FROM Employees e
 JOIN Users u ON u.UserID = e.UserID
-WHERE u.Email = 'employee1@liteflow.vn';
+WHERE u.Email = 'giangducx2312@gmail.com';
 
 -- Cashier day after tomorrow evening shift
 INSERT INTO EmployeeShifts (EmployeeID, Title, Notes, StartAt, EndAt, Location, Status, CreatedBy)
@@ -1142,9 +1149,9 @@ DECLARE @Mon DATE;
 DECLARE @today2 DATE = CAST(SYSDATETIME() AS DATE);
 SET @Mon = DATEADD(DAY, -((DATEPART(WEEKDAY, @today2) + 5) % 7), @today2); -- Monday
 
--- Barista employee (employee1@liteflow.vn): Mon-Fri work, Wed paid leave, Thu unpaid leave
+-- Barista employee (giangducx2312@gmail.com): Mon-Fri work, Wed paid leave, Thu unpaid leave
 DECLARE @EmpBarista UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
 );
 
 IF @EmpBarista IS NOT NULL
@@ -1231,7 +1238,7 @@ GO
 DECLARE @Today DATE = CAST(SYSDATETIME() AS DATE);
 
 DECLARE @EmpBaristaTS UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
 );
 
 IF @EmpBaristaTS IS NOT NULL
@@ -1292,7 +1299,7 @@ DECLARE @today2 DATE = CAST(SYSDATETIME() AS DATE);
 SET @Mon = DATEADD(DAY, -((DATEPART(WEEKDAY, @today2) + 5) % 7), @today2);
 
 DECLARE @EmpBarista UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
 );
 
 DECLARE @EmpCashier UNIQUEIDENTIFIER = (
@@ -1342,7 +1349,7 @@ WHERE uHR.Email = 'hr@liteflow.vn';
 INSERT INTO EmployeeCompensation (EmployeeID, CompensationType, PolicyID, BaseMonthlySalary, HourlyRate, PerShiftRate, Currency, EffectiveFrom, EffectiveTo, IsActive, Notes, CreatedBy)
 SELECT e.EmployeeID, 'PerShift', p.PolicyID, NULL, NULL, 100000, 'VND', CAST(SYSDATETIME() AS DATE), NULL, 1, N'Pha chế tính theo ca', uHR.UserID
 FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'giangducx2312@gmail.com'
 JOIN PayPolicies p ON p.Name = N'Chính sách chuẩn VN'
 CROSS JOIN Users uHR
 WHERE uHR.Email = 'hr@liteflow.vn';
@@ -1386,7 +1393,7 @@ SELECT e.EmployeeID,
        SYSDATETIME(),
        N'Check-in sớm 5 phút; check-out muộn 10 phút'
 FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'employee1@liteflow.vn'
+JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'giangducx2312@gmail.com'
 JOIN EmployeeShifts s ON s.EmployeeID = e.EmployeeID AND CONVERT(date, s.StartAt) = CAST(SYSDATETIME() AS DATE) AND s.Title = N'Ca Sáng'
 CROSS JOIN Users uHR
 WHERE uHR.Email = 'hr@liteflow.vn';
@@ -1425,13 +1432,13 @@ FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@lit
 
 INSERT INTO PayrollEntries (PayrollRunID, EmployeeID, CompensationType, BaseSalary, HourlyRate, PerShiftRate, HoursWorked, ShiftsWorked, OvertimeHours, HolidayHours, Allowances, Bonuses, Deductions, GrossPay, NetPay)
 SELECT @RunID, e.EmployeeID, 'PerShift', NULL, NULL, 100000, 4.75, 1, 0, 0, 0, 0, 0, 100000, 100000
-FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn';
+FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com';
 
 -- One payroll adjustment (allowance) for barista (same batch)
 INSERT INTO PayrollAdjustments (PayrollRunID, EmployeeID, AdjustmentType, Amount, Reason, CreatedBy, CreatedAt)
 SELECT @RunID, e.EmployeeID, 'Allowance', 50000, N'Phụ cấp chuyên cần', uHR.UserID, SYSDATETIME()
 FROM Employees e
-JOIN Users u ON u.UserID = e.UserID AND u.Email = 'employee1@liteflow.vn'
+JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
 CROSS JOIN Users uHR
 WHERE uHR.Email = 'hr@liteflow.vn';
 GO

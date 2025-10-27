@@ -3,6 +3,7 @@ package com.liteflow.controller;
 import com.liteflow.model.auth.EmployeeShift;
 import com.liteflow.service.EmployeeService;
 import com.liteflow.service.ScheduleService;
+import com.liteflow.service.auth.UserService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -21,12 +22,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @WebServlet(name = "ScheduleServlet", urlPatterns = {"/schedule"})
 public class ScheduleServlet extends HttpServlet {
 
     private final ScheduleService scheduleService = new ScheduleService();
     private final EmployeeService employeeService = new EmployeeService();
+    private final UserService userService = new UserService();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -44,14 +47,100 @@ public class ScheduleServlet extends HttpServlet {
 
         List<EmployeeShift> shifts = scheduleService.getShiftsForWeek(weekStart);
         var templates = scheduleService.getActiveTemplates();
+        
+        System.out.println("Total shifts before filter: " + shifts.size());
 
         // Optional filters
         String employeeCodeFilter = req.getParameter("employeeCode");
         String templateNameFilter = req.getParameter("templateName");
 
+        // Load UserRoles và UserEmployeeCode từ session hoặc database
+        @SuppressWarnings("unchecked")
+        List<String> userRoles = (List<String>) req.getSession().getAttribute("UserRoles");
+        
+        // Nếu chưa có UserRoles trong session, load từ database
+        if (userRoles == null || userRoles.isEmpty()) {
+            Object userLogin = req.getSession().getAttribute("UserLogin");
+            if (userLogin != null) {
+                UUID userId = null;
+                if (userLogin instanceof UUID) {
+                    userId = (UUID) userLogin;
+                } else if (userLogin instanceof String) {
+                    try {
+                        userId = UUID.fromString((String) userLogin);
+                    } catch (IllegalArgumentException e) {
+                        // Ignore
+                    }
+                }
+                
+                if (userId != null) {
+                    userRoles = userService.getRoleNames(userId);
+                    req.getSession().setAttribute("UserRoles", userRoles);
+                    System.out.println("Loaded UserRoles from database: " + userRoles);
+                    
+                    // Load UserEmployeeCode
+                    employeeService.getEmployeeByUserID(userId).ifPresent(emp -> {
+                        req.getSession().setAttribute("UserEmployeeCode", emp.getEmployeeCode());
+                        System.out.println("Loaded UserEmployeeCode from database: " + emp.getEmployeeCode());
+                    });
+                }
+            }
+        }
+        
+        boolean isEmployee = false;
+        if (userRoles != null) {
+            System.out.println("User roles: " + userRoles);
+            for (String role : userRoles) {
+                if ("Employee".equalsIgnoreCase(role)) {
+                    isEmployee = true;
+                    break;
+                }
+            }
+        }
+        
+        if (isEmployee) {
+            String userEmployeeCode = (String) req.getSession().getAttribute("UserEmployeeCode");
+            System.out.println("Employee user detected. UserEmployeeCode: " + userEmployeeCode);
+            if (userEmployeeCode != null && !userEmployeeCode.isBlank()) {
+                employeeCodeFilter = userEmployeeCode; // Override với employeeCode của user
+                System.out.println("Filtering by employeeCode: " + employeeCodeFilter);
+            } else {
+                System.out.println("WARNING: Employee user but no UserEmployeeCode in session!");
+            }
+        }
+
         if (employeeCodeFilter != null && !employeeCodeFilter.isBlank()) {
             String ec = employeeCodeFilter.trim();
-            shifts.removeIf(s -> s.getEmployee() == null || s.getEmployee().getEmployeeCode() == null || !s.getEmployee().getEmployeeCode().equals(ec));
+            int beforeCount = shifts.size();
+            
+            // Log tất cả shifts trước khi filter
+            System.out.println("Shifts before filter:");
+            for (EmployeeShift s : shifts) {
+                if (s.getEmployee() != null) {
+                    System.out.println("  Shift: employeeCode=" + s.getEmployee().getEmployeeCode() + ", employee=" + s.getEmployee().getFullName());
+                } else {
+                    System.out.println("  Shift: employee=NULL");
+                }
+            }
+            
+            shifts.removeIf(s -> {
+                boolean shouldRemove = s.getEmployee() == null || s.getEmployee().getEmployeeCode() == null || !s.getEmployee().getEmployeeCode().equals(ec);
+                if (shouldRemove && s.getEmployee() != null) {
+                    System.out.println("Removing shift: " + s.getEmployee().getEmployeeCode() + " != " + ec);
+                }
+                return shouldRemove;
+            });
+            
+            int afterCount = shifts.size();
+            System.out.println("Filtered shifts from " + beforeCount + " to " + afterCount + " by employeeCode: " + ec);
+            
+            // Log shifts sau khi filter
+            System.out.println("Shifts after filter:");
+            for (EmployeeShift s : shifts) {
+                if (s.getEmployee() != null) {
+                    System.out.println("  Shift: employeeCode=" + s.getEmployee().getEmployeeCode() + ", employee=" + s.getEmployee().getFullName());
+                }
+            }
         }
 
         if (templateNameFilter != null && !templateNameFilter.isBlank()) {
@@ -158,6 +247,7 @@ public class ScheduleServlet extends HttpServlet {
         req.setAttribute("selectedEmployeeCode", employeeCodeFilter);
         req.setAttribute("selectedTemplateName", templateNameFilter);
         req.setAttribute("filterQuery", filterQuery);
+        req.setAttribute("isEmployee", isEmployee);
         req.getRequestDispatcher("/schedule.jsp").forward(req, resp);
     }
 
@@ -200,13 +290,7 @@ public class ScheduleServlet extends HttpServlet {
                 if (anyCreated) {
                     StringBuilder url = new StringBuilder(req.getContextPath())
                             .append("/schedule?weekStart=").append(weekStartParam);
-                    String employeeFilter = req.getParameter("redirectEmployeeCode");
-                    if (employeeFilter == null || employeeFilter.isBlank()) {
-                        employeeFilter = req.getParameter("employeeCode"); // first value if multiple
-                    }
-                    if (employeeFilter != null && !employeeFilter.isBlank()) {
-                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
-                    }
+                    // Không thêm employeeCode vào URL để hiển thị toàn bộ lịch làm việc sau khi thêm
                     String templateName = req.getParameter("templateName");
                     if (templateName != null && !templateName.isBlank()) {
                         url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
@@ -232,13 +316,7 @@ public class ScheduleServlet extends HttpServlet {
                     StringBuilder url = new StringBuilder(req.getContextPath())
                             .append("/schedule?weekStart=")
                             .append(weekStartParam != null ? weekStartParam : LocalDate.now().toString());
-                    String employeeFilter = req.getParameter("redirectEmployeeCode");
-                    if (employeeFilter == null || employeeFilter.isBlank()) {
-                        employeeFilter = req.getParameter("employeeCode");
-                    }
-                    if (employeeFilter != null && !employeeFilter.isBlank()) {
-                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
-                    }
+                    // Không thêm employeeCode vào URL để hiển thị toàn bộ lịch làm việc sau khi xóa
                     String templateName = req.getParameter("templateName");
                     if (templateName != null && !templateName.isBlank()) {
                         url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
@@ -267,13 +345,7 @@ public class ScheduleServlet extends HttpServlet {
                     StringBuilder url = new StringBuilder(req.getContextPath())
                             .append("/schedule?weekStart=")
                             .append(weekStartParam != null ? weekStartParam : LocalDate.now().toString());
-                    String employeeFilter = req.getParameter("redirectEmployeeCode");
-                    if (employeeFilter == null || employeeFilter.isBlank()) {
-                        employeeFilter = req.getParameter("employeeCode");
-                    }
-                    if (employeeFilter != null && !employeeFilter.isBlank()) {
-                        url.append("&employeeCode=").append(URLEncoder.encode(employeeFilter, StandardCharsets.UTF_8));
-                    }
+                    // Không thêm employeeCode vào URL để hiển thị toàn bộ lịch làm việc sau khi toggle
                     String templateName = req.getParameter("templateName");
                     if (templateName != null && !templateName.isBlank()) {
                         url.append("&templateName=").append(URLEncoder.encode(templateName, StandardCharsets.UTF_8));
