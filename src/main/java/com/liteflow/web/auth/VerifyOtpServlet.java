@@ -302,7 +302,24 @@ public class VerifyOtpServlet extends HttpServlet {
             }
         } catch (Exception ignore) {
         }
-        resp.sendRedirect(req.getContextPath() + "/dashboard");
+        
+        // Determine redirect URL based on user role
+        String redirectUrl = getRedirectUrlByRole(roles);
+        resp.sendRedirect(req.getContextPath() + redirectUrl);
+    }
+    
+    /**
+     * Xác định URL redirect dựa trên role của user
+     */
+    private String getRedirectUrlByRole(List<String> roles) {
+        if (roles != null) {
+            for (String role : roles) {
+                if ("Employee".equalsIgnoreCase(role)) {
+                    return "/dashboard-employee";
+                }
+            }
+        }
+        return "/dashboard";
     }
 
     /**

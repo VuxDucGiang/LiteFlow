@@ -2,6 +2,7 @@ package com.liteflow.filter;
 
 import com.liteflow.model.auth.User;
 import com.liteflow.security.JwtUtil;
+import com.liteflow.service.EmployeeService;
 import com.liteflow.service.auth.AuditService;
 import com.liteflow.service.auth.UserService;
 import io.jsonwebtoken.JwtException;
@@ -15,10 +16,11 @@ import java.util.*;
 @WebFilter("/*")
 public class AuthenticationFilter extends BaseFilter {
 
-    private static volatile boolean AUTH_ENABLED = false;
+    private static volatile boolean AUTH_ENABLED = true;
 
     private final AuditService auditService = new AuditService();
     private final UserService userService = new UserService();
+    private final EmployeeService employeeService = new EmployeeService();
 
     private static final Map<String, Set<String>> ROLE_FUNCTIONS = new HashMap<>();
 
@@ -30,6 +32,7 @@ public class AuthenticationFilter extends BaseFilter {
         // Allow employees to access their own user pages and dashboard
         ROLE_FUNCTIONS.put("Employee", new HashSet<>(Arrays.asList(
                 "/dashboard",
+                "/schedule",
                 "/user/profile",
                 "/user/timesheet",
                 "/user/payroll"
@@ -128,6 +131,11 @@ public class AuthenticationFilter extends BaseFilter {
                     session.setAttribute("UserLogin", user.getUserID().toString());
                     session.setAttribute("UserRoles", roles);
                     session.setAttribute("UserDisplayName", user.getDisplayName());
+                    // Lưu employeeCode nếu user có employee record
+                    employeeService.getEmployeeByUserID(user.getUserID()).ifPresent(emp -> {
+                        session.setAttribute("UserEmployeeCode", emp.getEmployeeCode());
+                        java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("Set UserEmployeeCode: " + emp.getEmployeeCode());
+                    });
                 }
             } catch (JwtException e) {
                 auditService.logLoginFail("Invalid JWT", req.getRemoteAddr());
@@ -161,6 +169,13 @@ public class AuthenticationFilter extends BaseFilter {
                     // Ensure displayName is set in session
                     if (session.getAttribute("UserDisplayName") == null) {
                         session.setAttribute("UserDisplayName", user.getDisplayName());
+                    }
+                    // Ensure employeeCode is set in session
+                    if (session.getAttribute("UserEmployeeCode") == null) {
+                        employeeService.getEmployeeByUserID(user.getUserID()).ifPresent(emp -> {
+                            session.setAttribute("UserEmployeeCode", emp.getEmployeeCode());
+                            java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("Set UserEmployeeCode (fallback): " + emp.getEmployeeCode());
+                        });
                     }
                     java.util.logging.Logger.getLogger(AuthenticationFilter.class.getName()).info("User found: " + user.getUserID() + ", Roles: " + roles);
                 }

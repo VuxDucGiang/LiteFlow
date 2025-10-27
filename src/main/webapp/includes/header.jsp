@@ -188,11 +188,6 @@
   <nav class="main-nav">
     <div class="nav-content">
       <div class="nav-menu">
-        <!-- Tổng quan - luôn hiển thị -->
-        <a href="${pageContext.request.contextPath}/dashboard.jsp" class="nav-item ${param.page == 'dashboard' ? 'active' : ''}">
-          <i class='bx bxs-dashboard'></i> Tổng quan
-        </a>
-        
         <!-- Check nếu KHÔNG phải Employee thì hiển thị các menu khác -->
         <c:set var="isEmployee" value="false" />
         <c:forEach var="role" items="${sessionScope.UserRoles}">
@@ -200,6 +195,20 @@
             <c:set var="isEmployee" value="true" />
           </c:if>
         </c:forEach>
+        
+        <!-- Tổng quan - link khác nhau cho Employee và Admin -->
+        <c:choose>
+          <c:when test="${isEmployee}">
+            <a href="${pageContext.request.contextPath}/dashboard-employee" class="nav-item ${param.page == 'dashboard-employee' ? 'active' : ''}">
+              <i class='bx bxs-dashboard'></i> Tổng quan
+            </a>
+          </c:when>
+          <c:otherwise>
+            <a href="${pageContext.request.contextPath}/dashboard" class="nav-item ${param.page == 'dashboard' ? 'active' : ''}">
+              <i class='bx bxs-dashboard'></i> Tổng quan
+            </a>
+          </c:otherwise>
+        </c:choose>
         
         <c:if test="${!isEmployee}">
           <!-- Hàng hóa -->
