@@ -7,6 +7,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -459,10 +461,7 @@ public class ExcelService {
             row.createCell(1).setCellValue(room.getDescription() != null ? room.getDescription() : "");
             row.createCell(2).setCellValue(room.getTableCount() != null ? room.getTableCount() : 0);
             row.createCell(3).setCellValue(room.getTotalCapacity() != null ? room.getTotalCapacity() : 0);
-            
-            if (room.getCreatedAt() != null) {
-                row.createCell(4).setCellValue(room.getCreatedAt().toString());
-            }
+            row.createCell(4).setCellValue(formatDateTime(room.getCreatedAt()));
         }
         
         // Auto-size columns
@@ -501,10 +500,7 @@ public class ExcelService {
             row.createCell(2).setCellValue(table.getRoom() != null ? table.getRoom().getName() : "");
             row.createCell(3).setCellValue(table.getCapacity() != null ? table.getCapacity() : 4);
             row.createCell(4).setCellValue(table.getStatus() != null ? table.getStatus() : "Available");
-            
-            if (table.getCreatedAt() != null) {
-                row.createCell(5).setCellValue(table.getCreatedAt().toString());
-            }
+            row.createCell(5).setCellValue(formatDateTime(table.getCreatedAt()));
         }
         
         // Auto-size columns
@@ -601,6 +597,14 @@ public class ExcelService {
                 .orElse(null);
     }
     
+    /**
+     * Format LocalDateTime to dd/MM/yyyy HH:mm format
+     */
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return "";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        return dateTime.format(formatter);
+    }
 
     /**
      * Generate template Excel file for rooms or tables

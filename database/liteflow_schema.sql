@@ -143,7 +143,10 @@ CREATE TABLE Products (
     Description NVARCHAR(MAX),
     ImageURL NVARCHAR(MAX),
     ImportDate DATETIME2 DEFAULT SYSDATETIME(),
-    IsDeleted BIT NOT NULL DEFAULT 0
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    ProductType NVARCHAR(50) NULL,
+    Status NVARCHAR(50) DEFAULT N'Đang bán',
+    Unit NVARCHAR(50) NULL
 );
 
 CREATE TABLE ProductVariant (

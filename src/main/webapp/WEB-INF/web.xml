@@ -21,6 +21,11 @@
         <servlet-name>ProductServlet</servlet-name>
         <servlet-class>com.liteflow.controller.ProductServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
+        <multipart-config>
+            <max-file-size>5242880</max-file-size> <!-- 5MB -->
+            <max-request-size>5242880</max-request-size> <!-- 5MB -->
+            <file-size-threshold>0</file-size-threshold>
+        </multipart-config>
     </servlet>
     <servlet-mapping>
         <servlet-name>ProductServlet</servlet-name>

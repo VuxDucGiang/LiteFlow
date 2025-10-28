@@ -1147,28 +1147,33 @@ select#roomId option[style*="color: #28a745"]:hover {
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
     font-family: var(--font-family-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     font-weight: 600;
     color: #333;
     font-family: var(--font-family-primary);
+    font-size: 0.95rem;
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
     width: 100%;
-    padding: 0.6rem;
+    padding: 0.75rem;
     border: 2px solid #e1e5e9;
     border-radius: 6px;
-    font-size: 0.9rem;
-    transition: border-color 0.2s;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
     font-family: var(--font-family-primary);
+    background: #fff;
 }
 
 .form-group input:focus,
@@ -1176,11 +1181,18 @@ select#roomId option[style*="color: #28a745"]:hover {
 .form-group select:focus {
     outline: none;
     border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
 }
 
 .form-group textarea {
     resize: vertical;
-    min-height: 80px;
+    min-height: 100px;
+}
+
+/* Consistent spacing between form groups in modal */
+.modal-body .form-group:last-child {
+    margin-bottom: 0;
 }
 
 .section-title {
