@@ -196,12 +196,28 @@ public class OAuth2CallbackServlet extends HttpServlet {
             // Access token trả về header
             resp.setHeader("X-Access-Token", accessToken);
 
-            resp.sendRedirect(req.getContextPath() + "/dashboard");
+            // Determine redirect URL based on user role
+            String redirectUrl = getRedirectUrlByRole(roles);
+            resp.sendRedirect(req.getContextPath() + redirectUrl);
 
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
             resp.sendRedirect(req.getContextPath() + "/auth/login.jsp?error=oauth2_general");
         }
+    }
+    
+    /**
+     * Xác định URL redirect dựa trên role của user
+     */
+    private String getRedirectUrlByRole(List<String> roles) {
+        if (roles != null) {
+            for (String role : roles) {
+                if ("Employee".equalsIgnoreCase(role)) {
+                    return "/dashboard-employee";
+                }
+            }
+        }
+        return "/dashboard";
     }
 
     private void setHttpOnlyCookie(HttpServletResponse resp, String name, String value,

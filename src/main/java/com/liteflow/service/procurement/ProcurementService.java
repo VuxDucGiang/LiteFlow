@@ -82,8 +82,15 @@ public class ProcurementService {
     public List<PurchaseOrder> getAllPOs() { return poDAO.getAll(); }
     
     public List<PurchaseOrderItem> getPOItems(UUID poid) {
-        // Use DAO's optimized query instead of filtering getAll()
-        return itemDAO.findByPOID(poid);
+        System.out.println("ProcurementService.getPOItems() called with POID: " + poid);
+        List<PurchaseOrderItem> items = itemDAO.findByPOID(poid);
+        System.out.println("DAO returned " + (items != null ? items.size() : "null") + " items");
+        if (items != null && !items.isEmpty()) {
+            items.forEach(item -> {
+                System.out.println("  - Item: " + item.getItemName() + " (Qty: " + item.getQuantity() + ", Price: " + item.getUnitPrice() + ")");
+            });
+        }
+        return items;
     }
     
     public List<PurchaseOrder> getPOsPendingApproval() {

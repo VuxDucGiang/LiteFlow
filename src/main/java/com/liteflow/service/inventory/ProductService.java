@@ -42,14 +42,16 @@ public class ProductService {
                 // Query để lấy thông tin sản phẩm với giá, tồn kho và category
                 String jpql = "SELECT p.productId, p.name, pv.size, pv.price, " +
                            "COALESCE(ps.amount, 0) as stockAmount, " +
-                           "p.isDeleted, p.imageUrl, c.name as categoryName " +
+                           "p.isDeleted, p.imageUrl, c.name as categoryName, " +
+                           "p.productType, p.description, p.status, p.unit, p.importDate " +
                            "FROM Product p " +
                            "LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId " +
                            "LEFT JOIN ProductStock ps ON pv.productVariantId = ps.productVariant.productVariantId " +
                            "LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId " +
                            "LEFT JOIN Category c ON pc.category.categoryId = c.categoryId " +
-                           "WHERE pv.isDeleted = false OR pv.isDeleted IS NULL " +
-                           "ORDER BY p.name, pv.size";
+                           "WHERE (p.isDeleted = false OR p.isDeleted IS NULL) " +
+                           "AND (pv.isDeleted = false OR pv.isDeleted IS NULL) " +
+                           "ORDER BY p.importDate DESC, p.name, pv.size";
                 
                 Query query = em.createQuery(jpql);
                 @SuppressWarnings("unchecked")
@@ -70,6 +72,10 @@ public class ProductService {
                     dto.setIsDeleted((Boolean) row[5]);
                     dto.setImageUrl((String) row[6]);
                     dto.setCategoryName((String) row[7]);
+                    dto.setProductType((String) row[8]);
+                    dto.setDescription((String) row[9]);
+                    dto.setStatus((String) row[10]);
+                    dto.setUnit((String) row[11]);
                     
                     // Tạo mã sản phẩm từ ID
                     dto.setProductCode("SP" + String.format("%06d", Math.abs(dto.getProductId().hashCode()) % 1000000));
@@ -93,7 +99,52 @@ public class ProductService {
     public Product getById(UUID id) {
         return productDAO.findById(id);
     }
-
+    
+    public boolean isProductNameExists(String productName) {
+        System.out.println("=== DEBUG: Checking if product name exists: " + productName);
+        try {
+            EntityManager em = BaseDAO.emf.createEntityManager();
+            try {
+                String jpql = "SELECT COUNT(p) FROM Product p WHERE p.name = :name AND p.isDeleted = false";
+                Query query = em.createQuery(jpql);
+                query.setParameter("name", productName.trim());
+                Long count = (Long) query.getSingleResult();
+                boolean exists = count > 0;
+                System.out.println("Product name '" + productName + "' exists: " + exists);
+                return exists;
+            } finally {
+                em.close();
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error checking product name existence: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    public boolean isProductNameExistsExcludingId(String productName, UUID excludeId) {
+        System.out.println("=== DEBUG: Checking if product name exists (excluding ID: " + excludeId + "): " + productName);
+        try {
+            EntityManager em = BaseDAO.emf.createEntityManager();
+            try {
+                String jpql = "SELECT COUNT(p) FROM Product p WHERE p.name = :name AND p.isDeleted = false AND p.productId != :excludeId";
+                Query query = em.createQuery(jpql);
+                query.setParameter("name", productName.trim());
+                query.setParameter("excludeId", excludeId);
+                Long count = (Long) query.getSingleResult();
+                boolean exists = count > 0;
+                System.out.println("Product name '" + productName + "' exists (excluding ID): " + exists);
+                return exists;
+            } finally {
+                em.close();
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error checking product name existence (excluding ID): " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
     public boolean addProduct(Product p) {
         return productDAO.insert(p);
     }
@@ -196,6 +247,25 @@ public class ProductService {
             }
         } catch (Exception e) {
             System.err.println("❌ Lỗi trong ProductService.getDistinctCategoriesFromProducts(): " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+    
+    public List<String> getAllUnits() {
+        System.out.println("=== DEBUG: ProductService.getAllUnits() ===");
+        try {
+            List<String> result = productDAO.getAllUnits();
+            System.out.println("Số lượng đơn vị tính: " + (result != null ? result.size() : "null"));
+            if (result != null && !result.isEmpty()) {
+                System.out.println("Các đơn vị tính tìm thấy:");
+                for (String unit : result) {
+                    System.out.println("  - " + unit);
+                }
+            }
+            return result != null ? result : new ArrayList<>();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi trong ProductService.getAllUnits(): " + e.getMessage());
             e.printStackTrace();
             return new ArrayList<>();
         }

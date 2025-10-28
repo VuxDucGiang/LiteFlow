@@ -143,6 +143,18 @@ body{
   background:rgba(255,255,255,0.1);
 }
 
+/* User info in header */
+.header-icons .nav-item.dropdown .nav-link {
+  color: #374151 !important;
+  background: transparent;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.header-icons .nav-item.dropdown:hover .nav-link {
+  background: rgba(0,0,0,0.05);
+}
+
 /* Main Navigation Bar */
 .main-nav{
   background: var(--color-primary);

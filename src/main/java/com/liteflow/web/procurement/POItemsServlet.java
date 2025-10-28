@@ -16,17 +16,27 @@ public class POItemsServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        System.out.println("=== POItemsServlet.doGet START ===");
+        long startTime = System.currentTimeMillis();
+        
         try {
             String poidStr = req.getParameter("poid");
+            System.out.println("POID parameter: " + poidStr);
             
             if (poidStr == null || poidStr.isEmpty()) {
+                System.out.println("ERROR: Missing POID parameter");
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.setContentType("application/json");
                 resp.getWriter().write("[]");
                 return;
             }
 
             UUID poid = UUID.fromString(poidStr);
+            System.out.println("Parsed UUID: " + poid);
+            System.out.println("Calling service.getPOItems()...");
+            
             List<PurchaseOrderItem> items = service.getPOItems(poid);
+            System.out.println("Service returned " + (items != null ? items.size() : "null") + " items");
             
             // Set response as JSON
             resp.setContentType("application/json");
@@ -54,10 +64,15 @@ public class POItemsServlet extends HttpServlet {
             out.write("]");
             out.flush();
             
+            long duration = System.currentTimeMillis() - startTime;
+            System.out.println("=== POItemsServlet.doGet END (took " + duration + "ms) ===");
+            
         } catch (Exception e) {
-            System.err.println("ERROR in POItemsServlet: " + e.getMessage());
+            long duration = System.currentTimeMillis() - startTime;
+            System.err.println("ERROR in POItemsServlet after " + duration + "ms: " + e.getMessage());
             e.printStackTrace();
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.setContentType("application/json");
             resp.getWriter().write("[]");
         }
     }

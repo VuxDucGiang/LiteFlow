@@ -143,7 +143,10 @@ CREATE TABLE Products (
     Description NVARCHAR(MAX),
     ImageURL NVARCHAR(MAX),
     ImportDate DATETIME2 DEFAULT SYSDATETIME(),
-    IsDeleted BIT NOT NULL DEFAULT 0
+    IsDeleted BIT NOT NULL DEFAULT 0,
+    ProductType NVARCHAR(50) NULL,
+    Status NVARCHAR(50) DEFAULT N'Đang bán',
+    Unit NVARCHAR(50) NULL
 );
 
 CREATE TABLE ProductVariant (
@@ -838,4 +841,33 @@ GO
 CREATE INDEX IX_EmployeeCompEvents_Employee ON EmployeeCompEvents(EmployeeID);
 CREATE INDEX IX_EmployeeCompEvents_WorkDate ON EmployeeCompEvents(WorkDate);
 CREATE INDEX IX_EmployeeCompEvents_Type ON EmployeeCompEvents(EventType);
+GO
+
+-- =======================================================
+-- 19. PERSONAL SCHEDULE (Personal tasks for employees)
+-- =======================================================
+CREATE TABLE PersonalSchedules (
+    ScheduleID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    EmployeeID UNIQUEIDENTIFIER NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(1000) NULL,
+    StartDate DATE NOT NULL,
+    StartTime TIME NULL,
+    EndTime TIME NULL,
+    Priority NVARCHAR(20) NOT NULL DEFAULT 'Medium' CHECK (Priority IN ('Low', 'Medium', 'High')),
+    Status NVARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (Status IN ('Pending', 'InProgress', 'Completed', 'Cancelled')),
+    ReminderDate DATETIME2 NULL,
+    ReminderSent BIT NOT NULL DEFAULT 0,
+    Notes NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_PersonalSchedules_Employee FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID) ON DELETE CASCADE
+);
+GO
+
+CREATE INDEX IX_PersonalSchedules_Employee ON PersonalSchedules(EmployeeID);
+CREATE INDEX IX_PersonalSchedules_StartDate ON PersonalSchedules(StartDate);
+CREATE INDEX IX_PersonalSchedules_Priority ON PersonalSchedules(Priority);
+CREATE INDEX IX_PersonalSchedules_Status ON PersonalSchedules(Status);
 GO

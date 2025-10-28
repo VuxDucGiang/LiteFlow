@@ -3714,12 +3714,14 @@ window.formatDate = function(dateString) {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'N/A';
         
-        // Format as dd/MM/yyyy
+        // Format as dd/MM/yyyy HH:mm
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
         
-        return `${day}/${month}/${year}`;
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
     } catch (error) {
         console.warn('Error formatting date:', error);
         return 'N/A';
@@ -4719,12 +4721,14 @@ class RoomTableManager {
             const date = new Date(dateString);
             if (isNaN(date.getTime())) return 'N/A';
             
-            // Format as dd/MM/yyyy
+            // Format as dd/MM/yyyy HH:mm
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
             
-            return `${day}/${month}/${year}`;
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
         } catch (error) {
             console.warn('Error formatting date:', error);
             return 'N/A';
@@ -7269,23 +7273,54 @@ function showImportResults(data) {
 
 // Export to Excel
 window.exportToExcel = function() {
+    // First check if there's data to export
+    const tbody = document.querySelector('.table tbody');
+    const rows = tbody ? tbody.querySelectorAll('tr[data-table-id]') : [];
+    
+    if (rows.length === 0) {
+        showNotification('error', 'Không có dữ liệu để xuất Excel');
+        return;
+    }
+    
     showNotification('info', 'Đang xuất dữ liệu...', 'Vui lòng chờ trong giây lát');
     
-    // Create a form to submit the export request
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = 'roomtable';
-    form.style.display = 'none';
-    
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = 'exportExcel';
-    
-    form.appendChild(actionInput);
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+    // Use fetch to check response
+    fetch('roomtable', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            action: 'exportExcel'
+        })
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json().then(data => {
+                if (!data.success) {
+                    showNotification('error', data.message || 'Không có dữ liệu để xuất');
+                }
+            });
+        } else {
+            // It's a file download
+            return response.blob().then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'danh_sach_phong_ban_' + new Date().toISOString().split('T')[0] + '.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showNotification('success', 'Xuất Excel thành công');
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Export error:', error);
+        showNotification('error', 'Lỗi khi xuất Excel');
+    });
 };
 
 // Download Template

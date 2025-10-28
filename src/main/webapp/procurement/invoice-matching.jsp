@@ -1035,8 +1035,17 @@
                 const itemsList = document.getElementById('poItemsList');
                 itemsList.innerHTML = '<div style="color: #059669; text-align: center; padding: 10px;"><i class="bx bx-loader bx-spin"></i> Đang tải...</div>';
                 
-                fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poId)
-                    .then(response => response.json())
+                const previewController = new AbortController();
+                const previewTimeout = setTimeout(() => previewController.abort(), 8000);
+                
+                fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poId, {
+                    signal: previewController.signal
+                })
+                    .then(response => {
+                        clearTimeout(previewTimeout);
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
                     .then(items => {
                         if (items && items.length > 0) {
                             let html = '<table style="width: 100%; font-size: 13px; border-collapse: collapse;">';
@@ -1058,12 +1067,13 @@
                             html += '</tbody></table>';
                             itemsList.innerHTML = html;
                         } else {
-                            itemsList.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 10px;">Không có sản phẩm</div>';
+                            itemsList.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 10px;">PO không có sản phẩm</div>';
                         }
                     })
                     .catch(error => {
-                        console.error('Error loading PO items:', error);
-                        itemsList.innerHTML = '<div style="color: #ef4444; text-align: center; padding: 10px;"><i class="bx bx-error"></i> Lỗi tải dữ liệu</div>';
+                        clearTimeout(previewTimeout);
+                        const msg = error.name === 'AbortError' ? 'Timeout' : error.message;
+                        itemsList.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 10px;"><i class="bx bx-error"></i> Lỗi: ${msg}</div>`;
                     });
                 
                 // Set default invoice date to today
@@ -1085,9 +1095,20 @@
                 submitBtn.disabled = true;
                 submitText.textContent = 'Đang tải...';
                 
-                // Fetch items from PO
-                fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poId)
-                    .then(response => response.json())
+                // Fetch items from PO with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                
+                fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poId, {
+                    signal: controller.signal
+                })
+                    .then(response => {
+                        clearTimeout(timeoutId);
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status);
+                        }
+                        return response.json();
+                    })
                     .then(items => {
                         itemsContainer.innerHTML = '';
                         
@@ -1105,11 +1126,14 @@
                         submitText.textContent = 'Đối chiếu PO';
                     })
                     .catch(error => {
+                        clearTimeout(timeoutId);
                         // Error: show message and add empty row for manual entry
+                        const errorMsg = error.name === 'AbortError' ? 'Timeout - Server không phản hồi' : error.message;
                         itemsContainer.innerHTML = `
                             <div style="text-align: center; padding: 15px; color: #ef4444; background: #fee2e2; border-radius: 6px;">
                                 <i class='bx bx-error' style="font-size: 20px;"></i>
-                                <div style="margin-top: 6px; font-size: 13px;">Không thể tải sản phẩm từ PO</div>
+                                <div style="margin-top: 6px; font-size: 13px;">Lỗi: ${errorMsg}</div>
+                                <div style="margin-top: 4px; font-size: 11px; color: #991b1b;">Vui lòng kiểm tra server logs</div>
                             </div>
                         `;
                         
@@ -1119,7 +1143,7 @@
                             addInvoiceItemRow('', 1, 0);
                             submitBtn.disabled = false;
                             submitText.textContent = 'Đối chiếu PO';
-                        }, 1000);
+                        }, 2000);
                     });
             } else {
                 document.getElementById('poDetails').style.display = 'none';

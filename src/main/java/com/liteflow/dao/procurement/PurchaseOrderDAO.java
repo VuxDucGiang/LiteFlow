@@ -5,5 +5,7 @@ import com.liteflow.model.procurement.PurchaseOrder;
 import java.util.UUID;
 
 public class PurchaseOrderDAO extends GenericDAO<PurchaseOrder, UUID> {
-    public PurchaseOrderDAO() { super(PurchaseOrder.class); }
+    public PurchaseOrderDAO() { 
+        super(PurchaseOrder.class); 
+    }
 }

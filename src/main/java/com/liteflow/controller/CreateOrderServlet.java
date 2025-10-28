@@ -1,6 +1,7 @@
 package com.liteflow.controller;
 
 import com.liteflow.service.OrderService;
+import com.liteflow.util.OrderDataUtil;
 import com.google.gson.Gson;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -34,19 +35,12 @@ public class CreateOrderServlet extends HttpServlet {
         
         try {
             // Đọc JSON từ request body
-            StringBuilder sb = new StringBuilder();
             BufferedReader reader = request.getReader();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
-            
-            String requestBody = sb.toString();
+            String requestBody = OrderDataUtil.readRequestBody(reader);
             System.out.println("📥 Nhận request tạo order: " + requestBody);
             
             // Parse JSON
-            @SuppressWarnings("unchecked")
-            Map<String, Object> requestData = gson.fromJson(requestBody, Map.class);
+            Map<String, Object> requestData = OrderDataUtil.parseRequestData(requestBody);
             
             // Validate input
             if (requestData == null) {
@@ -54,24 +48,28 @@ public class CreateOrderServlet extends HttpServlet {
                 return;
             }
             
-            String tableIdStr = (String) requestData.get("tableId");
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> items = (List<Map<String, Object>>) requestData.get("items");
-            
-            if (tableIdStr == null || tableIdStr.isEmpty()) {
-                sendErrorResponse(response, out, gson, 400, "Table ID không được rỗng");
+            // Validate table ID
+            String tableIdError = OrderDataUtil.validateTableId(requestData);
+            if (tableIdError != null) {
+                sendErrorResponse(response, out, gson, 400, tableIdError);
                 return;
             }
             
-            if (items == null || items.isEmpty()) {
-                sendErrorResponse(response, out, gson, 400, "Danh sách món không được rỗng");
+            // Validate items
+            String itemsError = OrderDataUtil.validateItems(requestData);
+            if (itemsError != null) {
+                sendErrorResponse(response, out, gson, 400, itemsError);
                 return;
             }
+            
+            // Extract and convert data
+            String tableIdStr = OrderDataUtil.extractTableId(requestData);
+            List<Map<String, Object>> items = OrderDataUtil.extractItems(requestData);
             
             // Convert tableId to UUID
             UUID tableId;
             try {
-                tableId = UUID.fromString(tableIdStr);
+                tableId = OrderDataUtil.parseTableId(tableIdStr);
             } catch (IllegalArgumentException e) {
                 sendErrorResponse(response, out, gson, 400, "Table ID không hợp lệ: " + tableIdStr);
                 return;

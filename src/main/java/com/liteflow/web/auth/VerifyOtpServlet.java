@@ -273,6 +273,11 @@ public class VerifyOtpServlet extends HttpServlet {
         session.removeAttribute("pendingAccessToken");
         session.removeAttribute("otpContext");
         session.setAttribute("UserLogin", user.getUserID().toString());
+        
+        // Set user roles và displayName vào session
+        List<String> roles = userService.getRoleNames(user.getUserID());
+        session.setAttribute("UserRoles", roles);
+        session.setAttribute("UserDisplayName", user.getDisplayName());
 
         // Đánh dấu user đã xác thực 2FA thành công để bỏ qua OTP trong 24h tiếp theo
         user.setLast2faVerifiedAt(java.time.LocalDateTime.now());
@@ -297,7 +302,24 @@ public class VerifyOtpServlet extends HttpServlet {
             }
         } catch (Exception ignore) {
         }
-        resp.sendRedirect(req.getContextPath() + "/dashboard");
+        
+        // Determine redirect URL based on user role
+        String redirectUrl = getRedirectUrlByRole(roles);
+        resp.sendRedirect(req.getContextPath() + redirectUrl);
+    }
+    
+    /**
+     * Xác định URL redirect dựa trên role của user
+     */
+    private String getRedirectUrlByRole(List<String> roles) {
+        if (roles != null) {
+            for (String role : roles) {
+                if ("Employee".equalsIgnoreCase(role)) {
+                    return "/dashboard-employee";
+                }
+            }
+        }
+        return "/dashboard";
     }
 
     /**
