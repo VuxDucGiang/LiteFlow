@@ -414,7 +414,7 @@
                                         ×
                                     </button>
                                     <button type="button" onclick="showAddCategoryModal()" 
-                                            style="padding: 0; min-width: 45px; max-width: 45px; width: 45px; height: 45px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: linear-gradient(135deg, #667eea, #00c6ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 24px; font-weight: bold; line-height: 1;" 
+                                            style="padding: 0; min-width: 45px; max-width: 45px; width: 45px; height: 45px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: linear-gradient(135deg, #667eea, #00c6ff); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 28px; font-weight: bold; line-height: 1;" 
                                             title="Thêm danh mục mới">
                                         +
                                     </button>
