@@ -16,8 +16,8 @@ import java.util.*;
 @WebFilter("/*")
 public class AuthenticationFilter extends BaseFilter {
 
-    private static volatile boolean AUTH_ENABLED = true;
-
+    private static volatile boolean AUTH_ENABLED = false;
+//ádasdáds
     private final AuditService auditService = new AuditService();
     private final UserService userService = new UserService();
     private final EmployeeService employeeService = new EmployeeService();

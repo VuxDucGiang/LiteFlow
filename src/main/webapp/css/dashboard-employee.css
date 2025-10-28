@@ -405,14 +405,14 @@
 
 .calendar-day {
   position: relative;
-  text-align: center;
-  padding: 14px 4px;
+  padding: 8px;
   border-radius: 8px;
   font-size: 14px;
   color: #1f2937;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   transition: all 0.2s;
+  min-height: 50px;
 }
 
 .calendar-day:hover {
@@ -424,14 +424,52 @@
   background: white;
   color: #d1d5db;
   border-color: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 500;
+}
+
+.calendar-day.empty {
+  background: white;
+  border-color: transparent;
+  visibility: hidden;
+}
+
+.calendar-day.today {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.calendar-day > span {
+  display: block;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 0;
+}
+
+.calendar-day.today > span {
+  color: #3b82f6;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  margin: 6px auto 0;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+.status-dot.red { background: #ef4444; }
+.status-dot.blue { background: #3b82f6; }
+.status-dot.purple { background: #8b5cf6; }
+.status-dot.orange { background: #f97316; }
+.status-dot.green { background: #10b981; }
+.status-dot.light-blue { background: #0ea5e9; }
+.status-dot.gray { background: #9ca3af; }
 
 /* Internal News Widget */
 .news-list {
@@ -532,4 +570,270 @@
   .widget {
     padding: 20px;
   }
+}
+
+/* Personal Schedule Styles */
+.widget-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f3f4f6;
+  margin-bottom: 20px;
+}
+
+.widget-title {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.btn-add-schedule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-schedule:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-add-schedule i {
+  font-size: 18px;
+}
+
+.schedule-item.priority-high {
+  border-left-color: #ef4444;
+}
+
+.schedule-item.priority-medium {
+  border-left-color: #f59e0b;
+}
+
+.schedule-item.priority-low {
+  border-left-color: #10b981;
+}
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-edit-schedule,
+.btn-delete-schedule {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-edit-schedule:hover {
+  color: #3b82f6;
+  background: #e0f2fe;
+}
+
+.btn-delete-schedule:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.schedule-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.schedule-priority {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.schedule-priority.priority-high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.schedule-priority.priority-medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.schedule-priority.priority-low {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.empty-state, .error-state {
+  text-align: center;
+  padding: 32px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.modal-close i {
+  font-size: 24px;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.form-group .required {
+  color: #ef4444;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  transition: all 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-control textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.btn-save:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
 }
