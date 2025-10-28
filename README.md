@@ -278,7 +278,7 @@ After loading sample data, use these accounts to test different roles:
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Admin** | admin@liteflow.com | Admin123! |
+| **Admin** | admin@liteflow.com | 1 |
 | **Manager** | manager@liteflow.com | Manager123! |
 | **Cashier** | cashier@liteflow.com | Cashier123! |
 | **Kitchen** | kitchen@liteflow.com | Kitchen123! |
