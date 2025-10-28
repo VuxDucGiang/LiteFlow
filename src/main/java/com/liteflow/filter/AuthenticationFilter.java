@@ -86,6 +86,10 @@ public class AuthenticationFilter extends BaseFilter {
     }
 
     private boolean isPublicPage(String path) {
+        // Allow root path and welcome file
+        if (path.equals("/") || path.equals("")) {
+            return true;
+        }
         return path.equals("/login") || path.equals("/register") || path.equals("/logout")
                 || path.equals("/auth/google") || path.equals("/oauth2callback")
                 || path.equals("/auth/forgot") || path.equals("/auth/reset") || path.equals("/verify-otp")
