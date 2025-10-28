@@ -325,6 +325,12 @@
     user-select: none;
     position: relative;
     transition: background-color 0.2s;
+    height: 60px;
+    min-height: 60px;
+    max-height: 60px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .table th:hover {
@@ -748,19 +754,19 @@
 .modal-body .form-group button[onclick="showAddCategoryModal()"],
 .modal-body .form-group button.btn-success[onclick="showAddCategoryModal()"],
 #addProductForm button[onclick="showAddCategoryModal()"] {
-    padding: 0 !important;
-    font-size: 2rem !important;
-    line-height: 1 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    overflow: hidden !important;
-    background: linear-gradient(135deg, var(--color-accent), var(--color-secondary)) !important;
-    color: white !important;
-    min-width: 45px !important;
-    max-width: 45px !important;
-    width: 45px !important;
-    height: 42px !important;
+    padding: 0;
+    font-size: 28px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-secondary));
+    color: white;
+    min-width: 45px;
+    max-width: 45px;
+    width: 45px;
+    height: 45px;
 }
 
 .modal-footer {

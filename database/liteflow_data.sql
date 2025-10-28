@@ -123,55 +123,55 @@ GO
 -- ============================================================
 -- Cà phê đen
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'S', 15000, 20000 FROM Products WHERE Name = N'Cà phê đen';
+SELECT ProductID, 'S', 10000, 20000 FROM Products WHERE Name = N'Cà phê đen';
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'M', 20000, 25000 FROM Products WHERE Name = N'Cà phê đen';
+SELECT ProductID, 'M', 15000, 25000 FROM Products WHERE Name = N'Cà phê đen';
 
 -- Cà phê sữa đá
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'S', 20000, 25000 FROM Products WHERE Name = N'Cà phê sữa đá';
+SELECT ProductID, 'S', 13000, 25000 FROM Products WHERE Name = N'Cà phê sữa đá';
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'M', 25000, 30000 FROM Products WHERE Name = N'Cà phê sữa đá';
+SELECT ProductID, 'M', 18000, 30000 FROM Products WHERE Name = N'Cà phê sữa đá';
 
 -- Latte
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'M', 35000, 40000 FROM Products WHERE Name = N'Latte';
+SELECT ProductID, 'M', 25000, 40000 FROM Products WHERE Name = N'Latte';
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'L', 40000, 45000 FROM Products WHERE Name = N'Latte';
+SELECT ProductID, 'L', 30000, 45000 FROM Products WHERE Name = N'Latte';
 
 -- Trà đào cam sả
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'M', 30000, 35000 FROM Products WHERE Name = N'Trà đào cam sả';
+SELECT ProductID, 'M', 20000, 35000 FROM Products WHERE Name = N'Trà đào cam sả';
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'L', 35000, 40000 FROM Products WHERE Name = N'Trà đào cam sả';
+SELECT ProductID, 'L', 25000, 40000 FROM Products WHERE Name = N'Trà đào cam sả';
 
 -- Trà sữa trân châu
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'M', 30000, 35000 FROM Products WHERE Name = N'Trà sữa trân châu';
+SELECT ProductID, 'M', 22000, 35000 FROM Products WHERE Name = N'Trà sữa trân châu';
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'L', 35000, 40000 FROM Products WHERE Name = N'Trà sữa trân châu';
+SELECT ProductID, 'L', 28000, 40000 FROM Products WHERE Name = N'Trà sữa trân châu';
 
 -- Sinh tố xoài
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'M', 35000, 40000 FROM Products WHERE Name = N'Sinh tố xoài';
+SELECT ProductID, 'M', 28000, 40000 FROM Products WHERE Name = N'Sinh tố xoài';
 
 -- Nước ép cam
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, 'M', 25000, 30000 FROM Products WHERE Name = N'Nước ép cam';
+SELECT ProductID, 'M', 18000, 30000 FROM Products WHERE Name = N'Nước ép cam';
 
 -- Bánh tiramisu
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, N'1 miếng', 40000, 45000 FROM Products WHERE Name = N'Bánh tiramisu';
+SELECT ProductID, N'1 miếng', 32000, 45000 FROM Products WHERE Name = N'Bánh tiramisu';
 
 -- Croissant bơ
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, N'1 cái', 20000, 25000 FROM Products WHERE Name = N'Croissant bơ';
+SELECT ProductID, N'1 cái', 15000, 25000 FROM Products WHERE Name = N'Croissant bơ';
 
 -- Khoai tây chiên
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, N'Phần nhỏ', 20000, 25000 FROM Products WHERE Name = N'Khoai tây chiên';
+SELECT ProductID, N'Phần nhỏ', 12000, 25000 FROM Products WHERE Name = N'Khoai tây chiên';
 INSERT INTO ProductVariant (ProductID, Size, OriginalPrice, Price)
-SELECT ProductID, N'Phần lớn', 30000, 35000 FROM Products WHERE Name = N'Khoai tây chiên';
+SELECT ProductID, N'Phần lớn', 20000, 35000 FROM Products WHERE Name = N'Khoai tây chiên';
 GO
 
 

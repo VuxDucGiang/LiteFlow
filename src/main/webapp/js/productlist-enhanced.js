@@ -1058,23 +1058,54 @@ let selectedFile = null;
 
 // Export Products to Excel
 window.exportProducts = function() {
-    showNotification('Vui lòng chờ trong giây lát', 'info', 'Đang xuất dữ liệu...');
+    // First check if there's data to export
+    const tbody = document.querySelector('.table tbody');
+    const rows = tbody ? tbody.querySelectorAll('tr[data-product-id]') : [];
     
-    // Create a form to submit the export request
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = 'products';
-    form.style.display = 'none';
+    if (rows.length === 0) {
+        showNotification('Không có dữ liệu để xuất Excel', 'warning');
+        return;
+    }
     
-    const actionInput = document.createElement('input');
-    actionInput.type = 'hidden';
-    actionInput.name = 'action';
-    actionInput.value = 'exportExcel';
+    showNotification('Đang xuất dữ liệu...', 'info');
     
-    form.appendChild(actionInput);
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+    // Use fetch to check response
+    fetch('products', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            action: 'exportExcel'
+        })
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json().then(data => {
+                if (!data.success) {
+                    showNotification(data.message || 'Không có dữ liệu để xuất', 'error');
+                }
+            });
+        } else {
+            // It's a file download
+            return response.blob().then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'danh_sach_san_pham_' + new Date().toISOString().split('T')[0] + '.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showNotification('✅ Xuất Excel thành công', 'success');
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Export error:', error);
+        showNotification('❌ Lỗi khi xuất Excel', 'error');
+    });
 };
 
 // Import Products from Excel
@@ -1842,7 +1873,7 @@ function initializeImageUpload() {
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            handleFileSelect(file);
+            handleImageFileSelect(file);
         }
     });
     
@@ -1866,7 +1897,7 @@ function initializeImageUpload() {
         
         const file = e.dataTransfer.files[0];
         if (file && file.type.startsWith('image/')) {
-            handleFileSelect(file);
+            handleImageFileSelect(file);
         } else {
             showNotification('Vui lòng chọn file ảnh hợp lệ', 'error');
         }
@@ -1889,7 +1920,7 @@ function initializeImageUpload() {
     });
 }
 
-function handleFileSelect(file) {
+function handleImageFileSelect(file) {
     if (!file.type.startsWith('image/')) {
         showNotification('Vui lòng chọn file ảnh hợp lệ', 'error');
         return;
