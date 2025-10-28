@@ -1,8 +1,36 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ page import="java.time.LocalDate" %>
+<%@ page import="java.time.DayOfWeek" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="com.liteflow.model.timesheet.EmployeeAttendance" %>
+
 <jsp:include page="includes/header.jsp">
   <jsp:param name="page" value="dashboard-employee" />
 </jsp:include>
+
+<%
+// Lấy thông tin tháng hiện tại
+Integer currentYear = (Integer) request.getAttribute("currentYear");
+Integer currentMonth = (Integer) request.getAttribute("currentMonth");
+Map<Integer, EmployeeAttendance> attendanceMap = (Map<Integer, EmployeeAttendance>) request.getAttribute("attendanceMap");
+
+if (currentYear == null) currentYear = LocalDate.now().getYear();
+if (currentMonth == null) currentMonth = LocalDate.now().getMonthValue();
+if (attendanceMap == null) attendanceMap = new java.util.HashMap<>();
+
+LocalDate firstDay = LocalDate.of(currentYear, currentMonth, 1);
+int daysInMonth = firstDay.lengthOfMonth();
+DayOfWeek firstDayOfWeek = firstDay.getDayOfWeek();
+// Java DayOfWeek: Monday=1, Tuesday=2, ..., Sunday=7
+// Calendar header: Sunday=0, Monday=1, ..., Saturday=6
+// Nếu getValue()=7 (Sunday) → offset=0, nếu getValue()=1 (Monday) → offset=1
+int offset = firstDayOfWeek.getValue() % 7;
+
+// Tên tháng tiếng Việt
+String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", 
+                      "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"};
+%>
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/dashboard.css">
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/dashboard-employee.css">
@@ -15,29 +43,14 @@
   <div class="main-content-grid">
     <!-- Top Row -->
     <div class="widget personal-schedule">
-      <h2 class="widget-title">LỊCH CÁ NHÂN</h2>
-      <div class="date-selector">
-        <div class="date-box">Th11 01</div>
-        <div class="date-box">Th11 02</div>
-        <div class="date-box active">Th12 03</div>
-        <div class="date-box">Th12 04</div>
+      <div class="widget-title-row">
+        <h2 class="widget-title">LỊCH CÁ NHÂN</h2>
+        <button class="btn-add-schedule" onclick="openAddScheduleModal()">
+          <i class='bx bx-plus'></i> Thêm mới
+        </button>
       </div>
-      <div class="schedule-list">
-        <div class="schedule-item">
-          <div class="schedule-title">Thiết kế giao diện Web Portal</div>
-          <div class="schedule-meta">Người giao: Đăng Vũ</div>
-          <div class="schedule-tag">04 Th12</div>
-        </div>
-        <div class="schedule-item">
-          <div class="schedule-title">Seminar</div>
-          <div class="schedule-meta">Lầu G, chia sẻ về cuộc đời</div>
-          <div class="schedule-time">10:00AM-11:30AM</div>
-        </div>
-        <div class="schedule-item">
-          <div class="schedule-title">Phỏng vấn</div>
-          <div class="schedule-meta">Lầu 4, ứng viên Front-End</div>
-          <div class="schedule-time">08:00AM-10:30AM</div>
-        </div>
+      <div class="schedule-list" id="personalScheduleList">
+        <!-- Dữ liệu sẽ được load từ API -->
       </div>
     </div>
 
@@ -115,7 +128,7 @@
 
     <!-- Bottom Row -->
     <div class="widget timesheet-calendar large">
-      <h2 class="widget-title">LỊCH CHẤM CÔNG - KỲ CÔNG THÁNG 12</h2>
+      <h2 class="widget-title">LỊCH CHẤM CÔNG - KỲ CÔNG <%= monthNames[currentMonth - 1] %> <%= currentYear %></h2>
       <div class="timesheet-legend">
         <div class="legend-dot red"></div><span>Tăng ca</span>
         <div class="legend-dot gray"></div><span>Vắng mặt</span>
@@ -136,35 +149,54 @@
           <div>Thứ 7</div>
         </div>
         <div class="calendar-body">
-          <div class="calendar-day"><span>4</span><div class="status-dot red"></div></div>
-          <div class="calendar-day"><span>5</span><div class="status-dot green"></div></div>
-          <div class="calendar-day off">OFF</div>
-          <div class="calendar-day"><span>6</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>7</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>8</span><div class="status-dot light-blue"></div></div>
-          <div class="calendar-day"><span>9</span><div class="status-dot blue"></div></div>
-          <div class="calendar-day"><span>10</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>11</span><div class="status-dot orange"></div></div>
-          <div class="calendar-day"><span>12</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>13</span><div class="status-dot gray"></div></div>
-          <div class="calendar-day"><span>14</span><div class="status-dot red"></div></div>
-          <div class="calendar-day"><span>15</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>16</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>17</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>18</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>19</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>20</span><div class="status-dot light-blue"></div></div>
-          <div class="calendar-day"><span>21</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>22</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>23</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>24</span><div class="status-dot blue"></div></div>
-          <div class="calendar-day"><span>25</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>26</span><div class="status-dot purple"></div></div>
-          <div class="calendar-day"><span>27</span><div class="status-dot purple"></div></div>
-          <div class="calendar-day"><span>28</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>29</span><div class="status-dot purple"></div></div>
-          <div class="calendar-day"><span>30</span><div class="status-dot green"></div></div>
-          <div class="calendar-day"><span>31</span><div class="status-dot green"></div></div>
+<%
+// Tạo calendar
+// Offset đầu tháng (fill empty cells)
+for (int i = 0; i < offset; i++) {
+%>
+          <div class="calendar-day empty"></div>
+<%
+}
+
+// Tạo các ngày trong tháng
+for (int day = 1; day <= daysInMonth; day++) {
+    EmployeeAttendance attendance = attendanceMap.get(day);
+    String statusDot = "gray"; // Mặc định là vắng mặt (gray)
+    
+    if (attendance != null) {
+        Boolean isOvertime = attendance.getIsOvertime();
+        Boolean isLate = attendance.getIsLate();
+        Boolean isEarlyLeave = attendance.getIsEarlyLeave();
+        
+        if (isOvertime != null && isOvertime) {
+            statusDot = "red"; // Tăng ca
+        } else if (isLate != null && isLate && isEarlyLeave != null && isEarlyLeave) {
+            statusDot = "light-blue"; // Trễ và sớm
+        } else if (isLate != null && isLate) {
+            statusDot = "light-blue"; // Trễ
+        } else if (isEarlyLeave != null && isEarlyLeave) {
+            statusDot = "light-blue"; // Sớm
+        } else if (attendance.getCheckInTime() != null && attendance.getCheckOutTime() != null) {
+            statusDot = "green"; // Ca đủ công
+        } else {
+            statusDot = "orange"; // Quên chấm công
+        }
+    }
+    
+    LocalDate today = LocalDate.now();
+    boolean isToday = (day == today.getDayOfMonth() && 
+                        currentMonth == today.getMonthValue() && 
+                        currentYear == today.getYear());
+    
+    String todayClass = isToday ? " today" : "";
+%>
+          <div class="calendar-day<%= todayClass %>">
+            <span><%= day %></span>
+            <div class="status-dot <%= statusDot %>"></div>
+          </div>
+<%
+}
+%>
         </div>
       </div>
     </div>
@@ -239,6 +271,242 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// ==============================
+// Personal Schedule Functions
+// ==============================
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+let currentEditingSchedule = null;
+
+// Load personal schedules
+async function loadPersonalSchedules() {
+  try {
+    const response = await fetch('${pageContext.request.contextPath}/api/personal-schedule/');
+    if (!response.ok) throw new Error('Failed to load schedules');
+    
+    const schedules = await response.json();
+    const scheduleList = document.getElementById('personalScheduleList');
+    
+    if (schedules.length === 0) {
+      scheduleList.innerHTML = '<div class="empty-state">Chưa có lịch cá nhân nào. Nhấn "Thêm mới" để tạo lịch.</div>';
+      return;
+    }
+    
+    scheduleList.innerHTML = schedules.map(schedule => {
+      const priorityClass = schedule.priority.toLowerCase();
+      const priorityLabel = schedule.priority === 'High' ? 'Cao' : schedule.priority === 'Medium' ? 'Trung bình' : 'Thấp';
+      const timeDisplay = schedule.startTime || schedule.endTime 
+        ? ' ' + (schedule.startTime || '') + (schedule.endTime ? '-' + schedule.endTime : '')
+        : '';
+      
+      let html = '<div class="schedule-item priority-' + priorityClass + '" data-id="' + schedule.scheduleId + '">';
+      html += '<div class="schedule-header">';
+      html += '<div class="schedule-title">' + escapeHtml(schedule.title) + '</div>';
+      html += '<div class="schedule-actions">';
+      html += '<button class="btn-edit-schedule" onclick="editSchedule(\'' + schedule.scheduleId + '\')" title="Sửa">';
+      html += '<i class=\'bx bx-edit\'></i>';
+      html += '</button>';
+      html += '<button class="btn-delete-schedule" onclick="deleteSchedule(\'' + schedule.scheduleId + '\')" title="Xóa">';
+      html += '<i class=\'bx bx-trash\'></i>';
+      html += '</button>';
+      html += '</div>';
+      html += '</div>';
+      
+      if (schedule.description) {
+        html += '<div class="schedule-meta">' + escapeHtml(schedule.description) + '</div>';
+      }
+      
+      html += '<div class="schedule-footer">';
+      html += '<span class="schedule-priority priority-' + priorityClass + '">' + priorityLabel + '</span>';
+      if (timeDisplay) {
+        html += '<span class="schedule-time">' + escapeHtml(timeDisplay) + '</span>';
+      }
+      html += '</div>';
+      html += '</div>';
+      
+      return html;
+    }).join('');
+  } catch (error) {
+    console.error('Error loading schedules:', error);
+    document.getElementById('personalScheduleList').innerHTML = '<div class="error-state">Lỗi khi tải lịch cá nhân</div>';
+  }
+}
+
+// Open add schedule modal
+function openAddScheduleModal() {
+  currentEditingSchedule = null;
+  document.getElementById('modalScheduleId').value = '';
+  document.getElementById('modalTitle').value = '';
+  document.getElementById('modalDescription').value = '';
+  document.getElementById('modalStartDate').value = '';
+  document.getElementById('modalStartTime').value = '';
+  document.getElementById('modalEndTime').value = '';
+  document.getElementById('modalPriority').value = 'Medium';
+  document.getElementById('scheduleModalTitle').textContent = 'Thêm lịch cá nhân';
+  document.getElementById('scheduleModal').style.display = 'flex';
+}
+
+// Edit schedule
+function editSchedule(scheduleId) {
+  fetch(`${pageContext.request.contextPath}/api/personal-schedule/${scheduleId}`)
+    .then(res => res.json())
+    .then(schedule => {
+      currentEditingSchedule = schedule;
+      document.getElementById('modalScheduleId').value = schedule.scheduleId;
+      document.getElementById('modalTitle').value = schedule.title;
+      document.getElementById('modalDescription').value = schedule.description || '';
+      document.getElementById('modalStartDate').value = schedule.startDate;
+      document.getElementById('modalStartTime').value = schedule.startTime || '';
+      document.getElementById('modalEndTime').value = schedule.endTime || '';
+      document.getElementById('modalPriority').value = schedule.priority;
+      document.getElementById('scheduleModalTitle').textContent = 'Sửa lịch cá nhân';
+      document.getElementById('scheduleModal').style.display = 'flex';
+    })
+    .catch(err => {
+      console.error('Error loading schedule:', err);
+      alert('Không thể tải thông tin lịch');
+    });
+}
+
+// Delete schedule
+async function deleteSchedule(scheduleId) {
+  if (!confirm('Bạn có chắc chắn muốn xóa lịch này?')) return;
+  
+  try {
+    const response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/${scheduleId}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) throw new Error('Failed to delete schedule');
+    
+    alert('Xóa lịch thành công');
+    loadPersonalSchedules();
+  } catch (error) {
+    console.error('Error deleting schedule:', error);
+    alert('Không thể xóa lịch');
+  }
+}
+
+// Save schedule
+async function saveSchedule() {
+  const title = document.getElementById('modalTitle').value.trim();
+  const description = document.getElementById('modalDescription').value.trim();
+  const startDate = document.getElementById('modalStartDate').value;
+  const startTime = document.getElementById('modalStartTime').value;
+  const endTime = document.getElementById('modalEndTime').value;
+  const priority = document.getElementById('modalPriority').value;
+  
+  if (!title || !startDate) {
+    alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+    return;
+  }
+  
+  const formData = new URLSearchParams();
+  formData.append('title', title);
+  formData.append('description', description);
+  formData.append('startDate', startDate);
+  if (startTime) formData.append('startTime', startTime);
+  if (endTime) formData.append('endTime', endTime);
+  formData.append('priority', priority);
+  
+  try {
+    let response;
+    if (currentEditingSchedule) {
+      // Update existing schedule
+      response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/${currentEditingSchedule.scheduleId}`, {
+        method: 'PUT',
+        body: formData
+      });
+    } else {
+      // Create new schedule
+      response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/`, {
+        method: 'POST',
+        body: formData
+      });
+    }
+    
+    if (!response.ok) throw new Error('Failed to save schedule');
+    
+    alert(currentEditingSchedule ? 'Cập nhật lịch thành công' : 'Thêm lịch thành công');
+    document.getElementById('scheduleModal').style.display = 'none';
+    loadPersonalSchedules();
+  } catch (error) {
+    console.error('Error saving schedule:', error);
+    alert('Không thể lưu lịch');
+  }
+}
+
+// Close modal
+function closeScheduleModal() {
+  document.getElementById('scheduleModal').style.display = 'none';
+}
+
+// Load schedules when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadPersonalSchedules();
+});
 </script>
+
+<!-- Schedule Modal -->
+<div id="scheduleModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="scheduleModalTitle">Thêm lịch cá nhân</h3>
+      <button class="modal-close" onclick="closeScheduleModal()">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modalScheduleId" />
+      
+      <div class="form-group">
+        <label>Tên công việc <span class="required">*</span></label>
+        <input type="text" id="modalTitle" class="form-control" placeholder="Nhập tên công việc" required />
+      </div>
+      
+      <div class="form-group">
+        <label>Mô tả</label>
+        <textarea id="modalDescription" class="form-control" rows="3" placeholder="Nhập mô tả chi tiết"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label>Ngày <span class="required">*</span></label>
+        <input type="date" id="modalStartDate" class="form-control" required />
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Giờ bắt đầu</label>
+          <input type="time" id="modalStartTime" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>Giờ kết thúc</label>
+          <input type="time" id="modalEndTime" class="form-control" />
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Mức độ ưu tiên</label>
+        <select id="modalPriority" class="form-control">
+          <option value="Low">Thấp</option>
+          <option value="Medium" selected>Trung bình</option>
+          <option value="High">Cao</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeScheduleModal()">Hủy</button>
+      <button class="btn-save" onclick="saveSchedule()">Lưu</button>
+    </div>
+  </div>
+</div>
 
 <jsp:include page="includes/footer.jsp" />
