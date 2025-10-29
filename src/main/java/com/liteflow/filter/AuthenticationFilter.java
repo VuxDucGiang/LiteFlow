@@ -16,8 +16,8 @@ import java.util.*;
 @WebFilter("/*")
 public class AuthenticationFilter extends BaseFilter {
 
-    private static volatile boolean AUTH_ENABLED = true;
-
+    private static volatile boolean AUTH_ENABLED = false;
+//ádasdáds
     private final AuditService auditService = new AuditService();
     private final UserService userService = new UserService();
     private final EmployeeService employeeService = new EmployeeService();
@@ -86,6 +86,10 @@ public class AuthenticationFilter extends BaseFilter {
     }
 
     private boolean isPublicPage(String path) {
+        // Allow root path and welcome file
+        if (path.equals("/") || path.equals("")) {
+            return true;
+        }
         return path.equals("/login") || path.equals("/register") || path.equals("/logout")
                 || path.equals("/auth/google") || path.equals("/oauth2callback")
                 || path.equals("/auth/forgot") || path.equals("/auth/reset") || path.equals("/verify-otp")

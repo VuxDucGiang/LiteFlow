@@ -60,30 +60,67 @@ public class ProcurementService {
        2. LẬP ĐƠN ĐẶT HÀNG (PO)
     ============================================================ */
     public UUID createPurchaseOrder(UUID supplierID, UUID createdBy, LocalDateTime expectedDate, String notes, List<PurchaseOrderItem> items) {
+        System.out.println("=== ProcurementService.createPurchaseOrder START ===");
+        System.out.println("SupplierID: " + supplierID);
+        System.out.println("CreatedBy: " + createdBy);
+        System.out.println("ExpectedDate: " + expectedDate);
+        System.out.println("Items count: " + items.size());
+        
         PurchaseOrder po = new PurchaseOrder();
         po.setSupplierID(supplierID);
         po.setCreatedBy(createdBy);
         po.setExpectedDelivery(expectedDate);
         po.setNotes(notes);
         po.setStatus("PENDING");
-        poDAO.insert(po);
+        
+        // Insert PO and check result
+        boolean poInserted = poDAO.insert(po);
+        if (!poInserted) {
+            System.err.println("❌ FAILED to insert PurchaseOrder!");
+            throw new RuntimeException("Không thể tạo đơn hàng. Vui lòng kiểm tra dữ liệu và thử lại.");
+        }
+        System.out.println("✅ PurchaseOrder inserted successfully. POID: " + po.getPoid());
 
+        // Insert items and calculate total
         double total = 0;
-        for (PurchaseOrderItem it : items) {
+        for (int i = 0; i < items.size(); i++) {
+            PurchaseOrderItem it = items.get(i);
             it.setPoid(po.getPoid());
             total += it.getQuantity() * it.getUnitPrice();
-            itemDAO.insert(it);
+            
+            boolean itemInserted = itemDAO.insert(it);
+            if (!itemInserted) {
+                System.err.println("❌ FAILED to insert PurchaseOrderItem #" + (i+1));
+                throw new RuntimeException("Không thể thêm sản phẩm vào đơn hàng. Vui lòng thử lại.");
+            }
+            System.out.println("✅ Item #" + (i+1) + " inserted: " + it.getItemName());
         }
+        
+        // Update total amount
         po.setTotalAmount(total);
-        poDAO.update(po);
+        boolean poUpdated = poDAO.update(po);
+        if (!poUpdated) {
+            System.err.println("❌ FAILED to update PurchaseOrder total amount!");
+            throw new RuntimeException("Không thể cập nhật tổng tiền. Vui lòng thử lại.");
+        }
+        System.out.println("✅ PurchaseOrder total updated: " + total);
+        System.out.println("=== ProcurementService.createPurchaseOrder END - SUCCESS ===");
+        
         return po.getPoid();
     }
 
     public List<PurchaseOrder> getAllPOs() { return poDAO.getAll(); }
     
     public List<PurchaseOrderItem> getPOItems(UUID poid) {
-        // Use DAO's optimized query instead of filtering getAll()
-        return itemDAO.findByPOID(poid);
+        System.out.println("ProcurementService.getPOItems() called with POID: " + poid);
+        List<PurchaseOrderItem> items = itemDAO.findByPOID(poid);
+        System.out.println("DAO returned " + (items != null ? items.size() : "null") + " items");
+        if (items != null && !items.isEmpty()) {
+            items.forEach(item -> {
+                System.out.println("  - Item: " + item.getItemName() + " (Qty: " + item.getQuantity() + ", Price: " + item.getUnitPrice() + ")");
+            });
+        }
+        return items;
     }
     
     public List<PurchaseOrder> getPOsPendingApproval() {

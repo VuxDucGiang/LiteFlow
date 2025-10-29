@@ -45,6 +45,26 @@ public class EmployeeAttendanceDAO extends GenericDAO<EmployeeAttendance, UUID> 
             em.close();
         }
     }
+
+    public List<EmployeeAttendance> findByEmployeeAndMonth(UUID employeeId, int year, int month) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            LocalDate startDate = LocalDate.of(year, month, 1);
+            LocalDate endDate = LocalDate.of(year, month, startDate.lengthOfMonth());
+            
+            return em.createQuery(
+                    "SELECT a FROM EmployeeAttendance a " +
+                            "WHERE a.employee.employeeID = :employeeId " +
+                            "AND a.workDate >= :startDate AND a.workDate <= :endDate " +
+                            "ORDER BY a.workDate ASC", EmployeeAttendance.class)
+                    .setParameter("employeeId", employeeId)
+                    .setParameter("startDate", startDate)
+                    .setParameter("endDate", endDate)
+                    .getResultList();
+        } finally {
+            em.close();
+        }
+    }
 }
 
 

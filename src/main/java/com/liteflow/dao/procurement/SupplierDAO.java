@@ -5,5 +5,7 @@ import com.liteflow.model.procurement.Supplier;
 import java.util.UUID;
 
 public class SupplierDAO extends GenericDAO<Supplier, UUID> {
-    public SupplierDAO() { super(Supplier.class); }
+    public SupplierDAO() { 
+        super(Supplier.class); 
+    }
 }
