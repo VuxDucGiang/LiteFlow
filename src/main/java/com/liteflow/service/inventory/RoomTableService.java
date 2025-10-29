@@ -478,14 +478,43 @@ public class RoomTableService {
         return getTableSessionsByTableId(tableId);
     }
     
-    // Method to get table payments
+    // Method to get completed table sessions (invoices) - similar to cashier notification
+    @SuppressWarnings("unchecked")
+    public java.util.List<com.liteflow.model.inventory.TableSession> getCompletedTableSessions(UUID tableId) {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            // Query sessions like cashier does for notification history
+            // Use JOIN FETCH to eagerly load table and createdBy to avoid lazy loading issues
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT DISTINCT s FROM TableSession s " +
+                "LEFT JOIN FETCH s.table " +
+                "LEFT JOIN FETCH s.createdBy " +
+                "WHERE s.table.tableId = :tableId " +
+                "AND s.status = 'Completed' " +
+                "AND s.paymentStatus = 'Paid' " +
+                "ORDER BY s.checkOutTime DESC"
+            );
+            q.setParameter("tableId", tableId);
+            return q.getResultList();
+        } catch (Exception e) {
+            System.err.println("Error getting completed table sessions: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+    
+    // Method to get table payments with eager loading (DEPRECATED - use getCompletedTableSessions)
     @SuppressWarnings("unchecked")
     public java.util.List<com.liteflow.model.inventory.PaymentTransaction> getTablePayments(UUID tableId) {
         EntityManager em = this.emf.createEntityManager();
         try {
+            // Use JOIN FETCH to eagerly load session and processedBy
             jakarta.persistence.Query q = em.createQuery(
-                "SELECT pt FROM PaymentTransaction pt " +
-                "JOIN pt.session ts " +
+                "SELECT DISTINCT pt FROM PaymentTransaction pt " +
+                "LEFT JOIN FETCH pt.session ts " +
+                "LEFT JOIN FETCH pt.processedBy " +
                 "WHERE ts.table.tableId = :tableId " +
                 "ORDER BY pt.processedAt DESC"
             );
@@ -493,6 +522,30 @@ public class RoomTableService {
             return q.getResultList();
         } catch (Exception e) {
             System.err.println("Error getting table payments: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+    
+    // Method to get order details for a session with eager loading
+    @SuppressWarnings("unchecked")
+    public java.util.List<com.liteflow.model.inventory.OrderDetail> getOrderDetailsForSession(UUID sessionId) {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            // Use JOIN FETCH to eagerly load productVariant and product
+            jakarta.persistence.Query q = em.createQuery(
+                "SELECT DISTINCT od FROM OrderDetail od " +
+                "LEFT JOIN FETCH od.productVariant pv " +
+                "LEFT JOIN FETCH pv.product p " +
+                "JOIN od.order o " +
+                "WHERE o.session.sessionId = :sessionId"
+            );
+            q.setParameter("sessionId", sessionId);
+            return q.getResultList();
+        } catch (Exception e) {
+            System.err.println("Error getting order details for session: " + e.getMessage());
             e.printStackTrace();
             return new java.util.ArrayList<>();
         } finally {

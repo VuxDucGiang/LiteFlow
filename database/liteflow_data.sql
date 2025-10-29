@@ -623,175 +623,11 @@ WHERE u.Email = 'cashier1@liteflow.vn';
 GO
 
 -- ============================================================
--- 9️⃣ CAFE MANAGEMENT - TABLE SESSIONS & ORDERS
--- ============================================================
-
--- Sample Table Sessions (Phiên làm việc của các bàn)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, Status, CreatedBy)
-SELECT 
-    t.TableID,
-    N'Khách hàng A',
-    '0901234567',
-    DATEADD(HOUR, -2, SYSDATETIME()), -- 2 giờ trước
-    'Active',
-    u.UserID
-FROM Tables t
-CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, Status, CreatedBy)
-SELECT 
-    t.TableID,
-    N'Khách hàng B',
-    '0907654321',
-    DATEADD(MINUTE, -30, SYSDATETIME()), -- 30 phút trước
-    'Active',
-    u.UserID
-FROM Tables t
-CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 2' AND u.Email = 'cashier1@liteflow.vn';
-
--- Sample Orders (Đơn hàng trong phiên)
-INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
-SELECT 
-    ts.SessionID,
-    'ORD001',
-    75000, -- 2 cà phê sữa đá M + 1 bánh tiramisu
-    7500,  -- VAT 10%
-    82500, -- Tổng
-    'Served',
-    u.UserID
-FROM TableSessions ts
-CROSS JOIN Users u
-WHERE ts.CustomerName = N'Khách hàng A' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
-SELECT 
-    ts.SessionID,
-    'ORD002',
-    105000, -- 1 latte L + 1 trà sữa trân châu L + 1 khoai tây chiên lớn
-    10500,  -- VAT 10%
-    115500, -- Tổng
-    'Preparing',
-    u.UserID
-FROM TableSessions ts
-CROSS JOIN Users u
-WHERE ts.CustomerName = N'Khách hàng B' AND u.Email = 'cashier1@liteflow.vn';
-
--- Sample Order Details (Chi tiết món trong đơn)
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    2, -- Số lượng
-    pv.Price,
-    pv.Price * 2, -- Tổng tiền
-    'Served'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD001' 
-    AND p.Name = N'Cà phê sữa đá' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = 'M';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Served'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD001' 
-    AND p.Name = N'Bánh tiramisu' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = N'1 miếng';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Preparing'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD002' 
-    AND p.Name = N'Latte' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = 'L';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Preparing'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD002' 
-    AND p.Name = N'Trà sữa trân châu' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = 'L';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Pending'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD002' 
-    AND p.Name = N'Khoai tây chiên' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = N'Phần lớn';
-
--- Sample Payment Transactions (Giao dịch thanh toán)
-INSERT INTO PaymentTransactions (SessionID, OrderID, Amount, PaymentMethod, PaymentStatus, ProcessedBy)
-SELECT 
-    ts.SessionID,
-    o.OrderID,
-    o.TotalAmount,
-    'Cash',
-    'Completed',
-    u.UserID
-FROM TableSessions ts
-CROSS JOIN Orders o
-CROSS JOIN Users u
-WHERE ts.CustomerName = N'Khách hàng A' 
-    AND o.OrderNumber = 'ORD001'
-    AND u.Email = 'cashier1@liteflow.vn';
-
--- Update table status to Occupied for active sessions
-UPDATE Tables 
-SET Status = 'Occupied'
-WHERE TableID IN (
-    SELECT DISTINCT ts.TableID 
-    FROM TableSessions ts 
-    WHERE ts.Status = 'Active'
-);
-GO
-
-
--- ============================================================
 -- 2️⃣ THÊM TABLE SESSIONS MẪU (Lịch sử giao dịch)
 -- ============================================================
 
 -- Session đã hoàn thành (Completed)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Nguyễn Văn An',
@@ -802,13 +638,14 @@ SELECT
     150000,
     'Cash',
     'Paid',
+    t.TableName + N' - HD 2', -- Hóa đơn thứ 2 của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 1' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session đã hủy (Cancelled)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Trần Thị Bình',
@@ -819,13 +656,14 @@ SELECT
     75000,
     'Card',
     'Paid',
+    t.TableName + N' - HD 2', -- Hóa đơn thứ 2 của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 2' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 2' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với khách hàng VIP
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Lê Văn Cường',
@@ -836,13 +674,14 @@ SELECT
     450000,
     'Transfer',
     'Paid',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn VIP
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn VIP 1' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn VIP 1' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với thanh toán một phần
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Phạm Thị Dung',
@@ -853,13 +692,14 @@ SELECT
     200000,
     'Cash',
     'Partial',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 3' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 3' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với ghi chú
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, Notes, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, Notes, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Hoàng Văn Em',
@@ -871,13 +711,14 @@ SELECT
     'Wallet',
     'Paid',
     N'Khách hàng thân thiết, yêu cầu cà phê ít đường',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 4' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 4' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với khách vãng lai (không có thông tin)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     NULL, -- Khách vãng lai
@@ -888,10 +729,11 @@ SELECT
     85000,
     'Cash',
     'Paid',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 5' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 5' AND u.Email = 'cashier1@liteflow.vn';
 
 GO
 
@@ -1068,7 +910,7 @@ GO
 -- ============================================================
 
 -- Session với null values để test error handling
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Test Null Values',
@@ -1079,13 +921,14 @@ SELECT
     NULL, -- TotalAmount null để test
     NULL, -- PaymentMethod null để test
     'Unpaid',
+    t.TableName + N' - HD 1', -- Test invoice name
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn Không Phòng 1' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 6' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với số tiền 0
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Khách Hàng Miễn Phí',
@@ -1096,10 +939,11 @@ SELECT
     0, -- Số tiền 0
     'Cash',
     'Paid',
+    t.TableName + N' - HD 1', -- Test invoice name
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn Không Phòng 2' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 7' AND u.Email = 'cashier1@liteflow.vn';
 
 GO
 
@@ -1113,7 +957,7 @@ DECLARE @maxCounter INT = 50;
 
 WHILE @counter <= @maxCounter
 BEGIN
-    INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+    INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
     SELECT 
         t.TableID,
         N'Khách Hàng Test ' + CAST(@counter AS NVARCHAR(10)),
@@ -1129,10 +973,11 @@ BEGIN
             ELSE 'Wallet'
         END,
         'Paid',
+        t.TableName + N' - HD ' + CAST((@counter + 2) AS NVARCHAR(10)), -- HD 3, HD 4, HD 5, ...
         u.UserID
     FROM Tables t
     CROSS JOIN Users u
-    WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
+    WHERE t.TableName = N'Bàn Lễ Tân 1' AND u.Email = 'cashier1@liteflow.vn';
     
     SET @counter = @counter + 1;
 END
