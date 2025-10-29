@@ -53,7 +53,7 @@ public class CashierServlet extends HttpServlet {
         try {
             String jpql = "SELECT p.productId, p.name, p.description, p.imageUrl, " +
                        "pv.productVariantId, pv.size, pv.price, " +
-                       "c.name as categoryName " +
+                       "c.categoryId, c.name as categoryName " +
                        "FROM Product p " +
                        "LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId " +
                        "LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId " +
@@ -75,7 +75,8 @@ public class CashierServlet extends HttpServlet {
                 item.put("variantId", row[4]);
                 item.put("size", row[5]);
                 item.put("price", row[6]);
-                item.put("category", row[7]);
+                item.put("categoryId", row[7]); // UUID của category
+                item.put("category", row[8]); // Tên category (để hiển thị)
                 
                 // Xử lý đường dẫn hình ảnh
                 String imageUrl = (String) row[3];
