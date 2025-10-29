@@ -420,7 +420,7 @@ class CreateOrderServletTest {
         // Act - Second call fails
         callDoPost(mockRequest, mockResponse);
 
-        // Assert
+        // Assert   `
         assertBadRequestResponse(mockResponse, responseWriter, "Duplicate request");
     }
 }

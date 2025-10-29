@@ -15,6 +15,14 @@ public class PurchaseOrderServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, jakarta.servlet.ServletException {
+        String action = req.getParameter("action");
+        
+        // Handle AJAX request for PO details
+        if ("details".equals(action)) {
+            handleGetDetails(req, resp);
+            return;
+        }
+        
         // CRITICAL: Set response headers to prevent chunked encoding issues
         resp.setContentType("text/html; charset=UTF-8");
         resp.setCharacterEncoding("UTF-8");
@@ -59,6 +67,69 @@ public class PurchaseOrderServlet extends HttpServlet {
             );
         }
     }
+    
+    private void handleGetDetails(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json; charset=UTF-8");
+        resp.setCharacterEncoding("UTF-8");
+        
+        try {
+            String poidStr = req.getParameter("poid");
+            System.out.println("handleGetDetails - POID: " + poidStr);
+            UUID poid = UUID.fromString(poidStr);
+            
+            PurchaseOrder po = service.getAllPOs().stream()
+                .filter(p -> p.getPoid().equals(poid))
+                .findFirst()
+                .orElse(null);
+            
+            if (po == null) {
+                System.err.println("PO not found: " + poid);
+                resp.getWriter().write("{\"error\": \"PO not found\"}");
+                return;
+            }
+            
+            // Get supplier name
+            com.liteflow.model.procurement.Supplier supplier = service.getSupplierById(po.getSupplierID());
+            String supplierName = supplier != null ? supplier.getName() : "N/A";
+            
+            List<PurchaseOrderItem> items = service.getPOItems(poid);
+            System.out.println("Found " + items.size() + " items for PO");
+            
+            // Build JSON manually
+            StringBuilder json = new StringBuilder();
+            json.append("{");
+            json.append("\"poid\":\"").append(po.getPoid()).append("\",");
+            json.append("\"supplierID\":\"").append(po.getSupplierID()).append("\",");
+            json.append("\"supplierName\":\"").append(supplierName.replace("\"", "\\\"")).append("\",");
+            json.append("\"createDate\":\"").append(po.getCreateDate() != null ? po.getCreateDate() : "").append("\",");
+            json.append("\"expectedDelivery\":\"").append(po.getExpectedDelivery() != null ? po.getExpectedDelivery() : "").append("\",");
+            json.append("\"totalAmount\":").append(po.getTotalAmount() != null ? po.getTotalAmount() : 0).append(",");
+            json.append("\"status\":\"").append(po.getStatus() != null ? po.getStatus() : "PENDING").append("\",");
+            json.append("\"notes\":\"").append(po.getNotes() != null ? po.getNotes().replace("\"", "\\\"") : "").append("\",");
+            json.append("\"items\":[");
+            
+            for (int i = 0; i < items.size(); i++) {
+                PurchaseOrderItem item = items.get(i);
+                if (i > 0) json.append(",");
+                json.append("{");
+                json.append("\"itemName\":\"").append(item.getItemName().replace("\"", "\\\"")).append("\",");
+                json.append("\"quantity\":").append(item.getQuantity()).append(",");
+                json.append("\"unitPrice\":").append(item.getUnitPrice()).append(",");
+                json.append("\"total\":").append(item.getQuantity() * item.getUnitPrice());
+                json.append("}");
+            }
+            
+            json.append("]}");
+            
+            System.out.println("Sending JSON response: " + json.toString().substring(0, Math.min(200, json.length())) + "...");
+            resp.getWriter().write(json.toString());
+            
+        } catch (Exception e) {
+            System.err.println("ERROR in handleGetDetails: " + e.getMessage());
+            e.printStackTrace();
+            resp.getWriter().write("{\"error\": \"" + e.getMessage().replace("\"", "\\\"") + "\"}");
+        }
+    }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -67,25 +138,61 @@ public class PurchaseOrderServlet extends HttpServlet {
         UUID userID = userLogin != null ? UUID.fromString(userLogin) : null;
 
         if ("create".equals(action)) {
-            UUID supplierID = UUID.fromString(req.getParameter("supplierID"));
-            LocalDateTime expected = LocalDateTime.parse(req.getParameter("expected"));
-            String notes = req.getParameter("notes");
+            try {
+                // Get parameters from form (match with frontend field names)
+                String supplierIDParam = req.getParameter("supplierID");
+                String expectedDeliveryParam = req.getParameter("expectedDelivery");
+                String notes = req.getParameter("notes");
 
-            String[] names = req.getParameterValues("itemName");
-            String[] qtys = req.getParameterValues("qty");
-            String[] prices = req.getParameterValues("price");
+                // Validate required fields
+                if (supplierIDParam == null || supplierIDParam.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Nhà cung cấp không được để trống");
+                }
+                if (expectedDeliveryParam == null || expectedDeliveryParam.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Ngày giao dự kiến không được để trống");
+                }
 
-            List<PurchaseOrderItem> items = new ArrayList<>();
-            for (int i = 0; i < names.length; i++) {
-                PurchaseOrderItem item = new PurchaseOrderItem();
-                item.setItemName(names[i]);
-                item.setQuantity(Integer.parseInt(qtys[i]));
-                item.setUnitPrice(Double.parseDouble(prices[i]));
-                items.add(item);
+                UUID supplierID = UUID.fromString(supplierIDParam);
+                LocalDateTime expected = LocalDateTime.parse(expectedDeliveryParam);
+
+                // Get item arrays (match with frontend field names)
+                String[] names = req.getParameterValues("itemName");
+                String[] qtys = req.getParameterValues("quantity");
+                String[] prices = req.getParameterValues("unitPrice");
+
+                // Validate items
+                if (names == null || names.length == 0) {
+                    throw new IllegalArgumentException("Phải có ít nhất 1 sản phẩm");
+                }
+
+                List<PurchaseOrderItem> items = new ArrayList<>();
+                for (int i = 0; i < names.length; i++) {
+                    if (names[i] != null && !names[i].trim().isEmpty()) {
+                        PurchaseOrderItem item = new PurchaseOrderItem();
+                        item.setItemName(names[i].trim());
+                        item.setQuantity(Integer.parseInt(qtys[i]));
+                        item.setUnitPrice(Double.parseDouble(prices[i]));
+                        items.add(item);
+                    }
+                }
+
+                if (items.isEmpty()) {
+                    throw new IllegalArgumentException("Phải có ít nhất 1 sản phẩm hợp lệ");
+                }
+
+                service.createPurchaseOrder(supplierID, userID, expected, notes, items);
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?status=created");
+                
+            } catch (IllegalArgumentException e) {
+                System.err.println("ERROR: Validation failed - " + e.getMessage());
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode(e.getMessage(), "UTF-8"));
+            } catch (Exception e) {
+                System.err.println("ERROR: Failed to create PO - " + e.getMessage());
+                e.printStackTrace();
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode("Lỗi hệ thống: " + e.getMessage(), "UTF-8"));
             }
-
-            service.createPurchaseOrder(supplierID, userID, expected, notes, items);
-            resp.sendRedirect(req.getContextPath() + "/procurement/po?status=created");
         }
 
         if ("approve".equals(action)) {

@@ -348,9 +348,20 @@ function renderMenu() {
   
   let filteredItems = menuItems || [];
   
+  console.log('Filtering menu - currentCategory:', currentCategory);
+  console.log('Sample menu item:', filteredItems.length > 0 ? filteredItems[0] : 'none');
+  
   // Filter by category
   if (currentCategory !== 'all') {
-    filteredItems = filteredItems.filter(item => item.category === currentCategory);
+    filteredItems = filteredItems.filter(item => {
+      // So sánh categoryId với currentCategory (cả hai đều là UUID string)
+      const match = item.categoryId && item.categoryId.toString() === currentCategory.toString();
+      if (filteredItems.indexOf(item) < 3) { // Log first 3 items for debugging
+        console.log('Item:', item.name, 'categoryId:', item.categoryId, 'currentCategory:', currentCategory, 'match:', match);
+      }
+      return match;
+    });
+    console.log('Filtered items count:', filteredItems.length);
   }
   
   // Filter by search term

@@ -1,0 +1,308 @@
+package com.liteflow.service.report;
+
+import com.liteflow.dao.report.RevenueReportDAO;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+/**
+ * Revenue Report Service
+ * Business logic for revenue analytics
+ */
+public class RevenueReportService {
+    
+    private final RevenueReportDAO reportDAO;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM");
+    
+    public RevenueReportService() {
+        this.reportDAO = new RevenueReportDAO();
+    }
+    
+    /**
+     * Generate complete revenue report
+     */
+    public JSONObject generateReport(LocalDate startDate, LocalDate endDate) {
+        JSONObject report = new JSONObject();
+        
+        try {
+            System.out.println("📊 Generating revenue report from " + startDate + " to " + endDate);
+            
+            // Get basic statistics
+            BigDecimal totalRevenue = reportDAO.getTotalRevenue(startDate, endDate);
+            long totalOrders = reportDAO.getTotalOrders(startDate, endDate);
+            
+            // Calculate average order value
+            BigDecimal avgOrderValue = totalOrders > 0 ? 
+                totalRevenue.divide(BigDecimal.valueOf(totalOrders), 0, RoundingMode.HALF_UP) : 
+                BigDecimal.ZERO;
+            
+            // Get previous period for comparison
+            BigDecimal prevRevenue = reportDAO.getPreviousPeriodRevenue(startDate, endDate);
+            double growthRate = calculateGrowthRate(totalRevenue, prevRevenue);
+            
+            // Get customer statistics
+            long newCustomers = reportDAO.getNewCustomers(startDate, endDate);
+            long returningCustomers = reportDAO.getReturningCustomers(startDate, endDate);
+            
+            // Get peak hour
+            Integer peakHour = reportDAO.getPeakHour(startDate, endDate);
+            
+            // Build summary
+            report.put("totalRevenue", totalRevenue.doubleValue());
+            report.put("totalOrders", totalOrders);
+            report.put("avgOrderValue", avgOrderValue.doubleValue());
+            report.put("growth", growthRate);
+            report.put("comparedToPrevious", prevRevenue.doubleValue());
+            report.put("newCustomers", newCustomers);
+            report.put("returningCustomers", returningCustomers);
+            report.put("peakHour", peakHour != null ? peakHour + ":00" : "N/A");
+            
+            // Get trend data
+            report.put("trendData", generateTrendData(startDate, endDate));
+            
+            // Get hourly data (use today or last day of range)
+            report.put("hourlyData", generateHourlyData(endDate));
+            
+            // Get category data
+            report.put("productData", generateCategoryData(startDate, endDate));
+            
+            // Get top products
+            report.put("topProducts", generateTopProducts(startDate, endDate, 10));
+            
+            System.out.println("✅ Report generated successfully");
+            System.out.println("   Total Revenue: " + formatCurrency(totalRevenue.doubleValue()));
+            System.out.println("   Total Orders: " + totalOrders);
+            System.out.println("   Growth: " + String.format("%.1f%%", growthRate));
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating report: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Return empty data structure on error
+            report.put("totalRevenue", 0);
+            report.put("totalOrders", 0);
+            report.put("avgOrderValue", 0);
+            report.put("growth", 0);
+            report.put("error", e.getMessage());
+        }
+        
+        return report;
+    }
+    
+    /**
+     * Generate trend data (daily revenue)
+     */
+    private JSONObject generateTrendData(LocalDate startDate, LocalDate endDate) {
+        JSONObject data = new JSONObject();
+        JSONArray dates = new JSONArray();
+        JSONArray revenues = new JSONArray();
+        JSONArray orders = new JSONArray();
+        
+        try {
+            List<Object[]> trendData = reportDAO.getDailyRevenueTrend(startDate, endDate);
+            
+            // Create map for easy lookup
+            Map<LocalDate, Object[]> dataMap = new HashMap<>();
+            for (Object[] row : trendData) {
+                LocalDate date = (LocalDate) row[0];
+                dataMap.put(date, row);
+            }
+            
+            // Fill in all dates in range (including days with no orders)
+            LocalDate current = startDate;
+            while (!current.isAfter(endDate)) {
+                dates.put(current.format(DATE_FORMATTER));
+                
+                if (dataMap.containsKey(current)) {
+                    Object[] row = dataMap.get(current);
+                    BigDecimal revenue = (BigDecimal) row[1];
+                    Long orderCount = (Long) row[2];
+                    
+                    revenues.put(revenue.doubleValue());
+                    orders.put(orderCount);
+                } else {
+                    // No orders on this day
+                    revenues.put(0);
+                    orders.put(0);
+                }
+                
+                current = current.plusDays(1);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating trend data: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        data.put("dates", dates);
+        data.put("revenues", revenues);
+        data.put("orders", orders);
+        
+        return data;
+    }
+    
+    /**
+     * Generate hourly revenue data
+     */
+    private JSONObject generateHourlyData(LocalDate date) {
+        JSONObject data = new JSONObject();
+        JSONArray hours = new JSONArray();
+        JSONArray revenues = new JSONArray();
+        
+        try {
+            List<Object[]> hourlyData = reportDAO.getHourlyRevenue(date);
+            
+            // Create map for easy lookup
+            Map<Integer, Double> revenueMap = new HashMap<>();
+            for (Object[] row : hourlyData) {
+                Integer hour = (Integer) row[0];
+                BigDecimal revenue = (BigDecimal) row[1];
+                revenueMap.put(hour, revenue.doubleValue());
+            }
+            
+            // Fill in all hours (6-22)
+            for (int hour = 6; hour <= 22; hour++) {
+                hours.put(hour + "h");
+                revenues.put(revenueMap.getOrDefault(hour, 0.0));
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating hourly data: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        data.put("hours", hours);
+        data.put("revenues", revenues);
+        
+        return data;
+    }
+    
+    /**
+     * Generate product category data
+     */
+    private JSONObject generateCategoryData(LocalDate startDate, LocalDate endDate) {
+        JSONObject data = new JSONObject();
+        JSONArray categories = new JSONArray();
+        JSONArray revenues = new JSONArray();
+        JSONArray colors = new JSONArray();
+        
+        try {
+            List<Object[]> categoryData = reportDAO.getRevenueByCategory(startDate, endDate);
+            
+            // Predefined colors for categories
+            String[] colorPalette = {
+                "rgba(102, 126, 234, 0.8)",
+                "rgba(118, 75, 162, 0.8)",
+                "rgba(255, 152, 0, 0.8)",
+                "rgba(76, 175, 80, 0.8)",
+                "rgba(33, 150, 243, 0.8)",
+                "rgba(255, 193, 7, 0.8)",
+                "rgba(158, 158, 158, 0.8)"
+            };
+            
+            int colorIndex = 0;
+            for (Object[] row : categoryData) {
+                String categoryName = (String) row[0];
+                BigDecimal revenue = (BigDecimal) row[1];
+                
+                categories.put(categoryName);
+                revenues.put(revenue.doubleValue());
+                colors.put(colorPalette[colorIndex % colorPalette.length]);
+                
+                colorIndex++;
+            }
+            
+            // If no data, add "Chưa có dữ liệu"
+            if (categoryData.isEmpty()) {
+                categories.put("Chưa có dữ liệu");
+                revenues.put(0);
+                colors.put(colorPalette[0]);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating category data: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        data.put("categories", categories);
+        data.put("revenues", revenues);
+        data.put("colors", colors);
+        
+        return data;
+    }
+    
+    /**
+     * Generate top products list
+     */
+    private JSONArray generateTopProducts(LocalDate startDate, LocalDate endDate, int limit) {
+        JSONArray products = new JSONArray();
+        
+        try {
+            List<Object[]> topProducts = reportDAO.getTopProducts(startDate, endDate, limit);
+            
+            // Calculate total revenue for percentage
+            BigDecimal totalRevenue = reportDAO.getTotalRevenue(startDate, endDate);
+            
+            for (Object[] row : topProducts) {
+                // UUID productID = (UUID) row[0];
+                String productName = (String) row[1];
+                Long quantity = (Long) row[2];
+                BigDecimal revenue = (BigDecimal) row[3];
+                
+                // Calculate percentage of total revenue
+                double percentage = totalRevenue.compareTo(BigDecimal.ZERO) > 0 ? 
+                    revenue.divide(totalRevenue, 4, RoundingMode.HALF_UP)
+                          .multiply(BigDecimal.valueOf(100))
+                          .doubleValue() : 0;
+                
+                // Calculate average price
+                BigDecimal avgPrice = quantity > 0 ? 
+                    revenue.divide(BigDecimal.valueOf(quantity), 0, RoundingMode.HALF_UP) : 
+                    BigDecimal.ZERO;
+                
+                JSONObject product = new JSONObject();
+                product.put("name", productName);
+                product.put("quantity", quantity);
+                product.put("price", avgPrice.doubleValue());
+                product.put("revenue", revenue.doubleValue());
+                product.put("share", String.format("%.1f%%", percentage));
+                
+                products.put(product);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating top products: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return products;
+    }
+    
+    /**
+     * Calculate growth rate
+     */
+    private double calculateGrowthRate(BigDecimal current, BigDecimal previous) {
+        if (previous.compareTo(BigDecimal.ZERO) == 0) {
+            return current.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0;
+        }
+        
+        BigDecimal growth = current.subtract(previous)
+                                  .divide(previous, 4, RoundingMode.HALF_UP)
+                                  .multiply(BigDecimal.valueOf(100));
+        
+        return growth.doubleValue();
+    }
+    
+    /**
+     * Format currency for logging
+     */
+    private String formatCurrency(double value) {
+        return String.format("%,.0f VNĐ", value);
+    }
+}
+
