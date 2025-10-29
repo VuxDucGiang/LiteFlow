@@ -931,7 +931,7 @@
 
     <div class="container">
         <div class="page-header">
-            <h1 class="page-title">📋 Quản lý Đơn đặt hàng</h1>
+            <h1 class="page-title">Quản lý Đơn đặt hàng</h1>
             <div>
                 <button class="btn-success" onclick="openCreateModal()">
                     <i class='bx bx-plus'></i>

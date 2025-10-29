@@ -21,6 +21,9 @@
   <!-- Dropdown Fix Script -->
   <script src="${pageContext.request.contextPath}/js/dropdown-fix.js"></script>
   
+  <!-- Notification Bell Script -->
+  <script src="${pageContext.request.contextPath}/js/notification-bell.js"></script>
+  
   <!-- Inline Dropdown Fix -->
   <script>
     // Simple inline dropdown fix
@@ -123,6 +126,12 @@
           }
         });
       });
+      
+      // Initialize Notification Bell
+      initNotificationBell({
+        contextPath: '${pageContext.request.contextPath}',
+        refreshInterval: 60000  // 1 minute
+      });
     });
   </script>
 </head>
@@ -150,9 +159,8 @@
           <i class='bx bx-chevron-down'></i>
         </div>
         <div class="header-icons">
-          <div class="header-icon">
-            <i class='bx bx-bell'></i>
-          </div>
+          <!-- Notification Bell -->
+          <div id="notification-bell-container"></div>
           <div class="header-icon">
             <i class='bx bx-cog'></i>
           </div>
@@ -284,9 +292,23 @@
           </div>
           
           <!-- Báo cáo -->
-          <a href="#" class="nav-item">
-            <i class='bx bx-bar-chart'></i> Báo cáo
-          </a>
+          <div class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle">
+              <i class='bx bx-bar-chart'></i> Báo cáo
+              <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
+            </a>
+            <div class="dropdown-menu">
+              <a href="${pageContext.request.contextPath}/report/revenue" class="dropdown-item">
+                <i class='bx bx-line-chart'></i> Báo cáo doanh thu
+              </a>
+              <a href="${pageContext.request.contextPath}/report/inventory" class="dropdown-item">
+                <i class='bx bx-package'></i> Báo cáo tồn kho
+              </a>
+              <a href="${pageContext.request.contextPath}/report/procurement" class="dropdown-item">
+                <i class='bx bx-shopping-bag'></i> Báo cáo mua hàng
+              </a>
+            </div>
+          </div>
         </c:if>
         
         <!-- Nhân viên - hiển thị cho tất cả (nhưng với Employee chỉ hiển thị một số mục) -->
