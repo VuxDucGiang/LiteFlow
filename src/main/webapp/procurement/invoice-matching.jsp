@@ -1031,22 +1031,59 @@
                     </div>
                 `;
                 
-                // Load PO items via AJAX
-                const itemsList = document.getElementById('poItemsList');
-                itemsList.innerHTML = '<div style="color: #059669; text-align: center; padding: 10px;"><i class="bx bx-loader bx-spin"></i> Đang tải...</div>';
+                // Set default invoice date to today
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('invoiceDate').value = today;
                 
-                const previewController = new AbortController();
-                const previewTimeout = setTimeout(() => previewController.abort(), 8000);
+                // ===================================================================
+                // OPTIMIZATION: Single AJAX call for BOTH preview AND invoice items
+                // ===================================================================
+                const itemsList = document.getElementById('poItemsList');
+                const itemsContainer = document.getElementById('invoiceItemsContainer');
+                const submitBtn = document.getElementById('matchSubmitBtn');
+                const submitText = document.getElementById('matchSubmitText');
+                
+                // Show loading state in BOTH panels
+                itemsList.innerHTML = '<div style="color: #059669; text-align: center; padding: 10px;"><i class="bx bx-loader bx-spin"></i> Đang tải...</div>';
+                itemsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: #059669;">
+                        <i class='bx bx-loader bx-spin' style="font-size: 24px;"></i>
+                        <div style="margin-top: 8px;">Đang tải sản phẩm từ PO...</div>
+                    </div>
+                `;
+                submitBtn.disabled = true;
+                submitText.textContent = 'Đang tải...';
+                
+                // ===================================================================
+                // AGGRESSIVE TIMEOUT: 3 seconds max, then fallback to manual entry
+                // ===================================================================
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout!
+                
+                // Fallback timer - force enable after 3.5s no matter what
+                const forceEnableTimer = setTimeout(() => {
+                    console.warn('[FORCE ENABLE] Server took too long, enabling manual entry');
+                    itemsList.innerHTML = '<div style="color: #f59e0b; text-align: center; padding: 10px;"><i class="bx bx-time"></i> Server chậm - Nhập thủ công</div>';
+                    itemsContainer.innerHTML = '';
+                    addInvoiceItemRow('', 1, 0);
+                    submitBtn.disabled = false;
+                    submitText.textContent = 'Đối chiếu PO';
+                }, 3500);
                 
                 fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poId, {
-                    signal: previewController.signal
+                    signal: controller.signal
                 })
                     .then(response => {
-                        clearTimeout(previewTimeout);
+                        clearTimeout(timeoutId);
+                        clearTimeout(forceEnableTimer);
                         if (!response.ok) throw new Error('HTTP ' + response.status);
                         return response.json();
                     })
                     .then(items => {
+                        clearTimeout(forceEnableTimer);
+                        console.log('[PO Items] SUCCESS - Received', items.length, 'items');
+                        
+                        // ===== Update LEFT panel (Preview) =====
                         if (items && items.length > 0) {
                             let html = '<table style="width: 100%; font-size: 13px; border-collapse: collapse;">';
                             html += '<thead><tr style="background: #d1fae5; border-bottom: 2px solid #86efac;">';
@@ -1066,84 +1103,32 @@
                             
                             html += '</tbody></table>';
                             itemsList.innerHTML = html;
-                        } else {
-                            itemsList.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 10px;">PO không có sản phẩm</div>';
-                        }
-                    })
-                    .catch(error => {
-                        clearTimeout(previewTimeout);
-                        const msg = error.name === 'AbortError' ? 'Timeout' : error.message;
-                        itemsList.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 10px;"><i class="bx bx-error"></i> Lỗi: ${msg}</div>`;
-                    });
-                
-                // Set default invoice date to today
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('invoiceDate').value = today;
-                
-                // Pre-fill invoice items from PO items for quick editing
-                const itemsContainer = document.getElementById('invoiceItemsContainer');
-                const submitBtn = document.getElementById('matchSubmitBtn');
-                const submitText = document.getElementById('matchSubmitText');
-                
-                // Show loading state
-                itemsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: #059669;">
-                        <i class='bx bx-loader bx-spin' style="font-size: 24px;"></i>
-                        <div style="margin-top: 8px;">Đang tải sản phẩm từ PO...</div>
-                    </div>
-                `;
-                submitBtn.disabled = true;
-                submitText.textContent = 'Đang tải...';
-                
-                // Fetch items from PO with timeout
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-                
-                fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poId, {
-                    signal: controller.signal
-                })
-                    .then(response => {
-                        clearTimeout(timeoutId);
-                        if (!response.ok) {
-                            throw new Error('HTTP ' + response.status);
-                        }
-                        return response.json();
-                    })
-                    .then(items => {
-                        itemsContainer.innerHTML = '';
-                        
-                        if (items && items.length > 0) {
+                            
+                            // ===== Update RIGHT panel (Invoice Items) =====
+                            itemsContainer.innerHTML = '';
                             items.forEach(item => {
                                 addInvoiceItemRow(item.itemName, item.quantity, item.unitPrice);
                             });
                         } else {
-                            // Add one empty row if no items
+                            itemsList.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 10px;">PO không có sản phẩm</div>';
+                            itemsContainer.innerHTML = '';
                             addInvoiceItemRow('', 1, 0);
                         }
                         
-                        // Enable submit button
                         submitBtn.disabled = false;
                         submitText.textContent = 'Đối chiếu PO';
                     })
                     .catch(error => {
                         clearTimeout(timeoutId);
-                        // Error: show message and add empty row for manual entry
-                        const errorMsg = error.name === 'AbortError' ? 'Timeout - Server không phản hồi' : error.message;
-                        itemsContainer.innerHTML = `
-                            <div style="text-align: center; padding: 15px; color: #ef4444; background: #fee2e2; border-radius: 6px;">
-                                <i class='bx bx-error' style="font-size: 20px;"></i>
-                                <div style="margin-top: 6px; font-size: 13px;">Lỗi: ${errorMsg}</div>
-                                <div style="margin-top: 4px; font-size: 11px; color: #991b1b;">Vui lòng kiểm tra server logs</div>
-                            </div>
-                        `;
+                        clearTimeout(forceEnableTimer);
+                        console.error('[PO Items] FAILED:', error);
                         
-                        // Auto-add empty row for manual entry
-                        setTimeout(() => {
-                            itemsContainer.innerHTML = '';
-                            addInvoiceItemRow('', 1, 0);
-                            submitBtn.disabled = false;
-                            submitText.textContent = 'Đối chiếu PO';
-                        }, 2000);
+                        // IMMEDIATE fallback - no waiting!
+                        itemsList.innerHTML = '<div style="color: #f59e0b; text-align: center; padding: 10px;"><i class="bx bx-error"></i> Không tải được - Nhập thủ công</div>';
+                        itemsContainer.innerHTML = '';
+                        addInvoiceItemRow('', 1, 0);
+                        submitBtn.disabled = false;
+                        submitText.textContent = 'Đối chiếu PO';
                     });
             } else {
                 document.getElementById('poDetails').style.display = 'none';

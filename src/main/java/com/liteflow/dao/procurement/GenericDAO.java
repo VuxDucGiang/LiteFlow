@@ -15,9 +15,16 @@ public abstract class GenericDAO<T, ID> extends BaseDAO<T, ID> {
         EntityManager em = emf.createEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
-            tx.begin(); em.persist(entity); tx.commit();
+            System.out.println("GenericDAO.insert() - Inserting: " + entity.getClass().getSimpleName());
+            tx.begin(); 
+            em.persist(entity); 
+            tx.commit();
+            System.out.println("GenericDAO.insert() - SUCCESS for " + entity.getClass().getSimpleName());
             return true;
         } catch (Exception e) {
+            System.err.println("❌ GenericDAO.insert() FAILED for " + entity.getClass().getSimpleName());
+            System.err.println("ERROR: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
             if (tx.isActive()) tx.rollback();
             return false;
         } finally { em.close(); }
