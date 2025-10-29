@@ -196,17 +196,110 @@ public class PurchaseOrderServlet extends HttpServlet {
         }
 
         if ("approve".equals(action)) {
-            UUID poid = UUID.fromString(req.getParameter("poid"));
-            int level = Integer.parseInt(req.getParameter("level"));
-            service.approvePO(poid, userID, level);
-            resp.sendRedirect(req.getContextPath() + "/procurement/po?status=approved");
+            try {
+                String poidParam = req.getParameter("poid");
+                String levelParam = req.getParameter("level");
+                
+                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                System.out.println("PurchaseOrderServlet - APPROVE action");
+                System.out.println("  POID param: " + poidParam);
+                System.out.println("  Level param: " + levelParam);
+                System.out.println("  User ID: " + userID);
+                
+                if (poidParam == null || poidParam.trim().isEmpty()) {
+                    System.err.println("❌ APPROVE FAILED: Missing POID parameter");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Thiếu thông tin đơn hàng", "UTF-8"));
+                    return;
+                }
+                
+                if (userID == null) {
+                    System.err.println("❌ APPROVE FAILED: User not logged in");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Bạn chưa đăng nhập", "UTF-8"));
+                    return;
+                }
+                
+                UUID poid = UUID.fromString(poidParam);
+                int level = levelParam != null && !levelParam.isEmpty() ? Integer.parseInt(levelParam) : 1;
+                
+                System.out.println("  Calling approvePO()...");
+                boolean success = service.approvePO(poid, userID, level);
+                
+                if (success) {
+                    System.out.println("✅ APPROVE SUCCESS - Redirecting with status=approved");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?status=approved");
+                } else {
+                    System.err.println("❌ APPROVE FAILED - service.approvePO() returned false");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Không thể duyệt đơn hàng. Vui lòng kiểm tra console logs.", "UTF-8"));
+                }
+                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                
+            } catch (IllegalArgumentException e) {
+                System.err.println("❌ APPROVE FAILED: Invalid parameters - " + e.getMessage());
+                e.printStackTrace();
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode("Thông tin không hợp lệ: " + e.getMessage(), "UTF-8"));
+            } catch (Exception e) {
+                System.err.println("❌ APPROVE FAILED: Unexpected error - " + e.getMessage());
+                e.printStackTrace();
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode("Lỗi hệ thống: " + e.getMessage(), "UTF-8"));
+            }
         }
 
         if ("reject".equals(action)) {
-            UUID poid = UUID.fromString(req.getParameter("poid"));
-            String reason = req.getParameter("reason");
-            service.rejectPO(poid, userID, reason);
-            resp.sendRedirect(req.getContextPath() + "/procurement/po?status=rejected");
+            try {
+                String poidParam = req.getParameter("poid");
+                String reason = req.getParameter("reason");
+                
+                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                System.out.println("PurchaseOrderServlet - REJECT action");
+                System.out.println("  POID param: " + poidParam);
+                System.out.println("  Reason: " + reason);
+                System.out.println("  User ID: " + userID);
+                
+                if (poidParam == null || poidParam.trim().isEmpty()) {
+                    System.err.println("❌ REJECT FAILED: Missing POID parameter");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Thiếu thông tin đơn hàng", "UTF-8"));
+                    return;
+                }
+                
+                if (userID == null) {
+                    System.err.println("❌ REJECT FAILED: User not logged in");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Bạn chưa đăng nhập", "UTF-8"));
+                    return;
+                }
+                
+                UUID poid = UUID.fromString(poidParam);
+                
+                System.out.println("  Calling rejectPO()...");
+                boolean success = service.rejectPO(poid, userID, reason);
+                
+                if (success) {
+                    System.out.println("✅ REJECT SUCCESS - Redirecting with status=rejected");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?status=rejected");
+                } else {
+                    System.err.println("❌ REJECT FAILED - service.rejectPO() returned false");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Không thể từ chối đơn hàng. Vui lòng kiểm tra console logs.", "UTF-8"));
+                }
+                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                
+            } catch (IllegalArgumentException e) {
+                System.err.println("❌ REJECT FAILED: Invalid parameters - " + e.getMessage());
+                e.printStackTrace();
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode("Thông tin không hợp lệ: " + e.getMessage(), "UTF-8"));
+            } catch (Exception e) {
+                System.err.println("❌ REJECT FAILED: Unexpected error - " + e.getMessage());
+                e.printStackTrace();
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode("Lỗi hệ thống: " + e.getMessage(), "UTF-8"));
+            }
         }
     }
 }
