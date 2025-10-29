@@ -11,38 +11,71 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.*;
 
-@WebServlet("/cashier")
+@WebServlet({"/cashier", "/cart/cashier"})
 public class CashierServlet extends HttpServlet {
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
+            System.out.println("=== CashierServlet.doGet START ===");
+            
+            // ✅ Check if this is an AJAX request for tables data
+            String action = request.getParameter("action");
+            if ("getTables".equals(action)) {
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                
+                List<Map<String, Object>> tables = getTables();
+                com.google.gson.Gson gson = new com.google.gson.Gson();
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("tables", tables);
+                
+                response.getWriter().write(gson.toJson(result));
+                System.out.println("✅ Returned tables data via AJAX: " + tables.size() + " tables");
+                return;
+            }
+            
             // Lấy danh sách sản phẩm cho menu
             List<Map<String, Object>> menuItems = getMenuItems();
+            System.out.println("✅ Menu items loaded: " + menuItems.size());
             
             // Lấy danh sách bàn
             List<Map<String, Object>> tables = getTables();
+            System.out.println("✅ Tables loaded: " + tables.size());
             
             // Lấy danh sách phòng
             List<Map<String, Object>> rooms = getRooms();
+            System.out.println("✅ Rooms loaded: " + rooms.size());
             
             // Lấy danh sách danh mục
             List<Map<String, Object>> categories = getCategories();
+            System.out.println("✅ Categories loaded: " + categories.size());
             
             // Convert to JSON strings for JavaScript
             com.google.gson.Gson gson = new com.google.gson.Gson();
-            request.setAttribute("menuItemsJson", gson.toJson(menuItems));
-            request.setAttribute("tablesJson", gson.toJson(tables));
-            request.setAttribute("roomsJson", gson.toJson(rooms));
-            request.setAttribute("categoriesJson", gson.toJson(categories));
+            String menuItemsJson = gson.toJson(menuItems);
+            String tablesJson = gson.toJson(tables);
+            String roomsJson = gson.toJson(rooms);
+            String categoriesJson = gson.toJson(categories);
             
+            System.out.println("Menu Items JSON length: " + menuItemsJson.length());
+            System.out.println("Tables JSON length: " + tablesJson.length());
+            
+            request.setAttribute("menuItemsJson", menuItemsJson);
+            request.setAttribute("tablesJson", tablesJson);
+            request.setAttribute("roomsJson", roomsJson);
+            request.setAttribute("categoriesJson", categoriesJson);
+            
+            System.out.println("=== Forwarding to cashier.jsp ===");
             request.getRequestDispatcher("/cart/cashier.jsp").forward(request, response);
             
         } catch (Exception e) {
             System.err.println("❌ Lỗi trong CashierServlet: " + e.getMessage());
             e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server");
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Lỗi server: " + e.getMessage());
         }
     }
     
@@ -51,11 +84,14 @@ public class CashierServlet extends HttpServlet {
         EntityManager em = BaseDAO.emf.createEntityManager();
         
         try {
+            // ✅ JOIN với ProductStock để lấy số lượng tồn kho
             String jpql = "SELECT p.productId, p.name, p.description, p.imageUrl, " +
                        "pv.productVariantId, pv.size, pv.price, " +
-                       "c.name as categoryName " +
+                       "c.categoryId, c.name as categoryName, " +
+                       "COALESCE(ps.amount, 0) as stockAmount " +
                        "FROM Product p " +
                        "LEFT JOIN ProductVariant pv ON p.productId = pv.product.productId " +
+                       "LEFT JOIN ProductStock ps ON pv.productVariantId = ps.productVariant.productVariantId " +
                        "LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId " +
                        "LEFT JOIN Category c ON pc.category.categoryId = c.categoryId " +
                        "WHERE p.isDeleted = false " +
@@ -75,7 +111,14 @@ public class CashierServlet extends HttpServlet {
                 item.put("variantId", row[4]);
                 item.put("size", row[5]);
                 item.put("price", row[6]);
-                item.put("category", row[7]);
+                item.put("categoryId", row[7]); // ✅ Thêm categoryId
+                item.put("category", row[8]);   // Category name
+                // ✅ Thêm stock amount (row[9])
+                int stockAmount = ((Number) row[9]).intValue();
+                item.put("stock", stockAmount);
+                
+                // Debug log cho stock
+                System.out.println("📦 Product: " + row[1] + " (" + row[5] + ") | Stock: " + stockAmount);
                 
                 // Xử lý đường dẫn hình ảnh
                 String imageUrl = (String) row[3];
@@ -110,7 +153,7 @@ public class CashierServlet extends HttpServlet {
         EntityManager em = BaseDAO.emf.createEntityManager();
         
         try {
-            String jpql = "SELECT t.tableId, t.tableNumber, t.status, r.name as roomName " +
+            String jpql = "SELECT t.tableId, t.tableNumber, t.status, r.name as roomName, t.capacity " +
                        "FROM Table t " +
                        "LEFT JOIN Room r ON t.room.roomId = r.roomId " +
                        "ORDER BY r.name, t.tableNumber";
@@ -125,27 +168,17 @@ public class CashierServlet extends HttpServlet {
                 table.put("name", row[1]);
                 table.put("status", row[2]);
                 table.put("room", row[3]);
-                table.put("capacity", 4); // Mặc định 4 người
+                // Lấy capacity từ database, nếu null thì mặc định 4
+                Integer capacity = (row[4] != null) ? (Integer) row[4] : 4;
+                table.put("capacity", capacity);
+                
+                // Debug log
+                System.out.println("📊 Table: " + row[1] + " | Capacity: " + capacity + " | Type: " + (row[4] != null ? row[4].getClass().getName() : "null"));
                 
                 tables.add(table);
             }
             
-            // Thêm bàn đặc biệt
-            Map<String, Object> takeaway = new HashMap<>();
-            takeaway.put("id", "takeaway");
-            takeaway.put("name", "Mang về");
-            takeaway.put("status", "available");
-            takeaway.put("room", "Đặc biệt");
-            takeaway.put("capacity", 0);
-            tables.add(takeaway);
-            
-            Map<String, Object> delivery = new HashMap<>();
-            delivery.put("id", "delivery");
-            delivery.put("name", "Giao hàng");
-            delivery.put("status", "available");
-            delivery.put("room", "Đặc biệt");
-            delivery.put("capacity", 0);
-            tables.add(delivery);
+            // ✅ Không thêm bàn đặc biệt ở đây nữa - sẽ thêm trong JavaScript
             
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi lấy danh sách bàn: " + e.getMessage());
@@ -175,12 +208,7 @@ public class CashierServlet extends HttpServlet {
                 rooms.add(room);
             }
             
-            // Thêm phòng đặc biệt
-            Map<String, Object> specialRoom = new HashMap<>();
-            specialRoom.put("id", "special");
-            specialRoom.put("name", "Đặc biệt");
-            specialRoom.put("description", "Bàn mang về và giao hàng");
-            rooms.add(specialRoom);
+            // ✅ Không cần phòng đặc biệt nữa - các ô đặc biệt được tạo trong JavaScript
             
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi lấy danh sách phòng: " + e.getMessage());

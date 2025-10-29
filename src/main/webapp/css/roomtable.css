@@ -2613,3 +2613,163 @@ select#roomId option[style*="color: #28a745"]:hover {
         font-size: 0.95rem;
     }
 }
+
+/* ============================================================
+   TABLE INVOICE HISTORY MODAL STYLES
+   ============================================================ */
+
+/* Table History Modal - Invoice Display */
+.table-history-modal-content {
+    max-width: 600px;
+}
+
+.history-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.history-stats .stat-item {
+    text-align: center;
+}
+
+.history-stats .stat-label {
+    font-size: 14px;
+    color: #666;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.history-stats .stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0080FF;
+}
+
+.invoice-history-list {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.invoice-date-group {
+    margin-bottom: 24px;
+}
+
+.invoice-date-header {
+    font-weight: 600;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.invoice-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    background: linear-gradient(to right, rgba(76, 175, 80, 0.03), white);
+    border: 2px solid transparent;
+    border-left: 4px solid #4caf50;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.invoice-item:hover {
+    border-color: #4caf50;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+    transform: translateY(-2px);
+}
+
+.invoice-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4caf50;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.invoice-content {
+    flex: 1;
+}
+
+.invoice-title {
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.invoice-detail {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.invoice-detail strong {
+    color: #333;
+}
+
+.invoice-items-list {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 8px 0;
+}
+
+.invoice-item-row {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.invoice-item-row:last-child {
+    margin-bottom: 0;
+}
+
+.invoice-voucher {
+    color: #ff9800;
+    font-weight: 600;
+}
+
+.invoice-final {
+    font-size: 15px;
+    font-weight: 600;
+    color: #4caf50;
+    margin-top: 8px;
+}
+
+.invoice-time {
+    font-size: 12px;
+    color: #999;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+.notification-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.notification-empty i {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.notification-empty p {
+    font-size: 16px;
+}

@@ -681,19 +681,32 @@
 
 <!-- Table History Modal -->
 <div id="tableHistoryModal" class="modal">
-    <div class="modal-content" style="max-width: 900px;">
+    <div class="modal-content table-history-modal-content">
         <div class="modal-header">
-            <h2>Lịch sử thay đổi trạng thái bàn</h2>
+            <h2><i class='bx bx-receipt'></i> Lịch sử hóa đơn</h2>
             <span class="close" onclick="closeTableHistoryModal()">&times;</span>
         </div>
         <div class="modal-body">
-            <div id="tableHistoryContent">
+            <div class="history-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Tổng hóa đơn</span>
+                    <span class="stat-value" id="historyTotalInvoices">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tổng doanh thu</span>
+                    <span class="stat-value" id="historyTotalRevenue">0đ</span>
+                </div>
+            </div>
+            <div id="tableHistoryContent" class="invoice-history-list">
                 <div class="loading-spinner"></div>
             </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeTableHistoryModal()">
-                Đóng
+                <i class='bx bx-x'></i> Đóng
+            </button>
+            <button type="button" class="btn btn-primary" onclick="refreshTableHistory()">
+                <i class='bx bx-refresh'></i> Làm mới
             </button>
         </div>
     </div>

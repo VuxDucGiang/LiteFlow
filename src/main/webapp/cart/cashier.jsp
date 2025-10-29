@@ -9,48 +9,204 @@
     <title>Cashier - LiteFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.0.7/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/cashier.css">
+    
+    <!-- Initialize data for JavaScript -->
+    <script>
+      // Set context path for JavaScript
+      window.contextPath = '${pageContext.request.contextPath}';
+      
+      // Database data from server
+      window.tables = <c:choose><c:when test="${tablesJson != null}"><c:out value="${tablesJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+      window.rooms = <c:choose><c:when test="${roomsJson != null}"><c:out value="${roomsJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+      window.menuItems = <c:choose><c:when test="${menuItemsJson != null}"><c:out value="${menuItemsJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+      window.categories = <c:choose><c:when test="${categoriesJson != null}"><c:out value="${categoriesJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+    </script>
 </head>
 
 <body>
 <div class="cashier-container">
+  <!-- Cashier Header -->
+  <div class="cashier-header">
+    <!-- Header Left: Tabs & Search -->
+    <div class="header-left">
+      <!-- Main Tabs - Large KiotViet Style -->
+      <div class="main-tabs">
+        <button class="main-tab-btn active" data-tab="tables" onclick="switchMainTab('tables')">
+            <i class='bx bx-table'></i>
+          <span>Phòng bàn</span>
+          </button>
+        <button class="main-tab-btn" data-tab="menu" onclick="switchMainTab('menu')">
+            <i class='bx bx-food-menu'></i>
+          <span>Thực đơn</span>
+          </button>
+        </div>
+        
+      <!-- Search Box -->
+      <div class="header-search-box">
+        <i class='bx bx-search'></i>
+        <input type="text" id="headerSearch" placeholder="Tìm món (F3)" class="search-input-header">
+      </div>
+    </div>
+    
+    <!-- Header Right: Invoice Tabs & Actions -->
+    <div class="header-right">
+      <!-- Invoice Tabs -->
+      <div class="invoice-tabs" id="invoiceTabs">
+        <button class="invoice-tab active" data-invoice="1">
+          <span>Hóa đơn 1</span>
+          <i class='bx bx-x' onclick="closeInvoice(1, event)"></i>
+        </button>
+      </div>
+      
+      <!-- Current Invoice Display -->
+      <div class="current-invoice-display">
+        <span class="invoice-label">Hóa đơn hiện tại:</span>
+        <span class="invoice-name" id="currentInvoiceName">Hóa đơn 1</span>
+      </div>
+      
+      <!-- Add Invoice Button -->
+      <button class="add-invoice-btn" onclick="addNewInvoice()" title="Thêm hóa đơn">
+        <i class='bx bx-plus'></i>
+        <span>Thêm hóa đơn</span>
+      </button>
+      
+      <!-- Header Actions Group -->
+      <div class="header-actions-group">
+        <!-- Sound Toggle -->
+        <button class="sound-toggle-btn" id="soundToggle" onclick="toggleSound()" title="Bật/tắt âm thanh">
+          <i class='bx bx-volume-full'></i>
+        </button>
+        
+        <!-- Notifications -->
+        <button class="notification-btn" onclick="toggleNotifications()" title="Thông báo">
+          <i class='bx bx-bell'></i>
+          <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+        </button>
+        
+        <!-- User Menu -->
+        <div class="user-menu-wrapper">
+        <button class="user-menu-btn" onclick="toggleUserMenu()">
+            <i class='bx bx-user-circle' style="font-size: 20px;"></i>
+          <span class="user-name">
+            <c:choose>
+              <c:when test="${not empty sessionScope.UserDisplayName}">
+                ${sessionScope.UserDisplayName}
+              </c:when>
+              <c:otherwise>
+                Tài khoản
+              </c:otherwise>
+            </c:choose>
+          </span>
+          <i class='bx bx-chevron-down'></i>
+        </button>
+        
+        <!-- User Dropdown -->
+        <div class="user-dropdown" id="userDropdown" style="display: none;">
+          <button class="user-dropdown-item" onclick="navigate('management')">
+            <i class='bx bx-category'></i>
+            <span>Quản lý</span>
+          </button>
+          <button class="user-dropdown-item" onclick="navigate('kitchen')">
+            <i class='bx bx-restaurant'></i>
+            <span>Nhà bếp</span>
+          </button>
+          <button class="user-dropdown-item" onclick="navigate('ledger')">
+            <i class='bx bx-book'></i>
+            <span>Lễ tân</span>
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="user-dropdown-item" onclick="navigate('end-of-day-report')">
+            <i class='bx bx-line-chart'></i>
+            <span>Báo cáo cuối ngày</span>
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="user-dropdown-item danger" onclick="logout()">
+            <i class='bx bx-log-out'></i>
+            <span>Đăng xuất</span>
+          </button>
+        </div>
+      </div>
+      </div> <!-- Close header-actions-group -->
+    </div>
+  </div>
+  
+  <!-- Notification Panel -->
+  <div class="notification-panel" id="notificationPanel" style="display: none;">
+    <div class="notification-header">
+      <h3>Thông báo</h3>
+      <button onclick="toggleNotifications()"><i class='bx bx-x'></i></button>
+    </div>
+    <div class="notification-list" id="notificationList">
+      <div class="notification-empty">
+        <i class='bx bx-bell-off'></i>
+        <p>Không có thông báo mới</p>
+      </div>
+    </div>
+  </div>
   <!-- Main Content -->
   <div class="main-content">
     <!-- Left Panel: Tables & Menu -->
     <div class="left-panel">
       <!-- Tab Container -->
       <div class="tab-container">
-        <!-- Tab Header -->
-        <div class="tab-header">
-          <button class="tab-btn active" data-tab="tables">
-            <i class='bx bx-table'></i>
-            Chọn bàn
-          </button>
-          <button class="tab-btn" data-tab="menu">
-            <i class='bx bx-food-menu'></i>
-            Thực đơn
-          </button>
-        </div>
-        
         <!-- Tab Content -->
         <div class="tab-content">
           <!-- Tables Tab -->
           <div class="tab-panel active" id="tables-tab">
             <div class="table-section">
-              <div class="section-header">
-                <h2><i class='bx bx-table'></i> Chọn bàn</h2>
-                <div class="table-filters">
-                  <button class="filter-btn active" data-filter="all">Tất cả</button>
-                  <button class="filter-btn" data-filter="available">Trống</button>
-                  <button class="filter-btn" data-filter="occupied">Có khách</button>
-                </div>
-                <div class="room-filters">
-                  <select id="roomFilter" class="room-select">
-                    <option value="all">Tất cả phòng</option>
+              <!-- Top Filters Dropdown Style -->
+              <div class="top-filters-dropdown">
+                <!-- Filter by Status -->
+                <div class="filter-dropdown-group">
+                  <label for="statusFilter">Trạng thái:</label>
+                  <select id="statusFilter" class="filter-select">
+                    <option value="all">Tất cả</option>
+                    <option value="available">Trống</option>
+                    <option value="occupied">Có khách</option>
                   </select>
                 </div>
+                
+                <!-- Filter by Room -->
+                <div class="filter-dropdown-group">
+                  <label for="roomFilter">Phòng:</label>
+                  <select id="roomFilter" class="filter-select">
+                    <option value="all">Tất cả</option>
+                    <!-- Room filters will be populated by JavaScript -->
+                  </select>
+                </div>
+                
+                <!-- Filter by Capacity -->
+                <div class="filter-dropdown-group">
+                  <label for="capacityFilter">Sức chứa:</label>
+                  <select id="capacityFilter" class="filter-select">
+                    <option value="all">Tất cả</option>
+                    <option value="2-4">2-4 chỗ</option>
+                    <option value="5-6">5-6 chỗ</option>
+                    <option value="7+">7+ chỗ</option>
+                  </select>
               </div>
+                
+                <!-- ✅ Auto Switch to Menu Toggle -->
+                <div class="filter-dropdown-group">
+                  <label>Tự động mở menu:</label>
+                  <button id="autoSwitchMenuBtn" class="auto-switch-toggle-btn" onclick="toggleAutoSwitchMenu()" title="Tự động chuyển sang tab Thực đơn khi chọn bàn">
+                    <i class='bx bx-circle'></i>
+                    <span class="btn-text">Tắt</span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Tables Grid -->
               <div class="tables-grid" id="tablesGrid">
                 <!-- Tables will be populated by JavaScript -->
+              </div>
+              
+              <!-- Guide Button -->
+              <div class="guide-section">
+                <button class="guide-btn" onclick="showTableGuide()">
+                  <i class='bx bx-help-circle'></i>
+                  <span>Hướng dẫn</span>
+                </button>
               </div>
             </div>
           </div>
@@ -58,21 +214,26 @@
           <!-- Menu Tab -->
           <div class="tab-panel" id="menu-tab">
             <div class="menu-section">
-              <div class="section-header">
-                <h2><i class='bx bx-food-menu'></i> Thực đơn</h2>
-                <div class="menu-search">
-                  <input type="text" id="menuSearch" placeholder="Tìm món ăn..." class="search-input">
-                  <i class='bx bx-search'></i>
-                </div>
-              </div>
-              
-              <div class="menu-categories" id="menuCategories">
-                <button class="category-btn active" data-category="all">Tất cả</button>
+              <!-- Category Buttons -->
+              <div class="category-filters">
+                <button class="category-btn active" data-category="all">
+                  <i class='bx bx-category'></i>
+                  <span>Tất cả</span>
+                </button>
                 <!-- Categories will be populated by JavaScript -->
               </div>
 
+              <!-- Menu Grid -->
               <div class="menu-grid" id="menuGrid">
                 <!-- Menu items will be populated by JavaScript -->
+              </div>
+              
+              <!-- Guide Button -->
+              <div class="guide-section">
+                <button class="guide-btn" onclick="showMenuGuide()">
+                  <i class='bx bx-help-circle'></i>
+                  <span>Hướng dẫn</span>
+                </button>
               </div>
             </div>
           </div>
@@ -85,7 +246,7 @@
       <!-- Combined Order & Bill Section -->
       <div class="section order-bill-section">
         <div class="section-header">
-          <h2><i class='bx bx-receipt'></i> Đơn hàng & Thanh toán</h2>
+          <h2><i class='bx bx-receipt'></i> Đơn hàng</h2>
           <span class="table-info" id="selectedTableInfo">Chưa chọn bàn</span>
         </div>
         
@@ -103,8 +264,23 @@
             <span>Tạm tính:</span>
             <span id="subtotal">0đ</span>
           </div>
-          <div class="bill-row">
-            <span>VAT (10%):</span>
+          <div class="bill-row discount" id="discountRow" style="display: none;">
+            <span>Giảm giá:</span>
+            <span id="discount">0đ</span>
+          </div>
+          <div class="bill-row vat-row">
+            <span class="vat-label">
+              VAT
+              <input 
+                type="number" 
+                id="vatRate" 
+                class="vat-input" 
+                value="10" 
+                min="0" 
+                max="100" 
+                step="1"
+              />%:
+            </span>
             <span id="vat">0đ</span>
           </div>
           <div class="bill-row total">
@@ -131,8 +307,14 @@
 
         <!-- Action Buttons -->
         <div class="action-buttons">
-          <button class="btn btn-secondary" id="clearOrder">
-            <i class='bx bx-trash'></i> Xóa đơn
+          <button class="btn btn-secondary btn-icon-only" id="clearOrder" title="Xóa đơn">
+            <i class='bx bx-trash'></i>
+          </button>
+          <button class="btn btn-info btn-icon-only" id="orderNoteBtn" title="Ghi chú">
+            <i class='bx bx-note'></i>
+          </button>
+          <button class="btn btn-success btn-icon-only" id="discountBtn" title="Giảm giá" onclick="openDiscountModal()">
+            <i class='bx bx-gift'></i>
           </button>
           <button class="btn btn-warning" id="notifyKitchenBtn" disabled>
             <i class='bx bx-bell'></i> Thông báo bếp
@@ -146,776 +328,635 @@
   </div>
 </div>
 
+  <!-- Import Cashier JavaScript -->
+  <script src="${pageContext.request.contextPath}/js/cashier.js"></script>
   <script>
-// Database data from server
-const tables = <c:choose><c:when test="${tablesJson != null}"><c:out value="${tablesJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
-const rooms = <c:choose><c:when test="${roomsJson != null}"><c:out value="${roomsJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
-const menuItems = <c:choose><c:when test="${menuItemsJson != null}"><c:out value="${menuItemsJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
-const categories = <c:choose><c:when test="${categoriesJson != null}"><c:out value="${categoriesJson}" escapeXml="false"/></c:when><c:otherwise>[]</c:otherwise></c:choose>;
+// Initialize data from window object
+contextPath = window.contextPath || '';
+tables = window.tables || [];
+rooms = window.rooms || [];
+menuItems = window.menuItems || [];
+categories = window.categories || [];
+  </script>
 
-// Global variables
-let selectedTable = null;
-let orderItems = [];
-let currentFilter = 'all';
-let currentCategory = 'all';
-let currentRoom = 'all';
+<!-- Note: All JavaScript logic has been moved to /js/cashier.js -->
 
-// Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Cashier page loaded');
-  console.log('Tables:', tables);
-  console.log('Rooms:', rooms);
-  console.log('Menu items:', menuItems);
-  console.log('Categories:', categories);
-  
-  // Debug: Log table and room data structure
-  if (tables && tables.length > 0) {
-    console.log('Sample table data:', tables[0]);
-  } else {
-    console.log('No tables data found, using fallback data');
-    // Add some fallback tables for testing
-    if (!tables || tables.length === 0) {
-      window.tables = [
-        {
-          id: 'table1',
-          name: 'Bàn 1',
-          status: 'available',
-          room: 'Tầng 1',
-          capacity: 4
-        },
-        {
-          id: 'table2', 
-          name: 'Bàn 2',
-          status: 'occupied',
-          room: 'Tầng 1',
-          capacity: 6
-        },
-        {
-          id: 'table3',
-          name: 'Bàn 3', 
-          status: 'available',
-          room: 'Tầng 2',
-          capacity: 4
-        }
-      ];
-    }
-  }
-  
-  if (rooms && rooms.length > 0) {
-    console.log('Sample room data:', rooms[0]);
-  } else {
-    console.log('No rooms data found, using fallback data');
-    // Add some fallback rooms for testing
-    if (!rooms || rooms.length === 0) {
-      window.rooms = [
-        {
-          id: 'room1',
-          name: 'Tầng 1',
-          description: 'Tầng 1'
-        },
-        {
-          id: 'room2',
-          name: 'Tầng 2', 
-          description: 'Tầng 2'
-        }
-      ];
-    }
-  }
-  
-  populateRoomFilter();
-  populateMenuCategories();
-  renderTables();
-  renderMenu();
-  setupEventListeners();
-  setupTabSystem();
-});
-
-// Populate room filter dropdown
-function populateRoomFilter() {
-  const roomFilter = document.getElementById('roomFilter');
-  roomFilter.innerHTML = '<option value="all">Tất cả phòng</option>';
-  
-  const roomsData = window.rooms || rooms || [];
-  console.log('Populating room filter with:', roomsData);
-  
-  if (roomsData && roomsData.length > 0) {
-    roomsData.forEach(room => {
-      const option = document.createElement('option');
-      option.value = room.id;
-      option.textContent = room.name;
-      roomFilter.appendChild(option);
-    });
-  } else {
-    // Fallback if no rooms in database
-    const option = document.createElement('option');
-    option.value = 'default';
-    option.textContent = 'Phòng mặc định';
-    roomFilter.appendChild(option);
-  }
-}
-
-// Render tables
-function renderTables() {
-  const tablesGrid = document.getElementById('tablesGrid');
-  let filteredTables = window.tables || tables || [];
-  
-  console.log('Rendering tables:', filteredTables);
-  console.log('Current filter:', currentFilter);
-  console.log('Current room:', currentRoom);
-  
-  // Filter by status (convert to lowercase for comparison)
-  if (currentFilter !== 'all') {
-    console.log('Filtering by status:', currentFilter);
-    filteredTables = filteredTables.filter(table => {
-      const tableStatus = (table.status || '').toLowerCase();
-      console.log('Table:', table.name, 'Status:', tableStatus, 'Original:', table.status);
-      if (currentFilter === 'available') {
-        return tableStatus === 'available' || tableStatus === 'trống';
-      } else if (currentFilter === 'occupied') {
-        return tableStatus === 'occupied' || tableStatus === 'có khách';
-      }
-      return tableStatus === currentFilter;
-    });
-    console.log('After status filter:', filteredTables.length, 'tables');
-  }
-  
-  // Filter by room
-  if (currentRoom !== 'all') {
-    console.log('Filtering by room:', currentRoom);
-    filteredTables = filteredTables.filter(table => {
-      console.log('Table:', table.name, 'Room:', table.room, 'Type:', typeof table.room);
-      
-      if (currentRoom === 'special') {
-        return table.room === 'Đặc biệt';
-      }
-      
-      // Find room name by ID
-      const selectedRoom = (window.rooms || rooms || []).find(room => room.id === currentRoom);
-      if (selectedRoom) {
-        console.log('Selected room:', selectedRoom.name);
-        return table.room === selectedRoom.name;
-      }
-      
-      return false;
-    });
-    console.log('After room filter:', filteredTables.length, 'tables');
-  }
-  
-  if (filteredTables.length === 0) {
-    tablesGrid.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #6c757d;">
-        <i class='bx bx-table' style="font-size: 48px; margin-bottom: 16px; color: #dee2e6;"></i>
-        <p>Không có bàn nào</p>
+<!-- Discount Modal -->
+<!-- ✅ Modal Giảm giá toàn đơn -->
+<div id="discountModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Áp dụng giảm giá toàn đơn</h2>
+      <span class="close" onclick="closeDiscountModal()">&times;</span>
+    </div>
+    
+    <div class="modal-body">
+      <div class="discount-tabs">
+        <button class="tab active" data-type="percent">Giảm %</button>
+        <button class="tab" data-type="amount">Giảm tiền</button>
       </div>
-    `;
-  } else {
-    tablesGrid.innerHTML = filteredTables.map(table => {
-      const isSelected = selectedTable && selectedTable.id === table.id;
-      const tableStatus = (table.status || '').toLowerCase();
-      const statusText = (tableStatus === 'available' || tableStatus === 'trống') ? 'Trống' : 'Có khách';
-      const statusClass = (tableStatus === 'available' || tableStatus === 'trống') ? 'available' : 'occupied';
       
-      // Handle room name - could be string or object
-      let roomName = 'Chưa phân loại';
-      if (typeof table.room === 'string') {
-        roomName = table.room;
-      } else if (table.room && table.room.name) {
-        roomName = table.room.name;
-      }
+      <div class="tab-content">
+        <div class="discount-input-group">
+          <label>Giá trị giảm</label>
+          <input type="number" id="discountInput" placeholder="Nhập số tiền hoặc %" min="0">
+          <span class="input-suffix" id="discountSuffix">%</span>
+        </div>
+        
+        <div class="discount-preview">
+          <div class="preview-row">
+            <span>Tạm tính:</span>
+            <span id="previewSubtotal">0đ</span>
+          </div>
+          <div class="preview-row discount">
+            <span>Giảm giá:</span>
+            <span id="previewDiscount">0đ</span>
+          </div>
+          <div class="preview-row total">
+            <span>Tổng tiền:</span>
+            <span id="previewTotal">0đ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="removeDiscount()" id="removeDiscountBtn" style="margin-right: auto;">
+        <i class='bx bx-trash'></i> Xóa giảm giá
+      </button>
+      <button class="btn btn-secondary" onclick="closeDiscountModal()">Hủy</button>
+      <button class="btn btn-success" onclick="confirmDiscount()">Áp dụng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Modal Giảm giá cho từng món -->
+<div id="itemDiscountModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Giảm giá cho món: <span id="itemDiscountName"></span></h2>
+      <span class="close" onclick="closeItemDiscountModal()">&times;</span>
+    </div>
+    
+    <div class="modal-body">
+      <div class="discount-tabs">
+        <button class="tab item-discount-tab active" data-type="percent">Giảm %</button>
+        <button class="tab item-discount-tab" data-type="amount">Giảm tiền</button>
+      </div>
       
-      return `
-        <div class="table-item \${statusClass} \${isSelected ? 'selected' : ''}" 
-             data-table-id="\${table.id}" data-status="\${statusClass}">
-          <div class="table-icon">
+      <div class="tab-content">
+        <div class="discount-input-group">
+          <label>Giá trị giảm</label>
+          <input type="number" id="itemDiscountInput" placeholder="Nhập số tiền hoặc %" min="0">
+          <span class="input-suffix" id="itemDiscountSuffix">%</span>
+        </div>
+        
+        <div class="discount-preview">
+          <div class="preview-row">
+            <span>Đơn giá:</span>
+            <span id="itemPreviewUnitPrice">0đ</span>
+          </div>
+          <div class="preview-row">
+            <span>Số lượng:</span>
+            <span id="itemPreviewQuantity">1</span>
+          </div>
+          <div class="preview-row">
+            <span>Thành tiền:</span>
+            <span id="itemPreviewSubtotal">0đ</span>
+          </div>
+          <div class="preview-row discount">
+            <span>Giảm giá:</span>
+            <span id="itemPreviewDiscount">0đ</span>
+          </div>
+          <div class="preview-row total">
+            <span>Tổng tiền:</span>
+            <span id="itemPreviewTotal">0đ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="removeItemDiscount()" id="removeItemDiscountBtn" style="margin-right: auto;">
+        <i class='bx bx-trash'></i> Xóa giảm giá
+      </button>
+      <button class="btn btn-secondary" onclick="closeItemDiscountModal()">Hủy</button>
+      <button class="btn btn-success" onclick="confirmItemDiscount()">Áp dụng</button>
+    </div>
+  </div>
+</div>
+
+<!-- End Shift Modal -->
+<div id="endShiftModal" class="modal">
+  <div class="modal-content shift-summary">
+    <div class="modal-header">
+      <h2>Đối soát cuối ca</h2>
+      <span class="close" onclick="closeEndShiftModal()">&times;</span>
+    </div>
+    
+    <div class="modal-body">
+      <div class="shift-info">
+        <div class="info-row">
+          <span>Ca làm việc:</span>
+          <strong id="shiftName">Ca Sáng</strong>
+        </div>
+        <div class="info-row">
+          <span>Thời gian:</span>
+          <strong id="shiftTime">08:00 - 14:00</strong>
+        </div>
+        <div class="info-row">
+          <span>Thu ngân:</span>
+          <strong id="cashierName">Nguyễn Văn A</strong>
+        </div>
+      </div>
+      
+      <div class="revenue-summary">
+        <div class="summary-card">
+          <div class="label">Tổng đơn</div>
+          <div class="value" id="totalOrders">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Doanh thu</div>
+          <div class="value primary" id="totalRevenue">0đ</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Tiền mặt</div>
+          <div class="value" id="cashAmount">0đ</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Chuyển khoản</div>
+          <div class="value" id="transferAmount">0đ</div>
+        </div>
+      </div>
+      
+      <div class="payment-methods-detail">
+        <h3>Chi tiết thanh toán</h3>
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Phương thức</th>
+              <th>Số đơn</th>
+              <th>Tổng tiền</th>
+            </tr>
+          </thead>
+          <tbody id="paymentDetails">
+            <tr>
+              <td>Tiền mặt</td>
+              <td>0</td>
+              <td>0đ</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEndShiftModal()">Hủy</button>
+      <button class="btn btn-primary" onclick="printShiftReport()">
+        <i class='bx bx-printer'></i> In báo cáo
+      </button>
+      <button class="btn btn-success" onclick="confirmEndShift()">
+        <i class='bx bx-check'></i> Xác nhận đóng ca
+      </button>
+      </div>
+  </div>
+</div>
+
+<!-- Guide Modal -->
+<div id="guideModal" class="modal">
+  <div class="modal-content guide-modal">
+    <div class="modal-header">
+      <h2><i class='bx bx-book-open'></i> Hướng dẫn sử dụng</h2>
+      <span class="close" onclick="closeGuideModal()">&times;</span>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Tab Selection -->
+      <div class="guide-tabs">
+        <button class="guide-tab active" onclick="switchGuideTab('tables')">
             <i class='bx bx-table'></i>
+          <span>Phòng bàn</span>
+        </button>
+        <button class="guide-tab" onclick="switchGuideTab('menu')">
+          <i class='bx bx-restaurant'></i>
+          <span>Thực đơn</span>
+        </button>
+        <button class="guide-tab" onclick="switchGuideTab('order')">
+          <i class='bx bx-receipt'></i>
+          <span>Đơn hàng</span>
+        </button>
+        <button class="guide-tab" onclick="switchGuideTab('payment')">
+          <i class='bx bx-credit-card'></i>
+          <span>Thanh toán</span>
+        </button>
           </div>
-          <span class="table-name">\${table.name}</span>
-          <span class="table-room">\${roomName}</span>
-          <span class="table-capacity">\${table.capacity || 4} người</span>
-          <span class="status-badge \${statusClass}">
-            \${statusText}
-          </span>
-        </div>
-      `;
-    }).join('');
-  }
-}
-
-// Render menu
-function renderMenu() {
-  const menuGrid = document.getElementById('menuGrid');
-  const searchTerm = document.getElementById('menuSearch').value.toLowerCase();
-  
-  let filteredItems = menuItems || [];
-  
-  // Filter by category
-  if (currentCategory !== 'all') {
-    filteredItems = filteredItems.filter(item => item.category === currentCategory);
-  }
-  
-  // Filter by search term
-  if (searchTerm) {
-    filteredItems = filteredItems.filter(item => 
-      item.name.toLowerCase().includes(searchTerm)
-    );
-  }
-  
-  if (filteredItems.length === 0) {
-    menuGrid.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #6c757d;">
-        <i class='bx bx-food-menu' style="font-size: 48px; margin-bottom: 16px; color: #dee2e6;"></i>
-        <p>Không có món ăn nào</p>
-      </div>
-    `;
-  } else {
-    menuGrid.innerHTML = filteredItems.map(item => {
-      const imageUrl = item.imageUrl || '🍽️';
-      const displayImage = imageUrl.startsWith('http') || imageUrl.startsWith('/') ? 
-        `<img src="\${imageUrl}" alt="\${item.name}" style="width: 32px; height: 32px; object-fit: cover; border-radius: 4px;">` : 
-        imageUrl;
       
-      // Display size if available
-      const itemName = item.size ? item.name + ' (' + item.size + ')' : item.name;
-      
-      return `
-        <div class="menu-item" data-item-id="\${item.variantId}">
-          <div class="menu-item-image">\${displayImage}</div>
-          <div class="menu-item-info">
-            <h4>\${itemName}</h4>
-            <p class="price">\${parseFloat(item.price || 0).toLocaleString('vi-VN')}đ</p>
+      <!-- Guide Content -->
+      <div class="guide-content">
+        <!-- Tables Guide -->
+        <div id="tablesGuide" class="guide-panel active">
+          <h3><i class='bx bx-table'></i> Hướng dẫn quản lý Phòng bàn</h3>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Chọn bàn</h4>
+                <p>Click vào bàn <strong>TRỐNG</strong> (màu xanh lá) để chọn bàn cho khách.</p>
+                <div class="guide-tip info">
+                  <i class='bx bx-info-circle'></i>
+                  <span>Bàn <strong>ĐÃ CHỌN</strong> sẽ chuyển sang màu đỏ và không thể chọn cho hóa đơn khác.</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <button class="add-to-cart-btn" onclick="addToCart('\${item.variantId}')">
-            <i class='bx bx-plus'></i>
-          </button>
-        </div>
-      `;
-    }).join('');
-  }
-}
-
-// Populate menu categories
-function populateMenuCategories() {
-  const menuCategories = document.getElementById('menuCategories');
-  menuCategories.innerHTML = '<button class="category-btn active" data-category="all">Tất cả</button>';
-  
-  if (categories && categories.length > 0) {
-    categories.forEach(category => {
-      const button = document.createElement('button');
-      button.className = 'category-btn';
-      button.setAttribute('data-category', category.id);
-      button.textContent = category.name;
-      menuCategories.appendChild(button);
-    });
-  }
-  
-  // Setup event listeners cho category buttons sau khi tạo xong
-  document.querySelectorAll('.category-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      currentCategory = this.dataset.category;
-      renderMenu();
-    });
-  });
-}
-
-// Add item to cart
-function addToCart(variantId) {
-  if (!selectedTable) {
-    alert('Vui lòng chọn bàn trước khi thêm món!');
-    return;
-  }
-  
-  const item = menuItems.find(i => i.variantId === variantId);
-  if (!item) {
-    alert('Không tìm thấy món ăn!');
-    return;
-  }
-  
-  const existingItem = orderItems.find(i => i.variantId === variantId);
-  
-  if (existingItem) {
-    existingItem.quantity += 1;
-    
-    // Track số lượng đã notify để chỉ gửi phần mới
-    if (existingItem.notified && existingItem.notifiedQuantity) {
-      // Nếu đã notify trước đó, giữ số lượng đã notify
-      // Phần tăng thêm sẽ được gửi ở lần notify tiếp theo
-    } else if (existingItem.notified) {
-      // Nếu đã notify nhưng chưa có notifiedQuantity, set lại
-      existingItem.notifiedQuantity = existingItem.quantity - 1; // số lượng cũ đã gửi
-    }
-  } else {
-    // Display name with size if available
-    const itemName = item.name || 'Món ăn';
-    const itemSize = item.size;
-    const displayName = itemSize ? itemName + ' (' + itemSize + ')' : itemName;
-    
-    orderItems.push({
-      id: item.id,
-      variantId: item.variantId,
-      name: displayName,
-      price: parseFloat(item.price || 0),
-      quantity: 1,
-      notifiedQuantity: 0, // Chưa notify món nào
-      note: '' // Ghi chú cho món
-    });
-  }
-  
-  renderOrderItems();
-  updateBill();
-}
-
-// Remove item from cart
-function removeFromCart(variantId) {
-  orderItems = orderItems.filter(item => item.variantId !== variantId);
-  renderOrderItems();
-  updateBill();
-}
-
-// Update item quantity
-function updateQuantity(variantId, newQuantity) {
-  if (newQuantity <= 0) {
-    removeFromCart(variantId);
-    return;
-  }
-  
-  const item = orderItems.find(i => i.variantId === variantId);
-  if (item) {
-    item.quantity = newQuantity;
-    renderOrderItems();
-    updateBill();
-  }
-}
-
-// Update item note
-function updateNote(variantId, note) {
-  const item = orderItems.find(i => i.variantId === variantId);
-  if (item) {
-    item.note = note;
-    console.log('Updated note for', item.name, ':', note);
-  }
-}
-
-// Render order items
-function renderOrderItems() {
-  const orderItemsContainer = document.getElementById('orderItems');
-  
-  if (orderItems.length === 0) {
-    orderItemsContainer.innerHTML = `
-      <div class="empty-order">
-        <i class='bx bx-shopping-cart'></i>
-        <p>Chưa có món nào được chọn</p>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>Tự động mở menu</h4>
+                <p>Bật nút <strong>"Tự động mở menu"</strong> để hệ thống tự động chuyển sang tab Thực đơn khi chọn bàn.</p>
+                <div class="guide-tip success">
+                  <i class='bx bx-check-circle'></i>
+                  <span>Tiết kiệm thời gian khi order nhanh!</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Các loại bàn đặc biệt</h4>
+                <ul class="guide-list">
+                  <li><strong>Mang về</strong> (xanh lá): Dành cho khách mua mang đi</li>
+                  <li><strong>Giao hàng</strong> (xanh dương): Dành cho đơn giao tận nơi</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h4>Lọc và tìm kiếm bàn</h4>
+                <ul class="guide-list">
+                  <li><strong>Trạng thái</strong>: Lọc bàn trống/có khách</li>
+                  <li><strong>Phòng</strong>: Lọc theo khu vực (Tầng 1, Tầng 2, ...)</li>
+                  <li><strong>Sức chứa</strong>: Lọc theo số chỗ ngồi</li>
+                </ul>
       </div>
-    `;
-    return;
-  }
-  
-  orderItemsContainer.innerHTML = orderItems.map((item, index) => {
-    const itemName = item.name || 'Món ăn';
-    const itemPrice = (item.price || 0).toLocaleString('vi-VN');
-    const itemQuantity = item.quantity || 1;
-    const itemVariantId = item.variantId || '';
-    const itemNote = item.note || '';
-    const notifiedQty = item.notifiedQuantity || 0;
-    const newQty = itemQuantity - notifiedQty;
-    
-    // Xác định trạng thái: toàn bộ đã gửi, một phần, hoặc chưa gửi
-    let isNotified, notifiedBadge;
-    if (newQty === 0) {
-      // Tất cả đã gửi bếp
-      isNotified = 'notified';
-      notifiedBadge = '<span class="notified-badge">✓ Đã gửi bếp</span>';
-    } else if (notifiedQty > 0) {
-      // Một phần đã gửi
-      isNotified = 'partial';
-      notifiedBadge = '<span class="partial-badge">Đã gửi: ' + notifiedQty + ' | Mới: ' + newQty + '</span>';
-    } else {
-      // Chưa gửi món nào
-      isNotified = 'new';
-      notifiedBadge = '<span class="new-badge">Mới</span>';
-    }
-    
-    return `
-      <div class="order-item ` + isNotified + `">
-        <div class="item-info">
-          <span class="item-name">` + itemName + `</span>
-          ` + notifiedBadge + `
-          <span class="item-price">` + itemPrice + `đ</span>
-          <input type="text" 
-                 class="item-note-input" 
-                 placeholder="Ghi chú (vd: không hành, ít đá...)"
-                 value="` + itemNote + `"
-                 onchange="updateNote('` + itemVariantId + `', this.value)">
+            </div>
+          </div>
         </div>
-        <div class="quantity-controls">
-          <button onclick="updateQuantity('` + itemVariantId + `', ` + (itemQuantity - 1) + `)">
-            <i class='bx bx-minus'></i>
+        
+        <!-- Menu Guide -->
+        <div id="menuGuide" class="guide-panel">
+          <h3><i class='bx bx-restaurant'></i> Hướng dẫn order món ăn</h3>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Chọn món ăn</h4>
+                <p>Click vào món trong danh sách để thêm vào đơn hàng.</p>
+                <div class="guide-tip warning">
+                  <i class='bx bx-error'></i>
+                  <span>Lưu ý: Phải chọn bàn trước khi thêm món!</span>
+          </div>
+        </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>Tìm kiếm món</h4>
+                <p>Sử dụng ô tìm kiếm hoặc nhấn phím tắt <kbd>F3</kbd> để focus vào ô tìm kiếm.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Lọc theo danh mục</h4>
+                <p>Chọn danh mục trong dropdown để lọc món theo loại (Khai vị, Món chính, Đồ uống, ...).</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h4>Thông tin món ăn</h4>
+                <p>Mỗi món hiển thị:</p>
+                <ul class="guide-list">
+                  <li>Tên món và kích cỡ (nếu có)</li>
+                  <li>Giá tiền</li>
+                  <li>Trạng thái còn hàng</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Order Guide -->
+        <div id="orderGuide" class="guide-panel">
+          <h3><i class='bx bx-receipt'></i> Hướng dẫn quản lý Đơn hàng</h3>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Điều chỉnh số lượng</h4>
+                <p>Trong panel bên phải, sử dụng nút <strong>+</strong> / <strong>-</strong> để điều chỉnh số lượng món.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>Xóa món</h4>
+                <p>Click vào icon <i class='bx bx-trash'></i> để xóa món khỏi đơn hàng.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Thông báo bếp</h4>
+                <p>Click nút <strong>"Thông báo bếp"</strong> để gửi đơn hàng đến nhà bếp.</p>
+                <div class="guide-tip info">
+                  <i class='bx bx-info-circle'></i>
+                  <span>Chỉ gửi những món <strong>MỚI</strong> chưa thông báo. Món đã gửi sẽ có dấu hiệu riêng.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h4>Xóa đơn</h4>
+                <p>Click nút <strong>"Xóa đơn"</strong> để xóa toàn bộ đơn hàng và bỏ chọn bàn.</p>
+                <div class="guide-tip warning">
+                  <i class='bx bx-error'></i>
+                  <span>Cẩn thận! Hành động này không thể hoàn tác.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Payment Guide -->
+        <div id="paymentGuide" class="guide-panel">
+          <h3><i class='bx bx-credit-card'></i> Hướng dẫn Thanh toán</h3>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Áp dụng giảm giá</h4>
+                <p>Click vào <strong>"Giảm %"</strong> hoặc <strong>"Giảm tiền"</strong> để áp dụng khuyến mãi.</p>
+                <ul class="guide-list">
+                  <li><strong>Giảm %</strong>: Giảm theo phần trăm (0-100%)</li>
+                  <li><strong>Giảm tiền</strong>: Giảm số tiền cố định</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>Chọn phương thức thanh toán</h4>
+                <p>Chọn một trong các phương thức:</p>
+                <ul class="guide-list">
+                  <li><i class='bx bx-money'></i> <strong>Tiền mặt</strong></li>
+                  <li><i class='bx bx-credit-card'></i> <strong>Thẻ</strong></li>
+                  <li><i class='bx bx-mobile'></i> <strong>Chuyển khoản</strong></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Xác nhận thanh toán</h4>
+                <p>Click nút <strong>"Thanh toán"</strong> để hoàn tất.</p>
+                <div class="guide-tip success">
+                  <i class='bx bx-check-circle'></i>
+                  <span>Hệ thống sẽ tự động cập nhật trạng thái bàn và đóng đơn hàng.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="guide-section-item">
+            <div class="guide-step">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h4>Chuyển khoản</h4>
+                <p>Click nút <strong>"Chuyển khoản"</strong> để chuyển đơn sang bàn khác (nếu khách đổi bàn).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <div class="guide-footer-note">
+        <i class='bx bx-info-circle'></i>
+        <span>Nhấn phím <kbd>ESC</kbd> để đóng hướng dẫn</span>
+      </div>
+      <button class="btn btn-primary" onclick="closeGuideModal()">
+        <i class='bx bx-check'></i> Đã hiểu
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirmModal" class="modal" style="display: none;">
+  <div class="modal-content confirm-modal">
+    <div class="modal-header">
+      <h3 id="confirmModalTitle">Xác nhận</h3>
+      </div>
+    
+    <div class="modal-body">
+      <p id="confirmModalMessage"></p>
+        </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="confirmCancelBtn">
+        <i class='bx bx-x'></i> Hủy
           </button>
-          <span class="quantity">` + itemQuantity + `</span>
-          <button onclick="updateQuantity('` + itemVariantId + `', ` + (itemQuantity + 1) + `)">
-            <i class='bx bx-plus'></i>
+      <button class="btn btn-primary" id="confirmOkBtn">
+        <i class='bx bx-check'></i> Đồng ý
           </button>
         </div>
-        <button class="remove-btn" onclick="removeFromCart('` + itemVariantId + `')">
-          <i class='bx bx-trash'></i>
+  </div>
+</div>
+
+<!-- Order Note Modal -->
+<div id="orderNoteModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class='bx bx-note'></i> Ghi chú đơn hàng</h3>
+      <button class="close-modal-btn" onclick="closeOrderNoteModal()">
+        <i class='bx bx-x'></i>
         </button>
       </div>
-    `;
-  }).join('');
-}
-
-// Update bill
-function updateBill() {
-  const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const vat = Math.round(subtotal * 0.1);
-  const total = subtotal + vat;
-  
-  document.getElementById('subtotal').textContent = subtotal.toLocaleString('vi-VN') + 'đ';
-  document.getElementById('vat').textContent = vat.toLocaleString('vi-VN') + 'đ';
-  document.getElementById('total').textContent = total.toLocaleString('vi-VN') + 'đ';
-  
-  // Enable/disable buttons
-  const hasItemsAndTable = orderItems.length > 0 && selectedTable;
-  document.getElementById('checkoutBtn').disabled = !hasItemsAndTable;
-  document.getElementById('notifyKitchenBtn').disabled = !hasItemsAndTable;
-}
-
-// Load orders của bàn đang có khách
-async function loadTableOrders(tableId) {
-  console.log('Loading orders for table:', tableId);
-  
-  try {
-    const response = await fetch('${pageContext.request.contextPath}/api/order/table/' + tableId);
-    const result = await response.json();
     
-    if (result.success) {
-      console.log('Loaded orders:', result.orders);
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="orderNoteInput">Nội dung ghi chú:</label>
+        <textarea 
+          id="orderNoteInput" 
+          class="form-control" 
+          rows="5" 
+          placeholder="Nhập ghi chú cho đơn hàng (vd: khách yêu cầu ít đường, không đá...)"
+        ></textarea>
+      </div>
       
-      // Convert orders từ database sang format orderItems
-      orderItems = result.orders.map(item => {
-        // Display name with size
-        const itemName = item.name || 'Món ăn';
-        const itemSize = item.size;
-        const displayName = itemSize ? itemName + ' (' + itemSize + ')' : itemName;
-        const qty = parseInt(item.quantity || 1);
-        
-        return {
-          id: item.productId,
-          variantId: item.variantId,
-          name: displayName,
-          price: parseFloat(item.price || 0),
-          quantity: qty,
-          notified: true, // Đã được gửi bếp
-          notifiedQuantity: qty, // Số lượng đã gửi = số lượng hiện tại (từ DB)
-          status: item.status, // Pending, Preparing, Ready, etc.
-          note: item.note || '' // Ghi chú từ DB
-        };
-      });
-      
-      // Merge items có cùng variantId (group by variant)
-      const mergedItems = [];
-      orderItems.forEach(item => {
-        const existing = mergedItems.find(i => i.variantId === item.variantId);
-        if (existing) {
-          existing.quantity += item.quantity;
-          existing.notifiedQuantity += item.notifiedQuantity;
-          // Merge notes: nếu có note mới, append; nếu không giữ note cũ
-          if (item.note && item.note !== existing.note) {
-            existing.note = existing.note ? existing.note + '; ' + item.note : item.note;
-          }
-        } else {
-          mergedItems.push(item);
-        }
-      });
-      orderItems = mergedItems;
-      
-      renderOrderItems();
-      updateBill();
-      
-      console.log('Orders loaded successfully:', orderItems.length, 'items');
-    } else {
-      console.error('Error loading orders:', result.message);
-      // Không hiện alert nếu bàn chưa có orders
-      orderItems = [];
-      renderOrderItems();
-      updateBill();
-    }
-  } catch (error) {
-    console.error('Error loading table orders:', error);
-    orderItems = [];
-    renderOrderItems();
-    updateBill();
-  }
-}
-
-// Notify kitchen - send order to kitchen
-async function notifyKitchen() {
-  if (orderItems.length === 0) {
-    alert('Vui lòng chọn ít nhất một món!');
-    return;
-  }
-  
-  if (!selectedTable) {
-    alert('Vui lòng chọn bàn!');
-    return;
-  }
-  
-  // Tạo danh sách món cần gửi bếp
-  const itemsToNotify = [];
-  
-  orderItems.forEach(item => {
-    const notifiedQty = item.notifiedQuantity || 0;
-    const currentQty = item.quantity || 0;
-    const newQty = currentQty - notifiedQty;
+      <div class="order-note-preview" id="orderNotePreview" style="display: none;">
+        <div class="note-preview-header">
+          <i class='bx bx-info-circle'></i>
+          <span>Ghi chú hiện tại:</span>
+        </div>
+        <div class="note-preview-content" id="orderNotePreviewContent"></div>
+      </div>
+    </div>
     
-    if (newQty > 0) {
-      // Có món mới chưa gửi
-      itemsToNotify.push({
-        variantId: item.variantId,
-        quantity: newQty, // CHỈ GỬI số lượng mới
-        unitPrice: item.price,
-        note: item.note || '', // Ghi chú
-        originalItem: item // Reference để update sau
-      });
-    }
-  });
-  
-  if (itemsToNotify.length === 0) {
-    alert('⚠️ Tất cả món đã được thông báo bếp!\n\nVui lòng thêm món mới nếu khách gọi thêm.');
-    return;
-  }
-  
-  // Prepare order data
-  const orderData = {
-    tableId: selectedTable.id,
-    items: itemsToNotify.map(item => ({
-      variantId: item.variantId,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      note: item.note || ''
-    }))
-  };
-  
-  console.log('Sending NEW items to kitchen:', orderData);
-  console.log('Total items in order:', orderItems.length);
-  console.log('Items to notify:', itemsToNotify.length);
-  
-  try {
-    const response = await fetch('${pageContext.request.contextPath}/api/order/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderData)
-    });
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeOrderNoteModal()">
+        <i class='bx bx-x'></i> Hủy
+      </button>
+      <button class="btn btn-danger" onclick="clearOrderNote()" id="clearNoteBtn" style="display: none;">
+        <i class='bx bx-trash'></i> Xóa ghi chú
+      </button>
+      <button class="btn btn-primary" onclick="saveOrderNote()">
+        <i class='bx bx-save'></i> Lưu ghi chú
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- End of Day Report Modal -->
+<div id="endOfDayModal" class="modal" style="display: none;">
+  <div class="modal-content" style="max-width: 550px;">
+    <div class="modal-header">
+      <h3><i class='bx bx-line-chart'></i> Báo cáo cuối ngày</h3>
+      <button class="close-modal-btn" onclick="closeEndOfDayModal()">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
     
-    const result = await response.json();
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="reportDate">Ngày báo cáo:</label>
+        <input 
+          type="date" 
+          id="reportDate" 
+          class="form-control"
+          value="<%= new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()) %>"
+        />
+      </div>
+      
+      <div class="form-group">
+        <label for="reportType">Loại báo cáo:</label>
+        <select id="reportType" class="form-control">
+          <option value="completed">Đã thanh toán</option>
+          <option value="all">Tất cả hóa đơn</option>
+          <option value="cancelled">Đã hủy</option>
+        </select>
+      </div>
+      
+      <div class="report-summary" id="reportSummary" style="display: none;">
+        <h4><i class='bx bx-bar-chart-alt'></i> Thống kê</h4>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-icon">
+              <i class='bx bx-receipt'></i>
+            </div>
+            <div class="summary-info">
+              <span class="summary-label">Tổng hóa đơn</span>
+              <span class="summary-value" id="totalInvoices">0</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-icon">
+              <i class='bx bx-money'></i>
+            </div>
+            <div class="summary-info">
+              <span class="summary-label">Doanh thu</span>
+              <span class="summary-value" id="totalRevenue">0đ</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-icon">
+              <i class='bx bx-cart'></i>
+            </div>
+            <div class="summary-info">
+              <span class="summary-label">Tổng món bán</span>
+              <span class="summary-value" id="totalItems">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     
-    if (result.success) {
-      // Tính tổng số món đã gửi
-      const totalNewQty = itemsToNotify.reduce((sum, item) => sum + item.quantity, 0);
-      
-      alert('✅ Đã gửi thông báo đến bếp thành công!\n\n' + 
-            'Số món: ' + totalNewQty + '\n' +
-            'Đơn hàng: ' + result.orderId);
-      
-      // Cập nhật notifiedQuantity cho các món vừa gửi
-      itemsToNotify.forEach(item => {
-        item.originalItem.notified = true;
-        item.originalItem.notifiedQuantity = item.originalItem.quantity;
-      });
-      
-      // Render lại để hiển thị TẤT CẢ món
-      renderOrderItems();
-      updateBill();
-      
-      console.log('Order created successfully:', result.orderId);
-      console.log('All items after notify:', orderItems);
-    } else {
-      alert('❌ Lỗi: ' + result.message);
-    }
-  } catch (error) {
-    console.error('Error notifying kitchen:', error);
-    alert('❌ Không thể gửi thông báo đến bếp. Vui lòng thử lại.');
-  }
-}
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEndOfDayModal()">
+        <i class='bx bx-x'></i> Đóng
+      </button>
+      <button class="btn btn-success" onclick="exportReport()">
+        <i class='bx bx-download'></i> Xuất PDF
+      </button>
+    </div>
+  </div>
+</div>
 
-// Setup tab system
-function setupTabSystem() {
-  const tabButtons = document.querySelectorAll('.tab-btn');
-  const tabPanels = document.querySelectorAll('.tab-panel');
-  
-  tabButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const targetTab = this.dataset.tab;
-      
-      // Remove active class from all buttons and panels
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      tabPanels.forEach(panel => panel.classList.remove('active'));
-      
-      // Add active class to clicked button and corresponding panel
-      this.classList.add('active');
-      document.getElementById(targetTab + '-tab').classList.add('active');
-      
-      console.log('Switched to tab:', targetTab);
-    });
-  });
-}
-
-// Setup event listeners
-function setupEventListeners() {
-  // Table selection
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.table-item')) {
-      const tableItem = e.target.closest('.table-item');
-      const tableId = tableItem.dataset.tableId;
-      const tableStatus = tableItem.dataset.status;
-      
-      // CHO PHÉP click vào bàn có khách để xem/thêm món
-      // if (tableStatus === 'occupied') {
-      //   alert('Bàn này đang có khách!');
-      //   return;
-      // }
-      
-      selectedTable = (window.tables || tables || []).find(t => t.id === tableId);
-      if (selectedTable) {
-        // Display table info with room name
-        let tableInfo = selectedTable.name;
-        if (selectedTable.room) {
-          if (typeof selectedTable.room === 'string') {
-            tableInfo += ` - \${selectedTable.room}`;
-          } else if (selectedTable.room.name) {
-            tableInfo += ` - \${selectedTable.room.name}`;
-          }
-        }
-        document.getElementById('selectedTableInfo').textContent = tableInfo;
-        
-        // Load orders nếu bàn đang có khách
-        if (tableStatus === 'occupied') {
-          loadTableOrders(tableId);
-        } else {
-          // Bàn trống - xóa orders cũ
-          orderItems = [];
-          renderOrderItems();
-        }
-        
-        renderTables();
-        updateBill();
-      }
-    }
-  });
-  
-  // Table filters
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      currentFilter = this.dataset.filter;
-      renderTables();
-    });
-  });
-
-  // Menu categories - đã được setup trong populateMenuCategories()
-
-  // Menu search
-  document.getElementById('menuSearch').addEventListener('input', renderMenu);
-
-  // Room filter
-  document.getElementById('roomFilter').addEventListener('change', function() {
-    currentRoom = this.value;
-    console.log('Room filter changed to:', currentRoom);
-    renderTables();
-  });
-  
-  // Clear order
-  document.getElementById('clearOrder').addEventListener('click', function() {
-    if (confirm('Bạn có chắc muốn xóa toàn bộ đơn hàng?')) {
-      orderItems = [];
-      renderOrderItems();
-      updateBill();
-    }
-  });
-  
-  // Notify kitchen button
-  document.getElementById('notifyKitchenBtn').addEventListener('click', function() {
-    notifyKitchen();
-  });
-  
-  // Payment methods
-  document.querySelectorAll('.payment-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.payment-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
-
-  // Checkout
-  document.getElementById('checkoutBtn').addEventListener('click', async function() {
-    if (orderItems.length === 0) {
-      alert('Vui lòng chọn ít nhất một món!');
-      return;
-    }
-
-    if (!selectedTable) {
-      alert('Vui lòng chọn bàn!');
-      return;
-    }
-
-    const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const vat = Math.round(total * 0.1);
-    const finalTotal = total + vat;
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class='bx bx-log-out'></i> Xác nhận đăng xuất</h3>
+      <button class="close-modal-btn" onclick="closeLogoutModal()">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
     
-    // Lấy payment method được chọn
-    const selectedPaymentBtn = document.querySelector('.payment-btn.active');
-    const paymentMethod = selectedPaymentBtn ? selectedPaymentBtn.dataset.method : 'cash';
+    <div class="modal-body">
+      <p>Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</p>
+    </div>
     
-    if (confirm(`Xác nhận thanh toán cho \${selectedTable.name}?\nTổng tiền: \${finalTotal.toLocaleString('vi-VN')}đ`)) {
-      try {
-        // Gọi API checkout
-        const response = await fetch('${pageContext.request.contextPath}/api/checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tableId: selectedTable.id,
-            paymentMethod: paymentMethod
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          alert('✅ Thanh toán thành công!\n\nTổng tiền: ' + finalTotal.toLocaleString('vi-VN') + 'đ');
-          
-          // Reset order và bàn
-          orderItems = [];
-          selectedTable = null;
-          document.getElementById('selectedTableInfo').textContent = 'Chưa chọn bàn';
-          
-          // Reset payment method selection
-          document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
-          
-          renderOrderItems();
-          renderTables(); // Refresh để update trạng thái bàn
-          updateBill();
-          
-          // Reload tables để cập nhật status
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } else {
-          alert('❌ Lỗi: ' + result.message);
-        }
-      } catch (error) {
-        console.error('Error during checkout:', error);
-        alert('❌ Không thể thanh toán. Vui lòng thử lại.');
-      }
-    }
-  });
-}
-</script>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeLogoutModal()">
+        <i class='bx bx-x'></i> Hủy
+      </button>
+      <button class="btn btn-danger" onclick="confirmLogout()">
+        <i class='bx bx-log-out'></i> Đăng xuất
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

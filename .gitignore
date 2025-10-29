@@ -1,1 +1,9 @@
 /target/
+
+# Uploaded images (keep directory structure but ignore files)
+src/main/webapp/uploads/products/*.jpg
+src/main/webapp/uploads/products/*.jpeg
+src/main/webapp/uploads/products/*.png
+src/main/webapp/uploads/products/*.gif
+src/main/webapp/uploads/products/*.webp
+!src/main/webapp/uploads/products/.gitkeep

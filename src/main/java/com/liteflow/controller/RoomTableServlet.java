@@ -3,9 +3,6 @@ package com.liteflow.controller;
 import com.liteflow.model.inventory.Room;
 import com.liteflow.model.inventory.Table;
 import com.liteflow.model.inventory.TableSession;
-import com.liteflow.model.inventory.Order;
-import com.liteflow.model.inventory.OrderDetail;
-import com.liteflow.model.inventory.PaymentTransaction;
 import com.liteflow.service.inventory.RoomTableService;
 import com.liteflow.service.inventory.ExcelService;
 import jakarta.servlet.ServletException;
@@ -1111,14 +1108,12 @@ public class RoomTableServlet extends HttpServlet {
     
     private void getTableHistory(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            // Parse JSON request
-            StringBuilder jsonBuffer = new StringBuilder();
-            String line;
-            while ((line = request.getReader().readLine()) != null) {
-                jsonBuffer.append(line);
+            // Use cached JSON string to avoid "Stream closed" error
+            if (cachedJsonString == null) {
+                cachedJsonString = getJsonString(request);
             }
             
-            JSONObject jsonRequest = new JSONObject(jsonBuffer.toString());
+            JSONObject jsonRequest = new JSONObject(cachedJsonString);
             String tableIdStr = jsonRequest.optString("tableId", "");
             
             if (tableIdStr == null || tableIdStr.trim().isEmpty()) {
@@ -1141,11 +1136,9 @@ public class RoomTableServlet extends HttpServlet {
                 return;
             }
             
-            // Get table sessions
-            List<TableSession> sessions = roomTableService.getTableSessions(tableId);
-            
-            // Get payment transactions
-            List<PaymentTransaction> payments = roomTableService.getTablePayments(tableId);
+            // Get completed table sessions (like cashier notification history)
+            List<TableSession> sessions = roomTableService.getCompletedTableSessions(tableId);
+            System.out.println("=== DEBUG: Total completed sessions found: " + sessions.size());
             
             // Build response
             JSONObject responseData = new JSONObject();
@@ -1163,72 +1156,79 @@ public class RoomTableServlet extends HttpServlet {
             }
             responseData.put("tableInfo", tableInfo);
             
-            // Sessions
-            JSONArray sessionsArray = new JSONArray();
+            // Build invoices array from completed sessions
+            JSONArray invoicesArray = new JSONArray();
+            int invoiceCount = 0;
             for (TableSession session : sessions) {
-                JSONObject sessionObj = new JSONObject();
-                sessionObj.put("sessionId", session.getSessionId().toString());
-                sessionObj.put("customerName", session.getCustomerName());
-                sessionObj.put("customerPhone", session.getCustomerPhone());
-                sessionObj.put("checkInTime", session.getCheckInTime().toString());
-                sessionObj.put("checkOutTime", session.getCheckOutTime() != null ? session.getCheckOutTime().toString() : null);
-                sessionObj.put("status", session.getStatus());
-                sessionObj.put("totalAmount", session.getTotalAmount());
-                sessionObj.put("paymentMethod", session.getPaymentMethod());
-                sessionObj.put("paymentStatus", session.getPaymentStatus());
-                sessionObj.put("notes", session.getNotes());
+                System.out.println("Processing session: " + session.getSessionId() + ", status: " + session.getStatus() + ", paymentStatus: " + session.getPaymentStatus());
+                invoiceCount++;
                 
-                // Get orders for this session
-                List<Order> orders = roomTableService.getSessionOrders(session.getSessionId());
-                JSONArray ordersArray = new JSONArray();
-                for (Order order : orders) {
-                    JSONObject orderObj = new JSONObject();
-                    orderObj.put("orderId", order.getOrderId().toString());
-                    orderObj.put("orderNumber", order.getOrderNumber());
-                    orderObj.put("orderDate", order.getOrderDate().toString());
-                    orderObj.put("totalAmount", order.getTotalAmount());
-                    orderObj.put("status", order.getStatus());
-                    orderObj.put("paymentMethod", order.getPaymentMethod());
-                    orderObj.put("paymentStatus", order.getPaymentStatus());
-                    orderObj.put("notes", order.getNotes());
-                    
-                    // Get order details
-                    List<OrderDetail> orderDetails = roomTableService.getOrderDetails(order.getOrderId());
-                    JSONArray orderDetailsArray = new JSONArray();
-                    for (OrderDetail detail : orderDetails) {
-                        JSONObject detailObj = new JSONObject();
-                        detailObj.put("productName", detail.getProductVariant() != null ? detail.getProductVariant().getProduct().getName() : "N/A");
-                        detailObj.put("productSize", detail.getProductVariant() != null ? detail.getProductVariant().getSize() : "N/A");
-                        detailObj.put("quantity", detail.getQuantity());
-                        detailObj.put("unitPrice", detail.getUnitPrice());
-                        detailObj.put("totalPrice", detail.getTotalPrice());
-                        orderDetailsArray.put(detailObj);
+                JSONObject invoiceObj = new JSONObject();
+                invoiceObj.put("transactionId", session.getSessionId().toString()); // Use sessionId as transactionId
+                
+                // Invoice name
+                String invoiceName = session.getInvoiceName();
+                if (invoiceName == null || invoiceName.trim().isEmpty()) {
+                    invoiceName = table.getTableName();
+                }
+                invoiceObj.put("invoiceName", invoiceName);
+                invoiceObj.put("tableName", table.getTableName());
+                
+                // Amount details
+                java.math.BigDecimal totalAmount = session.getTotalAmount();
+                java.math.BigDecimal finalAmount = totalAmount;
+                java.math.BigDecimal discount = java.math.BigDecimal.ZERO; // No discount info from session
+                
+                invoiceObj.put("amount", totalAmount != null ? totalAmount.doubleValue() : 0.0);
+                invoiceObj.put("finalAmount", finalAmount != null ? finalAmount.doubleValue() : 0.0);
+                invoiceObj.put("discount", discount.doubleValue());
+                invoiceObj.put("hasVoucher", false);
+                
+                // Payment details
+                invoiceObj.put("paymentMethod", session.getPaymentMethod() != null ? session.getPaymentMethod() : "cash");
+                
+                // Format checkOutTime (payment time) for frontend
+                java.time.LocalDateTime checkOutTime = session.getCheckOutTime();
+                java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                invoiceObj.put("processedAt", checkOutTime != null ? checkOutTime.format(formatter) : "");
+                
+                // Staff info from session.createdBy
+                if (session.getCreatedBy() != null) {
+                    invoiceObj.put("processedByName", session.getCreatedBy().getDisplayName());
+                } else {
+                    invoiceObj.put("processedByName", "N/A");
+                }
+                
+                // Get order items for this session
+                List<com.liteflow.model.inventory.OrderDetail> orderDetails = roomTableService.getOrderDetailsForSession(session.getSessionId());
+                invoiceObj.put("itemCount", orderDetails.size());
+                
+                // Build items array
+                JSONArray itemsArray = new JSONArray();
+                for (com.liteflow.model.inventory.OrderDetail detail : orderDetails) {
+                    JSONObject itemObj = new JSONObject();
+                    if (detail.getProductVariant() != null) {
+                        itemObj.put("name", detail.getProductVariant().getProduct().getName());
+                        itemObj.put("size", detail.getProductVariant().getSize());
+                    } else {
+                        itemObj.put("name", "N/A");
+                        itemObj.put("size", "");
                     }
-                    orderObj.put("orderDetails", orderDetailsArray);
-                    ordersArray.put(orderObj);
+                    itemObj.put("quantity", detail.getQuantity());
+                    itemObj.put("price", detail.getUnitPrice().doubleValue());
+                    itemsArray.put(itemObj);
                 }
-                sessionObj.put("orders", ordersArray);
-                sessionsArray.put(sessionObj);
+                invoiceObj.put("items", itemsArray);
+                
+                // Notes from session
+                invoiceObj.put("notes", session.getNotes() != null ? session.getNotes() : "");
+                
+                invoicesArray.put(invoiceObj);
+                System.out.println("  -> Added invoice #" + invoiceCount + " to array");
             }
-            responseData.put("sessions", sessionsArray);
-            
-            // Payments
-            JSONArray paymentsArray = new JSONArray();
-            for (PaymentTransaction payment : payments) {
-                JSONObject paymentObj = new JSONObject();
-                paymentObj.put("transactionId", payment.getTransactionId().toString());
-                paymentObj.put("amount", payment.getAmount());
-                paymentObj.put("paymentMethod", payment.getPaymentMethod());
-                paymentObj.put("paymentStatus", payment.getPaymentStatus());
-                paymentObj.put("transactionReference", payment.getTransactionReference());
-                paymentObj.put("notes", payment.getNotes());
-                paymentObj.put("processedAt", payment.getProcessedAt().toString());
-                if (payment.getProcessedBy() != null) {
-                    paymentObj.put("processedByName", payment.getProcessedBy().getDisplayName());
-                }
-                paymentsArray.put(paymentObj);
-            }
-            responseData.put("payments", paymentsArray);
+            System.out.println("=== DEBUG: Total invoices processed: " + invoiceCount);
+            System.out.println("=== DEBUG: Total invoices in array: " + invoicesArray.length());
+            responseData.put("invoices", invoicesArray);
             
             response.getWriter().write(responseData.toString());
             

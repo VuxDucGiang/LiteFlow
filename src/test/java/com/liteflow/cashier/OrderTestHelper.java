@@ -41,6 +41,8 @@ public class OrderTestHelper {
     public static void prepareRequestBody(HttpServletRequest mockRequest, String jsonBody) throws IOException {
         BufferedReader reader = new BufferedReader(new StringReader(jsonBody));
         when(mockRequest.getReader()).thenReturn(reader);
+        // ✅ Mock pathInfo for CashierAPIServlet routing
+        when(mockRequest.getPathInfo()).thenReturn("/order/create");
     }
 
     /**
@@ -50,6 +52,8 @@ public class OrderTestHelper {
                                           List<OrderItemBuilder> items) throws IOException {
         String json = buildOrderJson(tableId, items);
         prepareRequestBody(mockRequest, json);
+        // Mock pathInfo for CashierAPIServlet routing
+        when(mockRequest.getPathInfo()).thenReturn("/order/create");
     }
 
     /**
@@ -129,15 +133,22 @@ public class OrderTestHelper {
      * Setup successful order creation
      */
     public static void mockSuccessfulOrderCreation(OrderService mockService, UUID orderId) {
-        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any()))
-                .thenReturn(orderId);
+        // ✅ createOrderAndNotifyKitchen bây giờ trả về Map<String, Object>
+        Map<String, Object> orderInfo = new HashMap<>();
+        orderInfo.put("orderId", orderId);
+        orderInfo.put("orderNumber", "ORD-" + orderId.toString().substring(0, 8));
+        
+        // ✅ Dùng nullable() thay vì anyString() để match với null
+        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any(), nullable(String.class), nullable(String.class)))
+                .thenReturn(orderInfo);
     }
 
     /**
      * Setup service to throw validation error
      */
     public static void mockServiceValidationError(OrderService mockService, String errorMessage) {
-        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any()))
+        // ✅ Dùng nullable() thay vì anyString() để match với null
+        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any(), nullable(String.class), nullable(String.class)))
                 .thenThrow(new IllegalArgumentException(errorMessage));
     }
 
@@ -145,7 +156,8 @@ public class OrderTestHelper {
      * Setup service to throw runtime error
      */
     public static void mockServiceRuntimeError(OrderService mockService, String errorMessage) {
-        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any()))
+        // ✅ Dùng nullable() thay vì anyString() để match với null
+        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any(), nullable(String.class), nullable(String.class)))
                 .thenThrow(new RuntimeException(errorMessage));
     }
 
@@ -154,8 +166,14 @@ public class OrderTestHelper {
      */
     public static void mockServiceForDuplicateDetection(OrderService mockService, 
                                                        UUID firstOrderId, String duplicateMessage) {
-        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any()))
-                .thenReturn(firstOrderId)
+        // ✅ createOrderAndNotifyKitchen bây giờ trả về Map<String, Object>
+        Map<String, Object> orderInfo = new HashMap<>();
+        orderInfo.put("orderId", firstOrderId);
+        orderInfo.put("orderNumber", "ORD-" + firstOrderId.toString().substring(0, 8));
+        
+        // ✅ Dùng nullable() thay vì anyString() để match với null
+        when(mockService.createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any(), nullable(String.class), nullable(String.class)))
+                .thenReturn(orderInfo)
                 .thenThrow(new IllegalArgumentException(duplicateMessage));
     }
 
@@ -173,7 +191,10 @@ public class OrderTestHelper {
         assertThat(map.get("success")).isEqualTo(true);
         assertThat((String) map.get("message")).contains("Đã gửi thông báo đến bếp thành công");
         if (expectedOrderId != null) {
-            assertThat((String) map.get("orderId")).isEqualTo(expectedOrderId.toString());
+            // ✅ Response trả về orderIdUUID (UUID) và orderId (orderNumber)
+            assertThat((String) map.get("orderIdUUID")).isEqualTo(expectedOrderId.toString());
+            // ✅ Verify orderNumber có format đúng (ORD-xxxxxxxx)
+            assertThat((String) map.get("orderId")).matches("ORD-[0-9a-f]{8}");
         }
     }
 
@@ -403,14 +424,16 @@ public class OrderTestHelper {
      * Verify service was never called (for validation error tests)
      */
     public static void verifyServiceNeverCalled(OrderService mockService) {
-        verify(mockService, never()).createOrderAndNotifyKitchen(any(), any(), any());
+        // ✅ Dùng nullable() thay vì anyString() để match với null
+        verify(mockService, never()).createOrderAndNotifyKitchen(any(), any(), any(), nullable(String.class), nullable(String.class));
     }
 
     /**
      * Verify service was called exactly once
      */
     public static void verifyServiceCalledOnce(OrderService mockService) {
-        verify(mockService, times(1)).createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any());
+        // ✅ Dùng nullable() thay vì anyString() để match với null
+        verify(mockService, times(1)).createOrderAndNotifyKitchen(any(UUID.class), any(List.class), any(), nullable(String.class), nullable(String.class));
     }
 
     /**
@@ -418,7 +441,8 @@ public class OrderTestHelper {
      */
     public static void verifyCORSHeaders(HttpServletResponse mockResponse) {
         verify(mockResponse).setHeader("Access-Control-Allow-Origin", "*");
-        verify(mockResponse).setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        // ✅ CashierAPIServlet sử dụng "GET, POST, OPTIONS" không phải "POST, OPTIONS"
+        verify(mockResponse).setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         verify(mockResponse).setHeader("Access-Control-Allow-Headers", "Content-Type");
         verify(mockResponse).setStatus(HttpServletResponse.SC_OK);
     }

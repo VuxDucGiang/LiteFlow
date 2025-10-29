@@ -21,7 +21,7 @@ public class TableSession implements Serializable {
     private UUID sessionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "TableID", nullable = false)
+    @JoinColumn(name = "TableID", nullable = true) // ✅ Cho phép null với bàn đặc biệt (Mang về, Giao hàng)
     private Table table;
 
     @Column(name = "CustomerName", length = 200)
@@ -47,6 +47,9 @@ public class TableSession implements Serializable {
 
     @Column(name = "PaymentStatus", length = 50)
     private String paymentStatus = "Unpaid";
+
+    @Column(name = "InvoiceName", length = 100)
+    private String invoiceName;
 
     @Column(name = "Notes", columnDefinition = "NVARCHAR(MAX)")
     private String notes;
@@ -184,6 +187,14 @@ public class TableSession implements Serializable {
 
     public void setPaymentStatus(String paymentStatus) {
         this.paymentStatus = paymentStatus;
+    }
+
+    public String getInvoiceName() {
+        return invoiceName;
+    }
+
+    public void setInvoiceName(String invoiceName) {
+        this.invoiceName = invoiceName;
     }
 
     public String getNotes() {

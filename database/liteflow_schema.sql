@@ -228,7 +228,7 @@ CREATE TABLE Tables (
 -- TABLE SESSIONS - Quản lý phiên làm việc của từng bàn
 CREATE TABLE TableSessions (
     SessionID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    TableID UNIQUEIDENTIFIER NOT NULL,
+    TableID UNIQUEIDENTIFIER NULL,  -- ✅ Cho phép NULL với bàn đặc biệt (Mang về, Giao hàng)
     CustomerName NVARCHAR(200) NULL,  -- Tên khách hàng (tùy chọn)
     CustomerPhone NVARCHAR(20) NULL,  -- SĐT khách hàng (tùy chọn)
     CheckInTime DATETIME2 DEFAULT SYSDATETIME(),  -- Thời gian vào
@@ -237,6 +237,7 @@ CREATE TABLE TableSessions (
     TotalAmount DECIMAL(10,2) DEFAULT 0.00,  -- Tổng tiền của phiên
     PaymentMethod NVARCHAR(50) NULL,  -- Phương thức thanh toán
     PaymentStatus NVARCHAR(50) DEFAULT 'Unpaid' CHECK (PaymentStatus IN ('Unpaid', 'Paid', 'Partial')),
+    InvoiceName NVARCHAR(100) NULL,   -- Tên hóa đơn (vd: "Bàn 1 - HD 1")
     Notes NVARCHAR(MAX) NULL,         -- Ghi chú
     CreatedBy UNIQUEIDENTIFIER NULL,  -- Nhân viên tạo phiên
     UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),

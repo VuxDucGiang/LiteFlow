@@ -16,16 +16,18 @@ public class OrderDAO {
      * @param tableId ID của bàn
      * @param items Danh sách món (productVariantId, quantity, unitPrice)
      * @param userId ID của user tạo order
+     * @param invoiceName Tên hóa đơn (Bàn X - HD Y)
+     * @param orderNote Ghi chú đơn hàng
      * @return UUID của order được tạo
      */
-    public UUID createOrder(UUID tableId, List<Map<String, Object>> items, UUID userId) {
+    public Map<String, Object> createOrder(UUID tableId, List<Map<String, Object>> items, UUID userId, String invoiceName, String orderNote) {
         EntityManager em = BaseDAO.emf.createEntityManager();
         
         try {
             em.getTransaction().begin();
             
             // 1. Kiểm tra xem bàn có session đang active không
-            TableSession session = findOrCreateActiveSession(em, tableId, userId);
+            TableSession session = findOrCreateActiveSession(em, tableId, userId, invoiceName);
             
             // 2. Tạo order number
             String orderNumber = generateOrderNumber(em);
@@ -88,6 +90,12 @@ public class OrderDAO {
             order.setTotalAmount(total);
             order.setOrderDetails(orderDetails);
             
+            // ✅ Set ghi chú đơn hàng nếu có
+            if (orderNote != null && !orderNote.trim().isEmpty()) {
+                order.setNotes(orderNote.trim());
+                System.out.println("📝 Lưu ghi chú đơn hàng: " + orderNote.trim());
+            }
+            
             // Set created by
             if (userId != null) {
                 User user = em.find(User.class, userId);
@@ -103,7 +111,12 @@ public class OrderDAO {
             em.getTransaction().commit();
             
             System.out.println("✅ Đã tạo order: " + orderNumber + " với " + orderDetails.size() + " món");
-            return order.getOrderId();
+            
+            // ✅ Trả về cả orderId và orderNumber
+            Map<String, Object> result = new HashMap<>();
+            result.put("orderId", order.getOrderId());
+            result.put("orderNumber", orderNumber);
+            return result;
             
         } catch (Exception e) {
             if (em.getTransaction().isActive()) {
@@ -120,8 +133,31 @@ public class OrderDAO {
     /**
      * Tìm hoặc tạo session active cho bàn
      */
-    private TableSession findOrCreateActiveSession(EntityManager em, UUID tableId, UUID userId) {
-        // Tìm session đang active
+    private TableSession findOrCreateActiveSession(EntityManager em, UUID tableId, UUID userId, String invoiceName) {
+        // ✅ Với bàn đặc biệt (tableId = null), tạo session mới mỗi lần
+        if (tableId == null) {
+            TableSession session = new TableSession();
+            session.setSessionId(UUID.randomUUID());
+            session.setTable(null); // Special table không cần table entity
+            session.setCheckInTime(LocalDateTime.now());
+            session.setStatus("Active");
+            session.setPaymentStatus("Unpaid");
+            
+            // ✅ Set invoice name
+            if (invoiceName != null && !invoiceName.isEmpty()) {
+                session.setInvoiceName(invoiceName);
+            }
+            
+            if (userId != null) {
+                User user = em.find(User.class, userId);
+                session.setCreatedBy(user);
+            }
+            
+            em.persist(session);
+            return session;
+        }
+        
+        // Tìm session đang active cho bàn thường
         Query query = em.createQuery(
             "SELECT s FROM TableSession s WHERE s.table.tableId = :tableId AND s.status = 'Active'"
         );
@@ -131,10 +167,16 @@ public class OrderDAO {
         List<TableSession> sessions = query.getResultList();
         
         if (!sessions.isEmpty()) {
-            return sessions.get(0);
+            // ✅ Update invoice name nếu đã có session (case: gọi thêm món)
+            TableSession existingSession = sessions.get(0);
+            if (invoiceName != null && !invoiceName.isEmpty()) {
+                existingSession.setInvoiceName(invoiceName);
+                em.merge(existingSession);
+            }
+            return existingSession;
         }
         
-        // Tạo session mới
+        // Tạo session mới cho bàn thường
         Table table = em.find(Table.class, tableId);
         if (table == null) {
             throw new RuntimeException("Không tìm thấy bàn: " + tableId);
@@ -146,6 +188,11 @@ public class OrderDAO {
         session.setCheckInTime(LocalDateTime.now());
         session.setStatus("Active");
         session.setPaymentStatus("Unpaid");
+        
+        // ✅ Set invoice name
+        if (invoiceName != null && !invoiceName.isEmpty()) {
+            session.setInvoiceName(invoiceName);
+        }
         
         if (userId != null) {
             User user = em.find(User.class, userId);
@@ -289,7 +336,14 @@ public class OrderDAO {
                 orderMap.put("orderNumber", order.getOrderNumber());
                 orderMap.put("orderDate", order.getOrderDate().toString());
                 orderMap.put("status", order.getStatus());
-                orderMap.put("tableName", order.getSession().getTable().getTableNumber());
+                
+                // ✅ Xử lý tableName với bàn đặc biệt (table = null)
+                String tableName = "Mang về / Giao hàng"; // Default cho bàn đặc biệt
+                Table table = order.getSession().getTable();
+                if (table != null) {
+                    tableName = table.getTableNumber();
+                }
+                orderMap.put("tableName", tableName);
                 
                 List<Map<String, Object>> items = new ArrayList<>();
                 for (OrderDetail detail : order.getOrderDetails()) {
