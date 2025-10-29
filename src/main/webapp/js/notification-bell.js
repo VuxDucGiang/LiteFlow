@@ -412,8 +412,35 @@ class NotificationBell {
             this.markAsRead(alert.historyID);
         }
         
-        // Navigate to alert dashboard
-        window.location.href = `${this.contextPath}/alert/`;
+        // Get target URL based on alert type
+        const targetUrl = this.getAlertTargetUrl(alert);
+        window.location.href = targetUrl;
+    }
+    
+    /**
+     * Get target URL based on alert type
+     */
+    getAlertTargetUrl(alert) {
+        // Mapping alert types to their corresponding pages
+        const alertTypeMapping = {
+            'DAILY_SUMMARY': '/report/revenue',
+            'REVENUE_ANOMALY': '/report/revenue',
+            'PO_PENDING': '/procurement/po',
+            'PO_OVERDUE': '/procurement/po',
+            'LOW_INVENTORY': '/products',
+            'OUT_OF_STOCK': '/inventory/productlist'
+        };
+        
+        // Get the target path from mapping
+        const targetPath = alertTypeMapping[alert.alertType];
+        
+        // Return full URL with context path
+        if (targetPath) {
+            return `${this.contextPath}${targetPath}`;
+        }
+        
+        // Default: navigate to alert dashboard
+        return `${this.contextPath}/alert/`;
     }
     
     /**

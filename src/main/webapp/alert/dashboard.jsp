@@ -524,6 +524,16 @@
             card.setAttribute('data-type', alert.alertType);
             card.setAttribute('data-read', alert.isRead ? 'read' : 'unread');
             
+            // Make card clickable to navigate to relevant page
+            card.style.cursor = 'pointer';
+            card.onclick = function(e) {
+                // Don't navigate if clicking on buttons
+                if (!e.target.closest('button')) {
+                    const targetUrl = getAlertTargetUrl(alert);
+                    window.location.href = targetUrl;
+                }
+            };
+            
             const priorityBadge = '<span class="alert-priority ' + alert.priority.toLowerCase() + '">' + 
                 alert.priority + '</span>';
             
@@ -543,9 +553,33 @@
                 '<div class="alert-actions">' +
                 (alert.isRead ? '' : '<button class="btn btn-success btn-small" onclick="markAsRead(\'' + alert.historyID + '\')">✓ Mark Read</button>') +
                 '<button class="btn btn-danger btn-small" onclick="dismissAlert(\'' + alert.historyID + '\')">✕ Dismiss</button>' +
+                '<button class="btn btn-primary btn-small" onclick="navigateToAlert(\'' + alert.alertType + '\', event)">➜ View</button>' +
                 '</div>';
             
             return card;
+        }
+        
+        // Get target URL based on alert type
+        function getAlertTargetUrl(alert) {
+            const alertTypeMapping = {
+                'DAILY_SUMMARY': '${pageContext.request.contextPath}/report/revenue',
+                'REVENUE_ANOMALY': '${pageContext.request.contextPath}/report/revenue',
+                'PO_PENDING': '${pageContext.request.contextPath}/procurement/po',
+                'PO_OVERDUE': '${pageContext.request.contextPath}/procurement/po',
+                'LOW_INVENTORY': '${pageContext.request.contextPath}/products',
+                'OUT_OF_STOCK': '${pageContext.request.contextPath}/inventory/productlist'
+            };
+            
+            return alertTypeMapping[alert.alertType] || '${pageContext.request.contextPath}/alert/';
+        }
+        
+        // Navigate to alert page
+        function navigateToAlert(alertType, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            const alert = { alertType: alertType };
+            window.location.href = getAlertTargetUrl(alert);
         }
         
         // Update statistics

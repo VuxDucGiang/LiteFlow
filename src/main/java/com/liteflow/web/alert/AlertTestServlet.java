@@ -121,6 +121,24 @@ public class AlertTestServlet extends HttpServlet {
                     success = true;
                     break;
                     
+                case "manual-check-inventory":
+                    schedulerService.manualTriggerInventoryChecks();
+                    result = "Inventory checks executed. Check console for results.";
+                    success = true;
+                    break;
+                    
+                case "manual-check-po-pending":
+                    schedulerService.manualTriggerPOPendingChecks();
+                    result = "PO Pending checks executed. Check console for results.";
+                    success = true;
+                    break;
+                    
+                case "manual-check-all":
+                    schedulerService.manualTriggerAllChecks();
+                    result = "All condition checks executed. Check console for results.";
+                    success = true;
+                    break;
+                    
                 default:
                     result = "Unknown action: " + action;
             }

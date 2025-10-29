@@ -1293,16 +1293,73 @@
         // Action functions
         function approvePO(poId) {
             if (confirm('Bạn có chắc chắn muốn duyệt đơn hàng này?')) {
-                alert('✅ Đã duyệt đơn hàng: ' + poId);
-                // TODO: Implement approve functionality
+                console.log('=== approvePO START ===');
+                console.log('POID:', poId);
+                
+                // Create form and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '${pageContext.request.contextPath}/procurement/po';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'approve';
+                
+                const poidInput = document.createElement('input');
+                poidInput.type = 'hidden';
+                poidInput.name = 'poid';
+                poidInput.value = poId;
+                
+                const levelInput = document.createElement('input');
+                levelInput.type = 'hidden';
+                levelInput.name = 'level';
+                levelInput.value = '1'; // Default approval level
+                
+                form.appendChild(actionInput);
+                form.appendChild(poidInput);
+                form.appendChild(levelInput);
+                
+                document.body.appendChild(form);
+                console.log('Form created, submitting...');
+                form.submit();
             }
         }
 
         function rejectPO(poId) {
             const reason = prompt('Lý do từ chối:');
             if (reason && reason.trim() !== '') {
-                alert('❌ Đã từ chối đơn hàng: ' + poId + '\nLý do: ' + reason);
-                // TODO: Implement reject functionality
+                console.log('=== rejectPO START ===');
+                console.log('POID:', poId);
+                console.log('Reason:', reason);
+                
+                // Create form and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '${pageContext.request.contextPath}/procurement/po';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'reject';
+                
+                const poidInput = document.createElement('input');
+                poidInput.type = 'hidden';
+                poidInput.name = 'poid';
+                poidInput.value = poId;
+                
+                const reasonInput = document.createElement('input');
+                reasonInput.type = 'hidden';
+                reasonInput.name = 'reason';
+                reasonInput.value = reason;
+                
+                form.appendChild(actionInput);
+                form.appendChild(poidInput);
+                form.appendChild(reasonInput);
+                
+                document.body.appendChild(form);
+                console.log('Form created, submitting...');
+                form.submit();
             }
         }
 
