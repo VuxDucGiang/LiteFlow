@@ -99,70 +99,72 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
       </div>
       </div>
       <div class="attendance-actions">
-        <button class="btn-clock-in" id="btnClockIn" onclick="clockIn()">
-          <i class='bx bx-time-five'></i>
-          <span>Chấm công vào</span>
-        </button>
-        <button class="btn-clock-out" id="btnClockOut" onclick="clockOut()">
-          <i class='bx bx-time'></i>
-          <span>Chấm công ra</span>
+        <button class="btn-clock-toggle" id="btnClockToggle" onclick="toggleClock()">
+          <i class='bx bx-time-five' id="clockIcon"></i>
+          <span id="clockText">Chấm công vào</span>
         </button>
       </div>
       <div class="attendance-message" id="attendanceMessage"></div>
-    </div>
 
-    <div class="widget quick-actions">
-      <h2 class="widget-title">THAO TÁC NHANH</h2>
-      
-      <!-- Primary Action Buttons -->
-      <div class="action-buttons">
-        <button class="btn-action purple">
-          <i class='bx bx-calendar-check'></i>
-          <span>Xin nghỉ phép</span>
-        </button>
-        <button class="btn-action red">
-          <i class='bx bx-plus'></i>
-          <span>Thêm tăng ca</span>
-        </button>
-        <button class="btn-action orange">
+      <!-- Additional Actions -->
+      <div class="attendance-secondary-actions">
+        <button class="btn-secondary-action" onclick="openForgotClockModal()">
           <i class='bx bx-error-circle'></i>
           <span>Quên chấm công</span>
         </button>
-        <button class="btn-action green">
-          <i class='bx bx-briefcase'></i>
-          <span>Chấm công</span>
+        <button class="btn-secondary-action" onclick="openLeaveRequestModal()">
+          <i class='bx bx-calendar-check'></i>
+          <span>Xin nghỉ phép</span>
         </button>
       </div>
-      
-      <!-- Secondary Navigation Icons -->
-      <div class="nav-icons-section">
-        <h3 class="section-subtitle">Danh sách</h3>
-        <div class="nav-icons">
-          <div class="nav-icon" title="Công">
-            <i class='bx bx-calendar-check'></i>
-            <span>Công</span>
+    </div>
+
+    <div class="widget notice-board">
+      <h2 class="widget-title">
+        <span><i class='bx bx-notification'></i> BẢNG THÔNG BÁO</span>
+      </h2>
+
+      <div class="notice-list" id="noticeList">
+        <!-- Sample notices - these should be loaded from backend -->
+        <div class="notice-item important">
+          <div class="notice-header">
+            <span class="notice-badge important">Quan trọng</span>
+            <span class="notice-date">30/10/2025</span>
           </div>
-          <div class="nav-icon" title="Hồ sơ cá nhân">
-            <i class='bx bx-user-circle'></i>
-            <span>Hồ sơ cá nhân</span>
-          </div>
-          <div class="nav-icon" title="DS quên chấm công">
-            <i class='bx bx-search-alt'></i>
-            <span>DS quên chấm công</span>
-          </div>
-          <div class="nav-icon" title="DS ngày nghỉ">
-            <i class='bx bx-calendar-x'></i>
-            <span>DS ngày nghỉ</span>
-          </div>
-          <div class="nav-icon" title="DS tăng ca">
-            <i class='bx bx-time-five'></i>
-            <span>DS tăng ca</span>
-          </div>
-          <div class="nav-icon" title="Xem thêm">
-            <i class='bx bx-dots-horizontal-rounded'></i>
-            <span>Xem thêm</span>
+          <div class="notice-title">Thông báo nghỉ lễ Quốc Khánh</div>
+          <div class="notice-content">
+            Công ty thông báo lịch nghỉ lễ Quốc Khánh 2/9 từ ngày 31/8 đến 3/9. Toàn thể nhân viên nghỉ theo quy định.
           </div>
         </div>
+
+        <div class="notice-item general">
+          <div class="notice-header">
+            <span class="notice-badge general">Chung</span>
+            <span class="notice-date">29/10/2025</span>
+          </div>
+          <div class="notice-title">Cập nhật quy trình chấm công mới</div>
+          <div class="notice-content">
+            Từ ngày 1/11, quy trình chấm công sẽ được cập nhật. Vui lòng chấm công đúng giờ và báo cáo khi quên chấm công.
+          </div>
+        </div>
+
+        <div class="notice-item info">
+          <div class="notice-header">
+            <span class="notice-badge info">Thông tin</span>
+            <span class="notice-date">28/10/2025</span>
+          </div>
+          <div class="notice-title">Lịch họp phòng ban tháng 11</div>
+          <div class="notice-content">
+            Lịch họp phòng ban đã được cập nhật. Vui lòng kiểm tra lịch cá nhân của bạn.
+          </div>
+        </div>
+      </div>
+
+      <div class="notice-footer">
+        <a href="#" class="view-all-link">
+          <span>Xem tất cả thông báo</span>
+          <i class='bx bx-chevron-right'></i>
+        </a>
       </div>
     </div>
 
@@ -653,151 +655,110 @@ async function loadAttendanceStatus() {
       console.error('Failed to load attendance status');
       return;
     }
-    
+
     const data = await response.json();
-    
+
     // Update UI based on status
-    const checkInBtn = document.getElementById('btnClockIn');
-    const checkOutBtn = document.getElementById('btnClockOut');
+    const toggleBtn = document.getElementById('btnClockToggle');
+    const clockIcon = document.getElementById('clockIcon');
+    const clockText = document.getElementById('clockText');
     const checkInTimeEl = document.getElementById('checkInTime');
     const checkOutTimeEl = document.getElementById('checkOutTime');
-    
+
     if (data.hasClockedIn) {
       checkInTimeEl.textContent = data.checkInTime || '--:--:--';
-      checkInBtn.disabled = true;
-      checkInBtn.classList.add('disabled');
     } else {
       checkInTimeEl.textContent = '--:--:--';
-      checkInBtn.disabled = false;
-      checkInBtn.classList.remove('disabled');
     }
-    
+
     if (data.hasClockedOut) {
       checkOutTimeEl.textContent = data.checkOutTime || '--:--:--';
-      checkOutBtn.disabled = true;
-      checkOutBtn.classList.add('disabled');
-    } else {
+      toggleBtn.disabled = true;
+      toggleBtn.classList.add('disabled');
+      clockText.textContent = 'Đã chấm công';
+      clockIcon.className = 'bx bx-check-circle';
+    } else if (data.hasClockedIn) {
       checkOutTimeEl.textContent = '--:--:--';
-      checkOutBtn.disabled = false;
-      checkOutBtn.classList.remove('disabled');
+      toggleBtn.disabled = false;
+      toggleBtn.classList.remove('disabled');
+      toggleBtn.classList.add('clock-out-mode');
+      clockText.textContent = 'Chấm công ra';
+      clockIcon.className = 'bx bx-time';
+    } else {
+      checkInTimeEl.textContent = '--:--:--';
+      checkOutTimeEl.textContent = '--:--:--';
+      toggleBtn.disabled = false;
+      toggleBtn.classList.remove('disabled', 'clock-out-mode');
+      clockText.textContent = 'Chấm công vào';
+      clockIcon.className = 'bx bx-time-five';
     }
-    
+
   } catch (error) {
     console.error('Error loading attendance status:', error);
   }
 }
 
-// Clock In
-async function clockIn() {
-  const btn = document.getElementById('btnClockIn');
+// Toggle Clock (In/Out)
+async function toggleClock() {
+  const btn = document.getElementById('btnClockToggle');
   const messageEl = document.getElementById('attendanceMessage');
-  
-  if (btn.disabled) {
-    return;
-  }
-  
-  btn.disabled = true;
-  messageEl.textContent = 'Đang xử lý...';
-  messageEl.className = 'attendance-message info';
-  
-  try {
-    const response = await fetch(CONTEXT_PATH + '/api/timesheet/clock-in', {
-      method: 'POST'
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok && data.success) {
-      messageEl.textContent = data.message || 'Chấm công vào thành công!';
-      messageEl.className = 'attendance-message success';
-      
-      // Update check-in time
-      document.getElementById('checkInTime').textContent = data.checkInTime || '--:--:--';
-      btn.classList.add('disabled');
-      
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        messageEl.textContent = '';
-        messageEl.className = 'attendance-message';
-      }, 3000);
-      
-      // Reload status
-      await loadAttendanceStatus();
-    } else {
-      messageEl.textContent = data.error || 'Không thể chấm công vào';
-      messageEl.className = 'attendance-message error';
-      btn.disabled = false;
-      
-      setTimeout(() => {
-        messageEl.textContent = '';
-        messageEl.className = 'attendance-message';
-      }, 5000);
-    }
-  } catch (error) {
-    console.error('Error clocking in:', error);
-    messageEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
-    messageEl.className = 'attendance-message error';
-    btn.disabled = false;
-    
-    setTimeout(() => {
-      messageEl.textContent = '';
-      messageEl.className = 'attendance-message';
-    }, 5000);
-  }
-}
+  const clockText = document.getElementById('clockText');
 
-// Clock Out
-async function clockOut() {
-  const btn = document.getElementById('btnClockOut');
-  const messageEl = document.getElementById('attendanceMessage');
-  
   if (btn.disabled) {
     return;
   }
-  
+
+  // Check current mode based on button class
+  const isClockOutMode = btn.classList.contains('clock-out-mode');
+  const endpoint = isClockOutMode ? '/api/timesheet/clock-out' : '/api/timesheet/clock-in';
+  const actionText = isClockOutMode ? 'chấm công ra' : 'chấm công vào';
+
   btn.disabled = true;
   messageEl.textContent = 'Đang xử lý...';
   messageEl.className = 'attendance-message info';
-  
+
   try {
-    const response = await fetch(CONTEXT_PATH + '/api/timesheet/clock-out', {
+    const response = await fetch(CONTEXT_PATH + endpoint, {
       method: 'POST'
     });
-    
+
     const data = await response.json();
-    
+
     if (response.ok && data.success) {
-      messageEl.textContent = data.message || 'Chấm công ra thành công!';
+      messageEl.textContent = data.message || `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} thành công!`;
       messageEl.className = 'attendance-message success';
-      
-      // Update check-out time
-      document.getElementById('checkOutTime').textContent = data.checkOutTime || '--:--:--';
-      btn.classList.add('disabled');
-      
+
+      // Update time display
+      if (isClockOutMode) {
+        document.getElementById('checkOutTime').textContent = data.checkOutTime || '--:--:--';
+      } else {
+        document.getElementById('checkInTime').textContent = data.checkInTime || '--:--:--';
+      }
+
       // Clear message after 3 seconds
       setTimeout(() => {
         messageEl.textContent = '';
         messageEl.className = 'attendance-message';
       }, 3000);
-      
-      // Reload status
+
+      // Reload status to update button
       await loadAttendanceStatus();
     } else {
-      messageEl.textContent = data.error || 'Không thể chấm công ra';
+      messageEl.textContent = data.error || `Không thể ${actionText}`;
       messageEl.className = 'attendance-message error';
       btn.disabled = false;
-      
+
       setTimeout(() => {
         messageEl.textContent = '';
         messageEl.className = 'attendance-message';
       }, 5000);
     }
   } catch (error) {
-    console.error('Error clocking out:', error);
+    console.error(`Error ${actionText}:`, error);
     messageEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
     messageEl.className = 'attendance-message error';
     btn.disabled = false;
-    
+
     setTimeout(() => {
       messageEl.textContent = '';
       messageEl.className = 'attendance-message';
@@ -806,8 +767,137 @@ async function clockOut() {
 }
 
 // Make functions globally accessible
-window.clockIn = clockIn;
-window.clockOut = clockOut;
+window.toggleClock = toggleClock;
+
+// ==============================
+// Leave Request Functions
+// ==============================
+
+// Open leave request modal
+function openLeaveRequestModal() {
+  console.log('=== openLeaveRequestModal called ===');
+  try {
+    const modal = document.getElementById('leaveRequestModal');
+    if (!modal) {
+      console.error('❌ Leave request modal element not found!');
+      alert('Không thể mở form. Modal element không tồn tại. Vui lòng tải lại trang.');
+      return;
+    }
+
+    // Reset form
+    document.getElementById('leaveRequestId').value = '';
+    document.getElementById('leaveType').value = 'Nghỉ phép';
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    document.getElementById('reason').value = '';
+
+    // Set default start date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('startDate').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('endDate').value = tomorrow.toISOString().split('T')[0];
+
+    // Show modal
+    modal.style.display = 'flex';
+    modal.style.zIndex = '10000';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+
+    console.log('✅ Leave request modal opened successfully');
+  } catch (error) {
+    console.error('❌ Error opening leave request modal:', error);
+    alert('Có lỗi xảy ra khi mở form: ' + error.message);
+  }
+}
+
+// Close leave request modal
+function closeLeaveRequestModal() {
+  const modal = document.getElementById('leaveRequestModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Save leave request
+async function saveLeaveRequest() {
+  const leaveType = document.getElementById('leaveType').value;
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  const reason = document.getElementById('reason').value.trim();
+
+  if (!leaveType || !startDate || !endDate) {
+    alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+    return;
+  }
+
+  // Validate dates
+  if (new Date(endDate) < new Date(startDate)) {
+    alert('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu');
+    return;
+  }
+
+  const formData = new URLSearchParams();
+  formData.append('leaveType', leaveType);
+  formData.append('startDate', startDate);
+  formData.append('endDate', endDate);
+  formData.append('reason', reason);
+
+  try {
+    const response = await fetch(CONTEXT_PATH + '/api/leave-request/', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert('Đơn xin nghỉ đã được gửi thành công! Vui lòng chờ phê duyệt.');
+      closeLeaveRequestModal();
+      // Optionally reload leave requests list if you have one
+      // loadLeaveRequests();
+    } else {
+      alert('Không thể gửi đơn xin nghỉ: ' + (data.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Error saving leave request:', error);
+    alert('Có lỗi xảy ra khi gửi đơn xin nghỉ');
+  }
+}
+
+// Make leave request functions globally accessible
+window.openLeaveRequestModal = openLeaveRequestModal;
+window.closeLeaveRequestModal = closeLeaveRequestModal;
+window.saveLeaveRequest = saveLeaveRequest;
+
+// ==============================
+// Forgot Clock In Functions
+// ==============================
+
+// Open forgot clock in modal
+function openForgotClockModal() {
+  alert('Chức năng "Quên chấm công" đang được phát triển.\nVui lòng liên hệ quản lý để được hỗ trợ.');
+  // TODO: Implement forgot clock modal similar to leave request
+}
+
+// Make forgot clock functions globally accessible
+window.openForgotClockModal = openForgotClockModal;
+
+// Setup modal close on outside click for leave request modal
+function setupLeaveRequestModalCloseOnOutsideClick() {
+  const modal = document.getElementById('leaveRequestModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeLeaveRequestModal();
+      }
+    });
+  }
+}
+
+// Call setup function when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  setupLeaveRequestModalCloseOnOutsideClick();
+});
 </script>
 
 <!-- Schedule Modal -->
@@ -860,6 +950,56 @@ window.clockOut = clockOut;
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeScheduleModal()">Hủy</button>
       <button class="btn-save" onclick="saveSchedule()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leave Request Modal -->
+<div id="leaveRequestModal" class="modal-overlay" style="display: none; z-index: 10000;">
+  <div class="modal-content" onclick="event.stopPropagation();">
+    <div class="modal-header">
+      <h3>Đơn xin nghỉ phép</h3>
+      <button class="modal-close" onclick="closeLeaveRequestModal()">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="leaveRequestId" />
+
+      <div class="form-group">
+        <label>Loại nghỉ phép <span class="required">*</span></label>
+        <select id="leaveType" class="form-control" required>
+          <option value="Nghỉ phép">Nghỉ phép</option>
+          <option value="Nghỉ bệnh">Nghỉ bệnh</option>
+          <option value="Nghỉ không lương">Nghỉ không lương</option>
+          <option value="Nghỉ khác">Nghỉ khác</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Ngày bắt đầu <span class="required">*</span></label>
+          <input type="date" id="startDate" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label>Ngày kết thúc <span class="required">*</span></label>
+          <input type="date" id="endDate" class="form-control" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Lý do</label>
+        <textarea id="reason" class="form-control" rows="4" placeholder="Nhập lý do xin nghỉ phép (tùy chọn)"></textarea>
+      </div>
+
+      <div class="form-note">
+        <i class='bx bx-info-circle'></i>
+        <span>Đơn xin nghỉ sẽ được gửi đến quản lý để phê duyệt. Bạn sẽ nhận được thông báo khi đơn được xử lý.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeLeaveRequestModal()">Hủy</button>
+      <button class="btn-save" onclick="saveLeaveRequest()">Gửi đơn</button>
     </div>
   </div>
 </div>
