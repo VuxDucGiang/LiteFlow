@@ -45,7 +45,7 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
     <div class="widget personal-schedule">
       <div class="widget-title-row">
         <h2 class="widget-title">LỊCH CÁ NHÂN</h2>
-        <button class="btn-add-schedule" onclick="openAddScheduleModal()">
+        <button class="btn-add-schedule" id="btnAddSchedule" type="button">
           <i class='bx bx-plus'></i> Thêm mới
         </button>
       </div>
@@ -230,6 +230,112 @@ for (int day = 1; day <= daysInMonth; day++) {
 </div>
 
 <script>
+// Context path for API calls
+const CONTEXT_PATH = '<c:out value="${pageContext.request.contextPath}" />';
+
+// Global variable
+let currentEditingSchedule = null;
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Priority sort order: High -> Medium -> Low
+function getPriorityOrder(priority) {
+  switch(priority) {
+    case 'High': return 1;
+    case 'Medium': return 2;
+    case 'Low': return 3;
+    default: return 4;
+  }
+}
+
+// Format date to Vietnamese format
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString + 'T00:00:00');
+  const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  const dayName = days[date.getDay()];
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${dayName}, ${day}/${month}/${date.getFullYear()}`;
+}
+
+// Open add schedule modal - MUST be available immediately
+function openAddScheduleModal() {
+  console.log('=== openAddScheduleModal called ===');
+  try {
+    currentEditingSchedule = null;
+    
+    // Reset form fields
+    const modalScheduleId = document.getElementById('modalScheduleId');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDescription = document.getElementById('modalDescription');
+    const modalStartDate = document.getElementById('modalStartDate');
+    const modalStartTime = document.getElementById('modalStartTime');
+    const modalEndTime = document.getElementById('modalEndTime');
+    const modalPriority = document.getElementById('modalPriority');
+    const scheduleModalTitle = document.getElementById('scheduleModalTitle');
+    const scheduleModal = document.getElementById('scheduleModal');
+    
+    console.log('Modal element:', scheduleModal);
+    console.log('Title element:', modalTitle);
+    
+    if (!scheduleModal) {
+      console.error('❌ Modal element not found!');
+      alert('Không thể mở form. Modal element không tồn tại. Vui lòng tải lại trang.');
+      return;
+    }
+    
+    // Reset form
+    if (modalScheduleId) modalScheduleId.value = '';
+    if (modalTitle) modalTitle.value = '';
+    if (modalDescription) modalDescription.value = '';
+    if (modalStartDate) {
+      modalStartDate.value = '';
+      // Set default to today
+      const today = new Date().toISOString().split('T')[0];
+      modalStartDate.value = today;
+    }
+    if (modalStartTime) modalStartTime.value = '';
+    if (modalEndTime) modalEndTime.value = '';
+    if (modalPriority) modalPriority.value = 'Medium';
+    if (scheduleModalTitle) scheduleModalTitle.textContent = 'Thêm lịch cá nhân';
+    
+    // Show modal
+    scheduleModal.style.display = 'flex';
+    scheduleModal.style.zIndex = '10000';
+    scheduleModal.style.visibility = 'visible';
+    scheduleModal.style.opacity = '1';
+    
+    console.log('✅ Modal display:', scheduleModal.style.display);
+    console.log('✅ Modal opened successfully');
+    
+    // Focus on title input after a short delay
+    if (modalTitle) {
+      setTimeout(() => {
+        modalTitle.focus();
+        console.log('✅ Focused on title input');
+      }, 100);
+    }
+  } catch (error) {
+    console.error('❌ Error opening modal:', error);
+    console.error('Error stack:', error.stack);
+    alert('Có lỗi xảy ra khi mở form: ' + error.message);
+  }
+}
+
+// Make functions available globally immediately
+window.openAddScheduleModal = openAddScheduleModal;
+window.saveSchedule = saveSchedule;
+window.editSchedule = editSchedule;
+window.deleteSchedule = deleteSchedule;
+window.closeScheduleModal = closeScheduleModal;
+
 // Simple line chart for work progress
 document.addEventListener('DOMContentLoaded', function() {
   const canvas = document.getElementById('workProgressChart');
@@ -276,20 +382,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // Personal Schedule Functions
 // ==============================
 
-// Helper function to escape HTML
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-let currentEditingSchedule = null;
-
 // Load personal schedules
 async function loadPersonalSchedules() {
   try {
-    const response = await fetch('${pageContext.request.contextPath}/api/personal-schedule/');
+    const response = await fetch(CONTEXT_PATH + '/api/personal-schedule/');
     if (!response.ok) throw new Error('Failed to load schedules');
     
     const schedules = await response.json();
@@ -300,14 +396,30 @@ async function loadPersonalSchedules() {
       return;
     }
     
+    // Sort schedules: by priority first (High -> Medium -> Low), then by date
+    schedules.sort((a, b) => {
+      const priorityDiff = getPriorityOrder(a.priority) - getPriorityOrder(b.priority);
+      if (priorityDiff !== 0) return priorityDiff;
+      // If same priority, sort by date (earlier dates first)
+      return new Date(a.startDate) - new Date(b.startDate);
+    });
+    
     scheduleList.innerHTML = schedules.map(schedule => {
       const priorityClass = schedule.priority.toLowerCase();
       const priorityLabel = schedule.priority === 'High' ? 'Cao' : schedule.priority === 'Medium' ? 'Trung bình' : 'Thấp';
-      const timeDisplay = schedule.startTime || schedule.endTime 
-        ? ' ' + (schedule.startTime || '') + (schedule.endTime ? '-' + schedule.endTime : '')
-        : '';
       
-      let html = '<div class="schedule-item priority-' + priorityClass + '" data-id="' + schedule.scheduleId + '">';
+      // Format date
+      const dateDisplay = formatDate(schedule.startDate);
+      
+      // Format time
+      let timeDisplay = '';
+      if (schedule.startTime || schedule.endTime) {
+        const startTime = schedule.startTime ? schedule.startTime.substring(0, 5) : '';
+        const endTime = schedule.endTime ? schedule.endTime.substring(0, 5) : '';
+        timeDisplay = startTime + (endTime ? ' - ' + endTime : '');
+      }
+      
+      let html = '<div class="schedule-item priority-' + priorityClass + '" data-id="' + schedule.scheduleId + '" data-priority="' + schedule.priority + '">';
       html += '<div class="schedule-header">';
       html += '<div class="schedule-title">' + escapeHtml(schedule.title) + '</div>';
       html += '<div class="schedule-actions">';
@@ -326,6 +438,9 @@ async function loadPersonalSchedules() {
       
       html += '<div class="schedule-footer">';
       html += '<span class="schedule-priority priority-' + priorityClass + '">' + priorityLabel + '</span>';
+      if (dateDisplay) {
+        html += '<span class="schedule-date">' + escapeHtml(dateDisplay) + '</span>';
+      }
       if (timeDisplay) {
         html += '<span class="schedule-time">' + escapeHtml(timeDisplay) + '</span>';
       }
@@ -340,23 +455,9 @@ async function loadPersonalSchedules() {
   }
 }
 
-// Open add schedule modal
-function openAddScheduleModal() {
-  currentEditingSchedule = null;
-  document.getElementById('modalScheduleId').value = '';
-  document.getElementById('modalTitle').value = '';
-  document.getElementById('modalDescription').value = '';
-  document.getElementById('modalStartDate').value = '';
-  document.getElementById('modalStartTime').value = '';
-  document.getElementById('modalEndTime').value = '';
-  document.getElementById('modalPriority').value = 'Medium';
-  document.getElementById('scheduleModalTitle').textContent = 'Thêm lịch cá nhân';
-  document.getElementById('scheduleModal').style.display = 'flex';
-}
-
 // Edit schedule
 function editSchedule(scheduleId) {
-  fetch(`${pageContext.request.contextPath}/api/personal-schedule/${scheduleId}`)
+  fetch(CONTEXT_PATH + '/api/personal-schedule/' + scheduleId)
     .then(res => res.json())
     .then(schedule => {
       currentEditingSchedule = schedule;
@@ -381,7 +482,7 @@ async function deleteSchedule(scheduleId) {
   if (!confirm('Bạn có chắc chắn muốn xóa lịch này?')) return;
   
   try {
-    const response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/${scheduleId}`, {
+    const response = await fetch(CONTEXT_PATH + '/api/personal-schedule/' + scheduleId, {
       method: 'DELETE'
     });
     
@@ -421,13 +522,13 @@ async function saveSchedule() {
     let response;
     if (currentEditingSchedule) {
       // Update existing schedule
-      response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/${currentEditingSchedule.scheduleId}`, {
+      response = await fetch(CONTEXT_PATH + '/api/personal-schedule/' + currentEditingSchedule.scheduleId, {
         method: 'PUT',
         body: formData
       });
     } else {
       // Create new schedule
-      response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/`, {
+      response = await fetch(CONTEXT_PATH + '/api/personal-schedule/', {
         method: 'POST',
         body: formData
       });
@@ -446,18 +547,52 @@ async function saveSchedule() {
 
 // Close modal
 function closeScheduleModal() {
-  document.getElementById('scheduleModal').style.display = 'none';
+  const scheduleModal = document.getElementById('scheduleModal');
+  if (scheduleModal) {
+    scheduleModal.style.display = 'none';
+  }
+}
+
+// Close modal when clicking outside
+function setupModalCloseOnOutsideClick() {
+  const modal = document.getElementById('scheduleModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeScheduleModal();
+      }
+    });
+  }
 }
 
 // Load schedules when page loads
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOMContentLoaded - Setting up schedule functions');
+  
+  // Setup button click event
+  const btnAddSchedule = document.getElementById('btnAddSchedule');
+  if (btnAddSchedule) {
+    btnAddSchedule.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Add button clicked');
+      openAddScheduleModal();
+    });
+    console.log('Add button event listener attached');
+  } else {
+    console.error('btnAddSchedule button not found!');
+  }
+  
   loadPersonalSchedules();
+  setupModalCloseOnOutsideClick();
+  
+  console.log('All schedule functions initialized');
 });
 </script>
 
 <!-- Schedule Modal -->
-<div id="scheduleModal" class="modal-overlay" style="display: none;">
-  <div class="modal-content">
+<div id="scheduleModal" class="modal-overlay" style="display: none; z-index: 10000;">
+  <div class="modal-content" onclick="event.stopPropagation();">
     <div class="modal-header">
       <h3 id="scheduleModalTitle">Thêm lịch cá nhân</h3>
       <button class="modal-close" onclick="closeScheduleModal()">
