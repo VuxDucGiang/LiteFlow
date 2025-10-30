@@ -1004,4 +1004,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+<!-- Notice Board Script -->
+<script src="${pageContext.request.contextPath}/js/notice-board.js"></script>
+
 <jsp:include page="includes/footer.jsp" />
