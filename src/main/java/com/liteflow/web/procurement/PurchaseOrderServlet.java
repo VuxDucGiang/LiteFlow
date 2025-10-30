@@ -228,6 +228,15 @@ public class PurchaseOrderServlet extends HttpServlet {
                 
                 if (success) {
                     System.out.println("✅ APPROVE SUCCESS - Redirecting with status=approved");
+                    
+                    // Refresh PO pending notification immediately
+                    try {
+                        com.liteflow.service.alert.AlertService alertService = new com.liteflow.service.alert.AlertService();
+                        alertService.refreshPOPendingNotification();
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Failed to refresh notification (non-critical): " + e.getMessage());
+                    }
+                    
                     resp.sendRedirect(req.getContextPath() + "/procurement/po?status=approved");
                 } else {
                     System.err.println("❌ APPROVE FAILED - service.approvePO() returned false");
@@ -281,6 +290,15 @@ public class PurchaseOrderServlet extends HttpServlet {
                 
                 if (success) {
                     System.out.println("✅ REJECT SUCCESS - Redirecting with status=rejected");
+                    
+                    // Refresh PO pending notification immediately
+                    try {
+                        com.liteflow.service.alert.AlertService alertService = new com.liteflow.service.alert.AlertService();
+                        alertService.refreshPOPendingNotification();
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Failed to refresh notification (non-critical): " + e.getMessage());
+                    }
+                    
                     resp.sendRedirect(req.getContextPath() + "/procurement/po?status=rejected");
                 } else {
                     System.err.println("❌ REJECT FAILED - service.rejectPO() returned false");

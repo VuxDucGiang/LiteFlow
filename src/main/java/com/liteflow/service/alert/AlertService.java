@@ -77,6 +77,12 @@ public class AlertService {
         // Send notifications
         deliverAlert(alert, config);
         
+        // 🔥 FIX: Update deliveryStatus to database after delivery
+        boolean updated = alertHistoryDAO.update(alert);
+        if (!updated) {
+            System.err.println("⚠️ Failed to update alert delivery status (non-critical)");
+        }
+        
         // Update last triggered
         alertConfigDAO.updateLastTriggered(config.getAlertID(), null);
         
@@ -119,17 +125,17 @@ public class AlertService {
             anySuccess = true;
         }
         
-        // In-app notification
-        if (Boolean.TRUE.equals(config.getNotifyInApp())) {
-            alert.setSentInApp(true);
-            anySuccess = true;
-        }
+        // In-app notification (always enabled for notification bell)
+        // 🔥 FIX: Force in-app notification to always be sent
+        alert.setSentInApp(true);
+        anySuccess = true;
         
         // Update delivery status
         if (anySuccess) {
             alert.setDeliveryStatus("SENT");
             alert.setSentAt(LocalDateTime.now());
         } else {
+            // This should never happen now since in-app is always sent
             alert.setDeliveryStatus("FAILED");
             alert.setErrorMessage("No channels delivered successfully");
         }
@@ -141,11 +147,11 @@ public class AlertService {
      * Trigger Daily Summary alert
      */
     public UUID triggerDailySummary(JSONObject revenueData) {
-        String title = "📊 Báo cáo doanh thu cuối ngày";
+        String title = "📊 Báo cáo doanh thu hôm nay";
         
         // Build summary message
         StringBuilder message = new StringBuilder();
-        message.append("**Tóm tắt doanh thu hôm nay:**\n\n");
+        message.append("**📊 BÁO CÁO DOANH THU HÔM NAY**\n\n");
         
         if (revenueData.has("totalRevenue")) {
             message.append("💰 Tổng doanh thu: ")
@@ -610,6 +616,61 @@ public class AlertService {
      */
     public boolean setConfigurationEnabled(UUID alertID, boolean enabled) {
         return alertConfigDAO.setEnabled(alertID, enabled);
+    }
+    
+    /**
+     * Refresh PO pending notification immediately after approve/reject
+     * This method is called from Servlet after PO status changes
+     */
+    public void refreshPOPendingNotification() {
+        try {
+            System.out.println("⚡ Refreshing PO pending notification...");
+            
+            // Import DAOs here to avoid circular dependency
+            com.liteflow.dao.procurement.PurchaseOrderDAO poDAO = new com.liteflow.dao.procurement.PurchaseOrderDAO();
+            
+            // Count current pending POs
+            List<com.liteflow.model.procurement.PurchaseOrder> pendingPOs = poDAO.findPending();
+            int totalPending = pendingPOs.size();
+            
+            System.out.println("   Current pending POs: " + totalPending);
+            
+            // Expire old PO_PENDING alerts
+            int expiredCount = alertHistoryDAO.expireOldAlertsByType("PO_PENDING");
+            System.out.println("   Expired old alerts: " + expiredCount);
+            
+            // If no pending POs, don't create alert
+            if (totalPending == 0) {
+                System.out.println("   No pending POs - no alert needed");
+                return;
+            }
+            
+            // Calculate priority breakdown
+            int criticalCount = 0;
+            int highCount = 0;
+            double totalValue = 0;
+            
+            for (com.liteflow.model.procurement.PurchaseOrder po : pendingPOs) {
+                double amount = (po.getTotalAmount() != null) ? po.getTotalAmount() : 0;
+                totalValue += amount;
+                
+                if (amount >= 50_000_000) {
+                    criticalCount++;
+                } else if (amount >= 10_000_000) {
+                    highCount++;
+                }
+            }
+            
+            // Trigger new summary alert
+            triggerPOPendingSummary(totalPending, criticalCount, highCount, totalValue);
+            
+            System.out.println("✅ PO pending notification refreshed successfully");
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to refresh PO notification: " + e.getMessage());
+            e.printStackTrace();
+            // Don't throw - this is optional enhancement
+        }
     }
 }
 
