@@ -74,7 +74,7 @@
               <i class='bx bx-cart'></i>
               <span>Thu ngân</span>
             </button>
-            <button class="user-dropdown-item" onclick="navigate('ledger')">
+            <button class="user-dropdown-item" onclick="navigate('reception')">
               <i class='bx bx-book'></i>
               <span>Lễ tân</span>
             </button>

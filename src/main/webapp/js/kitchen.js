@@ -662,7 +662,7 @@ function navigate(destination) {
   const routes = {
     'management': contextPath + '/dashboard',
     'kitchen': contextPath + '/kitchen',
-    'ledger': contextPath + '/cart/cashier',
+    'reception': contextPath + '/reception',
     'cashier': contextPath + '/cart/cashier',
     'end-of-day-report': contextPath + '/report/revenue',
     'dashboard': contextPath + '/dashboard'

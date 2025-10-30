@@ -222,6 +222,74 @@ CREATE TABLE Tables (
 );
 
 -- =======================================================
+-- 4.1 RESERVATIONS (Đặt bàn trước)
+-- =======================================================
+
+-- RESERVATIONS - Quản lý đặt bàn trước của khách hàng
+CREATE TABLE Reservations (
+    ReservationID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    ReservationCode NVARCHAR(20) NOT NULL UNIQUE,
+    CustomerName NVARCHAR(100) NOT NULL,
+    CustomerPhone NVARCHAR(20) NOT NULL,
+    CustomerEmail NVARCHAR(100) NULL,
+    ArrivalTime DATETIME2 NOT NULL,
+    NumberOfGuests INT NOT NULL CHECK (NumberOfGuests > 0),
+    TableID UNIQUEIDENTIFIER NULL,
+    RoomID UNIQUEIDENTIFIER NULL,
+    
+    Status NVARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (Status IN ('PENDING', 'CONFIRMED', 'SEATED', 'CANCELLED', 'NO_SHOW', 'CLOSED')),
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_Reservations_Tables FOREIGN KEY (TableID) REFERENCES Tables(TableID) ON DELETE SET NULL,
+    CONSTRAINT FK_Reservations_Rooms FOREIGN KEY (RoomID) REFERENCES Rooms(RoomID) ON DELETE SET NULL
+);
+
+-- RESERVATION ITEMS - Món đặt trước cho đặt bàn
+CREATE TABLE ReservationItems (
+    ReservationItemID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    ReservationID UNIQUEIDENTIFIER NOT NULL,
+    ProductID UNIQUEIDENTIFIER NOT NULL,
+    Quantity INT NOT NULL DEFAULT 1 CHECK (Quantity > 0),
+    Note NVARCHAR(255),
+    
+    CONSTRAINT FK_ReservationItems_Reservations FOREIGN KEY (ReservationID) 
+        REFERENCES Reservations(ReservationID) ON DELETE CASCADE,
+    CONSTRAINT FK_ReservationItems_Products FOREIGN KEY (ProductID) 
+        REFERENCES Products(ProductID) ON DELETE CASCADE
+);
+
+-- Indexes for Reservations
+CREATE INDEX IX_Reservations_ArrivalTime ON Reservations(ArrivalTime);
+CREATE INDEX IX_Reservations_Status ON Reservations(Status);
+CREATE INDEX IX_Reservations_ReservationCode ON Reservations(ReservationCode);
+CREATE INDEX IX_Reservations_CustomerPhone ON Reservations(CustomerPhone);
+CREATE INDEX IX_Reservations_CustomerEmail ON Reservations(CustomerEmail);
+CREATE INDEX IX_Reservations_TableID ON Reservations(TableID);
+CREATE INDEX IX_Reservations_RoomID ON Reservations(RoomID);
+CREATE INDEX IX_Reservations_CreatedAt ON Reservations(CreatedAt);
+
+CREATE INDEX IX_ReservationItems_ReservationID ON ReservationItems(ReservationID);
+CREATE INDEX IX_ReservationItems_ProductID ON ReservationItems(ProductID);
+GO
+
+-- Trigger: Auto-update UpdatedAt timestamp for Reservations
+CREATE OR ALTER TRIGGER TRG_Reservations_UpdatedAt
+ON Reservations
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE Reservations
+    SET UpdatedAt = SYSDATETIME()
+    FROM Reservations r
+    INNER JOIN inserted i ON r.ReservationID = i.ReservationID;
+END;
+GO
+
+-- =======================================================
 -- 5. CAFE MANAGEMENT SYSTEM
 -- =======================================================
 

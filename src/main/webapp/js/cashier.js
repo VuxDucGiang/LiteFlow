@@ -2887,7 +2887,7 @@ function navigate(page) {
   const routes = {
     'management': '/dashboard',
     'kitchen': '/kitchen',
-    'ledger': '/employee/employeeList'
+    'reception': '/reception'
   };
   
   const path = routes[page] || '/dashboard';

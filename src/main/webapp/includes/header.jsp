@@ -343,9 +343,9 @@
           <a href="${pageContext.request.contextPath}/kitchen" class="nav-icon" title="Nhà bếp" target="_blank">
             <i class='bx bxs-bowl-hot'></i>
           </a>
-          <div class="nav-icon" title="Lễ tân">
+          <a href="${pageContext.request.contextPath}/reception" class="nav-icon" title="Lễ tân" target="_blank">
             <i class='bx bx-calendar'></i>
-          </div>
+          </a>
         </c:if>
         <!-- Thu ngân - hiển thị cho tất cả -->
         <a href="${pageContext.request.contextPath}/cashier" class="nav-icon" title="Thu ngân" target="_blank">
