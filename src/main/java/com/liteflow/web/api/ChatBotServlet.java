@@ -26,17 +26,34 @@ public class ChatBotServlet extends HttpServlet {
     public void init() throws ServletException {
         super.init();
         
+        System.out.println("🚀 ChatBotServlet initialization started...");
+        
         // Load API key from environment or config
         String apiKey = getOpenAIApiKey();
         
         if (apiKey == null || apiKey.isEmpty()) {
-            System.err.println("⚠️ WARNING: OPENAI_API_KEY not configured. ChatBot will not work.");
-            System.err.println("   Please set OPENAI_API_KEY in .env file or system environment.");
+            System.err.println("❌ CRITICAL: OPENAI_API_KEY not configured. ChatBot will not work.");
+            System.err.println("   Solutions:");
+            System.err.println("   1. Set System Environment Variable: OPENAI_API_KEY");
+            System.err.println("   2. Or uncomment hardcode line in ChatBotServlet.init() for testing");
+            gptService = null;  // Explicitly set to null
         } else {
             System.out.println("✅ OpenAI API Key loaded successfully");
-            System.out.println("   Key preview: " + apiKey.substring(0, 10) + "..." + apiKey.substring(apiKey.length() - 4));
-            gptService = new GPTService(apiKey);
+            System.out.println("   Key length: " + apiKey.length() + " characters");
+            System.out.println("   Key preview: " + apiKey.substring(0, Math.min(20, apiKey.length())) + "..." + apiKey.substring(Math.max(0, apiKey.length() - 4)));
+            System.out.println("   Key format valid: " + apiKey.startsWith("sk-"));
+            
+            try {
+                gptService = new GPTService(apiKey);
+                System.out.println("✅ GPTService initialized successfully");
+            } catch (Exception e) {
+                System.err.println("❌ Failed to initialize GPTService: " + e.getMessage());
+                e.printStackTrace();
+                gptService = null;
+            }
         }
+        
+        System.out.println("🏁 ChatBotServlet initialization completed. GPTService: " + (gptService != null ? "READY" : "NOT READY"));
     }
     
     /**
@@ -107,8 +124,15 @@ public class ChatBotServlet extends HttpServlet {
             System.out.println("💬 ChatBot request from: " + request.getRemoteAddr());
             System.out.println("   Message: " + userMessage);
             
-            // Get GPT response
-            String gptResponse = gptService.chat(userMessage, systemPrompt);
+            // Get GPT response with intelligent features (demand forecasting, stock alerts, etc.)
+            String gptResponse;
+            if (systemPrompt != null && !systemPrompt.isEmpty()) {
+                // Custom system prompt provided
+                gptResponse = gptService.chat(userMessage, systemPrompt);
+            } else {
+                // Use intelligent chat with demand forecasting
+                gptResponse = gptService.chatWithIntelligence(userMessage);
+            }
             
             // Build success response
             jsonResponse.put("success", true);
@@ -141,18 +165,35 @@ public class ChatBotServlet extends HttpServlet {
         
         // Priority 1: Load from .env file (recommended for development)
         try {
-            Dotenv dotenv = Dotenv.configure()
-                .directory(System.getProperty("user.dir"))  // Project root directory
-                .ignoreIfMissing()
-                .load();
+            // Try multiple locations for .env file
+            String[] possiblePaths = {
+                getServletContext().getRealPath("/"),                    // Webapp root
+                getServletContext().getRealPath("/WEB-INF/"),           // WEB-INF
+                System.getProperty("catalina.base") + "/webapps/LiteFlow/", // Tomcat webapps
+                System.getProperty("user.dir"),                          // Current directory
+                "C:/Users/Administrator/Documents/Liteflow/LiteFlow/"   // Project root
+            };
             
-            apiKey = dotenv.get("OPENAI_API_KEY");
-            if (apiKey != null && !apiKey.isEmpty()) {
-                System.out.println("✅ Loaded OPENAI_API_KEY from .env file");
-                return apiKey;
+            for (String path : possiblePaths) {
+                try {
+                    System.out.println("🔍 Trying .env at: " + path);
+                    Dotenv dotenv = Dotenv.configure()
+                        .directory(path)
+                        .ignoreIfMissing()
+                        .load();
+                    
+                    apiKey = dotenv.get("OPENAI_API_KEY");
+                    if (apiKey != null && !apiKey.isEmpty()) {
+                        System.out.println("✅ Loaded OPENAI_API_KEY from .env file at: " + path);
+                        return apiKey;
+                    }
+                } catch (Exception e) {
+                    // Try next path
+                }
             }
+            System.out.println("⚠️ .env file not found in any location");
         } catch (Exception e) {
-            System.out.println("ℹ️ .env file not found, checking system environment...");
+            System.out.println("ℹ️ .env loading failed, checking system environment...");
         }
         
         // Priority 2: System environment variable (recommended for production)
