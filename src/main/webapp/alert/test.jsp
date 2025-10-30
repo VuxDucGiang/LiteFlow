@@ -293,9 +293,10 @@
             <div class="info-box">
                 <h4>ℹ️ About Scheduler</h4>
                 <ul>
-                    <li>Start/Stop the background alert scheduler</li>
-                    <li>Scheduler checks for pending POs, overdue deliveries, etc.</li>
-                    <li>Runs every 5 minutes for scheduled alerts, every hour for condition checks</li>
+                    <li><strong>PO Pending:</strong> Checked every <strong>1 minute</strong>, summary notification (max 1/hour)</li>
+                    <li><strong>Inventory & PO Overdue:</strong> Checked every <strong>60 minutes</strong></li>
+                    <li><strong>Scheduled Alerts:</strong> Checked every <strong>5 minutes</strong> (daily summary at 6 PM)</li>
+                    <li><strong>Format:</strong> "Có n đơn hàng đang chờ duyệt" with breakdown by priority</li>
                 </ul>
             </div>
             <div class="button-grid">
@@ -317,6 +318,42 @@
                     <input type="hidden" name="action" value="init-scheduled-runs">
                     <button type="submit" class="test-btn btn-secondary">
                         🔄 Initialize Schedules
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Manual Alert Checks -->
+        <div class="section">
+            <h2>🔍 Manual Alert Checks</h2>
+            <div class="info-box">
+                <h4>ℹ️ About Manual Checks</h4>
+                <ul>
+                    <li>Manually trigger alert checks without waiting for scheduler</li>
+                    <li>These will check real data from database</li>
+                    <li>Results will be logged to console</li>
+                    <li>Alerts will be created if conditions are met</li>
+                </ul>
+            </div>
+            <div class="button-grid">
+                <form method="post">
+                    <input type="hidden" name="action" value="manual-check-po-pending">
+                    <button type="submit" class="test-btn btn-warning">
+                        📋 Check PO Pending
+                    </button>
+                </form>
+                
+                <form method="post">
+                    <input type="hidden" name="action" value="manual-check-inventory">
+                    <button type="submit" class="test-btn btn-warning">
+                        📦 Check Inventory
+                    </button>
+                </form>
+                
+                <form method="post">
+                    <input type="hidden" name="action" value="manual-check-all">
+                    <button type="submit" class="test-btn btn-primary">
+                        🔍 Check All Conditions
                     </button>
                 </form>
             </div>

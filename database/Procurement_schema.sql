@@ -523,8 +523,23 @@ ON PurchaseOrders
 AFTER UPDATE
 AS
 BEGIN
+    -- CRITICAL: Prevent extra result sets that can confuse JPA/Hibernate
+    SET NOCOUNT ON;
+    
+    -- Only proceed if Status column was actually updated
     IF UPDATE(Status)
     BEGIN
+        -- Ensure SupplierSLA records exist for all suppliers
+        -- (Create missing ones to prevent silent failures)
+        INSERT INTO SupplierSLA (SupplierID, TotalOrders, OnTimeDeliveries, AvgDelayDays, LastEvaluated)
+        SELECT DISTINCT i.SupplierID, 0, 0, 0, SYSUTCDATETIME()
+        FROM inserted i
+        WHERE i.Status IN ('COMPLETED', 'APPROVED', 'REJECTED')
+          AND NOT EXISTS (
+              SELECT 1 FROM SupplierSLA sla 
+              WHERE sla.SupplierID = i.SupplierID
+          );
+        
         -- Update SLA for suppliers with status changes
         UPDATE sla
         SET 

@@ -209,6 +209,30 @@ public class AlertHistoryDAO {
     }
     
     /**
+     * Find alerts by type since a specific time (for cooldown checks)
+     * @param alertType Alert type
+     * @param since Cutoff time
+     * @return List of alerts
+     */
+    public List<AlertHistory> findByAlertTypeSince(String alertType, LocalDateTime since) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            TypedQuery<AlertHistory> query = em.createQuery(
+                "SELECT ah FROM AlertHistory ah " +
+                "WHERE ah.alertType = :alertType " +
+                "  AND ah.triggeredAt >= :since " +
+                "ORDER BY ah.triggeredAt DESC",
+                AlertHistory.class
+            );
+            query.setParameter("alertType", alertType);
+            query.setParameter("since", since);
+            return query.getResultList();
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
      * Insert new alert history
      */
     public boolean insert(AlertHistory alertHistory) {
@@ -416,6 +440,47 @@ public class AlertHistoryDAO {
             );
             query.setParameter("status", deliveryStatus);
             return query.getSingleResult();
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
+     * Expire old alerts of a specific type
+     * Used to ensure only the latest summary alert is shown
+     * @param alertType Alert type to expire
+     * @return Number of alerts expired
+     */
+    public int expireOldAlertsByType(String alertType) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            em.getTransaction().begin();
+            
+            // Set expiresAt to now for all active alerts of this type
+            int count = em.createQuery(
+                "UPDATE AlertHistory ah " +
+                "SET ah.expiresAt = :now " +
+                "WHERE ah.alertType = :alertType " +
+                "AND (ah.expiresAt IS NULL OR ah.expiresAt > :now)"
+            )
+            .setParameter("now", LocalDateTime.now())
+            .setParameter("alertType", alertType)
+            .executeUpdate();
+            
+            em.getTransaction().commit();
+            
+            if (count > 0) {
+                System.out.println("✅ Expired " + count + " old alerts of type: " + alertType);
+            }
+            
+            return count;
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            System.err.println("❌ Failed to expire old alerts: " + e.getMessage());
+            e.printStackTrace();
+            return 0;
         } finally {
             em.close();
         }

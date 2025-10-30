@@ -77,6 +77,12 @@ public class AlertService {
         // Send notifications
         deliverAlert(alert, config);
         
+        // 🔥 FIX: Update deliveryStatus to database after delivery
+        boolean updated = alertHistoryDAO.update(alert);
+        if (!updated) {
+            System.err.println("⚠️ Failed to update alert delivery status (non-critical)");
+        }
+        
         // Update last triggered
         alertConfigDAO.updateLastTriggered(config.getAlertID(), null);
         
@@ -119,17 +125,17 @@ public class AlertService {
             anySuccess = true;
         }
         
-        // In-app notification
-        if (Boolean.TRUE.equals(config.getNotifyInApp())) {
-            alert.setSentInApp(true);
-            anySuccess = true;
-        }
+        // In-app notification (always enabled for notification bell)
+        // 🔥 FIX: Force in-app notification to always be sent
+        alert.setSentInApp(true);
+        anySuccess = true;
         
         // Update delivery status
         if (anySuccess) {
             alert.setDeliveryStatus("SENT");
             alert.setSentAt(LocalDateTime.now());
         } else {
+            // This should never happen now since in-app is always sent
             alert.setDeliveryStatus("FAILED");
             alert.setErrorMessage("No channels delivered successfully");
         }
@@ -141,11 +147,11 @@ public class AlertService {
      * Trigger Daily Summary alert
      */
     public UUID triggerDailySummary(JSONObject revenueData) {
-        String title = "📊 Báo cáo doanh thu cuối ngày";
+        String title = "📊 Báo cáo doanh thu hôm nay";
         
         // Build summary message
         StringBuilder message = new StringBuilder();
-        message.append("**Tóm tắt doanh thu hôm nay:**\n\n");
+        message.append("**📊 BÁO CÁO DOANH THU HÔM NAY**\n\n");
         
         if (revenueData.has("totalRevenue")) {
             message.append("💰 Tổng doanh thu: ")
@@ -167,32 +173,192 @@ public class AlertService {
     }
     
     /**
-     * Trigger PO Pending alert
+     * Trigger PO Pending Summary alert (for multiple pending POs)
+     * @param totalPendingCount Total number of pending POs
+     * @param criticalCount Number of critical priority POs
+     * @param highCount Number of high priority POs
+     * @param totalValue Total value of all pending POs
+     * @return Alert history ID
      */
-    public UUID triggerPOPending(String poId, String supplierName, double amount, int daysWaiting) {
-        String title = "⏳ Đơn đặt hàng chờ duyệt";
+    public UUID triggerPOPendingSummary(int totalPendingCount, int criticalCount, int highCount, double totalValue) {
+        // Determine priority based on counts
+        String priority = "MEDIUM";
+        String urgencyEmoji = "📋";
+        
+        if (criticalCount > 0 || totalPendingCount >= 10) {
+            priority = "CRITICAL";
+            urgencyEmoji = "🚨";
+        } else if (highCount > 0 || totalPendingCount >= 5) {
+            priority = "HIGH";
+            urgencyEmoji = "⚠️";
+        }
+        
+        String title = String.format("%s Có %d đơn hàng đang chờ duyệt", urgencyEmoji, totalPendingCount);
+        
+        String criticalInfo = criticalCount > 0 
+            ? String.format("\n🚨 **Khẩn cấp:** %d đơn yêu cầu xử lý gấp (≥50M hoặc Level 3)", criticalCount)
+            : "";
+        
+        String highInfo = highCount > 0
+            ? String.format("\n⚠️ **Ưu tiên cao:** %d đơn cần duyệt sớm (≥10M hoặc Level 2)", highCount)
+            : "";
         
         String message = String.format(
-            "Đơn đặt hàng **%s** từ nhà cung cấp **%s** đang chờ phê duyệt.\n\n" +
-            "💵 Giá trị: %,.0f VND\n" +
-            "📅 Thời gian chờ: %d ngày\n\n" +
-            "Vui lòng xem xét và phê duyệt.",
-            poId, supplierName, amount, daysWaiting
+            "**THÔNG BÁO: ĐƠN HÀNG CHỜ DUYỆT**\n\n" +
+            "📊 **Tổng quan:**\n" +
+            "   • Tổng số đơn chờ duyệt: **%d đơn**\n" +
+            "   • Tổng giá trị: **%,.0f VND**%s%s\n\n" +
+            "🎯 **Hành động cần làm:**\n" +
+            "1. ✅ Truy cập trang quản lý đơn hàng: /procurement/po\n" +
+            "2. ✅ Xem danh sách đơn hàng chờ duyệt\n" +
+            "3. ✅ Ưu tiên xử lý đơn khẩn cấp trước\n" +
+            "4. ✅ Phê duyệt hoặc từ chối các đơn hàng\n\n" +
+            "%s",
+            totalPendingCount,
+            totalValue,
+            criticalInfo,
+            highInfo,
+            criticalCount > 0 ? "⚠️ **LƯU Ý:** Có đơn hàng KHẨN CẤP cần xử lý ngay!" :
+            highCount > 0 ? "💡 **Lưu ý:** Nên xử lý sớm để tránh chậm trễ." :
+            totalPendingCount >= 5 ? "💡 **Lưu ý:** Số lượng đơn chờ duyệt đang tăng cao." :
+            "💡 Vui lòng xem xét và phê duyệt khi có thời gian."
         );
         
         JSONObject context = new JSONObject();
+        context.put("totalPendingCount", totalPendingCount);
+        context.put("criticalCount", criticalCount);
+        context.put("highCount", highCount);
+        context.put("totalValue", totalValue);
+        context.put("checkTime", java.time.LocalDateTime.now().toString());
+        
+        return triggerAlert("PO_PENDING", title, message, context, priority);
+    }
+    
+    /**
+     * Trigger PO Pending alert (legacy - backward compatibility)
+     */
+    public UUID triggerPOPending(String poId, String supplierName, double amount, int daysWaiting) {
+        return triggerPOPending(null, poId, supplierName, amount, daysWaiting, 1);
+    }
+    
+    /**
+     * Trigger PO Pending alert with full details
+     * @param poid Purchase Order UUID (for spam prevention)
+     * @param poId PO ID string for display
+     * @param supplierName Supplier name
+     * @param amount Total amount in VND
+     * @param daysWaiting Days since created
+     * @param approvalLevel Required approval level (1-3)
+     * @return Alert history ID
+     */
+    public UUID triggerPOPending(UUID poid, String poId, String supplierName, double amount, int daysWaiting, int approvalLevel) {
+        // Determine priority based on amount, approval level, and days waiting
+        String priority = "MEDIUM";
+        String urgencyEmoji = "📋";
+        
+        // CRITICAL: Very high value OR very long wait OR requires Board approval
+        if (amount >= 50_000_000 || daysWaiting >= 5 || approvalLevel >= 3) {
+            priority = "CRITICAL";
+            urgencyEmoji = "🚨";
+        } 
+        // HIGH: High value OR long wait OR requires Director approval
+        else if (amount >= 10_000_000 || daysWaiting >= 3 || approvalLevel >= 2) {
+            priority = "HIGH";
+            urgencyEmoji = "⚠️";
+        }
+        // MEDIUM: Default for manager approval and lower amounts
+        else {
+            priority = "MEDIUM";
+            urgencyEmoji = "⏳";
+        }
+        
+        // Approval level text
+        String approvalText = switch (approvalLevel) {
+            case 3 -> "Board Approval (Level 3)";
+            case 2 -> "Director Approval (Level 2)";
+            default -> "Manager Approval (Level 1)";
+        };
+        
+        // Title varies based on days waiting
+        String title;
+        if (daysWaiting == 0) {
+            title = String.format("%s Đơn hàng mới cần duyệt", urgencyEmoji);
+        } else {
+            title = String.format("%s Đơn hàng cần duyệt - %d ngày", urgencyEmoji, daysWaiting);
+        }
+        
+        // Status text based on days waiting
+        String statusText;
+        if (daysWaiting == 0) {
+            statusText = "Mới tạo - Cần duyệt ngay";
+        } else if (daysWaiting == 1) {
+            statusText = "1 ngày";
+        } else {
+            statusText = daysWaiting + " ngày";
+        }
+        
+        String message = String.format(
+            "**ĐƠN ĐẶT HÀNG CHỜ PHÊ DUYỆT**\n\n" +
+            "📋 **Mã đơn:** %s\n" +
+            "🏢 **Nhà cung cấp:** %s\n" +
+            "💵 **Giá trị:** %,.0f VND\n" +
+            "📅 **Thời gian chờ:** %s\n" +
+            "👔 **Cấp duyệt:** %s\n" +
+            "⏰ **Ngày tạo:** " + java.time.LocalDateTime.now().minusDays(daysWaiting).format(
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+            ) + "\n\n" +
+            "**🎯 HÀNH ĐỘNG CẦN LÀM:**\n" +
+            "1. ✅ Xem chi tiết đơn hàng tại /procurement/po\n" +
+            "2. ✅ Kiểm tra thông tin nhà cung cấp và giá\n" +
+            "3. ✅ Xác nhận ngân sách và nhu cầu\n" +
+            "4. ✅ Phê duyệt hoặc từ chối đơn hàng\n\n" +
+            "%s",
+            poId, 
+            supplierName, 
+            amount, 
+            statusText,
+            approvalText,
+            daysWaiting >= 5 ? "⚠️ **CẢNH BÁO:** Đơn hàng chờ quá lâu, có thể ảnh hưởng đến kế hoạch mua hàng!" : 
+            daysWaiting >= 3 ? "💡 **Lưu ý:** Nên xử lý sớm để tránh chậm trễ." : 
+            daysWaiting == 0 ? "⚡ **Đơn hàng mới:** Vui lòng xem xét và phê duyệt." :
+            "💡 Vui lòng xem xét và phê duyệt khi có thời gian."
+        );
+        
+        JSONObject context = new JSONObject();
+        if (poid != null) {
+            context.put("poid", poid.toString());
+        }
         context.put("poId", poId);
         context.put("supplierName", supplierName);
         context.put("amount", amount);
         context.put("daysWaiting", daysWaiting);
+        context.put("approvalLevel", approvalLevel);
+        context.put("priority", priority);
+        context.put("detectedAt", java.time.LocalDateTime.now().toString());
         
-        return triggerAlert("PO_PENDING", title, message, context, "HIGH");
+        return triggerAlert("PO_PENDING", title, message, context, priority);
     }
     
     /**
      * Trigger Low Inventory alert
+     * @param productName Full product name (with size)
+     * @param currentStock Current stock level
+     * @param threshold Alert threshold
+     * @return Alert history ID
      */
     public UUID triggerLowInventory(String productName, int currentStock, int threshold) {
+        return triggerLowInventory(null, productName, currentStock, threshold);
+    }
+    
+    /**
+     * Trigger Low Inventory alert with product variant ID
+     * @param productVariantID Product variant UUID (for spam prevention)
+     * @param productName Full product name (with size)
+     * @param currentStock Current stock level
+     * @param threshold Alert threshold
+     * @return Alert history ID
+     */
+    public UUID triggerLowInventory(UUID productVariantID, String productName, int currentStock, int threshold) {
         String title = "📦 Cảnh báo tồn kho thấp";
         
         String message = String.format(
@@ -204,6 +370,9 @@ public class AlertService {
         );
         
         JSONObject context = new JSONObject();
+        if (productVariantID != null) {
+            context.put("productVariantID", productVariantID.toString());
+        }
         context.put("productName", productName);
         context.put("currentStock", currentStock);
         context.put("threshold", threshold);
@@ -213,18 +382,46 @@ public class AlertService {
     
     /**
      * Trigger Out of Stock alert
+     * @param productName Full product name (with size)
+     * @return Alert history ID
      */
     public UUID triggerOutOfStock(String productName) {
-        String title = "🚨 Sản phẩm hết hàng";
+        return triggerOutOfStock(null, productName);
+    }
+    
+    /**
+     * Trigger Out of Stock alert with product variant ID
+     * @param productVariantID Product variant UUID (for spam prevention)
+     * @param productName Full product name (with size)
+     * @return Alert history ID
+     */
+    public UUID triggerOutOfStock(UUID productVariantID, String productName) {
+        String title = "🚨 SẢN PHẨM HẾT HÀNG - CẦN XỬ LÝ GẤP";
         
         String message = String.format(
-            "Sản phẩm **%s** đã HẾT HÀNG!\n\n" +
-            "⚠️ Cần đặt hàng gấp để tránh ảnh hưởng kinh doanh.",
+            "**CẢNH BÁO NGHIÊM TRỌNG:** Sản phẩm **%s** đã HẾT HÀNG!\n\n" +
+            "📊 **Tồn kho hiện tại:** 0 (KHÔNG CÓ HÀNG)\n" +
+            "🚨 **Mức độ:** CRITICAL - Cần xử lý ngay\n" +
+            "⏰ **Thời gian:** " + java.time.LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+            ) + "\n\n" +
+            "**🎯 HÀNH ĐỘNG CẦN LÀM:**\n" +
+            "1. ✅ Kiểm tra đơn đặt hàng đang pending\n" +
+            "2. ✅ Liên hệ nhà cung cấp NGAY để đặt hàng gấp\n" +
+            "3. ✅ Cập nhật trạng thái sản phẩm trên menu\n" +
+            "4. ✅ Thông báo cho nhân viên bán hàng\n\n" +
+            "⚠️ **Lưu ý:** Sản phẩm hết hàng có thể làm mất khách hàng và doanh thu!",
             productName
         );
         
         JSONObject context = new JSONObject();
+        if (productVariantID != null) {
+            context.put("productVariantID", productVariantID.toString());
+        }
         context.put("productName", productName);
+        context.put("stockLevel", 0);
+        context.put("severity", "CRITICAL");
+        context.put("detectedAt", java.time.LocalDateTime.now().toString());
         
         return triggerAlert("OUT_OF_STOCK", title, message, context, "CRITICAL");
     }
@@ -419,6 +616,61 @@ public class AlertService {
      */
     public boolean setConfigurationEnabled(UUID alertID, boolean enabled) {
         return alertConfigDAO.setEnabled(alertID, enabled);
+    }
+    
+    /**
+     * Refresh PO pending notification immediately after approve/reject
+     * This method is called from Servlet after PO status changes
+     */
+    public void refreshPOPendingNotification() {
+        try {
+            System.out.println("⚡ Refreshing PO pending notification...");
+            
+            // Import DAOs here to avoid circular dependency
+            com.liteflow.dao.procurement.PurchaseOrderDAO poDAO = new com.liteflow.dao.procurement.PurchaseOrderDAO();
+            
+            // Count current pending POs
+            List<com.liteflow.model.procurement.PurchaseOrder> pendingPOs = poDAO.findPending();
+            int totalPending = pendingPOs.size();
+            
+            System.out.println("   Current pending POs: " + totalPending);
+            
+            // Expire old PO_PENDING alerts
+            int expiredCount = alertHistoryDAO.expireOldAlertsByType("PO_PENDING");
+            System.out.println("   Expired old alerts: " + expiredCount);
+            
+            // If no pending POs, don't create alert
+            if (totalPending == 0) {
+                System.out.println("   No pending POs - no alert needed");
+                return;
+            }
+            
+            // Calculate priority breakdown
+            int criticalCount = 0;
+            int highCount = 0;
+            double totalValue = 0;
+            
+            for (com.liteflow.model.procurement.PurchaseOrder po : pendingPOs) {
+                double amount = (po.getTotalAmount() != null) ? po.getTotalAmount() : 0;
+                totalValue += amount;
+                
+                if (amount >= 50_000_000) {
+                    criticalCount++;
+                } else if (amount >= 10_000_000) {
+                    highCount++;
+                }
+            }
+            
+            // Trigger new summary alert
+            triggerPOPendingSummary(totalPending, criticalCount, highCount, totalValue);
+            
+            System.out.println("✅ PO pending notification refreshed successfully");
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to refresh PO notification: " + e.getMessage());
+            e.printStackTrace();
+            // Don't throw - this is optional enhancement
+        }
     }
 }
 

@@ -1137,88 +1137,18 @@ END
 GO
 
 -- ============================================================
--- 8️⃣ SEED ATTENDANCE STATUS FOR CURRENT WEEK
+-- 8️⃣ ATTENDANCE DATA - KHÔNG CÓ DỮ LIỆU MẪU
 -- ============================================================
-USE LiteFlowDBO;
-GO
-
-DECLARE @Mon DATE;
-DECLARE @today2 DATE = CAST(SYSDATETIME() AS DATE);
-SET @Mon = DATEADD(DAY, -((DATEPART(WEEKDAY, @today2) + 5) % 7), @today2); -- Monday
-
--- Barista employee (giangducx2312@gmail.com): Mon-Fri work, Wed paid leave, Thu unpaid leave
-DECLARE @EmpBarista UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
-);
-
-IF @EmpBarista IS NOT NULL
-BEGIN
-  -- Mon: Work 07:05 - 12:10
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, @Mon AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:05', CheckOutTime = '12:10', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpBarista, @Mon, 'Work', '07:05', '12:10');
-
-  -- Tue: Work 07:00 - 12:00
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 1, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:00', CheckOutTime = '12:00', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpBarista, DATEADD(DAY, 1, @Mon), 'Work', '07:00', '12:00');
-
-  -- Wed: Leave Paid
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 2, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'LeavePaid', CheckInTime = NULL, CheckOutTime = NULL, UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status)
-    VALUES (@EmpBarista, DATEADD(DAY, 2, @Mon), 'LeavePaid');
-
-  -- Thu: Leave Unpaid
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 3, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'LeaveUnpaid', CheckInTime = NULL, CheckOutTime = NULL, UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status)
-    VALUES (@EmpBarista, DATEADD(DAY, 3, @Mon), 'LeaveUnpaid');
-
-  -- Fri: Work 07:10 - 12:05
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 4, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:10', CheckOutTime = '12:05', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpBarista, DATEADD(DAY, 4, @Mon), 'Work', '07:10', '12:05');
-END
-GO
-
--- Cashier employee (cashier1@liteflow.vn): Work Tue/Thu evening
-DECLARE @EmpCashier UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
-);
-
-IF @EmpCashier IS NOT NULL
-BEGIN
-  -- Tue: Work 17:00 - 22:00
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpCashier AS EmployeeID, DATEADD(DAY, 1, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '17:00', CheckOutTime = '22:00', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpCashier, DATEADD(DAY, 1, @Mon), 'Work', '17:00', '22:00');
-
-  -- Thu: Work 17:05 - 22:10
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpCashier AS EmployeeID, DATEADD(DAY, 3, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '17:05', CheckOutTime = '22:10', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpCashier, DATEADD(DAY, 3, @Mon), 'Work', '17:05', '22:10');
-END
-GO
+-- ⚠️ QUAN TRỌNG: Không seed dữ liệu EmployeeAttendance
+-- Lý do: 
+-- 1. Dữ liệu attendance sẽ được tạo TỰ ĐỘNG khi nhân viên clock-in/out từ dashboard
+-- 2. Flags (isLate, isEarlyLeave, isOvertime) được tính toán TỰ ĐỘNG dựa trên shift times
+-- 3. Việc seed dữ liệu cũ với flags sai sẽ gây lỗi màu sắc hiển thị không đúng
+-- 
+-- Cách tạo dữ liệu attendance:
+-- - Nhân viên đăng nhập vào dashboard-employee
+-- - Sử dụng widget "CHẤM CÔNG HÔM NAY" để clock-in/clock-out
+-- - Hệ thống sẽ tự động tính toán và lưu flags chính xác
 
 -- ============================================================
 -- 9️⃣ SEED BONUS/PENALTY EVENTS FOR CURRENT WEEK
@@ -1227,66 +1157,15 @@ USE LiteFlowDBO;
 GO
 
 -- ============================================================
--- 🔟 SEED DỮ LIỆU MẪU LỊCH SỬ CHẤM CÔNG (Timesheets with mixed sources)
+-- 🔟 TIMESHEET DATA - KHÔNG CÓ DỮ LIỆU MẪU
 -- ============================================================
-USE LiteFlowDBO;
-GO
-
-DECLARE @Today DATE = CAST(SYSDATETIME() AS DATE);
-
-DECLARE @EmpBaristaTS UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
-);
-
-IF @EmpBaristaTS IS NOT NULL
-BEGIN
-  -- Xóa dữ liệu timesheet trong ngày để seed lại demo rõ ràng
-  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpBaristaTS AND WorkDate = @Today;
-
-  -- Chấm công tự động: check-in đúng giờ template, check-out muộn 5'
-  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
-  SELECT @EmpBaristaTS,
-         s.ShiftID,
-         @Today,
-         DATEADD(HOUR, 7, CAST(@Today AS DATETIME2)),
-         DATEADD(MINUTE, 5, DATEADD(HOUR, 12, CAST(@Today AS DATETIME2))),
-         15,
-         'Approved',
-         'Auto',
-         4.75,
-         N'Chấm công tự động (mặc định hệ thống)'
-  FROM EmployeeShifts s
-  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpBaristaTS
-  WHERE CONVERT(date, s.StartAt) = @Today;
-END
-GO
-
-DECLARE @EmpCashierTS UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
-);
-
-IF @EmpCashierTS IS NOT NULL
-BEGIN
-  -- Xóa để seed lại
-  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpCashierTS AND WorkDate = @Today;
-
-  -- Chấm công bằng máy chấm công: import
-  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
-  SELECT @EmpCashierTS,
-         s.ShiftID,
-         @Today,
-         DATEADD(HOUR, 17, CAST(@Today AS DATETIME2)),
-         DATEADD(HOUR, 22, CAST(@Today AS DATETIME2)),
-         0,
-         'Approved',
-         'Import',
-         5.00,
-         N'Chấm công bằng máy (import file)'
-  FROM EmployeeShifts s
-  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpCashierTS
-  WHERE CONVERT(date, s.StartAt) = @Today;
-END
-GO
+-- ⚠️ QUAN TRỌNG: Không seed dữ liệu EmployeeShiftTimesheets
+-- Lý do:
+-- 1. Timesheet được tạo TỰ ĐỘNG khi nhân viên clock-in/out
+-- 2. Được tích hợp với EmployeeShifts để tính toán vi phạm và tăng ca
+-- 3. HoursWorked được tính tự động từ check-in đến check-out
+-- 
+-- Timesheet sẽ xuất hiện trên trang /attendance sau khi nhân viên chấm công
 
 DECLARE @HRUser UNIQUEIDENTIFIER = (SELECT TOP 1 UserID FROM Users WHERE Email = 'hr@liteflow.vn');
 
@@ -1374,26 +1253,7 @@ SELECT t.TemplateID, N'Thu ngân / Cashier', 'Any', 'Hourly', 28000, 'VND', CAST
 FROM ShiftTemplates t WHERE t.Name = N'Ca Tối';
 GO
 
--- Timesheets (actual worked times)
--- Employee1 morning shift today (07:00 - 12:00, 15 min break)
-INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, ApprovedBy, ApprovedAt, Notes)
-SELECT e.EmployeeID,
-       s.ShiftID,
-       CAST(SYSDATETIME() AS DATE),
-       DATEADD(MINUTE, -5, s.StartAt),
-       DATEADD(MINUTE, 10, s.EndAt),
-       15,
-       'Approved',
-       'Manual',
-       4.75,
-       uHR.UserID,
-       SYSDATETIME(),
-       N'Check-in sớm 5 phút; check-out muộn 10 phút'
-FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'giangducx2312@gmail.com'
-JOIN EmployeeShifts s ON s.EmployeeID = e.EmployeeID AND CONVERT(date, s.StartAt) = CAST(SYSDATETIME() AS DATE) AND s.Title = N'Ca Sáng'
-CROSS JOIN Users uHR
-WHERE uHR.Email = 'hr@liteflow.vn';
+-- Timesheets will be created automatically via clock-in/out feature
 GO
 
 -- Holidays and exchange rates

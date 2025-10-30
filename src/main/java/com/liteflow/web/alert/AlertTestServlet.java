@@ -121,6 +121,24 @@ public class AlertTestServlet extends HttpServlet {
                     success = true;
                     break;
                     
+                case "manual-check-inventory":
+                    // Method removed from AlertSchedulerService
+                    result = "Manual inventory check not available in current version";
+                    success = false;
+                    break;
+                    
+                case "manual-check-po-pending":
+                    // Method removed from AlertSchedulerService
+                    result = "Manual PO check not available in current version";
+                    success = false;
+                    break;
+                    
+                case "manual-check-all":
+                    // Method removed from AlertSchedulerService  
+                    result = "Manual all checks not available in current version";
+                    success = false;
+                    break;
+                    
                 default:
                     result = "Unknown action: " + action;
             }
@@ -137,15 +155,9 @@ public class AlertTestServlet extends HttpServlet {
     }
     
     private String testDailySummary() {
-        JSONObject revenueData = new JSONObject();
-        revenueData.put("date", LocalDateTime.now().toString());
-        revenueData.put("totalRevenue", 15750000);
-        revenueData.put("totalOrders", 92);
-        revenueData.put("avgOrderValue", 171195);
-        revenueData.put("topProduct", "Cà phê sữa đá");
-        
-        UUID alertId = alertService.triggerDailySummary(revenueData);
-        return "Daily Summary Alert triggered. ID: " + alertId;
+        // 🚫 DISABLED: Revenue notification không còn cần thiết (disabled by user request)
+        System.out.println("🚫 TEST DISABLED: Daily Summary alert has been disabled");
+        return "❌ Daily Summary Alert is DISABLED. Revenue notifications are no longer needed.";
     }
     
     private String testPOPending() {

@@ -243,37 +243,62 @@ public class RevenueReportService {
         JSONArray products = new JSONArray();
         
         try {
+            System.out.println("🏆 generateTopProducts START - Date range: " + startDate + " to " + endDate);
+            
             List<Object[]> topProducts = reportDAO.getTopProducts(startDate, endDate, limit);
+            System.out.println("   DAO returned " + topProducts.size() + " products");
+            
+            if (topProducts.isEmpty()) {
+                System.out.println("   ⚠️ WARNING: DAO returned empty list!");
+                return products; // Return empty array
+            }
             
             // Calculate total revenue for percentage
             BigDecimal totalRevenue = reportDAO.getTotalRevenue(startDate, endDate);
+            System.out.println("   Total revenue: " + totalRevenue);
             
+            int index = 0;
             for (Object[] row : topProducts) {
-                // UUID productID = (UUID) row[0];
-                String productName = (String) row[1];
-                Long quantity = (Long) row[2];
-                BigDecimal revenue = (BigDecimal) row[3];
-                
-                // Calculate percentage of total revenue
-                double percentage = totalRevenue.compareTo(BigDecimal.ZERO) > 0 ? 
-                    revenue.divide(totalRevenue, 4, RoundingMode.HALF_UP)
-                          .multiply(BigDecimal.valueOf(100))
-                          .doubleValue() : 0;
-                
-                // Calculate average price
-                BigDecimal avgPrice = quantity > 0 ? 
-                    revenue.divide(BigDecimal.valueOf(quantity), 0, RoundingMode.HALF_UP) : 
-                    BigDecimal.ZERO;
-                
-                JSONObject product = new JSONObject();
-                product.put("name", productName);
-                product.put("quantity", quantity);
-                product.put("price", avgPrice.doubleValue());
-                product.put("revenue", revenue.doubleValue());
-                product.put("share", String.format("%.1f%%", percentage));
-                
-                products.put(product);
+                try {
+                    System.out.println("   Processing product " + (index + 1) + " - Row data: " + java.util.Arrays.toString(row));
+                    
+                    // FIX: Safe casting - SUM() can return Long or Integer depending on database
+                    // UUID productID = (UUID) row[0];
+                    String productName = (String) row[1];
+                    long quantity = ((Number) row[2]).longValue();  // Safe cast from Integer/Long
+                    BigDecimal revenue = (BigDecimal) row[3];
+                    
+                    System.out.println("      Name: " + productName + ", Qty: " + quantity + ", Revenue: " + revenue);
+                    
+                    // Calculate percentage of total revenue
+                    double percentage = totalRevenue.compareTo(BigDecimal.ZERO) > 0 ? 
+                        revenue.divide(totalRevenue, 4, RoundingMode.HALF_UP)
+                              .multiply(BigDecimal.valueOf(100))
+                              .doubleValue() : 0;
+                    
+                    // Calculate average price
+                    BigDecimal avgPrice = quantity > 0 ? 
+                        revenue.divide(BigDecimal.valueOf(quantity), 0, RoundingMode.HALF_UP) : 
+                        BigDecimal.ZERO;
+                    
+                    JSONObject product = new JSONObject();
+                    product.put("name", productName);
+                    product.put("quantity", quantity);
+                    product.put("price", avgPrice.doubleValue());
+                    product.put("revenue", revenue.doubleValue());
+                    product.put("share", String.format("%.1f%%", percentage));
+                    
+                    products.put(product);
+                    System.out.println("      ✅ Product added to JSON array");
+                    
+                    index++;
+                } catch (Exception rowError) {
+                    System.err.println("   ❌ Error processing row " + index + ": " + rowError.getMessage());
+                    rowError.printStackTrace();
+                }
             }
+            
+            System.out.println("🏆 generateTopProducts END - Returning " + products.length() + " products");
             
         } catch (Exception e) {
             System.err.println("❌ Error generating top products: " + e.getMessage());

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Alerts</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        .result { background: white; padding: 15px; margin: 10px 0; border-radius: 4px; }
+        button { padding: 10px 20px; margin: 5px; background: #667eea; color: white; border: none; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Alerts</h1>
+    
+    <button onclick="checkDatabase()">1. Check Database (via API)</button>
+    <button onclick="checkUnread()">2. Check Unread Count</button>
+    <button onclick="checkRecent()">3. Check Recent Alerts</button>
+    <button onclick="triggerCheck()">4. Trigger PO Check (Manual)</button>
+    
+    <div id="result"></div>
+
+    <script>
+        const ctx = '/LiteFlow';
+        
+        async function checkUnread() {
+            const res = await fetch(`${ctx}/alert/api/unread-count`);
+            const data = await res.json();
+            document.getElementById('result').innerHTML = `
+                <div class="result">
+                    <h3>Unread Count:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        async function checkRecent() {
+            const res = await fetch(`${ctx}/alert/api/recent?limit=10`);
+            const data = await res.json();
+            document.getElementById('result').innerHTML = `
+                <div class="result">
+                    <h3>Recent Alerts:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    ${data.alerts && data.alerts.length > 0 ? 
+                        `<h4>First Alert:</h4><pre>${JSON.stringify(data.alerts[0], null, 2)}</pre>` 
+                        : '<p style="color: red;">❌ NO ALERTS FOUND!</p>'}
+                </div>
+            `;
+        }
+        
+        async function checkDatabase() {
+            document.getElementById('result').innerHTML = `
+                <div class="result">
+                    <h3>SQL Queries to run in SSMS:</h3>
+                    <pre>
+-- Check if alerts exist
+SELECT COUNT(*) AS TotalAlerts FROM AlertHistory;
+
+-- Check PO_PENDING alerts
+SELECT * FROM AlertHistory 
+WHERE AlertType = 'PO_PENDING' 
+ORDER BY TriggeredAt DESC;
+
+-- Check unread alerts
+SELECT 
+    AlertType,
+    Title,
+    IsRead,
+    IsDismissed,
+    DeliveryStatus,
+    TriggeredAt
+FROM AlertHistory
+WHERE IsRead = 0
+ORDER BY TriggeredAt DESC;
+
+-- Check pending POs
+SELECT COUNT(*) AS PendingPOs FROM PurchaseOrders WHERE Status = 'PENDING';
+                    </pre>
+                </div>
+            `;
+        }
+        
+        async function triggerCheck() {
+            try {
+                const res = await fetch(`${ctx}/alert/test`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=manual-check-po-pending'
+                });
+                
+                if (res.redirected) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <h3>Manual Check Triggered!</h3>
+                            <p>✅ Request sent successfully</p>
+                            <p>Check Tomcat console for logs</p>
+                            <p>Wait 2 seconds then click "Check Recent Alerts"</p>
+                        </div>
+                    `;
+                    
+                    // Auto check after 2 seconds
+                    setTimeout(checkRecent, 2000);
+                } else {
+                    const text = await res.text();
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <h3>Response:</h3>
+                            <pre>${text}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result">
+                        <h3 style="color: red;">Error:</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
