@@ -404,19 +404,7 @@
 
     <div class="container">
         <div class="page-header">
-            <h1 class="page-title">🧾 Quản lý Hóa đơn</h1>
-        </div>
-
-        <!-- Tab Switcher -->
-        <div class="tab-switcher">
-            <button class="tab-btn active" onclick="switchTab('purchase')">
-                <i class='bx bx-package'></i>
-                Hóa đơn Nhập hàng
-            </button>
-            <button class="tab-btn" onclick="switchTab('sales')">
-                <i class='bx bx-receipt'></i>
-                Hóa đơn Bán hàng
-            </button>
+            <h1 class="page-title">📦 Hóa đơn Nhập hàng</h1>
         </div>
 
         <c:if test="${not empty successMessage}">
@@ -425,8 +413,7 @@
             </div>
         </c:if>
 
-        <!-- Purchase Invoice Tab -->
-        <div id="purchaseTab" class="tab-content active">
+        <!-- Purchase Invoice Section -->
             <div style="margin-bottom: 20px; text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
                 <button class="btn btn-success" onclick="(function(){ var m=document.getElementById('matchModal'); var n=document.querySelector('.main-nav'); if(m) m.style.display='block'; if(n) n.style.display='none'; document.body.style.overflow='hidden'; })()">
                     <i class='bx bx-receipt'></i>
@@ -516,43 +503,7 @@
                 </c:choose>
             </tbody>
         </table>
-        </div>
-        <!-- End Purchase Invoice Tab -->
-
-        <!-- Sales Invoice Tab -->
-        <div id="salesTab" class="tab-content">
-            <div style="margin-bottom: 20px; text-align: right;">
-                <button class="btn btn-success" onclick="alert('Chức năng đang phát triển')">
-                    <i class='bx bx-plus'></i>
-                    Tạo Hóa đơn bán hàng
-                </button>
-            </div>
-
-            <table class="invoice-table">
-                <thead>
-                    <tr>
-                        <th>Mã hóa đơn</th>
-                        <th>Khách hàng</th>
-                        <th>Ngày lập</th>
-                        <th>Tổng tiền</th>
-                        <th>Trạng thái</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 40px;">
-                            <div class="empty-state">
-                                <i class='bx bx-receipt' style="font-size: 64px; color: #d1d5db;"></i>
-                                <h3 style="margin: 20px 0 10px 0; color: #6b7280;">Chưa có hóa đơn bán hàng</h3>
-                                <p style="color: #9ca3af;">Chức năng đang được phát triển</p>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <!-- End Sales Invoice Tab -->
+        <!-- End Purchase Invoice Section -->
 
     </div>
 
@@ -942,28 +893,6 @@
             console.log('✅ Invoice Matching Page Loaded');
             console.log('✅ All buttons use inline onclick - no addEventListener needed');
         });
-        
-        // Tab Switcher Function
-        function switchTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Remove active class from all buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Show selected tab
-            if (tabName === 'purchase') {
-                document.getElementById('purchaseTab').classList.add('active');
-                document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            } else if (tabName === 'sales') {
-                document.getElementById('salesTab').classList.add('active');
-                document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            }
-        }
         
         function addManualItem() {
             console.log('➕ Adding manual item...');
@@ -1486,6 +1415,313 @@
                 closeDetailModal();
             }
         }
+            
+            let url = '${pageContext.request.contextPath}/sales/invoices?action=list&limit=' + salesPageSize + '&offset=' + offset;
+            
+            // Apply search filter
+            if (salesSearchKeyword.trim()) {
+                url = '${pageContext.request.contextPath}/sales/invoices?action=search&keyword=' + 
+                      encodeURIComponent(salesSearchKeyword) + '&limit=' + salesPageSize + '&offset=' + offset;
+            }
+            // Apply date filter
+            else if (salesStartDateFilter && salesEndDateFilter) {
+                url = '${pageContext.request.contextPath}/sales/invoices?action=filter&startDate=' + 
+                      salesStartDateFilter + '&endDate=' + salesEndDateFilter + 
+                      '&limit=' + salesPageSize + '&offset=' + offset;
+            }
+            
+            console.log('📊 Loading sales invoices from:', url);
+            
+            fetch(url)
+                .then(response => {
+                    console.log('📡 Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📦 Received data:', data);
+                    if (data.success) {
+                        console.log('✅ Success! Invoice count:', data.invoices ? data.invoices.length : 0);
+                        renderSalesInvoices(data.invoices);
+                        salesTotalCount = data.totalCount || data.count || 0;
+                        updateSalesPagination();
+                    } else {
+                        throw new Error(data.message || 'Failed to load sales invoices');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error loading sales invoices:', error);
+                    document.getElementById('salesInvoiceTableBody').innerHTML = 
+                        '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ef4444;">' +
+                        '<i class="bx bx-error" style="font-size: 48px;"></i>' +
+                        '<p style="margin-top: 15px;">Lỗi tải dữ liệu: ' + error.message + '</p>' +
+                        '<p style="margin-top: 10px; font-size: 13px; color: #6b7280;">Vui lòng mở Console (F12) để xem chi tiết lỗi</p></td></tr>';
+                });
+        };
+        
+        /**
+         * Render sales invoices table
+         */
+        window.renderSalesInvoices = function(invoices) {
+            const tbody = document.getElementById('salesInvoiceTableBody');
+            
+            if (!invoices || invoices.length === 0) {
+                tbody.innerHTML = 
+                    '<tr><td colspan="8" style="text-align: center; padding: 40px;">' +
+                    '<div class="empty-state">' +
+                    '<i class="bx bx-receipt" style="font-size: 64px; color: #d1d5db;"></i>' +
+                    '<h3 style="margin: 20px 0 10px 0; color: #6b7280;">Không tìm thấy hóa đơn</h3>' +
+                    '<p style="color: #9ca3af;">Thử thay đổi bộ lọc hoặc tìm kiếm</p>' +
+                    '</div></td></tr>';
+                return;
+            }
+            
+            let html = '';
+            invoices.forEach((invoice, index) => {
+                const paymentBadge = getPaymentMethodBadge(invoice.paymentMethod);
+                
+                html += '<tr style="animation: slideIn 0.3s ease ' + (index * 0.05) + 's both;">';
+                html += '    <td><strong>' + (invoice.orderNumber || 'N/A') + '</strong></td>';
+                html += '    <td>' + (invoice.orderDateFormatted || formatDate(invoice.orderDate)) + '</td>';
+                html += '    <td>';
+                html += '        <strong>' + (invoice.customerName || 'Khách lẻ') + '</strong>';
+                if (invoice.customerPhone) {
+                    html += '<br><small style="color: #6b7280;">' + invoice.customerPhone + '</small>';
+                }
+                html += '    </td>';
+                html += '    <td>';
+                if (invoice.roomName || invoice.tableName) {
+                    html += (invoice.roomName || '') + (invoice.roomName && invoice.tableName ? ' - ' : '') + (invoice.tableName || '');
+                } else {
+                    html += '<span style="color: #9ca3af;">-</span>';
+                }
+                html += '    </td>';
+                html += '    <td><strong style="color: #059669; font-size: 15px;">' + formatCurrency(invoice.totalAmount) + '</strong></td>';
+                html += '    <td>' + paymentBadge + '</td>';
+                html += '    <td>' + (invoice.createdByName || '-') + '</td>';
+                html += '    <td>';
+                html += '        <button class="btn btn-info" onclick="viewSalesInvoiceDetails(\'' + invoice.orderId + '\')" title="Xem chi tiết">';
+                html += '            <i class="bx bx-show"></i>';
+                html += '        </button>';
+                html += '    </td>';
+                html += '</tr>';
+            });
+            
+            tbody.innerHTML = html;
+            
+            console.log('✅ Rendered ' + invoices.length + ' sales invoices');
+        };
+        
+        /**
+         * Get payment method badge HTML
+         */
+        window.getPaymentMethodBadge = function(method) {
+            const badges = {
+                'Cash': '<span style="background: #10b981; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💵 Tiền mặt</span>',
+                'Card': '<span style="background: #3b82f6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💳 Thẻ</span>',
+                'Transfer': '<span style="background: #8b5cf6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🏦 Chuyển khoản</span>',
+                'E-Wallet': '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">📱 Ví điện tử</span>'
+            };
+            return badges[method] || '<span style="color: #6b7280;">' + (method || 'N/A') + '</span>';
+        };
+        
+        /**
+         * Update pagination controls
+         */
+        window.updateSalesPagination = function() {
+            const paginationDiv = document.getElementById('salesPagination');
+            const prevBtn = document.getElementById('salesPrevBtn');
+            const nextBtn = document.getElementById('salesNextBtn');
+            const pageInfo = document.getElementById('salesPageInfo');
+            
+            const totalPages = Math.ceil(salesTotalCount / salesPageSize);
+            const currentPageNum = salesCurrentPage + 1;
+            
+            if (totalPages > 1) {
+                paginationDiv.style.display = 'block';
+                pageInfo.textContent = 'Trang ' + currentPageNum + ' / ' + totalPages + ' (Tổng: ' + salesTotalCount + ' hóa đơn)';
+                
+                prevBtn.disabled = salesCurrentPage === 0;
+                nextBtn.disabled = salesCurrentPage >= totalPages - 1;
+            } else {
+                paginationDiv.style.display = 'none';
+            }
+        };
+        
+        /**
+         * View sales invoice details
+         */
+        window.viewSalesInvoiceDetails = function(orderId) {
+            console.log('📋 Loading sales invoice details:', orderId);
+            
+            fetch('${pageContext.request.contextPath}/sales/invoices?action=details&id=' + orderId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.invoice) {
+                        showSalesInvoiceModal(data.invoice);
+                    } else {
+                        alert('Lỗi: ' + (data.message || 'Không tải được chi tiết hóa đơn'));
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error loading invoice details:', error);
+                    alert('Lỗi kết nối: ' + error.message);
+                });
+        };
+        
+        /**
+         * Show sales invoice details modal
+         */
+        window.showSalesInvoiceModal = function(invoice) {
+            // Build modal content
+            let modalHTML = '<div class="modal" id="salesInvoiceModal" style="display: block;">';
+            modalHTML += '  <div class="modal-content" style="max-width: 900px; animation: slideDown 0.3s ease;">';
+            modalHTML += '    <div class="modal-header" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 25px; border-radius: 12px 12px 0 0;">';
+            modalHTML += '      <h2 style="margin: 0; font-size: 24px;">🧾 Chi tiết Hóa đơn Bán hàng</h2>';
+            modalHTML += '      <span class="close" onclick="closeSalesInvoiceModal()" style="cursor: pointer; font-size: 32px;">&times;</span>';
+            modalHTML += '    </div>';
+            modalHTML += '    <div class="modal-body" style="padding: 30px; max-height: 70vh; overflow-y: auto;">';
+            
+            // Invoice info
+            modalHTML += '      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%); padding: 25px; border-radius: 12px; margin-bottom: 25px; border-left: 5px solid #10b981;">';
+            modalHTML += '        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+            modalHTML += '          <div><strong style="color: #065f46;">📋 Mã đơn:</strong><br><span style="font-size: 18px; color: #047857;">' + (invoice.orderNumber || 'N/A') + '</span></div>';
+            modalHTML += '          <div><strong style="color: #065f46;">📅 Ngày bán:</strong><br>' + (invoice.orderDateFormatted || formatDate(invoice.orderDate)) + '</div>';
+            modalHTML += '          <div><strong style="color: #065f46;">👤 Khách hàng:</strong><br>' + (invoice.customerName || 'Khách lẻ');
+            if (invoice.customerPhone) modalHTML += '<br><small style="color: #6b7280;">' + invoice.customerPhone + '</small>';
+            modalHTML += '          </div>';
+            modalHTML += '          <div><strong style="color: #065f46;">🪑 Bàn/Phòng:</strong><br>' + ((invoice.roomName || '') + (invoice.roomName && invoice.tableName ? ' - ' : '') + (invoice.tableName || '-')) + '</div>';
+            modalHTML += '          <div><strong style="color: #065f46;">💳 Thanh toán:</strong><br>' + getPaymentMethodBadge(invoice.paymentMethod) + '</div>';
+            modalHTML += '          <div><strong style="color: #065f46;">👨‍💼 Nhân viên:</strong><br>' + (invoice.createdByName || '-') + '</div>';
+            modalHTML += '        </div>';
+            modalHTML += '      </div>';
+            
+            // Items table
+            if (invoice.items && invoice.items.length > 0) {
+                modalHTML += '      <h3 style="margin-bottom: 15px; color: #374151;">📦 Sản phẩm</h3>';
+                modalHTML += '      <table class="invoice-table" style="margin-bottom: 25px;">';
+                modalHTML += '        <thead><tr><th>Sản phẩm</th><th>Size</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead>';
+                modalHTML += '        <tbody>';
+                
+                invoice.items.forEach(item => {
+                    modalHTML += '          <tr>';
+                    modalHTML += '            <td>' + (item.productName || '-') + '</td>';
+                    modalHTML += '            <td>' + (item.size || '-') + '</td>';
+                    modalHTML += '            <td>' + (item.quantity || 0) + '</td>';
+                    modalHTML += '            <td>' + formatCurrency(item.unitPrice) + '</td>';
+                    modalHTML += '            <td><strong>' + formatCurrency(item.totalPrice) + '</strong></td>';
+                    modalHTML += '          </tr>';
+                });
+                
+                modalHTML += '        </tbody></table>';
+            }
+            
+            // Summary
+            modalHTML += '      <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 2px solid #e5e7eb;">';
+            modalHTML += '        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 15px;">';
+            if (invoice.subTotal) {
+                modalHTML += '          <div><strong>Tạm tính:</strong></div><div style="text-align: right;">' + formatCurrency(invoice.subTotal) + '</div>';
+            }
+            if (invoice.vat) {
+                modalHTML += '          <div><strong>VAT:</strong></div><div style="text-align: right;">' + formatCurrency(invoice.vat) + '</div>';
+            }
+            if (invoice.discount) {
+                modalHTML += '          <div><strong>Giảm giá:</strong></div><div style="text-align: right; color: #ef4444;">-' + formatCurrency(invoice.discount) + '</div>';
+            }
+            modalHTML += '          <div style="border-top: 2px solid #d1d5db; padding-top: 10px; margin-top: 5px;"><strong style="font-size: 18px; color: #059669;">TỔNG TIỀN:</strong></div>';
+            modalHTML += '          <div style="text-align: right; border-top: 2px solid #d1d5db; padding-top: 10px; margin-top: 5px;"><strong style="font-size: 20px; color: #059669;">' + formatCurrency(invoice.totalAmount) + '</strong></div>';
+            modalHTML += '        </div>';
+            if (invoice.notes) {
+                modalHTML += '        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;"><strong>📝 Ghi chú:</strong><br>' + invoice.notes + '</div>';
+            }
+            modalHTML += '      </div>';
+            
+            modalHTML += '    </div>';
+            modalHTML += '    <div class="modal-footer" style="padding: 20px; text-align: right; border-top: 1px solid #e5e7eb;">';
+            modalHTML += '      <button class="btn" onclick="closeSalesInvoiceModal()" style="background: #6b7280; color: white; padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer;">Đóng</button>';
+            modalHTML += '    </div>';
+            modalHTML += '  </div>';
+            modalHTML += '</div>';
+            
+            // Remove old modal if exists
+            const oldModal = document.getElementById('salesInvoiceModal');
+            if (oldModal) oldModal.remove();
+            
+            // Append to body
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            document.body.style.overflow = 'hidden';
+        };
+        
+        /**
+         * Close sales invoice modal
+         */
+        window.closeSalesInvoiceModal = function() {
+            const modal = document.getElementById('salesInvoiceModal');
+            if (modal) modal.remove();
+            document.body.style.overflow = '';
+        };
+        
+        /**
+         * Search sales invoices (debounced)
+         */
+        window.debouncedSalesSearch = function() {
+            clearTimeout(salesSearchTimeout);
+            salesSearchTimeout = setTimeout(() => {
+                salesSearchKeyword = document.getElementById('salesSearchInput').value;
+                salesCurrentPage = 0;
+                window.loadSalesInvoices(0);
+            }, 500);
+        };
+        
+        /**
+         * Filter sales invoices by date
+         */
+        window.filterSalesInvoices = function() {
+            salesStartDateFilter = document.getElementById('salesStartDate').value;
+            salesEndDateFilter = document.getElementById('salesEndDate').value;
+            salesSearchKeyword = ''; // Clear search when filtering
+            salesCurrentPage = 0;
+            window.loadSalesInvoices(0);
+        };
+        
+        /**
+         * Reset all filters
+         */
+        window.resetSalesFilters = function() {
+            document.getElementById('salesSearchInput').value = '';
+            document.getElementById('salesStartDate').value = '';
+            document.getElementById('salesEndDate').value = '';
+            salesSearchKeyword = '';
+            salesStartDateFilter = '';
+            salesEndDateFilter = '';
+            salesCurrentPage = 0;
+            window.loadSalesInvoices(0);
+        };
+        
+        /**
+         * Format date helper
+         */
+        window.formatDate = function(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('vi-VN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return dateStr;
+            }
+        };
+        
+        console.log('✅ All Sales Invoice functions loaded globally');
+        
+        // ==================== END SALES INVOICE FUNCTIONS ====================
 
         // Initialize on load
         window.onload = function() {

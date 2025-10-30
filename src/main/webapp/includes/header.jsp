@@ -258,7 +258,10 @@
             </a>
             <div class="dropdown-menu">
               <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
-                <i class='bx bx-file-blank'></i> Hóa đơn nhập hàng
+                <i class='bx bx-package'></i> Hóa đơn nhập hàng
+              </a>
+              <a href="${pageContext.request.contextPath}/sales/invoice" class="dropdown-item">
+                <i class='bx bx-receipt'></i> Hoá đơn bán hàng
               </a>
             </div>
           </div>
