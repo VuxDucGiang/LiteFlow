@@ -34,6 +34,9 @@ public class RevenueReportServlet extends HttpServlet {
         if ("api".equals(action)) {
             // Return JSON data for charts
             handleAPIRequest(request, response);
+        } else if ("today".equals(action)) {
+            // 🆕 Return TODAY's dashboard data
+            handleTodayRequest(request, response);
         } else {
             // Show report page
             handleReportPage(request, response);
@@ -102,5 +105,37 @@ public class RevenueReportServlet extends HttpServlet {
         }
         
         response.getWriter().write(data.toString());
+    }
+    
+    /**
+     * 🆕 Handle Today's Dashboard API Request
+     * Returns real-time metrics for current day
+     */
+    private void handleTodayRequest(HttpServletRequest request, HttpServletResponse response) 
+            throws IOException {
+        
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        
+        System.out.println("📊 Today's Dashboard API Request");
+        
+        JSONObject todayData = new JSONObject();
+        
+        try {
+            // Generate today's report using service
+            todayData = reportService.generateTodayReport();
+            
+            System.out.println("✅ Today's API Response generated successfully");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Today's API Error: " + e.getMessage());
+            e.printStackTrace();
+            
+            todayData.put("success", false);
+            todayData.put("error", e.getMessage());
+            todayData.put("message", "Error loading today's data from database");
+        }
+        
+        response.getWriter().write(todayData.toString());
     }
 }

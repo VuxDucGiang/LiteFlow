@@ -17,12 +17,16 @@
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/animations.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/ui-components.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/chatbot.css">
   
   <!-- Dropdown Fix Script -->
   <script src="${pageContext.request.contextPath}/js/dropdown-fix.js"></script>
   
   <!-- Notification Bell Script -->
   <script src="${pageContext.request.contextPath}/js/notification-bell.js"></script>
+  
+  <!-- ChatBot Script -->
+  <script src="${pageContext.request.contextPath}/js/chatbot.js"></script>
   
   <!-- Inline Dropdown Fix -->
   <script>
