@@ -876,6 +876,158 @@ WHERE ts.CustomerName = N'Lê Văn Cường'
 GO
 
 -- ============================================================
+-- 4️⃣.1 THÊM ORDER STATUS HISTORY (Lịch sử thay đổi trạng thái - cho kitchen notifications)
+-- ============================================================
+
+-- Lịch sử cho ORD-HISTORY-001 (Nguyễn Văn An)
+INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+SELECT 
+    o.OrderID,
+    'Pending',
+    'Preparing',
+    u.UserID,
+    DATEADD(MINUTE, 2, o.OrderDate),  -- 2 phút sau khi order được tạo
+    (
+        SELECT 
+            p.Name AS productName,
+            pv.Size AS size,
+            od.Quantity AS quantity,
+            od.UnitPrice AS unitPrice,
+            od.SpecialInstructions AS note
+        FROM OrderDetails od
+        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+        INNER JOIN Products p ON pv.ProductID = p.ProductID
+        WHERE od.OrderID = o.OrderID
+        FOR JSON PATH
+    )
+FROM Orders o
+CROSS JOIN Users u
+WHERE o.OrderNumber = 'ORD-HISTORY-001' AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+SELECT 
+    o.OrderID,
+    'Preparing',
+    'Ready',
+    u.UserID,
+    DATEADD(MINUTE, 12, o.OrderDate),  -- 12 phút sau khi order được tạo
+    (
+        SELECT 
+            p.Name AS productName,
+            pv.Size AS size,
+            od.Quantity AS quantity,
+            od.UnitPrice AS unitPrice,
+            od.SpecialInstructions AS note
+        FROM OrderDetails od
+        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+        INNER JOIN Products p ON pv.ProductID = p.ProductID
+        WHERE od.OrderID = o.OrderID
+        FOR JSON PATH
+    )
+FROM Orders o
+CROSS JOIN Users u
+WHERE o.OrderNumber = 'ORD-HISTORY-001' AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+SELECT 
+    o.OrderID,
+    'Ready',
+    'Served',
+    u.UserID,
+    DATEADD(MINUTE, 15, o.OrderDate),  -- 15 phút sau khi order được tạo
+    (
+        SELECT 
+            p.Name AS productName,
+            pv.Size AS size,
+            od.Quantity AS quantity,
+            od.UnitPrice AS unitPrice,
+            od.SpecialInstructions AS note
+        FROM OrderDetails od
+        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+        INNER JOIN Products p ON pv.ProductID = p.ProductID
+        WHERE od.OrderID = o.OrderID
+        FOR JSON PATH
+    )
+FROM Orders o
+CROSS JOIN Users u
+WHERE o.OrderNumber = 'ORD-HISTORY-001' AND u.Email = 'cashier1@liteflow.vn';
+
+-- Lịch sử cho ORD-HISTORY-002 (Lê Văn Cường - VIP)
+INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+SELECT 
+    o.OrderID,
+    'Pending',
+    'Preparing',
+    u.UserID,
+    DATEADD(MINUTE, 1, o.OrderDate),  -- VIP được ưu tiên
+    (
+        SELECT 
+            p.Name AS productName,
+            pv.Size AS size,
+            od.Quantity AS quantity,
+            od.UnitPrice AS unitPrice,
+            od.SpecialInstructions AS note
+        FROM OrderDetails od
+        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+        INNER JOIN Products p ON pv.ProductID = p.ProductID
+        WHERE od.OrderID = o.OrderID
+        FOR JSON PATH
+    )
+FROM Orders o
+CROSS JOIN Users u
+WHERE o.OrderNumber = 'ORD-HISTORY-002' AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+SELECT 
+    o.OrderID,
+    'Preparing',
+    'Ready',
+    u.UserID,
+    DATEADD(MINUTE, 18, o.OrderDate),  -- 18 phút (order lớn hơn)
+    (
+        SELECT 
+            p.Name AS productName,
+            pv.Size AS size,
+            od.Quantity AS quantity,
+            od.UnitPrice AS unitPrice,
+            od.SpecialInstructions AS note
+        FROM OrderDetails od
+        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+        INNER JOIN Products p ON pv.ProductID = p.ProductID
+        WHERE od.OrderID = o.OrderID
+        FOR JSON PATH
+    )
+FROM Orders o
+CROSS JOIN Users u
+WHERE o.OrderNumber = 'ORD-HISTORY-002' AND u.Email = 'cashier1@liteflow.vn';
+
+INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+SELECT 
+    o.OrderID,
+    'Ready',
+    'Served',
+    u.UserID,
+    DATEADD(MINUTE, 20, o.OrderDate),
+    (
+        SELECT 
+            p.Name AS productName,
+            pv.Size AS size,
+            od.Quantity AS quantity,
+            od.UnitPrice AS unitPrice,
+            od.SpecialInstructions AS note
+        FROM OrderDetails od
+        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+        INNER JOIN Products p ON pv.ProductID = p.ProductID
+        WHERE od.OrderID = o.OrderID
+        FOR JSON PATH
+    )
+FROM Orders o
+CROSS JOIN Users u
+WHERE o.OrderNumber = 'ORD-HISTORY-002' AND u.Email = 'cashier1@liteflow.vn';
+
+GO
+
+-- ============================================================
 -- 5️⃣ CẬP NHẬT TRẠNG THÁI BÀN
 -- ============================================================
 

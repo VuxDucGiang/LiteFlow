@@ -284,6 +284,21 @@ CREATE TABLE OrderDetails (
     CONSTRAINT FK_OrderDetails_ProductVariant FOREIGN KEY (ProductVariantID) REFERENCES ProductVariant(ProductVariantID)
 );
 
+-- ORDER STATUS HISTORY - Lịch sử thay đổi trạng thái đơn hàng (dùng cho thông báo kitchen)
+CREATE TABLE OrderStatusHistory (
+    HistoryID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    OrderID UNIQUEIDENTIFIER NOT NULL,
+    OldStatus NVARCHAR(50) NOT NULL,
+    NewStatus NVARCHAR(50) NOT NULL,
+    ChangedAt DATETIME2 DEFAULT SYSDATETIME(),
+    ChangedBy UNIQUEIDENTIFIER NULL,      -- Nhân viên thay đổi trạng thái
+    Notes NVARCHAR(MAX) NULL,             -- Ghi chú khi thay đổi
+    OrderDetailsSnapshot NVARCHAR(MAX) NULL,  -- Snapshot của order details (JSON) tại thời điểm thay đổi
+    
+    CONSTRAINT FK_OrderStatusHistory_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE CASCADE,
+    CONSTRAINT FK_OrderStatusHistory_ChangedBy FOREIGN KEY (ChangedBy) REFERENCES Users(UserID) ON DELETE SET NULL
+);
+
 -- =======================================================
 -- 5. USER INTERACTIONS
 -- =======================================================
@@ -344,6 +359,10 @@ CREATE INDEX IX_OrderDetails_OrderID ON OrderDetails(OrderID);
 CREATE INDEX IX_OrderDetails_ProductVariantID ON OrderDetails(ProductVariantID);
 CREATE INDEX IX_OrderDetails_Status ON OrderDetails(Status);
 
+CREATE INDEX IX_OrderStatusHistory_OrderID ON OrderStatusHistory(OrderID);
+CREATE INDEX IX_OrderStatusHistory_ChangedAt ON OrderStatusHistory(ChangedAt);
+CREATE INDEX IX_OrderStatusHistory_NewStatus ON OrderStatusHistory(NewStatus);
+
 CREATE INDEX IX_PaymentTransactions_SessionID ON PaymentTransactions(SessionID);
 CREATE INDEX IX_PaymentTransactions_OrderID ON PaymentTransactions(OrderID);
 CREATE INDEX IX_PaymentTransactions_ProcessedAt ON PaymentTransactions(ProcessedAt);
@@ -353,6 +372,45 @@ CREATE INDEX IX_Tables_RoomID ON Tables(RoomID);
 CREATE INDEX IX_Tables_Status ON Tables(Status);
 CREATE INDEX IX_Tables_IsActive ON Tables(IsActive);
 GO
+
+-- =======================================================
+-- TRIGGER: Tự động lưu lịch sử khi trạng thái Order thay đổi
+-- =======================================================
+CREATE OR ALTER TRIGGER TRG_Orders_StatusChange
+ON Orders
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Chỉ insert vào OrderStatusHistory khi Status thay đổi
+    INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+    SELECT 
+        i.OrderID,
+        d.Status AS OldStatus,
+        i.Status AS NewStatus,
+        i.CreatedBy AS ChangedBy,
+        SYSDATETIME() AS ChangedAt,
+        (
+            -- Tạo JSON snapshot của OrderDetails
+            SELECT 
+                p.Name AS productName,
+                pv.Size AS size,
+                od.Quantity AS quantity,
+                od.UnitPrice AS unitPrice,
+                od.SpecialInstructions AS note
+            FROM OrderDetails od
+            INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+            INNER JOIN Products p ON pv.ProductID = p.ProductID
+            WHERE od.OrderID = i.OrderID
+            FOR JSON PATH
+        ) AS OrderDetailsSnapshot
+    FROM inserted i
+    INNER JOIN deleted d ON i.OrderID = d.OrderID
+    WHERE i.Status <> d.Status;  -- Chỉ insert khi Status thay đổi
+END;
+GO
+
 USE LiteFlowDBO;
 GO
 
