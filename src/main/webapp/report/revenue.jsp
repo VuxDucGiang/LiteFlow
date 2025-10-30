@@ -540,24 +540,34 @@
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             
+            console.log('🔄 Loading report data from', startDate, 'to', endDate);
+            
             fetch('${pageContext.request.contextPath}/report/revenue?action=api&startDate=' + startDate + '&endDate=' + endDate)
-                .then(response => response.json())
+                .then(response => {
+                    console.log('📡 Response status:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('📦 Data received:', data);
                     if (data.success) {
                         reportData = data;
                         renderDashboard(data);
                     } else {
+                        console.error('❌ API returned success=false:', data.error);
                         alert('Lỗi tải dữ liệu: ' + data.error);
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('❌ Fetch error:', error);
                     alert('Lỗi kết nối: ' + error.message);
                 });
         }
         
         // Render dashboard with data
         function renderDashboard(data) {
+            console.log('📊 renderDashboard called with data:', data);
+            console.log('🏆 topProducts in data:', data.topProducts);
+            
             // Update statistics
             updateStatistics(data);
             
@@ -727,8 +737,30 @@
         
         // Render top products table
         function renderTopProductsTable(products) {
+            console.log('🏆 renderTopProductsTable called with:', products);
+            
             const tbody = document.getElementById('topProductsTable');
+            if (!tbody) {
+                console.error('❌ topProductsTable tbody not found!');
+                return;
+            }
+            
             tbody.innerHTML = '';
+            
+            // Check if products is valid
+            if (!products || !Array.isArray(products)) {
+                console.error('❌ products is not an array:', products);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Không có dữ liệu sản phẩm</td></tr>';
+                return;
+            }
+            
+            if (products.length === 0) {
+                console.warn('⚠️ products array is empty');
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Chưa có sản phẩm bán trong khoảng thời gian này</td></tr>';
+                return;
+            }
+            
+            console.log('✅ Rendering ' + products.length + ' products');
             
             products.forEach((product, index) => {
                 const row = document.createElement('tr');
@@ -747,6 +779,8 @@
                 
                 tbody.appendChild(row);
             });
+            
+            console.log('✅ Table rendered successfully');
         }
         
         // Apply date range filter
