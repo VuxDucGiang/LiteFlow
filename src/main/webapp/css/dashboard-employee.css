@@ -322,45 +322,224 @@
   font-size: 12px;
 }
 
-/* Work Progress Widget */
-.progress-summary {
+/* Salary Summary Widget */
+.salary-stats {
   display: flex;
-  gap: 32px;
-  margin-bottom: 20px;
-  padding: 16px;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.salary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
   background: #f9fafb;
-  border-radius: 12px;
+  border-radius: 10px;
+  border-left: 4px solid #e5e7eb;
+  transition: all 0.2s;
 }
 
-.progress-stat {
-  text-align: center;
-  flex: 1;
+.salary-item:hover {
+  background: #f3f4f6;
+  transform: translateX(2px);
 }
 
-.stat-value {
-  font-size: 36px;
-  font-weight: 800;
+.salary-item.highlight {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left-color: #3b82f6;
+  font-weight: 600;
+}
+
+.salary-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.salary-value {
+  font-size: 16px;
+  font-weight: 700;
   color: #111827;
-  line-height: 1;
 }
 
-.stat-value.blue {
+.salary-value.advance {
+  color: #f59e0b;
+}
+
+.salary-value.deduction {
+  color: #ef4444;
+}
+
+.salary-value.paid {
+  color: #10b981;
+}
+
+.salary-value.remaining {
+  font-size: 18px;
   color: #3b82f6;
+  font-weight: 800;
 }
 
-.stat-label {
-  font-size: 13px;
-  color: #6b7280;
-  margin-top: 8px;
+/* Attendance Clock Widget */
+.attendance-clock {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.attendance-clock .widget-title {
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.attendance-status {
+  display: flex;
+  gap: 24px;
+  margin: 20px 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.time-display {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+}
+
+.current-time {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 8px;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.current-date {
+  font-size: 16px;
   font-weight: 500;
+  opacity: 0.9;
 }
 
-.chart-container {
-  height: 140px;
-  margin-top: 20px;
-  padding: 8px;
-  background: #fafbfc;
+.attendance-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 8px;
+  backdrop-filter: blur(5px);
+}
+
+.info-label {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.info-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+.attendance-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.btn-clock-in,
+.btn-clock-out {
+  flex: 1;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-clock-in {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.btn-clock-in:hover:not(.disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.btn-clock-out {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.btn-clock-out:hover:not(.disabled) {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+.btn-clock-in.disabled,
+.btn-clock-out.disabled,
+.btn-clock-in:disabled,
+.btn-clock-out:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-clock-in i,
+.btn-clock-out i {
+  font-size: 24px;
+}
+
+.attendance-message {
+  padding: 12px 16px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  min-height: 20px;
+  transition: all 0.3s ease;
+}
+
+.attendance-message.success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #ecfdf5;
+  border: 2px solid rgba(16, 185, 129, 0.5);
+}
+
+.attendance-message.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fef2f2;
+  border: 2px solid rgba(239, 68, 68, 0.5);
+}
+
+.attendance-message.info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #eff6ff;
+  border: 2px solid rgba(59, 130, 246, 0.5);
 }
 
 /* Legend dots for timesheet */

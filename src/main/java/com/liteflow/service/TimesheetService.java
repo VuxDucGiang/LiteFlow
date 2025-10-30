@@ -5,18 +5,26 @@ import com.liteflow.dao.timesheet.EmployeeAttendanceDAO;
 import com.liteflow.model.timesheet.EmployeeShiftTimesheet;
 import com.liteflow.model.timesheet.EmployeeAttendance;
 import com.liteflow.dao.employee.EmployeeDAO;
+import com.liteflow.dao.employee.EmployeeShiftDAO;
 import com.liteflow.model.auth.Employee;
+import com.liteflow.model.auth.EmployeeShift;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class TimesheetService {
 
     private final EmployeeShiftTimesheetDAO timesheetDAO = new EmployeeShiftTimesheetDAO();
     private final EmployeeAttendanceDAO attendanceDAO = new EmployeeAttendanceDAO();
     private final EmployeeDAO employeeDAO = new EmployeeDAO();
+    private final EmployeeShiftDAO shiftDAO = new EmployeeShiftDAO();
 
     public List<EmployeeShiftTimesheet> getTimesheetsForWeek(LocalDate weekStart) {
         if (weekStart == null) return new ArrayList<>();
@@ -78,6 +86,185 @@ public class TimesheetService {
             attendanceDAO.update(att);
         }
         return att;
+    }
+
+    // ==============================
+    // Clock In/Out Functions
+    // ==============================
+
+    /**
+     * Chấm công vào - Clock In
+     * Tích hợp: Tạo/cập nhật cả EmployeeAttendance và EmployeeShiftTimesheet (nếu có shift)
+     * @param employeeId ID của nhân viên
+     * @return EmployeeAttendance đã được tạo/cập nhật, hoặc null nếu thất bại
+     */
+    public EmployeeAttendance clockIn(UUID employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+
+        Employee employee = employeeDAO.findById(employeeId);
+        if (employee == null) {
+            return null;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        LocalDateTime nowDateTime = LocalDateTime.now();
+
+        // 1. Tạo/cập nhật EmployeeAttendance
+        EmployeeAttendance attendance = attendanceDAO.findByEmployeeAndDate(employeeId, today);
+        
+        if (attendance == null) {
+            attendance = new EmployeeAttendance();
+            attendance.setEmployee(employee);
+            attendance.setWorkDate(today);
+            attendance.setStatus("Work");
+            attendance.setCheckInTime(now);
+            attendance.setIsLate(false);
+            attendance.setIsOvertime(false);
+            attendance.setIsEarlyLeave(false);
+            attendanceDAO.insert(attendance);
+        } else {
+            attendance.setCheckInTime(now);
+            attendanceDAO.update(attendance);
+        }
+
+        // 2. Tìm shift của nhân viên trong ngày (nếu có)
+        List<EmployeeShift> shifts = shiftDAO.findByEmployeeAndDate(employeeId, today);
+        
+        // Nếu có shift, tạo/cập nhật EmployeeShiftTimesheet
+        for (EmployeeShift shift : shifts) {
+            // Tìm xem đã có timesheet cho shift này chưa
+            EmployeeShiftTimesheet timesheet = timesheetDAO.findByEmployeeShiftAndDate(
+                employeeId, shift.getShiftID(), today
+            );
+            
+            if (timesheet == null) {
+                // Tạo timesheet mới
+                timesheet = new EmployeeShiftTimesheet();
+                timesheet.setEmployee(employee);
+                timesheet.setShift(shift);
+                timesheet.setWorkDate(today);
+                timesheet.setCheckInAt(nowDateTime);
+                timesheet.setCheckOutAt(nowDateTime); // Temporary, will update on clock out
+                timesheet.setBreakMinutes(0);
+                timesheet.setStatus("Pending");
+                timesheet.setSource("Auto");
+                timesheetDAO.insert(timesheet);
+            } else {
+                // Cập nhật check-in time
+                timesheet.setCheckInAt(nowDateTime);
+                timesheetDAO.update(timesheet);
+            }
+        }
+
+        return attendance;
+    }
+
+    /**
+     * Chấm công ra - Clock Out
+     * Tích hợp: Cập nhật cả EmployeeAttendance và EmployeeShiftTimesheet (nếu có shift)
+     * @param employeeId ID của nhân viên
+     * @return EmployeeAttendance đã được cập nhật, hoặc null nếu thất bại
+     */
+    public EmployeeAttendance clockOut(UUID employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+
+        Employee employee = employeeDAO.findById(employeeId);
+        if (employee == null) {
+            return null;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        LocalDateTime nowDateTime = LocalDateTime.now();
+
+        // 1. Cập nhật EmployeeAttendance
+        EmployeeAttendance attendance = attendanceDAO.findByEmployeeAndDate(employeeId, today);
+        
+        if (attendance == null) {
+            // Chưa có record (chưa check-in), tạo mới với cả check-in và check-out
+            attendance = new EmployeeAttendance();
+            attendance.setEmployee(employee);
+            attendance.setWorkDate(today);
+            attendance.setStatus("Work");
+            attendance.setCheckInTime(now);
+            attendance.setCheckOutTime(now);
+            attendance.setIsLate(false);
+            attendance.setIsOvertime(false);
+            attendance.setIsEarlyLeave(false);
+            attendanceDAO.insert(attendance);
+        } else {
+            // Đã có record, cập nhật check-out time
+            attendance.setCheckOutTime(now);
+            attendanceDAO.update(attendance);
+        }
+
+        // 2. Tìm shift của nhân viên trong ngày (nếu có)
+        List<EmployeeShift> shifts = shiftDAO.findByEmployeeAndDate(employeeId, today);
+        
+        // Nếu có shift, cập nhật EmployeeShiftTimesheet
+        for (EmployeeShift shift : shifts) {
+            EmployeeShiftTimesheet timesheet = timesheetDAO.findByEmployeeShiftAndDate(
+                employeeId, shift.getShiftID(), today
+            );
+            
+            if (timesheet == null) {
+                // Chưa có timesheet (chưa check-in), tạo mới
+                timesheet = new EmployeeShiftTimesheet();
+                timesheet.setEmployee(employee);
+                timesheet.setShift(shift);
+                timesheet.setWorkDate(today);
+                timesheet.setCheckInAt(nowDateTime);
+                timesheet.setCheckOutAt(nowDateTime);
+                timesheet.setBreakMinutes(0);
+                timesheet.setStatus("Pending");
+                timesheet.setSource("Auto");
+                
+                // Tính số giờ làm việc
+                Duration duration = Duration.between(nowDateTime, nowDateTime);
+                BigDecimal hours = BigDecimal.valueOf(duration.toMinutes())
+                    .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+                timesheet.setHoursWorked(hours);
+                
+                timesheetDAO.insert(timesheet);
+            } else {
+                // Cập nhật check-out time và tính số giờ làm việc
+                timesheet.setCheckOutAt(nowDateTime);
+                
+                // Tính số giờ làm việc (trừ break minutes)
+                LocalDateTime checkIn = timesheet.getCheckInAt();
+                if (checkIn != null) {
+                    Duration duration = Duration.between(checkIn, nowDateTime);
+                    long totalMinutes = duration.toMinutes();
+                    long workMinutes = totalMinutes - (timesheet.getBreakMinutes() != null ? timesheet.getBreakMinutes() : 0);
+                    BigDecimal hours = BigDecimal.valueOf(workMinutes)
+                        .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+                    timesheet.setHoursWorked(hours);
+                }
+                
+                timesheetDAO.update(timesheet);
+            }
+        }
+
+        return attendance;
+    }
+
+    /**
+     * Lấy trạng thái chấm công của nhân viên trong ngày
+     * @param employeeId ID của nhân viên
+     * @return EmployeeAttendance của ngày hôm nay, hoặc null nếu chưa chấm công
+     */
+    public EmployeeAttendance getTodayAttendance(UUID employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        
+        LocalDate today = LocalDate.now();
+        return attendanceDAO.findByEmployeeAndDate(employeeId, today);
     }
 }
 

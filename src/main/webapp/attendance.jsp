@@ -85,19 +85,27 @@ body, html {
                             <c:set var="isLeave" value="${attStatus == 'LeavePaid' || attStatus == 'LeaveUnpaid'}" />
                             
                             <%-- Determine block background color based on attendance status --%>
-                            <c:set var="blockBg" value="#fed7aa" /><%-- Default: Chưa chấm công (orange) --%>
+                            <%-- 
+                              Màu sắc chấm công:
+                              - Cam (#fed7aa): Chưa chấm công (không có checkIn/Out)
+                              - Xanh dương (#e0f2fe): Nghỉ làm (LeavePaid/LeaveUnpaid)
+                              - Xanh lá (#dcfce7): Đã chấm công đầy đủ (có cả checkIn và checkOut)
+                              - Đỏ (#fecaca): Chấm công thiếu (chỉ có 1 trong 2)
+                              - Tím (#ddd6fe): Có vi phạm (muộn/về sớm) - sẽ được set bởi JavaScript
+                            --%>
+                            <c:set var="blockBg" value="#fed7aa" />
                             <c:set var="blockBorder" value="#fdba74" />
                             <c:choose>
                               <c:when test="${isLeave}">
-                                <c:set var="blockBg" value="#e0f2fe" /><%-- Nghỉ làm (blue) --%>
+                                <c:set var="blockBg" value="#e0f2fe" />
                                 <c:set var="blockBorder" value="#bae6fd" />
                               </c:when>
                               <c:when test="${hasCheckIn && hasCheckOut}">
-                                <c:set var="blockBg" value="#dcfce7" /><%-- Đúng giờ (green) - will be overridden by JS if late/early --%>
+                                <c:set var="blockBg" value="#dcfce7" />
                                 <c:set var="blockBorder" value="#86efac" />
                               </c:when>
                               <c:when test="${hasCheckIn || hasCheckOut}">
-                                <c:set var="blockBg" value="#fecaca" /><%-- Chấm công thiếu (red) --%>
+                                <c:set var="blockBg" value="#fecaca" />
                                 <c:set var="blockBorder" value="#f87171" />
                               </c:when>
                             </c:choose>
@@ -174,24 +182,24 @@ body, html {
     <div style="margin-top:24px; padding:16px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px;display:flex;justify-content: center;">
       <div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
         <div style="display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#dcfce7; border:1px solid #86efac;"></span>
-          <span style="color:#166534; font-size:14px;">Đúng giờ</span>
+          <span style="display:inline-block; width:16px; height:16px; border-radius:4px; background:#dcfce7; border:2px solid #86efac;"></span>
+          <span style="color:#166534; font-size:13px; font-weight:500;">Chấm công đầy đủ</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#ddd6fe; border:1px solid #c4b5fd;"></span>
-          <span style="color:#5b21b6; font-size:14px;">Đi muộn / Về sớm</span>
+          <span style="display:inline-block; width:16px; height:16px; border-radius:4px; background:#ddd6fe; border:2px solid #c4b5fd;"></span>
+          <span style="color:#5b21b6; font-size:13px; font-weight:500;">Vi phạm (muộn/sớm)</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#fecaca; border:1px solid #f87171;"></span>
-          <span style="color:#991b1b; font-size:14px;">Chấm công thiếu</span>
+          <span style="display:inline-block; width:16px; height:16px; border-radius:4px; background:#fecaca; border:2px solid #f87171;"></span>
+          <span style="color:#991b1b; font-size:13px; font-weight:500;">Chấm công thiếu</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#fed7aa; border:1px solid #fdba74;"></span>
-          <span style="color:#9a3412; font-size:14px;">Chưa chấm công</span>
+          <span style="display:inline-block; width:16px; height:16px; border-radius:4px; background:#fed7aa; border:2px solid #fdba74;"></span>
+          <span style="color:#9a3412; font-size:13px; font-weight:500;">Chưa chấm công</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:#e0f2fe; border:1px solid #bae6fd;"></span>
-          <span style="color:#075985; font-size:14px;">Nghỉ làm</span>
+          <span style="display:inline-block; width:16px; height:16px; border-radius:4px; background:#e0f2fe; border:2px solid #bae6fd;"></span>
+          <span style="color:#075985; font-size:13px; font-weight:500;">Nghỉ làm</span>
         </div>
       </div>
     </div>
@@ -810,13 +818,17 @@ body, html {
       }
       
       // Xét màu theo ưu tiên:
-      // 1. Nếu có vi phạm (muộn/sớm) -> màu tím
-      // 2. Nếu chỉ có tăng ca -> giữ màu xanh (đúng giờ)
+      // 1. Nếu có vi phạm (muộn/sớm) -> màu tím (violet)
+      // 2. Nếu chỉ có tăng ca (không có vi phạm) -> màu xanh lá (green)
+      // 3. Mặc định (đúng giờ, không vi phạm, không tăng ca) -> màu xanh lá (green)
       if (hasViolation) {
-        block.style.background = '#ddd6fe';
+        block.style.background = '#ddd6fe'; // Violet
         block.style.borderColor = '#c4b5fd';
+      } else if (hasOnlyOvertime) {
+        block.style.background = '#dcfce7'; // Green (overtime nhưng không vi phạm)
+        block.style.borderColor = '#86efac';
       }
-      // Nếu chỉ có overtime thì giữ nguyên màu xanh (đã set ở server-side)
+      // Nếu không có gì đặc biệt thì giữ màu xanh mặc định
     });
   });
 

@@ -54,21 +54,61 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
       </div>
     </div>
 
-    <div class="widget work-progress">
-      <h2 class="widget-title">TIẾN ĐỘ CÔNG VIỆC</h2>
-      <div class="progress-summary">
-        <div class="progress-stat">
-          <div class="stat-value">50</div>
-          <div class="stat-label">Tổng công việc</div>
+    <div class="widget salary-summary">
+      <h2 class="widget-title" id="salaryMonthTitle">TIỀN CÔNG THÁNG <span id="currentMonthName"></span></h2>
+      <div class="salary-stats">
+        <div class="salary-item">
+          <div class="salary-label">Tổng lương</div>
+          <div class="salary-value" id="totalSalary">0</div>
         </div>
-        <div class="progress-stat">
-          <div class="stat-value blue">42</div>
-          <div class="stat-label">Hoàn thành</div>
+        <div class="salary-item">
+          <div class="salary-label">Tổng đã ứng</div>
+          <div class="salary-value advance" id="totalAdvance">0</div>
+        </div>
+        <div class="salary-item">
+          <div class="salary-label">Tổng tiền trừ</div>
+          <div class="salary-value deduction" id="totalDeduction">0</div>
+        </div>
+        <div class="salary-item">
+          <div class="salary-label">Tổng đã thanh toán</div>
+          <div class="salary-value paid" id="totalPaid">0</div>
+        </div>
+        <div class="salary-item highlight">
+          <div class="salary-label">Tổng chưa nhận</div>
+          <div class="salary-value remaining" id="totalRemaining">0</div>
+        </div>
         </div>
       </div>
-      <div class="chart-container">
-        <canvas id="workProgressChart"></canvas>
+
+    <div class="widget attendance-clock">
+      <h2 class="widget-title">CHẤM CÔNG HÔM NAY</h2>
+      <div class="attendance-status">
+        <div class="time-display">
+          <div class="current-time" id="currentTime">--:--:--</div>
+          <div class="current-date" id="currentDate">-- / -- / ----</div>
+        </div>
+        <div class="attendance-info">
+          <div class="info-row" id="checkInInfo">
+            <span class="info-label">Giờ vào:</span>
+            <span class="info-value" id="checkInTime">--:--:--</span>
+          </div>
+          <div class="info-row" id="checkOutInfo">
+            <span class="info-label">Giờ ra:</span>
+            <span class="info-value" id="checkOutTime">--:--:--</span>
+          </div>
       </div>
+      </div>
+      <div class="attendance-actions">
+        <button class="btn-clock-in" id="btnClockIn" onclick="clockIn()">
+          <i class='bx bx-time-five'></i>
+          <span>Chấm công vào</span>
+        </button>
+        <button class="btn-clock-out" id="btnClockOut" onclick="clockOut()">
+          <i class='bx bx-time'></i>
+          <span>Chấm công ra</span>
+        </button>
+      </div>
+      <div class="attendance-message" id="attendanceMessage"></div>
     </div>
 
     <div class="widget quick-actions">
@@ -90,7 +130,7 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
         </button>
         <button class="btn-action green">
           <i class='bx bx-briefcase'></i>
-          <span>Đi công tác</span>
+          <span>Chấm công</span>
         </button>
       </div>
       
@@ -201,31 +241,6 @@ for (int day = 1; day <= daysInMonth; day++) {
       </div>
     </div>
 
-    <div class="widget internal-news">
-      <h2 class="widget-title">TIN TỨC NỘI BỘ</h2>
-      <div class="news-list">
-        <div class="news-item">
-          <div class="news-thumbnail">
-            <i class='bx bx-handshake'></i>
-          </div>
-          <div class="news-content">
-            <div class="news-category">Phòng nhân sự</div>
-            <div class="news-title">Wellcome đồng nghiệp</div>
-            <div class="news-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
-          </div>
-        </div>
-        <div class="news-item">
-          <div class="news-thumbnail">
-            <i class='bx bx-building'></i>
-          </div>
-          <div class="news-content">
-            <div class="news-category">Hội chị em cây khế</div>
-            <div class="news-title">Than thở chuyện công sở</div>
-            <div class="news-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -336,47 +351,64 @@ window.editSchedule = editSchedule;
 window.deleteSchedule = deleteSchedule;
 window.closeScheduleModal = closeScheduleModal;
 
-// Simple line chart for work progress
-document.addEventListener('DOMContentLoaded', function() {
-  const canvas = document.getElementById('workProgressChart');
-  if (canvas) {
-    const ctx = canvas.getContext('2d');
-    canvas.width = 280;
-    canvas.height = 120;
-    
-    const data = [15, 25, 20, 30, 35, 42, 40];
-    const labels = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
-    const maxValue = 50;
-    
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    
-    data.forEach((value, index) => {
-      const x = (index * (canvas.width - 40) / (data.length - 1)) + 20;
-      const y = canvas.height - 30 - (value / maxValue) * (canvas.height - 60);
-      
-      if (index === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    
-    ctx.stroke();
-    
-    // Draw points
-    data.forEach((value, index) => {
-      const x = (index * (canvas.width - 40) / (data.length - 1)) + 20;
-      const y = canvas.height - 30 - (value / maxValue) * (canvas.height - 60);
-      
-      ctx.fillStyle = '#3b82f6';
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, 2 * Math.PI);
-      ctx.fill();
-    });
+// Old chart code removed - replaced with salary summary
+
+// ==============================
+// Salary Summary Functions
+// ==============================
+
+// Format currency to Vietnamese format
+function formatCurrency(amount) {
+  if (amount == null || amount === undefined || isNaN(amount)) {
+    return '0 ₫';
   }
-});
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(amount);
+}
+
+// Load salary summary for current month
+async function loadSalarySummary() {
+  try {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    
+    // Set month name in title
+    const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+                       'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+    const monthNameEl = document.getElementById('currentMonthName');
+    if (monthNameEl) {
+      monthNameEl.textContent = monthNames[month - 1];
+    }
+    
+    // Call API to get salary summary
+    const response = await fetch(CONTEXT_PATH + '/api/employee/salary-summary?month=' + month + '&year=' + year);
+    if (!response.ok) {
+      console.error('Failed to load salary summary');
+      return;
+    }
+    
+    const data = await response.json();
+    
+    // Update UI
+    document.getElementById('totalSalary').textContent = formatCurrency(data.totalSalary || 0);
+    document.getElementById('totalAdvance').textContent = formatCurrency(data.totalAdvance || 0);
+    document.getElementById('totalDeduction').textContent = formatCurrency(data.totalDeduction || 0);
+    document.getElementById('totalPaid').textContent = formatCurrency(data.totalPaid || 0);
+    document.getElementById('totalRemaining').textContent = formatCurrency(data.totalRemaining || 0);
+    
+  } catch (error) {
+    console.error('Error loading salary summary:', error);
+    // Set default values
+    document.getElementById('totalSalary').textContent = '0 ₫';
+    document.getElementById('totalAdvance').textContent = '0 ₫';
+    document.getElementById('totalDeduction').textContent = '0 ₫';
+    document.getElementById('totalPaid').textContent = '0 ₫';
+    document.getElementById('totalRemaining').textContent = '0 ₫';
+  }
+}
 
 // ==============================
 // Personal Schedule Functions
@@ -584,10 +616,197 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   loadPersonalSchedules();
+  loadSalarySummary();
+  loadAttendanceStatus();
+  updateCurrentTime();
   setupModalCloseOnOutsideClick();
+  
+  // Update current time every second
+  setInterval(updateCurrentTime, 1000);
+  
+  // Refresh attendance status every 30 seconds
+  setInterval(loadAttendanceStatus, 30000);
   
   console.log('All schedule functions initialized');
 });
+
+// ==============================
+// Attendance Clock Functions
+// ==============================
+
+// Update current time display
+function updateCurrentTime() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  
+  document.getElementById('currentTime').textContent = timeStr;
+  document.getElementById('currentDate').textContent = dateStr;
+}
+
+// Load attendance status
+async function loadAttendanceStatus() {
+  try {
+    const response = await fetch(CONTEXT_PATH + '/api/timesheet/status');
+    if (!response.ok) {
+      console.error('Failed to load attendance status');
+      return;
+    }
+    
+    const data = await response.json();
+    
+    // Update UI based on status
+    const checkInBtn = document.getElementById('btnClockIn');
+    const checkOutBtn = document.getElementById('btnClockOut');
+    const checkInTimeEl = document.getElementById('checkInTime');
+    const checkOutTimeEl = document.getElementById('checkOutTime');
+    
+    if (data.hasClockedIn) {
+      checkInTimeEl.textContent = data.checkInTime || '--:--:--';
+      checkInBtn.disabled = true;
+      checkInBtn.classList.add('disabled');
+    } else {
+      checkInTimeEl.textContent = '--:--:--';
+      checkInBtn.disabled = false;
+      checkInBtn.classList.remove('disabled');
+    }
+    
+    if (data.hasClockedOut) {
+      checkOutTimeEl.textContent = data.checkOutTime || '--:--:--';
+      checkOutBtn.disabled = true;
+      checkOutBtn.classList.add('disabled');
+    } else {
+      checkOutTimeEl.textContent = '--:--:--';
+      checkOutBtn.disabled = false;
+      checkOutBtn.classList.remove('disabled');
+    }
+    
+  } catch (error) {
+    console.error('Error loading attendance status:', error);
+  }
+}
+
+// Clock In
+async function clockIn() {
+  const btn = document.getElementById('btnClockIn');
+  const messageEl = document.getElementById('attendanceMessage');
+  
+  if (btn.disabled) {
+    return;
+  }
+  
+  btn.disabled = true;
+  messageEl.textContent = 'Đang xử lý...';
+  messageEl.className = 'attendance-message info';
+  
+  try {
+    const response = await fetch(CONTEXT_PATH + '/api/timesheet/clock-in', {
+      method: 'POST'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      messageEl.textContent = data.message || 'Chấm công vào thành công!';
+      messageEl.className = 'attendance-message success';
+      
+      // Update check-in time
+      document.getElementById('checkInTime').textContent = data.checkInTime || '--:--:--';
+      btn.classList.add('disabled');
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'attendance-message';
+      }, 3000);
+      
+      // Reload status
+      await loadAttendanceStatus();
+    } else {
+      messageEl.textContent = data.error || 'Không thể chấm công vào';
+      messageEl.className = 'attendance-message error';
+      btn.disabled = false;
+      
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'attendance-message';
+      }, 5000);
+    }
+  } catch (error) {
+    console.error('Error clocking in:', error);
+    messageEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+    messageEl.className = 'attendance-message error';
+    btn.disabled = false;
+    
+    setTimeout(() => {
+      messageEl.textContent = '';
+      messageEl.className = 'attendance-message';
+    }, 5000);
+  }
+}
+
+// Clock Out
+async function clockOut() {
+  const btn = document.getElementById('btnClockOut');
+  const messageEl = document.getElementById('attendanceMessage');
+  
+  if (btn.disabled) {
+    return;
+  }
+  
+  btn.disabled = true;
+  messageEl.textContent = 'Đang xử lý...';
+  messageEl.className = 'attendance-message info';
+  
+  try {
+    const response = await fetch(CONTEXT_PATH + '/api/timesheet/clock-out', {
+      method: 'POST'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      messageEl.textContent = data.message || 'Chấm công ra thành công!';
+      messageEl.className = 'attendance-message success';
+      
+      // Update check-out time
+      document.getElementById('checkOutTime').textContent = data.checkOutTime || '--:--:--';
+      btn.classList.add('disabled');
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'attendance-message';
+      }, 3000);
+      
+      // Reload status
+      await loadAttendanceStatus();
+    } else {
+      messageEl.textContent = data.error || 'Không thể chấm công ra';
+      messageEl.className = 'attendance-message error';
+      btn.disabled = false;
+      
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'attendance-message';
+      }, 5000);
+    }
+  } catch (error) {
+    console.error('Error clocking out:', error);
+    messageEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+    messageEl.className = 'attendance-message error';
+    btn.disabled = false;
+    
+    setTimeout(() => {
+      messageEl.textContent = '';
+      messageEl.className = 'attendance-message';
+    }, 5000);
+  }
+}
+
+// Make functions globally accessible
+window.clockIn = clockIn;
+window.clockOut = clockOut;
 </script>
 
 <!-- Schedule Modal -->
