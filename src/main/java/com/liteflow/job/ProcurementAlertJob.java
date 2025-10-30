@@ -7,6 +7,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Logger;
 
+/**
+ * Legacy PO Alert Job - checks for overdue and over-budget POs
+ * NOTE: PO Pending alerts are now handled by AlertSchedulerService
+ */
 @WebListener
 public class ProcurementAlertJob implements ServletContextListener {
     private Timer timer;
@@ -14,6 +18,7 @@ public class ProcurementAlertJob implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
+        System.out.println("🚀 Starting ProcurementAlertJob (checks overdue/over-budget POs every 6h)...");
         timer = new Timer(true);
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override

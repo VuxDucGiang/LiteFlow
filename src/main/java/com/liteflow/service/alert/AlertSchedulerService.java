@@ -4,7 +4,11 @@ import com.liteflow.dao.alert.AlertConfigurationDAO;
 import com.liteflow.dao.procurement.PurchaseOrderDAO;
 import com.liteflow.model.alert.AlertConfiguration;
 import com.liteflow.model.procurement.PurchaseOrder;
+import com.liteflow.service.report.RevenueReportService;
 import org.json.JSONObject;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +33,7 @@ public class AlertSchedulerService {
     private final AlertConfigurationDAO alertConfigDAO;
     private final AlertService alertService;
     private final PurchaseOrderDAO poDAO;
+    private final RevenueReportService revenueService;
     private final ScheduledExecutorService scheduler;
     private boolean isRunning = false;
     
@@ -36,6 +41,7 @@ public class AlertSchedulerService {
         this.alertConfigDAO = new AlertConfigurationDAO();
         this.alertService = new AlertService();
         this.poDAO = new PurchaseOrderDAO();
+        this.revenueService = new RevenueReportService();
         this.scheduler = Executors.newScheduledThreadPool(2);
     }
     
@@ -58,11 +64,12 @@ public class AlertSchedulerService {
             TimeUnit.MINUTES
         );
         
-        // Schedule condition checks every 1 hour
+        // Schedule condition checks every 1 minute for real-time updates
+        // 🔥 FIX: Change from 60 minutes to 1 minute for responsive notifications
         scheduler.scheduleAtFixedRate(
             this::checkConditionBasedAlerts,
-            1,
-            60,
+            0,  // Start immediately
+            1,  // Run every 1 minute
             TimeUnit.MINUTES
         );
         
@@ -106,7 +113,9 @@ public class AlertSchedulerService {
                 
                 switch (config.getAlertType()) {
                     case "DAILY_SUMMARY":
-                        triggerDailySummary();
+                        // 🚫 DISABLED: Revenue notification không còn cần thiết
+                        // triggerDailySummary();
+                        System.out.println("⚠️ DAILY_SUMMARY alert is disabled by user request");
                         break;
                     default:
                         System.out.println("⚠️ Unknown scheduled alert type: " + config.getAlertType());
@@ -149,54 +158,59 @@ public class AlertSchedulerService {
     }
     
     /**
-     * Trigger daily summary
+     * Trigger daily summary with REAL data from RevenueReportService
+     * 🔥 UPDATED: Use RevenueReportService for 100% consistency with /report/revenue page
      */
     private void triggerDailySummary() {
-        System.out.println("📊 Generating daily summary...");
+        System.out.println("📊 Generating daily summary using RevenueReportService...");
         
-        // TODO: Calculate actual revenue from Orders table
-        // For now, use mock data
-        JSONObject revenueData = new JSONObject();
-        revenueData.put("date", LocalDate.now().toString());
-        revenueData.put("totalRevenue", 15000000);
-        revenueData.put("totalOrders", 85);
-        revenueData.put("avgOrderValue", 176470);
-        revenueData.put("topProduct", "Cà phê sữa đá");
-        
-        alertService.triggerDailySummary(revenueData);
+        try {
+            LocalDate today = LocalDate.now();
+            System.out.println("   📅 Date: " + today);
+            
+            // Use RevenueReportService - SAME logic as revenue report page
+            JSONObject revenueData = revenueService.generateReport(today, today);
+            
+            // Log summary
+            double totalRevenue = revenueData.optDouble("totalRevenue", 0);
+            long totalOrders = revenueData.optLong("totalOrders", 0);
+            double avgOrderValue = revenueData.optDouble("avgOrderValue", 0);
+            
+            System.out.println("   ✅ Paid orders: " + totalOrders + " orders, revenue: " + totalRevenue);
+            System.out.println("   📊 Final Revenue: " + String.format("%,.0f", totalRevenue) + " VND");
+            System.out.println("   📦 Total Orders: " + totalOrders);
+            System.out.println("   💰 Avg/Order: " + String.format("%,.0f", avgOrderValue) + " VND");
+            
+            if (totalOrders == 0) {
+                System.out.println("   ⚠️ No PAID orders found today - alert will show 0 VND");
+            }
+            
+            // Trigger alert (same data as revenue report page)
+            alertService.triggerDailySummary(revenueData);
+            System.out.println("   ✅ Daily summary alert created with REAL data from RevenueReportService");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating daily summary: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
      * Check for pending POs that need approval
+     * 🔥 FIX: Use refreshPOPendingNotification() to create single summary alert
      */
     private void checkPOPendingAlerts() {
         try {
-            List<PurchaseOrder> allPOs = poDAO.getAll();
+            System.out.println("🔍 Checking PO pending alerts (scheduled)...");
             
-            for (PurchaseOrder po : allPOs) {
-                if (!"PENDING".equals(po.getStatus())) continue;
-                if (po.getCreateDate() == null) continue;
-                
-                long daysWaiting = ChronoUnit.DAYS.between(po.getCreateDate(), LocalDateTime.now());
-                
-                // Alert if pending > 2 days
-                if (daysWaiting >= 2) {
-                    // Supplier name would need to be fetched from SupplierDAO
-                    String supplierName = "Supplier-" + po.getSupplierID();
-                    
-                    alertService.triggerPOPending(
-                        po.getPoid().toString(),
-                        supplierName,
-                        po.getTotalAmount() != null ? po.getTotalAmount() : 0,
-                        (int) daysWaiting
-                    );
-                    
-                    System.out.println("✅ PO pending alert sent for: " + po.getPoid());
-                }
-            }
+            // Use the unified refresh method that expires old alerts and creates new summary
+            alertService.refreshPOPendingNotification();
+            
+            System.out.println("✅ PO pending summary refreshed by scheduler");
             
         } catch (Exception e) {
             System.err.println("❌ Error checking PO pending alerts: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -246,10 +260,11 @@ public class AlertSchedulerService {
     
     /**
      * Manual trigger for daily summary (for testing)
+     * 🚫 DISABLED: Revenue notification không còn cần thiết
      */
     public void manualTriggerDailySummary() {
-        System.out.println("🔔 Manual trigger: Daily Summary");
-        triggerDailySummary();
+        System.out.println("🚫 Manual trigger DISABLED: Daily Summary alert has been disabled by user request");
+        // triggerDailySummary();
     }
     
     /**

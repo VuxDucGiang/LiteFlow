@@ -155,7 +155,11 @@ public class RevenueReportDAO {
             LocalDateTime startDateTime = startDate.atStartOfDay();
             LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
             
-            String jpql = "SELECT p.productID, p.productName, " +
+            System.out.println("📊 getTopProducts DAO - Start date: " + startDateTime);
+            System.out.println("📊 getTopProducts DAO - End date: " + endDateTime);
+            
+            // FIX: Use p.productId (camelCase) and p.name (entity field names)
+            String jpql = "SELECT p.productId, p.name, " +
                          "SUM(od.quantity), SUM(od.totalPrice) " +
                          "FROM OrderDetail od " +
                          "JOIN od.productVariant pv " +
@@ -163,18 +167,34 @@ public class RevenueReportDAO {
                          "JOIN od.order o " +
                          "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
                          "AND o.paymentStatus = 'Paid' " +
-                         "GROUP BY p.productID, p.productName " +
+                         "GROUP BY p.productId, p.name " +
                          "ORDER BY SUM(od.totalPrice) DESC";
+            
+            System.out.println("📊 JPQL Query: " + jpql);
             
             TypedQuery<Object[]> query = em.createQuery(jpql, Object[].class);
             query.setParameter("startDate", startDateTime);
             query.setParameter("endDate", endDateTime);
             query.setMaxResults(limit);
             
-            return query.getResultList();
+            List<Object[]> results = query.getResultList();
+            System.out.println("📊 DAO Query returned " + results.size() + " results");
+            
+            if (results.isEmpty()) {
+                System.out.println("⚠️ WARNING: Query returned 0 results!");
+                System.out.println("   Check if:");
+                System.out.println("   1. Orders exist in date range: " + startDate + " to " + endDate);
+                System.out.println("   2. PaymentStatus = 'Paid'");
+                System.out.println("   3. OrderDetails linked properly");
+            } else {
+                System.out.println("✅ Sample result: " + java.util.Arrays.toString(results.get(0)));
+            }
+            
+            return results;
             
         } catch (Exception e) {
             System.err.println("❌ Error getting top products: " + e.getMessage());
+            System.err.println("   Exception class: " + e.getClass().getName());
             e.printStackTrace();
             return new ArrayList<>();
         } finally {
@@ -192,7 +212,9 @@ public class RevenueReportDAO {
             LocalDateTime startDateTime = startDate.atStartOfDay();
             LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
             
-            String jpql = "SELECT pc.categoryName, SUM(od.totalPrice) " +
+            // FIX: Use pc.category.name instead of pc.categoryName
+            // ProductCategory entity has 'category' relationship, not direct 'categoryName' field
+            String jpql = "SELECT pc.category.name, SUM(od.totalPrice) " +
                          "FROM OrderDetail od " +
                          "JOIN od.productVariant pv " +
                          "JOIN pv.product p " +
@@ -200,7 +222,7 @@ public class RevenueReportDAO {
                          "JOIN od.order o " +
                          "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
                          "AND o.paymentStatus = 'Paid' " +
-                         "GROUP BY pc.categoryName " +
+                         "GROUP BY pc.category.name " +
                          "ORDER BY SUM(od.totalPrice) DESC";
             
             TypedQuery<Object[]> query = em.createQuery(jpql, Object[].class);
@@ -298,6 +320,69 @@ public class RevenueReportDAO {
         LocalDate prevEndDate = startDate.minusDays(1);
         
         return getTotalRevenue(prevStartDate, prevEndDate);
+    }
+    
+    /**
+     * DEBUG: Get all orders for today (regardless of payment status)
+     * Used to debug why revenue might be showing as 0
+     */
+    public Map<String, Object> getDebugOrdersToday(LocalDate date) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            LocalDateTime startDateTime = date.atStartOfDay();
+            LocalDateTime endDateTime = date.atTime(LocalTime.MAX);
+            
+            // Total orders count
+            String countJpql = "SELECT COUNT(o) FROM Order o " +
+                              "WHERE o.orderDate BETWEEN :startDate AND :endDate";
+            Long totalOrders = em.createQuery(countJpql, Long.class)
+                .setParameter("startDate", startDateTime)
+                .setParameter("endDate", endDateTime)
+                .getSingleResult();
+            
+            // Total revenue (all statuses)
+            String revenueJpql = "SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o " +
+                                "WHERE o.orderDate BETWEEN :startDate AND :endDate";
+            BigDecimal totalRevenue = em.createQuery(revenueJpql, BigDecimal.class)
+                .setParameter("startDate", startDateTime)
+                .setParameter("endDate", endDateTime)
+                .getSingleResult();
+            
+            // Count by payment status
+            String statusJpql = "SELECT o.paymentStatus, COUNT(o), SUM(o.totalAmount) FROM Order o " +
+                               "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
+                               "GROUP BY o.paymentStatus";
+            @SuppressWarnings("unchecked")
+            List<Object[]> statusResults = em.createQuery(statusJpql)
+                .setParameter("startDate", startDateTime)
+                .setParameter("endDate", endDateTime)
+                .getResultList();
+            
+            Map<String, Object> debug = new HashMap<>();
+            debug.put("totalOrders", totalOrders);
+            debug.put("totalRevenue", totalRevenue);
+            debug.put("startDateTime", startDateTime);
+            debug.put("endDateTime", endDateTime);
+            
+            System.out.println("   🔍 DEBUG - All orders today: " + totalOrders);
+            System.out.println("   🔍 DEBUG - All revenue today: " + totalRevenue);
+            System.out.println("   🔍 DEBUG - Breakdown by payment status:");
+            for (Object[] row : statusResults) {
+                String status = (String) row[0];
+                Long count = (Long) row[1];
+                BigDecimal revenue = (BigDecimal) row[2];
+                System.out.println("      - " + status + ": " + count + " orders, " + revenue + " VND");
+            }
+            
+            return debug;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in debug query: " + e.getMessage());
+            e.printStackTrace();
+            return new HashMap<>();
+        } finally {
+            em.close();
+        }
     }
 }
 
