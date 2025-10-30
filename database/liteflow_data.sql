@@ -985,9 +985,18 @@ END
 GO
 
 -- ============================================================
--- 8️⃣ ATTENDANCE DATA - REMOVED (Will be created via clock-in/out)
+-- 8️⃣ ATTENDANCE DATA - KHÔNG CÓ DỮ LIỆU MẪU
 -- ============================================================
--- Dữ liệu chấm công sẽ được tạo tự động khi nhân viên chấm công từ dashboard
+-- ⚠️ QUAN TRỌNG: Không seed dữ liệu EmployeeAttendance
+-- Lý do: 
+-- 1. Dữ liệu attendance sẽ được tạo TỰ ĐỘNG khi nhân viên clock-in/out từ dashboard
+-- 2. Flags (isLate, isEarlyLeave, isOvertime) được tính toán TỰ ĐỘNG dựa trên shift times
+-- 3. Việc seed dữ liệu cũ với flags sai sẽ gây lỗi màu sắc hiển thị không đúng
+-- 
+-- Cách tạo dữ liệu attendance:
+-- - Nhân viên đăng nhập vào dashboard-employee
+-- - Sử dụng widget "CHẤM CÔNG HÔM NAY" để clock-in/clock-out
+-- - Hệ thống sẽ tự động tính toán và lưu flags chính xác
 
 -- ============================================================
 -- 9️⃣ SEED BONUS/PENALTY EVENTS FOR CURRENT WEEK
@@ -996,9 +1005,15 @@ USE LiteFlowDBO;
 GO
 
 -- ============================================================
--- 🔟 TIMESHEET DATA - REMOVED (Will be created via clock-in/out)
+-- 🔟 TIMESHEET DATA - KHÔNG CÓ DỮ LIỆU MẪU
 -- ============================================================
--- Dữ liệu timesheet sẽ được tạo tự động khi nhân viên chấm công
+-- ⚠️ QUAN TRỌNG: Không seed dữ liệu EmployeeShiftTimesheets
+-- Lý do:
+-- 1. Timesheet được tạo TỰ ĐỘNG khi nhân viên clock-in/out
+-- 2. Được tích hợp với EmployeeShifts để tính toán vi phạm và tăng ca
+-- 3. HoursWorked được tính tự động từ check-in đến check-out
+-- 
+-- Timesheet sẽ xuất hiện trên trang /attendance sau khi nhân viên chấm công
 
 DECLARE @HRUser UNIQUEIDENTIFIER = (SELECT TOP 1 UserID FROM Users WHERE Email = 'hr@liteflow.vn');
 

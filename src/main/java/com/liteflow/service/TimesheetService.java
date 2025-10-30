@@ -133,12 +133,21 @@ public class TimesheetService {
         // 2. Tìm shift của nhân viên trong ngày (nếu có)
         List<EmployeeShift> shifts = shiftDAO.findByEmployeeAndDate(employeeId, today);
         
+        // Reset flags trước khi tính toán
+        boolean hasLate = false;
+        
         // Nếu có shift, tạo/cập nhật EmployeeShiftTimesheet
         for (EmployeeShift shift : shifts) {
             // Tìm xem đã có timesheet cho shift này chưa
             EmployeeShiftTimesheet timesheet = timesheetDAO.findByEmployeeShiftAndDate(
                 employeeId, shift.getShiftID(), today
             );
+            
+            // Tính toán xem có đi muộn không (so với shift start time)
+            LocalDateTime shiftStart = shift.getStartAt();
+            if (nowDateTime.isAfter(shiftStart)) {
+                hasLate = true;
+            }
             
             if (timesheet == null) {
                 // Tạo timesheet mới
@@ -157,6 +166,12 @@ public class TimesheetService {
                 timesheet.setCheckInAt(nowDateTime);
                 timesheetDAO.update(timesheet);
             }
+        }
+        
+        // Cập nhật flag isLate trong EmployeeAttendance (các flags khác sẽ được cập nhật khi clockOut)
+        if (hasLate) {
+            attendance.setIsLate(true);
+            attendanceDAO.update(attendance);
         }
 
         return attendance;
@@ -206,11 +221,19 @@ public class TimesheetService {
         // 2. Tìm shift của nhân viên trong ngày (nếu có)
         List<EmployeeShift> shifts = shiftDAO.findByEmployeeAndDate(employeeId, today);
         
+        // Reset flags trước khi tính toán lại
+        boolean hasLate = false;
+        boolean hasEarlyLeave = false;
+        boolean hasOvertime = false;
+        
         // Nếu có shift, cập nhật EmployeeShiftTimesheet
         for (EmployeeShift shift : shifts) {
             EmployeeShiftTimesheet timesheet = timesheetDAO.findByEmployeeShiftAndDate(
                 employeeId, shift.getShiftID(), today
             );
+            
+            LocalDateTime shiftStart = shift.getStartAt();
+            LocalDateTime shiftEnd = shift.getEndAt();
             
             if (timesheet == null) {
                 // Chưa có timesheet (chưa check-in), tạo mới
@@ -244,11 +267,36 @@ public class TimesheetService {
                     BigDecimal hours = BigDecimal.valueOf(workMinutes)
                         .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
                     timesheet.setHoursWorked(hours);
+                    
+                    // ===== RECALCULATE TẤT CẢ FLAGS DỰA TRÊN CHECK-IN VÀ CHECK-OUT TIMES =====
+                    
+                    // 1. Kiểm tra đi muộn (check-in sau shift start)
+                    if (checkIn.isAfter(shiftStart)) {
+                        hasLate = true;
+                    }
+                    
+                    // 2. Kiểm tra về sớm (check-out trước shift end)
+                    if (nowDateTime.isBefore(shiftEnd)) {
+                        hasEarlyLeave = true;
+                    }
+                    
+                    // 3. Kiểm tra tăng ca (vào sớm HOẶC về muộn) - CHỈ KHI KHÔNG CÓ VI PHẠM
+                    if (!hasLate && !hasEarlyLeave) {
+                        if (checkIn.isBefore(shiftStart) || nowDateTime.isAfter(shiftEnd)) {
+                            hasOvertime = true;
+                        }
+                    }
                 }
                 
                 timesheetDAO.update(timesheet);
             }
         }
+        
+        // Cập nhật TẤT CẢ flags trong EmployeeAttendance
+        attendance.setIsLate(hasLate);
+        attendance.setIsEarlyLeave(hasEarlyLeave);
+        attendance.setIsOvertime(hasOvertime);
+        attendanceDAO.update(attendance);
 
         return attendance;
     }

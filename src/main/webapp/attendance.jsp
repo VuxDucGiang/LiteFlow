@@ -774,7 +774,7 @@ body, html {
       if (!flagsContainer) return;
       
       // Check-in late (vi phạm)
-      if (isLate && inM !== null && startM !== null && inM > startM) {
+      if (inM !== null && startM !== null && inM > startM) {
         hasViolation = true;
         var diff = inM - startM;
         var badge = document.createElement('span');
@@ -785,7 +785,7 @@ body, html {
       }
       
       // Check-out early (vi phạm)
-      if (isEarlyLeave && outM !== null && endM !== null && outM < endM) {
+      if (outM !== null && endM !== null && outM < endM) {
         hasViolation = true;
         var diff3 = endM - outM;
         var badge3 = document.createElement('span');
@@ -795,8 +795,8 @@ body, html {
         flagsContainer.appendChild(badge3);
       }
       
-      // Check-in early (overtime - chỉ tính nếu không có vi phạm)
-      if (isOvertime && inM !== null && startM !== null && inM < startM) {
+      // Check-in early (overtime - chỉ hiển thị nếu không có vi phạm)
+      if (inM !== null && startM !== null && inM < startM) {
         if (!hasViolation) hasOnlyOvertime = true;
         var diff2 = startM - inM;
         var badge2 = document.createElement('span');
@@ -806,8 +806,8 @@ body, html {
         flagsContainer.appendChild(badge2);
       }
       
-      // Check-out late (overtime - chỉ tính nếu không có vi phạm)
-      if (isOvertime && outM !== null && endM !== null && outM > endM) {
+      // Check-out late (overtime - chỉ hiển thị nếu không có vi phạm)
+      if (outM !== null && endM !== null && outM > endM) {
         if (!hasViolation) hasOnlyOvertime = true;
         var diff4 = outM - endM;
         var badge4 = document.createElement('span');

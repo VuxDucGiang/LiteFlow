@@ -170,13 +170,11 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
     <div class="widget timesheet-calendar large">
       <h2 class="widget-title">LỊCH CHẤM CÔNG - KỲ CÔNG <%= monthNames[currentMonth - 1] %> <%= currentYear %></h2>
       <div class="timesheet-legend">
+        <div class="legend-dot green"></div><span>Đúng giờ</span>
+        <div class="legend-dot purple"></div><span>Vi phạm (muộn/sớm)</span>
         <div class="legend-dot red"></div><span>Tăng ca</span>
-        <div class="legend-dot gray"></div><span>Vắng mặt</span>
-        <div class="legend-dot blue"></div><span>Công tác</span>
-        <div class="legend-dot green"></div><span>Ca đủ công</span>
-        <div class="legend-dot light-blue"></div><span>Trễ sớm</span>
         <div class="legend-dot orange"></div><span>Quên chấm công</span>
-        <div class="legend-dot purple"></div><span>Nghỉ lễ</span>
+        <div class="legend-dot gray"></div><span>Vắng mặt</span>
       </div>
       <div class="calendar-grid">
         <div class="calendar-header">
@@ -208,18 +206,21 @@ for (int day = 1; day <= daysInMonth; day++) {
         Boolean isLate = attendance.getIsLate();
         Boolean isEarlyLeave = attendance.getIsEarlyLeave();
         
-        if (isOvertime != null && isOvertime) {
-            statusDot = "red"; // Tăng ca
-        } else if (isLate != null && isLate && isEarlyLeave != null && isEarlyLeave) {
-            statusDot = "light-blue"; // Trễ và sớm
-        } else if (isLate != null && isLate) {
-            statusDot = "light-blue"; // Trễ
-        } else if (isEarlyLeave != null && isEarlyLeave) {
-            statusDot = "light-blue"; // Sớm
+        // Logic mới: Ưu tiên vi phạm trước, sau đó mới đến tăng ca
+        boolean hasViolation = (isLate != null && isLate) || (isEarlyLeave != null && isEarlyLeave);
+        
+        if (hasViolation) {
+            // Có vi phạm (đi muộn hoặc về sớm) -> màu tím
+            statusDot = "purple";
+        } else if (isOvertime != null && isOvertime) {
+            // Chỉ có tăng ca, không vi phạm -> màu đỏ
+            statusDot = "red";
         } else if (attendance.getCheckInTime() != null && attendance.getCheckOutTime() != null) {
-            statusDot = "green"; // Ca đủ công
-        } else {
-            statusDot = "orange"; // Quên chấm công
+            // Chấm công đầy đủ, đúng giờ -> màu xanh lá
+            statusDot = "green";
+        } else if (attendance.getCheckInTime() != null || attendance.getCheckOutTime() != null) {
+            // Chỉ chấm 1 lần (quên chấm công) -> màu cam
+            statusDot = "orange";
         }
     }
     
