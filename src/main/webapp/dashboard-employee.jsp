@@ -160,12 +160,7 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
         </div>
       </div>
 
-      <div class="notice-footer">
-        <a href="#" class="view-all-link">
-          <span>Xem tất cả thông báo</span>
-          <i class='bx bx-chevron-right'></i>
-        </a>
-      </div>
+      
     </div>
 
     <!-- Bottom Row -->
