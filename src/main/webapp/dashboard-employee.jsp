@@ -45,7 +45,7 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
     <div class="widget personal-schedule">
       <div class="widget-title-row">
         <h2 class="widget-title">LỊCH CÁ NHÂN</h2>
-        <button class="btn-add-schedule" onclick="openAddScheduleModal()">
+        <button class="btn-add-schedule" id="btnAddSchedule" type="button">
           <i class='bx bx-plus'></i> Thêm mới
         </button>
       </div>
@@ -54,75 +54,117 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
       </div>
     </div>
 
-    <div class="widget work-progress">
-      <h2 class="widget-title">TIẾN ĐỘ CÔNG VIỆC</h2>
-      <div class="progress-summary">
-        <div class="progress-stat">
-          <div class="stat-value">50</div>
-          <div class="stat-label">Tổng công việc</div>
+    <div class="widget salary-summary">
+      <h2 class="widget-title" id="salaryMonthTitle">TIỀN CÔNG THÁNG <span id="currentMonthName"></span></h2>
+      <div class="salary-stats">
+        <div class="salary-item">
+          <div class="salary-label">Tổng lương</div>
+          <div class="salary-value" id="totalSalary">0</div>
         </div>
-        <div class="progress-stat">
-          <div class="stat-value blue">42</div>
-          <div class="stat-label">Hoàn thành</div>
+        <div class="salary-item">
+          <div class="salary-label">Tổng đã ứng</div>
+          <div class="salary-value advance" id="totalAdvance">0</div>
+        </div>
+        <div class="salary-item">
+          <div class="salary-label">Tổng tiền trừ</div>
+          <div class="salary-value deduction" id="totalDeduction">0</div>
+        </div>
+        <div class="salary-item">
+          <div class="salary-label">Tổng đã thanh toán</div>
+          <div class="salary-value paid" id="totalPaid">0</div>
+        </div>
+        <div class="salary-item highlight">
+          <div class="salary-label">Tổng chưa nhận</div>
+          <div class="salary-value remaining" id="totalRemaining">0</div>
+        </div>
         </div>
       </div>
-      <div class="chart-container">
-        <canvas id="workProgressChart"></canvas>
-      </div>
-    </div>
 
-    <div class="widget quick-actions">
-      <h2 class="widget-title">THAO TÁC NHANH</h2>
-      
-      <!-- Primary Action Buttons -->
-      <div class="action-buttons">
-        <button class="btn-action purple">
-          <i class='bx bx-calendar-check'></i>
-          <span>Xin nghỉ phép</span>
+    <div class="widget attendance-clock">
+      <h2 class="widget-title">CHẤM CÔNG HÔM NAY</h2>
+      <div class="attendance-status">
+        <div class="time-display">
+          <div class="current-time" id="currentTime">--:--:--</div>
+          <div class="current-date" id="currentDate">-- / -- / ----</div>
+        </div>
+        <div class="attendance-info">
+          <div class="info-row" id="checkInInfo">
+            <span class="info-label">Giờ vào:</span>
+            <span class="info-value" id="checkInTime">--:--:--</span>
+          </div>
+          <div class="info-row" id="checkOutInfo">
+            <span class="info-label">Giờ ra:</span>
+            <span class="info-value" id="checkOutTime">--:--:--</span>
+          </div>
+      </div>
+      </div>
+      <div class="attendance-actions">
+        <button class="btn-clock-toggle" id="btnClockToggle" onclick="toggleClock()">
+          <i class='bx bx-time-five' id="clockIcon"></i>
+          <span id="clockText">Chấm công vào</span>
         </button>
-        <button class="btn-action red">
-          <i class='bx bx-plus'></i>
-          <span>Thêm tăng ca</span>
-        </button>
-        <button class="btn-action orange">
+      </div>
+      <div class="attendance-message" id="attendanceMessage"></div>
+
+      <!-- Additional Actions -->
+      <div class="attendance-secondary-actions">
+        <button class="btn-secondary-action" onclick="openForgotClockModal()">
           <i class='bx bx-error-circle'></i>
           <span>Quên chấm công</span>
         </button>
-        <button class="btn-action green">
-          <i class='bx bx-briefcase'></i>
-          <span>Đi công tác</span>
+        <button class="btn-secondary-action" onclick="openLeaveRequestModal()">
+          <i class='bx bx-calendar-check'></i>
+          <span>Xin nghỉ phép</span>
         </button>
       </div>
-      
-      <!-- Secondary Navigation Icons -->
-      <div class="nav-icons-section">
-        <h3 class="section-subtitle">Danh sách</h3>
-        <div class="nav-icons">
-          <div class="nav-icon" title="Công">
-            <i class='bx bx-calendar-check'></i>
-            <span>Công</span>
+    </div>
+
+    <div class="widget notice-board">
+      <h2 class="widget-title">
+        <span><i class='bx bx-notification'></i> BẢNG THÔNG BÁO</span>
+      </h2>
+
+      <div class="notice-list" id="noticeList">
+        <!-- Sample notices - these should be loaded from backend -->
+        <div class="notice-item important">
+          <div class="notice-header">
+            <span class="notice-badge important">Quan trọng</span>
+            <span class="notice-date">30/10/2025</span>
           </div>
-          <div class="nav-icon" title="Hồ sơ cá nhân">
-            <i class='bx bx-user-circle'></i>
-            <span>Hồ sơ cá nhân</span>
-          </div>
-          <div class="nav-icon" title="DS quên chấm công">
-            <i class='bx bx-search-alt'></i>
-            <span>DS quên chấm công</span>
-          </div>
-          <div class="nav-icon" title="DS ngày nghỉ">
-            <i class='bx bx-calendar-x'></i>
-            <span>DS ngày nghỉ</span>
-          </div>
-          <div class="nav-icon" title="DS tăng ca">
-            <i class='bx bx-time-five'></i>
-            <span>DS tăng ca</span>
-          </div>
-          <div class="nav-icon" title="Xem thêm">
-            <i class='bx bx-dots-horizontal-rounded'></i>
-            <span>Xem thêm</span>
+          <div class="notice-title">Thông báo nghỉ lễ Quốc Khánh</div>
+          <div class="notice-content">
+            Công ty thông báo lịch nghỉ lễ Quốc Khánh 2/9 từ ngày 31/8 đến 3/9. Toàn thể nhân viên nghỉ theo quy định.
           </div>
         </div>
+
+        <div class="notice-item general">
+          <div class="notice-header">
+            <span class="notice-badge general">Chung</span>
+            <span class="notice-date">29/10/2025</span>
+          </div>
+          <div class="notice-title">Cập nhật quy trình chấm công mới</div>
+          <div class="notice-content">
+            Từ ngày 1/11, quy trình chấm công sẽ được cập nhật. Vui lòng chấm công đúng giờ và báo cáo khi quên chấm công.
+          </div>
+        </div>
+
+        <div class="notice-item info">
+          <div class="notice-header">
+            <span class="notice-badge info">Thông tin</span>
+            <span class="notice-date">28/10/2025</span>
+          </div>
+          <div class="notice-title">Lịch họp phòng ban tháng 11</div>
+          <div class="notice-content">
+            Lịch họp phòng ban đã được cập nhật. Vui lòng kiểm tra lịch cá nhân của bạn.
+          </div>
+        </div>
+      </div>
+
+      <div class="notice-footer">
+        <a href="#" class="view-all-link">
+          <span>Xem tất cả thông báo</span>
+          <i class='bx bx-chevron-right'></i>
+        </a>
       </div>
     </div>
 
@@ -130,13 +172,11 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
     <div class="widget timesheet-calendar large">
       <h2 class="widget-title">LỊCH CHẤM CÔNG - KỲ CÔNG <%= monthNames[currentMonth - 1] %> <%= currentYear %></h2>
       <div class="timesheet-legend">
+        <div class="legend-dot green"></div><span>Đúng giờ</span>
+        <div class="legend-dot purple"></div><span>Vi phạm (muộn/sớm)</span>
         <div class="legend-dot red"></div><span>Tăng ca</span>
-        <div class="legend-dot gray"></div><span>Vắng mặt</span>
-        <div class="legend-dot blue"></div><span>Công tác</span>
-        <div class="legend-dot green"></div><span>Ca đủ công</span>
-        <div class="legend-dot light-blue"></div><span>Trễ sớm</span>
         <div class="legend-dot orange"></div><span>Quên chấm công</span>
-        <div class="legend-dot purple"></div><span>Nghỉ lễ</span>
+        <div class="legend-dot gray"></div><span>Vắng mặt</span>
       </div>
       <div class="calendar-grid">
         <div class="calendar-header">
@@ -168,18 +208,21 @@ for (int day = 1; day <= daysInMonth; day++) {
         Boolean isLate = attendance.getIsLate();
         Boolean isEarlyLeave = attendance.getIsEarlyLeave();
         
-        if (isOvertime != null && isOvertime) {
-            statusDot = "red"; // Tăng ca
-        } else if (isLate != null && isLate && isEarlyLeave != null && isEarlyLeave) {
-            statusDot = "light-blue"; // Trễ và sớm
-        } else if (isLate != null && isLate) {
-            statusDot = "light-blue"; // Trễ
-        } else if (isEarlyLeave != null && isEarlyLeave) {
-            statusDot = "light-blue"; // Sớm
+        // Logic mới: Ưu tiên vi phạm trước, sau đó mới đến tăng ca
+        boolean hasViolation = (isLate != null && isLate) || (isEarlyLeave != null && isEarlyLeave);
+        
+        if (hasViolation) {
+            // Có vi phạm (đi muộn hoặc về sớm) -> màu tím
+            statusDot = "purple";
+        } else if (isOvertime != null && isOvertime) {
+            // Chỉ có tăng ca, không vi phạm -> màu đỏ
+            statusDot = "red";
         } else if (attendance.getCheckInTime() != null && attendance.getCheckOutTime() != null) {
-            statusDot = "green"; // Ca đủ công
-        } else {
-            statusDot = "orange"; // Quên chấm công
+            // Chấm công đầy đủ, đúng giờ -> màu xanh lá
+            statusDot = "green";
+        } else if (attendance.getCheckInTime() != null || attendance.getCheckOutTime() != null) {
+            // Chỉ chấm 1 lần (quên chấm công) -> màu cam
+            statusDot = "orange";
         }
     }
     
@@ -201,80 +244,15 @@ for (int day = 1; day <= daysInMonth; day++) {
       </div>
     </div>
 
-    <div class="widget internal-news">
-      <h2 class="widget-title">TIN TỨC NỘI BỘ</h2>
-      <div class="news-list">
-        <div class="news-item">
-          <div class="news-thumbnail">
-            <i class='bx bx-handshake'></i>
-          </div>
-          <div class="news-content">
-            <div class="news-category">Phòng nhân sự</div>
-            <div class="news-title">Wellcome đồng nghiệp</div>
-            <div class="news-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
-          </div>
-        </div>
-        <div class="news-item">
-          <div class="news-thumbnail">
-            <i class='bx bx-building'></i>
-          </div>
-          <div class="news-content">
-            <div class="news-category">Hội chị em cây khế</div>
-            <div class="news-title">Than thở chuyện công sở</div>
-            <div class="news-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
 <script>
-// Simple line chart for work progress
-document.addEventListener('DOMContentLoaded', function() {
-  const canvas = document.getElementById('workProgressChart');
-  if (canvas) {
-    const ctx = canvas.getContext('2d');
-    canvas.width = 280;
-    canvas.height = 120;
-    
-    const data = [15, 25, 20, 30, 35, 42, 40];
-    const labels = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
-    const maxValue = 50;
-    
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    
-    data.forEach((value, index) => {
-      const x = (index * (canvas.width - 40) / (data.length - 1)) + 20;
-      const y = canvas.height - 30 - (value / maxValue) * (canvas.height - 60);
-      
-      if (index === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    
-    ctx.stroke();
-    
-    // Draw points
-    data.forEach((value, index) => {
-      const x = (index * (canvas.width - 40) / (data.length - 1)) + 20;
-      const y = canvas.height - 30 - (value / maxValue) * (canvas.height - 60);
-      
-      ctx.fillStyle = '#3b82f6';
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-  }
-});
+// Context path for API calls
+const CONTEXT_PATH = '<c:out value="${pageContext.request.contextPath}" />';
 
-// ==============================
-// Personal Schedule Functions
-// ==============================
+// Global variable
+let currentEditingSchedule = null;
 
 // Helper function to escape HTML
 function escapeHtml(text) {
@@ -284,12 +262,165 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-let currentEditingSchedule = null;
+// Priority sort order: High -> Medium -> Low
+function getPriorityOrder(priority) {
+  switch(priority) {
+    case 'High': return 1;
+    case 'Medium': return 2;
+    case 'Low': return 3;
+    default: return 4;
+  }
+}
+
+// Format date to Vietnamese format
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString + 'T00:00:00');
+  const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  const dayName = days[date.getDay()];
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${dayName}, ${day}/${month}/${date.getFullYear()}`;
+}
+
+// Open add schedule modal - MUST be available immediately
+function openAddScheduleModal() {
+  console.log('=== openAddScheduleModal called ===');
+  try {
+    currentEditingSchedule = null;
+    
+    // Reset form fields
+    const modalScheduleId = document.getElementById('modalScheduleId');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDescription = document.getElementById('modalDescription');
+    const modalStartDate = document.getElementById('modalStartDate');
+    const modalStartTime = document.getElementById('modalStartTime');
+    const modalEndTime = document.getElementById('modalEndTime');
+    const modalPriority = document.getElementById('modalPriority');
+    const scheduleModalTitle = document.getElementById('scheduleModalTitle');
+    const scheduleModal = document.getElementById('scheduleModal');
+    
+    console.log('Modal element:', scheduleModal);
+    console.log('Title element:', modalTitle);
+    
+    if (!scheduleModal) {
+      console.error('❌ Modal element not found!');
+      alert('Không thể mở form. Modal element không tồn tại. Vui lòng tải lại trang.');
+      return;
+    }
+    
+    // Reset form
+    if (modalScheduleId) modalScheduleId.value = '';
+    if (modalTitle) modalTitle.value = '';
+    if (modalDescription) modalDescription.value = '';
+    if (modalStartDate) {
+      modalStartDate.value = '';
+      // Set default to today
+      const today = new Date().toISOString().split('T')[0];
+      modalStartDate.value = today;
+    }
+    if (modalStartTime) modalStartTime.value = '';
+    if (modalEndTime) modalEndTime.value = '';
+    if (modalPriority) modalPriority.value = 'Medium';
+    if (scheduleModalTitle) scheduleModalTitle.textContent = 'Thêm lịch cá nhân';
+    
+    // Show modal
+    scheduleModal.style.display = 'flex';
+    scheduleModal.style.zIndex = '10000';
+    scheduleModal.style.visibility = 'visible';
+    scheduleModal.style.opacity = '1';
+    
+    console.log('✅ Modal display:', scheduleModal.style.display);
+    console.log('✅ Modal opened successfully');
+    
+    // Focus on title input after a short delay
+    if (modalTitle) {
+      setTimeout(() => {
+        modalTitle.focus();
+        console.log('✅ Focused on title input');
+      }, 100);
+    }
+  } catch (error) {
+    console.error('❌ Error opening modal:', error);
+    console.error('Error stack:', error.stack);
+    alert('Có lỗi xảy ra khi mở form: ' + error.message);
+  }
+}
+
+// Make functions available globally immediately
+window.openAddScheduleModal = openAddScheduleModal;
+window.saveSchedule = saveSchedule;
+window.editSchedule = editSchedule;
+window.deleteSchedule = deleteSchedule;
+window.closeScheduleModal = closeScheduleModal;
+
+// Old chart code removed - replaced with salary summary
+
+// ==============================
+// Salary Summary Functions
+// ==============================
+
+// Format currency to Vietnamese format
+function formatCurrency(amount) {
+  if (amount == null || amount === undefined || isNaN(amount)) {
+    return '0 ₫';
+  }
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND'
+  }).format(amount);
+}
+
+// Load salary summary for current month
+async function loadSalarySummary() {
+  try {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    
+    // Set month name in title
+    const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
+                       'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+    const monthNameEl = document.getElementById('currentMonthName');
+    if (monthNameEl) {
+      monthNameEl.textContent = monthNames[month - 1];
+    }
+    
+    // Call API to get salary summary
+    const response = await fetch(CONTEXT_PATH + '/api/employee/salary-summary?month=' + month + '&year=' + year);
+    if (!response.ok) {
+      console.error('Failed to load salary summary');
+      return;
+    }
+    
+    const data = await response.json();
+    
+    // Update UI
+    document.getElementById('totalSalary').textContent = formatCurrency(data.totalSalary || 0);
+    document.getElementById('totalAdvance').textContent = formatCurrency(data.totalAdvance || 0);
+    document.getElementById('totalDeduction').textContent = formatCurrency(data.totalDeduction || 0);
+    document.getElementById('totalPaid').textContent = formatCurrency(data.totalPaid || 0);
+    document.getElementById('totalRemaining').textContent = formatCurrency(data.totalRemaining || 0);
+    
+  } catch (error) {
+    console.error('Error loading salary summary:', error);
+    // Set default values
+    document.getElementById('totalSalary').textContent = '0 ₫';
+    document.getElementById('totalAdvance').textContent = '0 ₫';
+    document.getElementById('totalDeduction').textContent = '0 ₫';
+    document.getElementById('totalPaid').textContent = '0 ₫';
+    document.getElementById('totalRemaining').textContent = '0 ₫';
+  }
+}
+
+// ==============================
+// Personal Schedule Functions
+// ==============================
 
 // Load personal schedules
 async function loadPersonalSchedules() {
   try {
-    const response = await fetch('${pageContext.request.contextPath}/api/personal-schedule/');
+    const response = await fetch(CONTEXT_PATH + '/api/personal-schedule/');
     if (!response.ok) throw new Error('Failed to load schedules');
     
     const schedules = await response.json();
@@ -300,14 +431,30 @@ async function loadPersonalSchedules() {
       return;
     }
     
+    // Sort schedules: by priority first (High -> Medium -> Low), then by date
+    schedules.sort((a, b) => {
+      const priorityDiff = getPriorityOrder(a.priority) - getPriorityOrder(b.priority);
+      if (priorityDiff !== 0) return priorityDiff;
+      // If same priority, sort by date (earlier dates first)
+      return new Date(a.startDate) - new Date(b.startDate);
+    });
+    
     scheduleList.innerHTML = schedules.map(schedule => {
       const priorityClass = schedule.priority.toLowerCase();
       const priorityLabel = schedule.priority === 'High' ? 'Cao' : schedule.priority === 'Medium' ? 'Trung bình' : 'Thấp';
-      const timeDisplay = schedule.startTime || schedule.endTime 
-        ? ' ' + (schedule.startTime || '') + (schedule.endTime ? '-' + schedule.endTime : '')
-        : '';
       
-      let html = '<div class="schedule-item priority-' + priorityClass + '" data-id="' + schedule.scheduleId + '">';
+      // Format date
+      const dateDisplay = formatDate(schedule.startDate);
+      
+      // Format time
+      let timeDisplay = '';
+      if (schedule.startTime || schedule.endTime) {
+        const startTime = schedule.startTime ? schedule.startTime.substring(0, 5) : '';
+        const endTime = schedule.endTime ? schedule.endTime.substring(0, 5) : '';
+        timeDisplay = startTime + (endTime ? ' - ' + endTime : '');
+      }
+      
+      let html = '<div class="schedule-item priority-' + priorityClass + '" data-id="' + schedule.scheduleId + '" data-priority="' + schedule.priority + '">';
       html += '<div class="schedule-header">';
       html += '<div class="schedule-title">' + escapeHtml(schedule.title) + '</div>';
       html += '<div class="schedule-actions">';
@@ -326,6 +473,9 @@ async function loadPersonalSchedules() {
       
       html += '<div class="schedule-footer">';
       html += '<span class="schedule-priority priority-' + priorityClass + '">' + priorityLabel + '</span>';
+      if (dateDisplay) {
+        html += '<span class="schedule-date">' + escapeHtml(dateDisplay) + '</span>';
+      }
       if (timeDisplay) {
         html += '<span class="schedule-time">' + escapeHtml(timeDisplay) + '</span>';
       }
@@ -340,23 +490,9 @@ async function loadPersonalSchedules() {
   }
 }
 
-// Open add schedule modal
-function openAddScheduleModal() {
-  currentEditingSchedule = null;
-  document.getElementById('modalScheduleId').value = '';
-  document.getElementById('modalTitle').value = '';
-  document.getElementById('modalDescription').value = '';
-  document.getElementById('modalStartDate').value = '';
-  document.getElementById('modalStartTime').value = '';
-  document.getElementById('modalEndTime').value = '';
-  document.getElementById('modalPriority').value = 'Medium';
-  document.getElementById('scheduleModalTitle').textContent = 'Thêm lịch cá nhân';
-  document.getElementById('scheduleModal').style.display = 'flex';
-}
-
 // Edit schedule
 function editSchedule(scheduleId) {
-  fetch(`${pageContext.request.contextPath}/api/personal-schedule/${scheduleId}`)
+  fetch(CONTEXT_PATH + '/api/personal-schedule/' + scheduleId)
     .then(res => res.json())
     .then(schedule => {
       currentEditingSchedule = schedule;
@@ -381,7 +517,7 @@ async function deleteSchedule(scheduleId) {
   if (!confirm('Bạn có chắc chắn muốn xóa lịch này?')) return;
   
   try {
-    const response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/${scheduleId}`, {
+    const response = await fetch(CONTEXT_PATH + '/api/personal-schedule/' + scheduleId, {
       method: 'DELETE'
     });
     
@@ -421,13 +557,13 @@ async function saveSchedule() {
     let response;
     if (currentEditingSchedule) {
       // Update existing schedule
-      response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/${currentEditingSchedule.scheduleId}`, {
+      response = await fetch(CONTEXT_PATH + '/api/personal-schedule/' + currentEditingSchedule.scheduleId, {
         method: 'PUT',
         body: formData
       });
     } else {
       // Create new schedule
-      response = await fetch(`${pageContext.request.contextPath}/api/personal-schedule/`, {
+      response = await fetch(CONTEXT_PATH + '/api/personal-schedule/', {
         method: 'POST',
         body: formData
       });
@@ -446,18 +582,327 @@ async function saveSchedule() {
 
 // Close modal
 function closeScheduleModal() {
-  document.getElementById('scheduleModal').style.display = 'none';
+  const scheduleModal = document.getElementById('scheduleModal');
+  if (scheduleModal) {
+    scheduleModal.style.display = 'none';
+  }
+}
+
+// Close modal when clicking outside
+function setupModalCloseOnOutsideClick() {
+  const modal = document.getElementById('scheduleModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeScheduleModal();
+      }
+    });
+  }
 }
 
 // Load schedules when page loads
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOMContentLoaded - Setting up schedule functions');
+  
+  // Setup button click event
+  const btnAddSchedule = document.getElementById('btnAddSchedule');
+  if (btnAddSchedule) {
+    btnAddSchedule.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Add button clicked');
+      openAddScheduleModal();
+    });
+    console.log('Add button event listener attached');
+  } else {
+    console.error('btnAddSchedule button not found!');
+  }
+  
   loadPersonalSchedules();
+  loadSalarySummary();
+  loadAttendanceStatus();
+  updateCurrentTime();
+  setupModalCloseOnOutsideClick();
+  
+  // Update current time every second
+  setInterval(updateCurrentTime, 1000);
+  
+  // Refresh attendance status every 30 seconds
+  setInterval(loadAttendanceStatus, 30000);
+  
+  console.log('All schedule functions initialized');
+});
+
+// ==============================
+// Attendance Clock Functions
+// ==============================
+
+// Update current time display
+function updateCurrentTime() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  
+  document.getElementById('currentTime').textContent = timeStr;
+  document.getElementById('currentDate').textContent = dateStr;
+}
+
+// Load attendance status
+async function loadAttendanceStatus() {
+  try {
+    const response = await fetch(CONTEXT_PATH + '/api/timesheet/status');
+    if (!response.ok) {
+      console.error('Failed to load attendance status');
+      return;
+    }
+
+    const data = await response.json();
+
+    // Update UI based on status
+    const toggleBtn = document.getElementById('btnClockToggle');
+    const clockIcon = document.getElementById('clockIcon');
+    const clockText = document.getElementById('clockText');
+    const checkInTimeEl = document.getElementById('checkInTime');
+    const checkOutTimeEl = document.getElementById('checkOutTime');
+
+    if (data.hasClockedIn) {
+      checkInTimeEl.textContent = data.checkInTime || '--:--:--';
+    } else {
+      checkInTimeEl.textContent = '--:--:--';
+    }
+
+    if (data.hasClockedOut) {
+      checkOutTimeEl.textContent = data.checkOutTime || '--:--:--';
+      toggleBtn.disabled = true;
+      toggleBtn.classList.add('disabled');
+      clockText.textContent = 'Đã chấm công';
+      clockIcon.className = 'bx bx-check-circle';
+    } else if (data.hasClockedIn) {
+      checkOutTimeEl.textContent = '--:--:--';
+      toggleBtn.disabled = false;
+      toggleBtn.classList.remove('disabled');
+      toggleBtn.classList.add('clock-out-mode');
+      clockText.textContent = 'Chấm công ra';
+      clockIcon.className = 'bx bx-time';
+    } else {
+      checkInTimeEl.textContent = '--:--:--';
+      checkOutTimeEl.textContent = '--:--:--';
+      toggleBtn.disabled = false;
+      toggleBtn.classList.remove('disabled', 'clock-out-mode');
+      clockText.textContent = 'Chấm công vào';
+      clockIcon.className = 'bx bx-time-five';
+    }
+
+  } catch (error) {
+    console.error('Error loading attendance status:', error);
+  }
+}
+
+// Toggle Clock (In/Out)
+async function toggleClock() {
+  const btn = document.getElementById('btnClockToggle');
+  const messageEl = document.getElementById('attendanceMessage');
+  const clockText = document.getElementById('clockText');
+
+  if (btn.disabled) {
+    return;
+  }
+
+  // Check current mode based on button class
+  const isClockOutMode = btn.classList.contains('clock-out-mode');
+  const endpoint = isClockOutMode ? '/api/timesheet/clock-out' : '/api/timesheet/clock-in';
+  const actionText = isClockOutMode ? 'chấm công ra' : 'chấm công vào';
+
+  btn.disabled = true;
+  messageEl.textContent = 'Đang xử lý...';
+  messageEl.className = 'attendance-message info';
+
+  try {
+    const response = await fetch(CONTEXT_PATH + endpoint, {
+      method: 'POST'
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      messageEl.textContent = data.message || `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} thành công!`;
+      messageEl.className = 'attendance-message success';
+
+      // Update time display
+      if (isClockOutMode) {
+        document.getElementById('checkOutTime').textContent = data.checkOutTime || '--:--:--';
+      } else {
+        document.getElementById('checkInTime').textContent = data.checkInTime || '--:--:--';
+      }
+
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'attendance-message';
+      }, 3000);
+
+      // Reload status to update button
+      await loadAttendanceStatus();
+    } else {
+      messageEl.textContent = data.error || `Không thể ${actionText}`;
+      messageEl.className = 'attendance-message error';
+      btn.disabled = false;
+
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'attendance-message';
+      }, 5000);
+    }
+  } catch (error) {
+    console.error(`Error ${actionText}:`, error);
+    messageEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+    messageEl.className = 'attendance-message error';
+    btn.disabled = false;
+
+    setTimeout(() => {
+      messageEl.textContent = '';
+      messageEl.className = 'attendance-message';
+    }, 5000);
+  }
+}
+
+// Make functions globally accessible
+window.toggleClock = toggleClock;
+
+// ==============================
+// Leave Request Functions
+// ==============================
+
+// Open leave request modal
+function openLeaveRequestModal() {
+  console.log('=== openLeaveRequestModal called ===');
+  try {
+    const modal = document.getElementById('leaveRequestModal');
+    if (!modal) {
+      console.error('❌ Leave request modal element not found!');
+      alert('Không thể mở form. Modal element không tồn tại. Vui lòng tải lại trang.');
+      return;
+    }
+
+    // Reset form
+    document.getElementById('leaveRequestId').value = '';
+    document.getElementById('leaveType').value = 'Nghỉ phép';
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    document.getElementById('reason').value = '';
+
+    // Set default start date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('startDate').value = tomorrow.toISOString().split('T')[0];
+    document.getElementById('endDate').value = tomorrow.toISOString().split('T')[0];
+
+    // Show modal
+    modal.style.display = 'flex';
+    modal.style.zIndex = '10000';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+
+    console.log('✅ Leave request modal opened successfully');
+  } catch (error) {
+    console.error('❌ Error opening leave request modal:', error);
+    alert('Có lỗi xảy ra khi mở form: ' + error.message);
+  }
+}
+
+// Close leave request modal
+function closeLeaveRequestModal() {
+  const modal = document.getElementById('leaveRequestModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Save leave request
+async function saveLeaveRequest() {
+  const leaveType = document.getElementById('leaveType').value;
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  const reason = document.getElementById('reason').value.trim();
+
+  if (!leaveType || !startDate || !endDate) {
+    alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+    return;
+  }
+
+  // Validate dates
+  if (new Date(endDate) < new Date(startDate)) {
+    alert('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu');
+    return;
+  }
+
+  const formData = new URLSearchParams();
+  formData.append('leaveType', leaveType);
+  formData.append('startDate', startDate);
+  formData.append('endDate', endDate);
+  formData.append('reason', reason);
+
+  try {
+    const response = await fetch(CONTEXT_PATH + '/api/leave-request/', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert('Đơn xin nghỉ đã được gửi thành công! Vui lòng chờ phê duyệt.');
+      closeLeaveRequestModal();
+      // Optionally reload leave requests list if you have one
+      // loadLeaveRequests();
+    } else {
+      alert('Không thể gửi đơn xin nghỉ: ' + (data.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Error saving leave request:', error);
+    alert('Có lỗi xảy ra khi gửi đơn xin nghỉ');
+  }
+}
+
+// Make leave request functions globally accessible
+window.openLeaveRequestModal = openLeaveRequestModal;
+window.closeLeaveRequestModal = closeLeaveRequestModal;
+window.saveLeaveRequest = saveLeaveRequest;
+
+// ==============================
+// Forgot Clock In Functions
+// ==============================
+
+// Open forgot clock in modal
+function openForgotClockModal() {
+  alert('Chức năng "Quên chấm công" đang được phát triển.\nVui lòng liên hệ quản lý để được hỗ trợ.');
+  // TODO: Implement forgot clock modal similar to leave request
+}
+
+// Make forgot clock functions globally accessible
+window.openForgotClockModal = openForgotClockModal;
+
+// Setup modal close on outside click for leave request modal
+function setupLeaveRequestModalCloseOnOutsideClick() {
+  const modal = document.getElementById('leaveRequestModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeLeaveRequestModal();
+      }
+    });
+  }
+}
+
+// Call setup function when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  setupLeaveRequestModalCloseOnOutsideClick();
 });
 </script>
 
 <!-- Schedule Modal -->
-<div id="scheduleModal" class="modal-overlay" style="display: none;">
-  <div class="modal-content">
+<div id="scheduleModal" class="modal-overlay" style="display: none; z-index: 10000;">
+  <div class="modal-content" onclick="event.stopPropagation();">
     <div class="modal-header">
       <h3 id="scheduleModalTitle">Thêm lịch cá nhân</h3>
       <button class="modal-close" onclick="closeScheduleModal()">
@@ -508,5 +953,58 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
+
+<!-- Leave Request Modal -->
+<div id="leaveRequestModal" class="modal-overlay" style="display: none; z-index: 10000;">
+  <div class="modal-content" onclick="event.stopPropagation();">
+    <div class="modal-header">
+      <h3>Đơn xin nghỉ phép</h3>
+      <button class="modal-close" onclick="closeLeaveRequestModal()">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="leaveRequestId" />
+
+      <div class="form-group">
+        <label>Loại nghỉ phép <span class="required">*</span></label>
+        <select id="leaveType" class="form-control" required>
+          <option value="Nghỉ phép">Nghỉ phép</option>
+          <option value="Nghỉ bệnh">Nghỉ bệnh</option>
+          <option value="Nghỉ không lương">Nghỉ không lương</option>
+          <option value="Nghỉ khác">Nghỉ khác</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Ngày bắt đầu <span class="required">*</span></label>
+          <input type="date" id="startDate" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label>Ngày kết thúc <span class="required">*</span></label>
+          <input type="date" id="endDate" class="form-control" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Lý do</label>
+        <textarea id="reason" class="form-control" rows="4" placeholder="Nhập lý do xin nghỉ phép (tùy chọn)"></textarea>
+      </div>
+
+      <div class="form-note">
+        <i class='bx bx-info-circle'></i>
+        <span>Đơn xin nghỉ sẽ được gửi đến quản lý để phê duyệt. Bạn sẽ nhận được thông báo khi đơn được xử lý.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeLeaveRequestModal()">Hủy</button>
+      <button class="btn-save" onclick="saveLeaveRequest()">Gửi đơn</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notice Board Script -->
+<script src="${pageContext.request.contextPath}/js/notice-board.js"></script>
 
 <jsp:include page="includes/footer.jsp" />

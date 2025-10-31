@@ -2780,214 +2780,92 @@ function loadTableHistory(tableId, tableNumber, tableName, roomName) {
     });
 }
 
-// Function to display table history
+// Global variables for history polling
+let historyPollingInterval = null;
+let currentHistoryTableId = null;
+
+// Function to display table history (NEW FORMAT - Invoice Timeline)
 function displayTableHistory(data) {
     const historyContent = document.getElementById('tableHistoryContent');
     if (!historyContent) return;
     
-    const { tableInfo, sessions, payments } = data;
+    const { tableInfo, invoices } = data;
     
-    let html = `
-        <div class="table-history-container">
-            <!-- Table Info -->
-            <div class="table-info-section">
-                <h3>📋 Thông tin bàn</h3>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Số bàn:</span>
-                        <span class="info-value">${tableInfo.tableNumber}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Tên bàn:</span>
-                        <span class="info-value">${tableInfo.tableName}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Phòng:</span>
-                        <span class="info-value">${tableInfo.roomName || 'Chưa phân phòng'}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Sức chứa:</span>
-                        <span class="info-value">${tableInfo.capacity} người</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Trạng thái:</span>
-                        <span class="info-value status-${tableInfo.status.toLowerCase()}">${getStatusText(tableInfo.status)}</span>
-                    </div>
-                </div>
+    // Check for empty invoices
+    if (!invoices || invoices.length === 0) {
+        historyContent.innerHTML = `
+            <div class="notification-empty">
+                <i class='bx bx-receipt'></i>
+                <p>Chưa có hóa đơn thanh toán</p>
             </div>
-    `;
-    
-    // Sessions History
-    if (sessions && sessions.length > 0) {
-        html += `
-            <div class="sessions-section">
-                <h3>🕒 Lịch sử phiên làm việc (${sessions.length} phiên)</h3>
-                <div class="sessions-list">
         `;
+        // Update stats to 0
+        document.getElementById('historyTotalInvoices').textContent = '0';
+        document.getElementById('historyTotalRevenue').textContent = '0đ';
+        return;
+    }
+    
+    // Update stats
+    document.getElementById('historyTotalInvoices').textContent = invoices.length;
+    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.finalAmount, 0);
+    document.getElementById('historyTotalRevenue').textContent = totalRevenue.toLocaleString('vi-VN') + 'đ';
+    
+    // Group by date
+    const grouped = {};
+    invoices.forEach(invoice => {
+        const timestamp = new Date(invoice.processedAt.replace(' ', 'T'));
+        const date = timestamp.toLocaleDateString('vi-VN');
+        const time = timestamp.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
         
-        sessions.forEach((session, index) => {
-            const checkInTime = new Date(session.checkInTime).toLocaleString('vi-VN');
-            const checkOutTime = session.checkOutTime ? new Date(session.checkOutTime).toLocaleString('vi-VN') : 'Chưa kết thúc';
-            const totalAmount = session.totalAmount ? parseFloat(session.totalAmount).toLocaleString('vi-VN') + ' VNĐ' : '0 VNĐ';
+        if (!grouped[date]) grouped[date] = [];
+        grouped[date].push({...invoice, displayTime: time});
+    });
+    
+    // Build HTML
+    let html = '';
+    Object.keys(grouped).forEach(date => {
+        html += `<div class="invoice-date-group">
+            <div class="invoice-date-header">${date}</div>`;
+        
+        grouped[date].forEach(invoice => {
+            const paymentMethodText = invoice.paymentMethod === 'cash' ? 'Tiền mặt' : 
+                                     invoice.paymentMethod === 'card' ? 'Thẻ' : 'Chuyển khoản';
             
-            html += `
-                <div class="session-item">
-                    <div class="session-header">
-                        <div class="session-info">
-                            <span class="session-number">Phiên #${index + 1}</span>
-                            <span class="session-status status-${session.status.toLowerCase()}">${getSessionStatusText(session.status)}</span>
-                        </div>
-                        <div class="session-amount">${totalAmount}</div>
-                    </div>
-                    
-                    <div class="session-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Khách hàng:</span>
-                            <span class="detail-value">${session.customerName || 'Không có tên'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">SĐT:</span>
-                            <span class="detail-value">${session.customerPhone || 'Không có'}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Vào lúc:</span>
-                            <span class="detail-value">${checkInTime}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Ra lúc:</span>
-                            <span class="detail-value">${checkOutTime}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Thanh toán:</span>
-                            <span class="detail-value">${getPaymentMethodText(session.paymentMethod)} - ${getPaymentStatusText(session.paymentStatus)}</span>
-                        </div>
-                        ${session.notes ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Ghi chú:</span>
-                            <span class="detail-value">${session.notes}</span>
-                        </div>
-                        ` : ''}
-                    </div>
-            `;
-            
-            // Orders in this session
-            if (session.orders && session.orders.length > 0) {
-                html += `
-                    <div class="orders-section">
-                        <h4>📝 Đơn hàng (${session.orders.length} đơn)</h4>
-                `;
-                
-                session.orders.forEach((order, orderIndex) => {
-                    const orderDate = new Date(order.orderDate).toLocaleString('vi-VN');
-                    const orderAmount = parseFloat(order.totalAmount).toLocaleString('vi-VN') + ' VNĐ';
-                    
-                    html += `
-                        <div class="order-item">
-                            <div class="order-header">
-                                <span class="order-number">${order.orderNumber}</span>
-                                <span class="order-status status-${order.status.toLowerCase()}">${getOrderStatusText(order.status)}</span>
-                                <span class="order-amount">${orderAmount}</span>
-                            </div>
-                            <div class="order-time">${orderDate}</div>
-                            
-                            <div class="order-items">
-                    `;
-                    
-                    if (order.orderDetails && order.orderDetails.length > 0) {
-                        order.orderDetails.forEach(detail => {
-                            const itemTotal = parseFloat(detail.totalPrice).toLocaleString('vi-VN') + ' VNĐ';
-                            html += `
-                                <div class="order-item-detail">
-                                    <span class="item-name">${detail.productName} ${detail.productSize}</span>
-                                    <span class="item-quantity">x${detail.quantity}</span>
-                                    <span class="item-price">${itemTotal}</span>
-                                </div>
-                            `;
-                        });
-                    }
-                    
-                    html += `
-                            </div>
-                        </div>
-                    `;
+            // Items list
+            let itemsHtml = '';
+            if (invoice.items && invoice.items.length > 0) {
+                itemsHtml = '<div class="invoice-items-list">';
+                invoice.items.forEach(item => {
+                    const itemName = item.name + (item.size ? ' (' + item.size + ')' : '');
+                    itemsHtml += `<div class="invoice-item-row">• ${itemName} x${item.quantity}</div>`;
                 });
-                
-                html += `</div>`;
+                itemsHtml += '</div>';
             }
             
-            html += `</div>`;
-        });
-        
-        html += `</div></div>`;
-    } else {
-        html += `
-            <div class="sessions-section">
-                <h3>🕒 Lịch sử phiên làm việc</h3>
-                <div class="no-data">Chưa có phiên làm việc nào</div>
-            </div>
-        `;
-    }
-    
-    // Payment History
-    if (payments && payments.length > 0) {
-        html += `
-            <div class="payments-section">
-                <h3>💳 Lịch sử thanh toán (${payments.length} giao dịch)</h3>
-                <div class="payments-list">
-        `;
-        
-        payments.forEach((payment, index) => {
-            const processedAt = new Date(payment.processedAt).toLocaleString('vi-VN');
-            const amount = parseFloat(payment.amount).toLocaleString('vi-VN') + ' VNĐ';
+            const voucherHtml = invoice.hasVoucher ? 
+                `<div class="invoice-detail invoice-voucher">✨ Voucher: -${invoice.discount.toLocaleString('vi-VN')}đ</div>` : '';
             
             html += `
-                <div class="payment-item">
-                    <div class="payment-header">
-                        <span class="payment-number">Giao dịch #${index + 1}</span>
-                        <span class="payment-status status-${payment.paymentStatus.toLowerCase()}">${getPaymentStatusText(payment.paymentStatus)}</span>
-                        <span class="payment-amount">${amount}</span>
+                <div class="invoice-item" data-id="${invoice.transactionId}">
+                    <div class="invoice-icon">
+                        <i class='bx bx-receipt'></i>
                     </div>
-                    <div class="payment-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Phương thức:</span>
-                            <span class="detail-value">${getPaymentMethodText(payment.paymentMethod)}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Thời gian:</span>
-                            <span class="detail-value">${processedAt}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Xử lý bởi:</span>
-                            <span class="detail-value">${payment.processedByName || 'Hệ thống'}</span>
-                        </div>
-                        ${payment.transactionReference ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Mã giao dịch:</span>
-                            <span class="detail-value">${payment.transactionReference}</span>
-                        </div>
-                        ` : ''}
-                        ${payment.notes ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Ghi chú:</span>
-                            <span class="detail-value">${payment.notes}</span>
-                        </div>
-                        ` : ''}
+                    <div class="invoice-content">
+                        <div class="invoice-title">${invoice.invoiceName || invoice.tableName}</div>
+                        <div class="invoice-detail"><strong>Số món:</strong> ${invoice.itemCount}</div>
+                        ${itemsHtml}
+                        <div class="invoice-detail"><strong>Tổng tiền:</strong> ${invoice.amount.toLocaleString('vi-VN')}đ</div>
+                        ${voucherHtml}
+                        <div class="invoice-detail invoice-final"><strong>Thanh toán:</strong> ${invoice.finalAmount.toLocaleString('vi-VN')}đ (${paymentMethodText})</div>
+                        <div class="invoice-detail"><strong>Nhân viên:</strong> ${invoice.processedByName}</div>
+                        <div class="invoice-time">${invoice.displayTime}</div>
                     </div>
                 </div>
             `;
         });
         
-        html += `</div></div>`;
-    } else {
-        html += `
-            <div class="payments-section">
-                <h3>💳 Lịch sử thanh toán</h3>
-                <div class="no-data">Chưa có giao dịch thanh toán nào</div>
-            </div>
-        `;
-    }
-    
-    html += `</div>`;
+        html += '</div>';
+    });
     
     historyContent.innerHTML = html;
 }
@@ -3595,7 +3473,62 @@ window.viewTableDetails = function(tableId) {
         });
 };
 
+// Polling management functions
+function startHistoryPolling(tableId) {
+    currentHistoryTableId = tableId;
+    if (historyPollingInterval) clearInterval(historyPollingInterval);
+    
+    // Poll every 5 seconds when modal is open
+    historyPollingInterval = setInterval(() => {
+        if (document.getElementById('tableHistoryModal').style.display === 'block') {
+            loadTableHistory(currentHistoryTableId);
+        } else {
+            stopHistoryPolling();
+        }
+    }, 5000);
+}
+
+function stopHistoryPolling() {
+    if (historyPollingInterval) {
+        clearInterval(historyPollingInterval);
+        historyPollingInterval = null;
+    }
+    currentHistoryTableId = null;
+}
+
+function closeTableHistoryModal() {
+    stopHistoryPolling();
+    document.getElementById('tableHistoryModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function refreshTableHistory() {
+    if (currentHistoryTableId) {
+        loadTableHistory(currentHistoryTableId);
+    }
+}
+
+// Expose functions to global scope
+window.closeTableHistoryModal = closeTableHistoryModal;
+window.refreshTableHistory = refreshTableHistory;
+
 window.viewTableHistory = function(tableId) {
+    // Show modal
+    const modal = document.getElementById('tableHistoryModal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Load history
+    loadTableHistory(tableId);
+    
+    // Start polling
+    startHistoryPolling(tableId);
+};
+
+// DEPRECATED: Old viewTableHistory code (keeping for backwards compatibility)
+function viewTableHistoryOld(tableId) {
     fetch('roomtable?action=getTableHistory&tableId=' + tableId)
         .then(response => {
             if (!response.ok) {
@@ -3617,7 +3550,7 @@ window.viewTableHistory = function(tableId) {
             }
             
             let history = `
-                <h3>📋 Lịch sử giao dịch bàn</h3>
+                <h3>📋 Lịch sử giao dịch bàn (OLD)</h3>
                 <div style="max-height: 400px; overflow-y: auto;">
             `;
             

@@ -95,7 +95,8 @@ public class PersonalScheduleServlet extends HttpServlet {
                 return;
             }
 
-            Employee employee = employeeService.getEmployeeByUserID(employeeId).orElse(null);
+            // employeeId is already EmployeeID from getEmployeeIdFromSession
+            Employee employee = employeeService.getEmployeeById(employeeId).orElse(null);
             if (employee == null) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 resp.getWriter().print("{\"error\":\"Employee not found\"}");
@@ -109,20 +110,32 @@ public class PersonalScheduleServlet extends HttpServlet {
             String startTimeStr = req.getParameter("startTime");
             String endTimeStr = req.getParameter("endTime");
             String priority = req.getParameter("priority");
+            
+            // Validate required fields
+            if (title == null || title.trim().isEmpty()) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.getWriter().print("{\"error\":\"Title is required\"}");
+                return;
+            }
+            if (startDateStr == null || startDateStr.trim().isEmpty()) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.getWriter().print("{\"error\":\"Start date is required\"}");
+                return;
+            }
 
             PersonalSchedule schedule = new PersonalSchedule();
             schedule.setEmployee(employee);
-            schedule.setTitle(title);
-            schedule.setDescription(description);
+            schedule.setTitle(title.trim());
+            schedule.setDescription(description != null ? description.trim() : null);
             schedule.setStartDate(LocalDate.parse(startDateStr));
             
-            if (startTimeStr != null && !startTimeStr.isEmpty()) {
+            if (startTimeStr != null && !startTimeStr.trim().isEmpty()) {
                 schedule.setStartTime(LocalTime.parse(startTimeStr));
             }
-            if (endTimeStr != null && !endTimeStr.isEmpty()) {
+            if (endTimeStr != null && !endTimeStr.trim().isEmpty()) {
                 schedule.setEndTime(LocalTime.parse(endTimeStr));
             }
-            schedule.setPriority(priority != null ? priority : "Medium");
+            schedule.setPriority(priority != null && !priority.trim().isEmpty() ? priority : "Medium");
             schedule.setStatus("Pending");
 
             if (personalScheduleService.createSchedule(schedule)) {
@@ -132,6 +145,10 @@ public class PersonalScheduleServlet extends HttpServlet {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 resp.getWriter().print("{\"error\":\"Failed to create schedule\"}");
             }
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().print("{\"error\":\"Invalid date/time format: " + e.getMessage() + "\"}");
+            e.printStackTrace();
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().print("{\"error\":\"" + e.getMessage() + "\"}");

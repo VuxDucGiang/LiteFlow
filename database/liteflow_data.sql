@@ -76,6 +76,12 @@ GO
 DELETE FROM Categories;
 GO
 
+-- Delete reservation items and reservations
+DELETE FROM ReservationItems;
+GO
+DELETE FROM Reservations;
+GO
+
 -- Delete tables
 DELETE FROM Tables;
 GO
@@ -623,175 +629,11 @@ WHERE u.Email = 'cashier1@liteflow.vn';
 GO
 
 -- ============================================================
--- 9️⃣ CAFE MANAGEMENT - TABLE SESSIONS & ORDERS
--- ============================================================
-
--- Sample Table Sessions (Phiên làm việc của các bàn)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, Status, CreatedBy)
-SELECT 
-    t.TableID,
-    N'Khách hàng A',
-    '0901234567',
-    DATEADD(HOUR, -2, SYSDATETIME()), -- 2 giờ trước
-    'Active',
-    u.UserID
-FROM Tables t
-CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, Status, CreatedBy)
-SELECT 
-    t.TableID,
-    N'Khách hàng B',
-    '0907654321',
-    DATEADD(MINUTE, -30, SYSDATETIME()), -- 30 phút trước
-    'Active',
-    u.UserID
-FROM Tables t
-CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 2' AND u.Email = 'cashier1@liteflow.vn';
-
--- Sample Orders (Đơn hàng trong phiên)
-INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
-SELECT 
-    ts.SessionID,
-    'ORD001',
-    75000, -- 2 cà phê sữa đá M + 1 bánh tiramisu
-    7500,  -- VAT 10%
-    82500, -- Tổng
-    'Served',
-    u.UserID
-FROM TableSessions ts
-CROSS JOIN Users u
-WHERE ts.CustomerName = N'Khách hàng A' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO Orders (SessionID, OrderNumber, SubTotal, VAT, TotalAmount, Status, CreatedBy)
-SELECT 
-    ts.SessionID,
-    'ORD002',
-    105000, -- 1 latte L + 1 trà sữa trân châu L + 1 khoai tây chiên lớn
-    10500,  -- VAT 10%
-    115500, -- Tổng
-    'Preparing',
-    u.UserID
-FROM TableSessions ts
-CROSS JOIN Users u
-WHERE ts.CustomerName = N'Khách hàng B' AND u.Email = 'cashier1@liteflow.vn';
-
--- Sample Order Details (Chi tiết món trong đơn)
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    2, -- Số lượng
-    pv.Price,
-    pv.Price * 2, -- Tổng tiền
-    'Served'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD001' 
-    AND p.Name = N'Cà phê sữa đá' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = 'M';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Served'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD001' 
-    AND p.Name = N'Bánh tiramisu' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = N'1 miếng';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Preparing'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD002' 
-    AND p.Name = N'Latte' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = 'L';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Preparing'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD002' 
-    AND p.Name = N'Trà sữa trân châu' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = 'L';
-
-INSERT INTO OrderDetails (OrderID, ProductVariantID, Quantity, UnitPrice, TotalPrice, Status)
-SELECT 
-    o.OrderID,
-    pv.ProductVariantID,
-    1, -- Số lượng
-    pv.Price,
-    pv.Price, -- Tổng tiền
-    'Pending'
-FROM Orders o
-CROSS JOIN Products p
-CROSS JOIN ProductVariant pv
-WHERE o.OrderNumber = 'ORD002' 
-    AND p.Name = N'Khoai tây chiên' 
-    AND pv.ProductID = p.ProductID 
-    AND pv.Size = N'Phần lớn';
-
--- Sample Payment Transactions (Giao dịch thanh toán)
-INSERT INTO PaymentTransactions (SessionID, OrderID, Amount, PaymentMethod, PaymentStatus, ProcessedBy)
-SELECT 
-    ts.SessionID,
-    o.OrderID,
-    o.TotalAmount,
-    'Cash',
-    'Completed',
-    u.UserID
-FROM TableSessions ts
-CROSS JOIN Orders o
-CROSS JOIN Users u
-WHERE ts.CustomerName = N'Khách hàng A' 
-    AND o.OrderNumber = 'ORD001'
-    AND u.Email = 'cashier1@liteflow.vn';
-
--- Update table status to Occupied for active sessions
-UPDATE Tables 
-SET Status = 'Occupied'
-WHERE TableID IN (
-    SELECT DISTINCT ts.TableID 
-    FROM TableSessions ts 
-    WHERE ts.Status = 'Active'
-);
-GO
-
-
--- ============================================================
 -- 2️⃣ THÊM TABLE SESSIONS MẪU (Lịch sử giao dịch)
 -- ============================================================
 
 -- Session đã hoàn thành (Completed)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Nguyễn Văn An',
@@ -802,13 +644,14 @@ SELECT
     150000,
     'Cash',
     'Paid',
+    t.TableName + N' - HD 2', -- Hóa đơn thứ 2 của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 1' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session đã hủy (Cancelled)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Trần Thị Bình',
@@ -819,13 +662,14 @@ SELECT
     75000,
     'Card',
     'Paid',
+    t.TableName + N' - HD 2', -- Hóa đơn thứ 2 của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 2' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 2' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với khách hàng VIP
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Lê Văn Cường',
@@ -836,13 +680,14 @@ SELECT
     450000,
     'Transfer',
     'Paid',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn VIP
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn VIP 1' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn VIP 1' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với thanh toán một phần
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Phạm Thị Dung',
@@ -853,13 +698,14 @@ SELECT
     200000,
     'Cash',
     'Partial',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 3' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 3' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với ghi chú
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, Notes, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, Notes, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Hoàng Văn Em',
@@ -871,13 +717,14 @@ SELECT
     'Wallet',
     'Paid',
     N'Khách hàng thân thiết, yêu cầu cà phê ít đường',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 4' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 4' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với khách vãng lai (không có thông tin)
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     NULL, -- Khách vãng lai
@@ -888,10 +735,11 @@ SELECT
     85000,
     'Cash',
     'Paid',
+    t.TableName + N' - HD 1', -- Hóa đơn đầu tiên của bàn này
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn 5' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 5' AND u.Email = 'cashier1@liteflow.vn';
 
 GO
 
@@ -1033,6 +881,7 @@ WHERE ts.CustomerName = N'Lê Văn Cường'
 
 GO
 
+
 -- ============================================================
 -- 5️⃣ CẬP NHẬT TRẠNG THÁI BÀN
 -- ============================================================
@@ -1064,11 +913,191 @@ WHERE TableName IN ('Bàn Ngoài Trời 1', 'Bàn Họp 1', 'Bàn Họp 3', 'Bà
 GO
 
 -- ============================================================
+-- 5️⃣.1 RESERVATIONS - DỮ LIỆU MẪU ĐẶT BÀN
+-- ============================================================
+
+-- Đặt bàn cho hôm nay (đã xác nhận, có gán bàn)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(CAST(SYSDATETIME() AS DATE), 'ddMMyyyy') + '-001',
+    N'Nguyễn Văn Hưng',
+    '0901234567',
+    'hung.nguyen@email.com',
+    DATEADD(HOUR, 3, SYSDATETIME()), -- 3 giờ sau
+    4,
+    t.TableID,
+    r.RoomID,
+    
+    'PENDING',
+    N'Đặt bàn gia đình, cần ghế em bé'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn Gia Đình 2';
+
+-- Lấy ReservationID vừa tạo để thêm món đặt trước
+DECLARE @Res1ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0901234567');
+
+-- Thêm món đặt trước
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res1ID, p.ProductID, 2, N'Ít đường'
+FROM Products p WHERE p.Name = N'Cà phê sữa đá';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res1ID, p.ProductID, 4, NULL
+FROM Products p WHERE p.Name = N'Trà sữa trân châu';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res1ID, p.ProductID, 2, N'Không cay'
+FROM Products p WHERE p.Name = N'Khoai tây chiên';
+
+-- Đặt bàn cho ngày mai (chưa gán bàn)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, Status, Notes)
+VALUES (
+    FORMAT(DATEADD(DAY, 1, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Trần Thị Mai',
+    '0912345678',
+    'mai.tran@email.com',
+    DATEADD(HOUR, 19, CAST(DATEADD(DAY, 1, SYSDATETIME()) AS DATETIME2)), -- Ngày mai 7PM
+    6,
+    
+    'PENDING',
+    N'Sinh nhật, cần không gian riêng tư'
+);
+
+-- Thêm món đặt trước cho đặt bàn ngày mai
+DECLARE @Res2ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0912345678');
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res2ID, p.ProductID, 6, NULL
+FROM Products p WHERE p.Name = N'Latte';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res2ID, p.ProductID, 3, NULL
+FROM Products p WHERE p.Name = N'Bánh tiramisu';
+
+-- Đặt bàn VIP (hôm nay, buổi tối, đã gán bàn VIP)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(CAST(SYSDATETIME() AS DATE), 'ddMMyyyy') + '-002',
+    N'Lê Văn Thành',
+    '0923456789',
+    'thanh.le@company.com',
+    DATEADD(HOUR, 19, CAST(SYSDATETIME() AS DATETIME2)), -- Hôm nay 7PM
+    4,
+    t.TableID,
+    r.RoomID,
+    
+    'PENDING',
+    N'Khách VIP, yêu cầu phục vụ đặc biệt'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn VIP 1';
+
+DECLARE @Res3ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0923456789');
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res3ID, p.ProductID, 4, N'Nóng'
+FROM Products p WHERE p.Name = N'Latte';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res3ID, p.ProductID, 4, NULL
+FROM Products p WHERE p.Name = N'Bánh tiramisu';
+
+-- Đặt bàn đã hoàn thành (hôm qua)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(DATEADD(DAY, -1, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Phạm Minh Tuấn',
+    '0934567890',
+    NULL, -- Không có email
+    DATEADD(HOUR, 12, CAST(DATEADD(DAY, -1, SYSDATETIME()) AS DATETIME2)), -- Hôm qua 12PM
+    2,
+    t.TableID,
+    r.RoomID,
+    
+    'SEATED',
+    N'Đã nhận bàn và phục vụ'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn Lễ Tân 2';
+
+DECLARE @Res4ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0934567890');
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res4ID, p.ProductID, 2, NULL
+FROM Products p WHERE p.Name = N'Cà phê đen';
+
+-- Đặt bàn bị hủy
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, ArrivalTime, NumberOfGuests, Status, Notes)
+VALUES (
+    FORMAT(DATEADD(DAY, -2, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Hoàng Thị Lan',
+    '0945678901',
+    DATEADD(HOUR, 18, CAST(DATEADD(DAY, -2, SYSDATETIME()) AS DATETIME2)), -- 2 ngày trước 6PM
+    3,
+    
+    'CANCELLED',
+    N'Khách hủy do lý do cá nhân'
+);
+
+-- Đặt bàn không đến (NO_SHOW)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(DATEADD(DAY, -1, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-002',
+    N'Đỗ Văn Khoa',
+    '0956789012',
+    DATEADD(HOUR, 19, CAST(DATEADD(DAY, -1, SYSDATETIME()) AS DATETIME2)), -- Hôm qua 7PM
+    5,
+    t.TableID,
+    r.RoomID,
+    
+    'NO_SHOW',
+    N'Khách không đến, quá 30 phút tự động hủy'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn Họp 1';
+
+-- Đặt bàn cho tuần sau (nhiều khách, chưa gán bàn)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, Status, Notes)
+VALUES (
+    FORMAT(DATEADD(DAY, 7, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Vũ Thị Hồng',
+    '0967890123',
+    'hong.vu@email.com',
+    DATEADD(HOUR, 12, CAST(DATEADD(DAY, 7, SYSDATETIME()) AS DATETIME2)), -- Tuần sau 12PM
+    10,
+    
+    'PENDING',
+    N'Tiệc công ty, cần không gian lớn'
+);
+
+DECLARE @Res7ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0967890123');
+
+-- Đặt nhiều món
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 10, NULL
+FROM Products p WHERE p.Name = N'Cà phê sữa đá';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 10, NULL
+FROM Products p WHERE p.Name = N'Trà đào cam sả';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 5, NULL
+FROM Products p WHERE p.Name = N'Croissant bơ';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 3, N'Phần lớn'
+FROM Products p WHERE p.Name = N'Khoai tây chiên';
+
+GO
+
+-- ============================================================
 -- 6️⃣ THÊM DỮ LIỆU TEST CHO CÁC TRƯỜNG HỢP ĐẶC BIỆT
 -- ============================================================
 
 -- Session với null values để test error handling
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Test Null Values',
@@ -1079,13 +1108,14 @@ SELECT
     NULL, -- TotalAmount null để test
     NULL, -- PaymentMethod null để test
     'Unpaid',
+    t.TableName + N' - HD 1', -- Test invoice name
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn Không Phòng 1' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 6' AND u.Email = 'cashier1@liteflow.vn';
 
 -- Session với số tiền 0
-INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
 SELECT 
     t.TableID,
     N'Khách Hàng Miễn Phí',
@@ -1096,10 +1126,11 @@ SELECT
     0, -- Số tiền 0
     'Cash',
     'Paid',
+    t.TableName + N' - HD 1', -- Test invoice name
     u.UserID
 FROM Tables t
 CROSS JOIN Users u
-WHERE t.TableName = 'Bàn Không Phòng 2' AND u.Email = 'cashier1@liteflow.vn';
+WHERE t.TableName = N'Bàn Lễ Tân 7' AND u.Email = 'cashier1@liteflow.vn';
 
 GO
 
@@ -1113,7 +1144,7 @@ DECLARE @maxCounter INT = 50;
 
 WHILE @counter <= @maxCounter
 BEGIN
-    INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, CreatedBy)
+    INSERT INTO TableSessions (TableID, CustomerName, CustomerPhone, CheckInTime, CheckOutTime, Status, TotalAmount, PaymentMethod, PaymentStatus, InvoiceName, CreatedBy)
     SELECT 
         t.TableID,
         N'Khách Hàng Test ' + CAST(@counter AS NVARCHAR(10)),
@@ -1129,10 +1160,11 @@ BEGIN
             ELSE 'Wallet'
         END,
         'Paid',
+        t.TableName + N' - HD ' + CAST((@counter + 2) AS NVARCHAR(10)), -- HD 3, HD 4, HD 5, ...
         u.UserID
     FROM Tables t
     CROSS JOIN Users u
-    WHERE t.TableName = 'Bàn 1' AND u.Email = 'cashier1@liteflow.vn';
+    WHERE t.TableName = N'Bàn Lễ Tân 1' AND u.Email = 'cashier1@liteflow.vn';
     
     SET @counter = @counter + 1;
 END
@@ -1140,88 +1172,18 @@ END
 GO
 
 -- ============================================================
--- 8️⃣ SEED ATTENDANCE STATUS FOR CURRENT WEEK
+-- 8️⃣ ATTENDANCE DATA - KHÔNG CÓ DỮ LIỆU MẪU
 -- ============================================================
-USE LiteFlowDBO;
-GO
-
-DECLARE @Mon DATE;
-DECLARE @today2 DATE = CAST(SYSDATETIME() AS DATE);
-SET @Mon = DATEADD(DAY, -((DATEPART(WEEKDAY, @today2) + 5) % 7), @today2); -- Monday
-
--- Barista employee (giangducx2312@gmail.com): Mon-Fri work, Wed paid leave, Thu unpaid leave
-DECLARE @EmpBarista UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
-);
-
-IF @EmpBarista IS NOT NULL
-BEGIN
-  -- Mon: Work 07:05 - 12:10
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, @Mon AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:05', CheckOutTime = '12:10', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpBarista, @Mon, 'Work', '07:05', '12:10');
-
-  -- Tue: Work 07:00 - 12:00
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 1, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:00', CheckOutTime = '12:00', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpBarista, DATEADD(DAY, 1, @Mon), 'Work', '07:00', '12:00');
-
-  -- Wed: Leave Paid
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 2, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'LeavePaid', CheckInTime = NULL, CheckOutTime = NULL, UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status)
-    VALUES (@EmpBarista, DATEADD(DAY, 2, @Mon), 'LeavePaid');
-
-  -- Thu: Leave Unpaid
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 3, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'LeaveUnpaid', CheckInTime = NULL, CheckOutTime = NULL, UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status)
-    VALUES (@EmpBarista, DATEADD(DAY, 3, @Mon), 'LeaveUnpaid');
-
-  -- Fri: Work 07:10 - 12:05
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpBarista AS EmployeeID, DATEADD(DAY, 4, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '07:10', CheckOutTime = '12:05', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpBarista, DATEADD(DAY, 4, @Mon), 'Work', '07:10', '12:05');
-END
-GO
-
--- Cashier employee (cashier1@liteflow.vn): Work Tue/Thu evening
-DECLARE @EmpCashier UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
-);
-
-IF @EmpCashier IS NOT NULL
-BEGIN
-  -- Tue: Work 17:00 - 22:00
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpCashier AS EmployeeID, DATEADD(DAY, 1, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '17:00', CheckOutTime = '22:00', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpCashier, DATEADD(DAY, 1, @Mon), 'Work', '17:00', '22:00');
-
-  -- Thu: Work 17:05 - 22:10
-  MERGE EmployeeAttendance AS t
-  USING (SELECT @EmpCashier AS EmployeeID, DATEADD(DAY, 3, @Mon) AS WorkDate) s
-  ON (t.EmployeeID = s.EmployeeID AND t.WorkDate = s.WorkDate)
-  WHEN MATCHED THEN UPDATE SET Status = 'Work', CheckInTime = '17:05', CheckOutTime = '22:10', UpdatedAt = SYSDATETIME()
-  WHEN NOT MATCHED THEN INSERT (EmployeeID, WorkDate, Status, CheckInTime, CheckOutTime)
-    VALUES (@EmpCashier, DATEADD(DAY, 3, @Mon), 'Work', '17:05', '22:10');
-END
-GO
+-- ⚠️ QUAN TRỌNG: Không seed dữ liệu EmployeeAttendance
+-- Lý do: 
+-- 1. Dữ liệu attendance sẽ được tạo TỰ ĐỘNG khi nhân viên clock-in/out từ dashboard
+-- 2. Flags (isLate, isEarlyLeave, isOvertime) được tính toán TỰ ĐỘNG dựa trên shift times
+-- 3. Việc seed dữ liệu cũ với flags sai sẽ gây lỗi màu sắc hiển thị không đúng
+-- 
+-- Cách tạo dữ liệu attendance:
+-- - Nhân viên đăng nhập vào dashboard-employee
+-- - Sử dụng widget "CHẤM CÔNG HÔM NAY" để clock-in/clock-out
+-- - Hệ thống sẽ tự động tính toán và lưu flags chính xác
 
 -- ============================================================
 -- 9️⃣ SEED BONUS/PENALTY EVENTS FOR CURRENT WEEK
@@ -1230,66 +1192,15 @@ USE LiteFlowDBO;
 GO
 
 -- ============================================================
--- 🔟 SEED DỮ LIỆU MẪU LỊCH SỬ CHẤM CÔNG (Timesheets with mixed sources)
+-- 🔟 TIMESHEET DATA - KHÔNG CÓ DỮ LIỆU MẪU
 -- ============================================================
-USE LiteFlowDBO;
-GO
-
-DECLARE @Today DATE = CAST(SYSDATETIME() AS DATE);
-
-DECLARE @EmpBaristaTS UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
-);
-
-IF @EmpBaristaTS IS NOT NULL
-BEGIN
-  -- Xóa dữ liệu timesheet trong ngày để seed lại demo rõ ràng
-  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpBaristaTS AND WorkDate = @Today;
-
-  -- Chấm công tự động: check-in đúng giờ template, check-out muộn 5'
-  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
-  SELECT @EmpBaristaTS,
-         s.ShiftID,
-         @Today,
-         DATEADD(HOUR, 7, CAST(@Today AS DATETIME2)),
-         DATEADD(MINUTE, 5, DATEADD(HOUR, 12, CAST(@Today AS DATETIME2))),
-         15,
-         'Approved',
-         'Auto',
-         4.75,
-         N'Chấm công tự động (mặc định hệ thống)'
-  FROM EmployeeShifts s
-  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpBaristaTS
-  WHERE CONVERT(date, s.StartAt) = @Today;
-END
-GO
-
-DECLARE @EmpCashierTS UNIQUEIDENTIFIER = (
-  SELECT e.EmployeeID FROM Employees e JOIN Users u ON u.UserID = e.UserID AND u.Email = 'cashier1@liteflow.vn'
-);
-
-IF @EmpCashierTS IS NOT NULL
-BEGIN
-  -- Xóa để seed lại
-  DELETE FROM EmployeeShiftTimesheets WHERE EmployeeID = @EmpCashierTS AND WorkDate = @Today;
-
-  -- Chấm công bằng máy chấm công: import
-  INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, Notes)
-  SELECT @EmpCashierTS,
-         s.ShiftID,
-         @Today,
-         DATEADD(HOUR, 17, CAST(@Today AS DATETIME2)),
-         DATEADD(HOUR, 22, CAST(@Today AS DATETIME2)),
-         0,
-         'Approved',
-         'Import',
-         5.00,
-         N'Chấm công bằng máy (import file)'
-  FROM EmployeeShifts s
-  JOIN Employees e ON e.EmployeeID = s.EmployeeID AND e.EmployeeID = @EmpCashierTS
-  WHERE CONVERT(date, s.StartAt) = @Today;
-END
-GO
+-- ⚠️ QUAN TRỌNG: Không seed dữ liệu EmployeeShiftTimesheets
+-- Lý do:
+-- 1. Timesheet được tạo TỰ ĐỘNG khi nhân viên clock-in/out
+-- 2. Được tích hợp với EmployeeShifts để tính toán vi phạm và tăng ca
+-- 3. HoursWorked được tính tự động từ check-in đến check-out
+-- 
+-- Timesheet sẽ xuất hiện trên trang /attendance sau khi nhân viên chấm công
 
 DECLARE @HRUser UNIQUEIDENTIFIER = (SELECT TOP 1 UserID FROM Users WHERE Email = 'hr@liteflow.vn');
 
@@ -1377,26 +1288,7 @@ SELECT t.TemplateID, N'Thu ngân / Cashier', 'Any', 'Hourly', 28000, 'VND', CAST
 FROM ShiftTemplates t WHERE t.Name = N'Ca Tối';
 GO
 
--- Timesheets (actual worked times)
--- Employee1 morning shift today (07:00 - 12:00, 15 min break)
-INSERT INTO EmployeeShiftTimesheets (EmployeeID, ShiftID, WorkDate, CheckInAt, CheckOutAt, BreakMinutes, Status, Source, HoursWorked, ApprovedBy, ApprovedAt, Notes)
-SELECT e.EmployeeID,
-       s.ShiftID,
-       CAST(SYSDATETIME() AS DATE),
-       DATEADD(MINUTE, -5, s.StartAt),
-       DATEADD(MINUTE, 10, s.EndAt),
-       15,
-       'Approved',
-       'Manual',
-       4.75,
-       uHR.UserID,
-       SYSDATETIME(),
-       N'Check-in sớm 5 phút; check-out muộn 10 phút'
-FROM Employees e
-JOIN Users uEmp ON uEmp.UserID = e.UserID AND uEmp.Email = 'giangducx2312@gmail.com'
-JOIN EmployeeShifts s ON s.EmployeeID = e.EmployeeID AND CONVERT(date, s.StartAt) = CAST(SYSDATETIME() AS DATE) AND s.Title = N'Ca Sáng'
-CROSS JOIN Users uHR
-WHERE uHR.Email = 'hr@liteflow.vn';
+-- Timesheets will be created automatically via clock-in/out feature
 GO
 
 -- Holidays and exchange rates

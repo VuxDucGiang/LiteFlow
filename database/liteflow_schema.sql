@@ -222,13 +222,81 @@ CREATE TABLE Tables (
 );
 
 -- =======================================================
+-- 4.1 RESERVATIONS (Đặt bàn trước)
+-- =======================================================
+
+-- RESERVATIONS - Quản lý đặt bàn trước của khách hàng
+CREATE TABLE Reservations (
+    ReservationID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    ReservationCode NVARCHAR(20) NOT NULL UNIQUE,
+    CustomerName NVARCHAR(100) NOT NULL,
+    CustomerPhone NVARCHAR(20) NOT NULL,
+    CustomerEmail NVARCHAR(100) NULL,
+    ArrivalTime DATETIME2 NOT NULL,
+    NumberOfGuests INT NOT NULL CHECK (NumberOfGuests > 0),
+    TableID UNIQUEIDENTIFIER NULL,
+    RoomID UNIQUEIDENTIFIER NULL,
+    
+    Status NVARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (Status IN ('PENDING', 'CONFIRMED', 'SEATED', 'CANCELLED', 'NO_SHOW', 'CLOSED')),
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    
+    CONSTRAINT FK_Reservations_Tables FOREIGN KEY (TableID) REFERENCES Tables(TableID) ON DELETE SET NULL,
+    CONSTRAINT FK_Reservations_Rooms FOREIGN KEY (RoomID) REFERENCES Rooms(RoomID) ON DELETE SET NULL
+);
+
+-- RESERVATION ITEMS - Món đặt trước cho đặt bàn
+CREATE TABLE ReservationItems (
+    ReservationItemID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    ReservationID UNIQUEIDENTIFIER NOT NULL,
+    ProductID UNIQUEIDENTIFIER NOT NULL,
+    Quantity INT NOT NULL DEFAULT 1 CHECK (Quantity > 0),
+    Note NVARCHAR(255),
+    
+    CONSTRAINT FK_ReservationItems_Reservations FOREIGN KEY (ReservationID) 
+        REFERENCES Reservations(ReservationID) ON DELETE CASCADE,
+    CONSTRAINT FK_ReservationItems_Products FOREIGN KEY (ProductID) 
+        REFERENCES Products(ProductID) ON DELETE CASCADE
+);
+
+-- Indexes for Reservations
+CREATE INDEX IX_Reservations_ArrivalTime ON Reservations(ArrivalTime);
+CREATE INDEX IX_Reservations_Status ON Reservations(Status);
+CREATE INDEX IX_Reservations_ReservationCode ON Reservations(ReservationCode);
+CREATE INDEX IX_Reservations_CustomerPhone ON Reservations(CustomerPhone);
+CREATE INDEX IX_Reservations_CustomerEmail ON Reservations(CustomerEmail);
+CREATE INDEX IX_Reservations_TableID ON Reservations(TableID);
+CREATE INDEX IX_Reservations_RoomID ON Reservations(RoomID);
+CREATE INDEX IX_Reservations_CreatedAt ON Reservations(CreatedAt);
+
+CREATE INDEX IX_ReservationItems_ReservationID ON ReservationItems(ReservationID);
+CREATE INDEX IX_ReservationItems_ProductID ON ReservationItems(ProductID);
+GO
+
+-- Trigger: Auto-update UpdatedAt timestamp for Reservations
+CREATE OR ALTER TRIGGER TRG_Reservations_UpdatedAt
+ON Reservations
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE Reservations
+    SET UpdatedAt = SYSDATETIME()
+    FROM Reservations r
+    INNER JOIN inserted i ON r.ReservationID = i.ReservationID;
+END;
+GO
+
+-- =======================================================
 -- 5. CAFE MANAGEMENT SYSTEM
 -- =======================================================
 
 -- TABLE SESSIONS - Quản lý phiên làm việc của từng bàn
 CREATE TABLE TableSessions (
     SessionID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    TableID UNIQUEIDENTIFIER NOT NULL,
+    TableID UNIQUEIDENTIFIER NULL,  -- ✅ Cho phép NULL với bàn đặc biệt (Mang về, Giao hàng)
     CustomerName NVARCHAR(200) NULL,  -- Tên khách hàng (tùy chọn)
     CustomerPhone NVARCHAR(20) NULL,  -- SĐT khách hàng (tùy chọn)
     CheckInTime DATETIME2 DEFAULT SYSDATETIME(),  -- Thời gian vào
@@ -237,6 +305,7 @@ CREATE TABLE TableSessions (
     TotalAmount DECIMAL(10,2) DEFAULT 0.00,  -- Tổng tiền của phiên
     PaymentMethod NVARCHAR(50) NULL,  -- Phương thức thanh toán
     PaymentStatus NVARCHAR(50) DEFAULT 'Unpaid' CHECK (PaymentStatus IN ('Unpaid', 'Paid', 'Partial')),
+    InvoiceName NVARCHAR(100) NULL,   -- Tên hóa đơn (vd: "Bàn 1 - HD 1")
     Notes NVARCHAR(MAX) NULL,         -- Ghi chú
     CreatedBy UNIQUEIDENTIFIER NULL,  -- Nhân viên tạo phiên
     UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
@@ -281,6 +350,21 @@ CREATE TABLE OrderDetails (
     
     CONSTRAINT FK_OrderDetails_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE CASCADE,
     CONSTRAINT FK_OrderDetails_ProductVariant FOREIGN KEY (ProductVariantID) REFERENCES ProductVariant(ProductVariantID)
+);
+
+-- ORDER STATUS HISTORY - Lịch sử thay đổi trạng thái đơn hàng (dùng cho thông báo kitchen)
+CREATE TABLE OrderStatusHistory (
+    HistoryID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    OrderID UNIQUEIDENTIFIER NOT NULL,
+    OldStatus NVARCHAR(50) NOT NULL,
+    NewStatus NVARCHAR(50) NOT NULL,
+    ChangedAt DATETIME2 DEFAULT SYSDATETIME(),
+    ChangedBy UNIQUEIDENTIFIER NULL,      -- Nhân viên thay đổi trạng thái
+    Notes NVARCHAR(MAX) NULL,             -- Ghi chú khi thay đổi
+    OrderDetailsSnapshot NVARCHAR(MAX) NULL,  -- Snapshot của order details (JSON) tại thời điểm thay đổi
+    
+    CONSTRAINT FK_OrderStatusHistory_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID) ON DELETE CASCADE,
+    CONSTRAINT FK_OrderStatusHistory_ChangedBy FOREIGN KEY (ChangedBy) REFERENCES Users(UserID) ON DELETE SET NULL
 );
 
 -- =======================================================
@@ -343,6 +427,10 @@ CREATE INDEX IX_OrderDetails_OrderID ON OrderDetails(OrderID);
 CREATE INDEX IX_OrderDetails_ProductVariantID ON OrderDetails(ProductVariantID);
 CREATE INDEX IX_OrderDetails_Status ON OrderDetails(Status);
 
+CREATE INDEX IX_OrderStatusHistory_OrderID ON OrderStatusHistory(OrderID);
+CREATE INDEX IX_OrderStatusHistory_ChangedAt ON OrderStatusHistory(ChangedAt);
+CREATE INDEX IX_OrderStatusHistory_NewStatus ON OrderStatusHistory(NewStatus);
+
 CREATE INDEX IX_PaymentTransactions_SessionID ON PaymentTransactions(SessionID);
 CREATE INDEX IX_PaymentTransactions_OrderID ON PaymentTransactions(OrderID);
 CREATE INDEX IX_PaymentTransactions_ProcessedAt ON PaymentTransactions(ProcessedAt);
@@ -352,6 +440,45 @@ CREATE INDEX IX_Tables_RoomID ON Tables(RoomID);
 CREATE INDEX IX_Tables_Status ON Tables(Status);
 CREATE INDEX IX_Tables_IsActive ON Tables(IsActive);
 GO
+
+-- =======================================================
+-- TRIGGER: Tự động lưu lịch sử khi trạng thái Order thay đổi
+-- =======================================================
+CREATE OR ALTER TRIGGER TRG_Orders_StatusChange
+ON Orders
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Chỉ insert vào OrderStatusHistory khi Status thay đổi
+    INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
+    SELECT 
+        i.OrderID,
+        d.Status AS OldStatus,
+        i.Status AS NewStatus,
+        i.CreatedBy AS ChangedBy,
+        SYSDATETIME() AS ChangedAt,
+        (
+            -- Tạo JSON snapshot của OrderDetails
+            SELECT 
+                p.Name AS productName,
+                pv.Size AS size,
+                od.Quantity AS quantity,
+                od.UnitPrice AS unitPrice,
+                od.SpecialInstructions AS note
+            FROM OrderDetails od
+            INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
+            INNER JOIN Products p ON pv.ProductID = p.ProductID
+            WHERE od.OrderID = i.OrderID
+            FOR JSON PATH
+        ) AS OrderDetailsSnapshot
+    FROM inserted i
+    INNER JOIN deleted d ON i.OrderID = d.OrderID
+    WHERE i.Status <> d.Status;  -- Chỉ insert khi Status thay đổi
+END;
+GO
+
 USE LiteFlowDBO;
 GO
 

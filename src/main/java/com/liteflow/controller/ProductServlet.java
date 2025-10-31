@@ -1399,20 +1399,42 @@ public class ProductServlet extends HttpServlet {
             // Generate unique filename
             String uniqueFileName = UUID.randomUUID().toString() + extension;
             
-            // Create uploads directory if it doesn't exist
-            String uploadsDir = request.getServletContext().getRealPath("/uploads/products/");
-            File uploadDir = new File(uploadsDir);
-            if (!uploadDir.exists()) {
-                uploadDir.mkdirs();
+            // Save to source directory (src/main/webapp) - persistent across rebuilds
+            String projectPath = request.getServletContext().getRealPath("/");
+            String srcWebappPath = projectPath.replace("target\\LiteFlow\\", "src\\main\\webapp\\")
+                                             .replace("target/LiteFlow/", "src/main/webapp/");
+            String srcUploadsDir = srcWebappPath + "uploads" + File.separator + "products";
+            File srcUploadDir = new File(srcUploadsDir);
+            if (!srcUploadDir.exists()) {
+                srcUploadDir.mkdirs();
             }
             
-            // Save file
-            String filePath = uploadsDir + File.separator + uniqueFileName;
-            filePart.write(filePath);
+            // Save to target directory (for immediate use)
+            String targetUploadsDir = request.getServletContext().getRealPath("/uploads/products/");
+            File targetUploadDir = new File(targetUploadsDir);
+            if (!targetUploadDir.exists()) {
+                targetUploadDir.mkdirs();
+            }
+            
+            // Save file to source directory (permanent)
+            String srcFilePath = srcUploadsDir + File.separator + uniqueFileName;
+            filePart.write(srcFilePath);
+            System.out.println("✅ Image saved to source: " + srcFilePath);
+            
+            // Copy to target directory (for immediate runtime use)
+            String targetFilePath = targetUploadsDir + File.separator + uniqueFileName;
+            try (java.io.InputStream input = new java.io.FileInputStream(srcFilePath);
+                 java.io.OutputStream output = new java.io.FileOutputStream(targetFilePath)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = input.read(buffer)) > 0) {
+                    output.write(buffer, 0, length);
+                }
+                System.out.println("✅ Image copied to target: " + targetFilePath);
+            }
             
             // Return relative path for database
             String relativePath = "/uploads/products/" + uniqueFileName;
-            System.out.println("✅ Image saved: " + relativePath);
             return relativePath;
             
         } catch (Exception e) {
@@ -1537,11 +1559,23 @@ public class ProductServlet extends HttpServlet {
         }
         
         try {
-            String filePath = request.getServletContext().getRealPath(imagePath);
-            File file = new File(filePath);
-            if (file.exists()) {
-                file.delete();
-                System.out.println("✅ Deleted old image: " + imagePath);
+            // Delete from target directory
+            String targetFilePath = request.getServletContext().getRealPath(imagePath);
+            File targetFile = new File(targetFilePath);
+            if (targetFile.exists()) {
+                targetFile.delete();
+                System.out.println("✅ Deleted old image from target: " + imagePath);
+            }
+            
+            // Delete from source directory
+            String projectPath = request.getServletContext().getRealPath("/");
+            String srcWebappPath = projectPath.replace("target\\LiteFlow\\", "src\\main\\webapp\\")
+                                             .replace("target/LiteFlow/", "src/main/webapp/");
+            String srcFilePath = srcWebappPath + imagePath.replace("/", File.separator);
+            File srcFile = new File(srcFilePath);
+            if (srcFile.exists()) {
+                srcFile.delete();
+                System.out.println("✅ Deleted old image from source: " + srcFilePath);
             }
         } catch (Exception e) {
             System.err.println("❌ Error deleting image: " + e.getMessage());

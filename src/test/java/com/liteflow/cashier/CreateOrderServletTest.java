@@ -1,6 +1,6 @@
 package com.liteflow.cashier;
 
-import com.liteflow.controller.CreateOrderServlet;
+import com.liteflow.controller.CashierAPIServlet;
 import com.liteflow.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,29 +34,32 @@ class CreateOrderServletTest {
     @Mock
     private OrderService mockOrderService;
 
-    private CreateOrderServlet servlet;
+    private CashierAPIServlet servlet;
     private StringWriter responseWriter;
 
     @BeforeEach
     void setUp() throws Exception {
-        servlet = new CreateOrderServlet();
+        servlet = new CashierAPIServlet();
+        // ✅ Gọi init() để khởi tạo gson
+        servlet.init();
+        // ✅ Sau đó inject mock service để override service thật
         injectOrderService(servlet, mockOrderService);
     }
 
-    private void injectOrderService(CreateOrderServlet target, OrderService service) throws Exception {
-        Field f = CreateOrderServlet.class.getDeclaredField("orderService");
+    private void injectOrderService(CashierAPIServlet target, OrderService service) throws Exception {
+        Field f = CashierAPIServlet.class.getDeclaredField("orderService");
         f.setAccessible(true);
         f.set(target, service);
     }
 
     private void callDoPost(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Method m = CreateOrderServlet.class.getDeclaredMethod("doPost", HttpServletRequest.class, HttpServletResponse.class);
+        Method m = CashierAPIServlet.class.getDeclaredMethod("doPost", HttpServletRequest.class, HttpServletResponse.class);
         m.setAccessible(true);
         m.invoke(servlet, request, response);
     }
 
     private void callDoOptions(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Method m = CreateOrderServlet.class.getDeclaredMethod("doOptions", HttpServletRequest.class, HttpServletResponse.class);
+        Method m = CashierAPIServlet.class.getDeclaredMethod("doOptions", HttpServletRequest.class, HttpServletResponse.class);
         m.setAccessible(true);
         m.invoke(servlet, request, response);
     }
@@ -285,8 +288,8 @@ class CreateOrderServletTest {
     }
 
     @Test
-    @DisplayName("TC-ERR-006: should_return500_when_malformedJson()")
-    void should_return500_when_malformedJson() throws Exception {
+    @DisplayName("TC-ERR-006: should_return400_when_malformedJson()")
+    void should_return400_when_malformedJson() throws Exception {
         // Arrange
         responseWriter = setupResponseWriter(mockResponse);
         String malformedJson = buildMalformedJson(VALID_TABLE_ID);
@@ -296,7 +299,8 @@ class CreateOrderServletTest {
         callDoPost(mockRequest, mockResponse);
 
         // Assert
-        assertServerErrorResponse(mockResponse, responseWriter, "Lỗi server");
+        // ✅ Malformed JSON được handle như bad request (400), không phải server error (500)
+        assertBadRequestResponse(mockResponse, responseWriter, "Request body không hợp lệ");
         verifyServiceNeverCalled(mockOrderService);
     }
 
