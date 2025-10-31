@@ -40,6 +40,7 @@ public class TestDataBuilder {
         user.setPasswordHash("$2a$10$N.gXqZ8Z5fZQJ5fXqZ8Z5.xvZxZ5fZQJ5fXqZ8Z5fZQJ5fXqZ8Z5"); // Test@123
         user.setDisplayName("Test " + roleName);
         user.setIsActive(true);
+        user.setPhone(generateTestPhone());
         return user;
     }
     
@@ -471,6 +472,15 @@ public class TestDataBuilder {
         dto.setUnit("Cái");
         dto.setStatus("Đang bán");
         return dto;
+    }
+
+    private static String generateTestPhone() {
+        long value = Math.abs(UUID.randomUUID().getMostSignificantBits());
+        String digits = String.valueOf(value);
+        if (digits.length() < 10) {
+            digits = String.format("%010d", value % 1_000_000_000L);
+        }
+        return "+849" + digits.substring(0, 9);
     }
 }
 
