@@ -32,6 +32,11 @@
             .employee-tab-btn.active { background: #eef2ff; color: #1f2937; font-weight: 600; }
             .employee-tab-content { display: none; }
             .employee-tab-content.active { display: block; }
+            /* Salary configuration styles */
+            .salary-config-section { display: flex; flex-direction: column; gap: 16px; }
+            .salary-field-group { display: flex; flex-direction: column; gap: 6px; }
+            .salary-field-group label { font-size: 13px; font-weight: 500; color: #374151; }
+            .salary-field-group small { margin-top: -2px; }
         </style>
 
 <div class="content">
@@ -313,8 +318,70 @@
                     </div>
 
                     <div class="employee-tab-content" data-content="salary">
-                        <div class="employee-modal__fields" style="grid-template-columns: 1fr;">
-                            <div class="employee-field"><label>Lương</label><input id="modalSalary" name="salary" type="number" step="0.01" class="value"></div>
+                        <input type="hidden" id="compensationId" name="compensationId">
+
+                        <div class="salary-config-section">
+                            <h4 style="margin: 0 0 16px 0; font-size: 16px; color: #374151;">Cấu hình lương</h4>
+
+                            <!-- Lương chính -->
+                            <div class="salary-field-group">
+                                <label style="font-weight: 600; margin-bottom: 8px; display: block;">Lương chính *</label>
+                                <div style="display: grid; grid-template-columns: 180px 1fr; gap: 12px; align-items: start;">
+                                    <select id="compensationType" name="compensationType" class="value" style="padding: 10px;" onchange="handleCompensationTypeChange()">
+                                        <option value="">-- Chọn loại --</option>
+                                        <option value="Fixed">Lương cứng</option>
+                                        <option value="Hybrid">Theo giờ</option>
+                                        <option value="PerShift">Theo ca</option>
+                                    </select>
+
+                                    <div id="salaryInputContainer">
+                                        <input type="number" id="baseMonthlySalary" name="baseMonthlySalary" class="value" placeholder="Nhập số tiền (VD: 3000000)" step="1000" style="display: none;">
+                                        <input type="number" id="hourlyRate" name="hourlyRate" class="value" placeholder="Nhập số tiền (VD: 25000)" step="1000" style="display: none;">
+                                        <input type="number" id="perShiftRate" name="perShiftRate" class="value" placeholder="Nhập số tiền (VD: 100000)" step="1000" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Làm thêm -->
+                            <div class="salary-field-group">
+                                <label for="overtimeRate">Làm thêm giờ</label>
+                                <input type="number" id="overtimeRate" name="overtimeRate" class="value" placeholder="VD: 30000 VND/giờ" step="1000">
+                                <small style="color: #6b7280; font-size: 12px;">Mức lương cho mỗi giờ làm thêm</small>
+                            </div>
+
+                            <!-- Thưởng -->
+                            <div class="salary-field-group">
+                                <label for="bonusAmount">Thưởng</label>
+                                <input type="number" id="bonusAmount" name="bonusAmount" class="value" placeholder="VD: 1000000 VND" step="1000">
+                                <small style="color: #6b7280; font-size: 12px;">Tiền thưởng cố định hàng tháng</small>
+                            </div>
+
+                            <!-- Hoa hồng -->
+                            <div class="salary-field-group">
+                                <label for="commissionRate">Hoa hồng (%)</label>
+                                <input type="number" id="commissionRate" name="commissionRate" class="value" placeholder="VD: 5.5 (nghĩa là 5.5%)" step="0.1">
+                                <small style="color: #6b7280; font-size: 12px;">Tỷ lệ % hoa hồng trên doanh số</small>
+                            </div>
+
+                            <!-- Phụ cấp -->
+                            <div class="salary-field-group">
+                                <label for="allowanceAmount">Phụ cấp</label>
+                                <input type="number" id="allowanceAmount" name="allowanceAmount" class="value" placeholder="VD: 500000 VND" step="1000">
+                                <small style="color: #6b7280; font-size: 12px;">Phụ cấp (xăng xe, ăn uống, điện thoại...)</small>
+                            </div>
+
+                            <!-- Giảm trừ -->
+                            <div class="salary-field-group">
+                                <label for="deductionAmount">Giảm trừ</label>
+                                <input type="number" id="deductionAmount" name="deductionAmount" class="value" placeholder="VD: 200000 VND" step="1000">
+                                <small style="color: #6b7280; font-size: 12px;">Các khoản giảm trừ (bảo hiểm, phạt...)</small>
+                            </div>
+
+                            <!-- Action buttons for salary -->
+                            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-primary" onclick="saveCompensation()">Lưu cấu hình lương</button>
+                                <button type="button" class="btn" onclick="loadCompensation()">Tải lại</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -635,6 +702,135 @@
                 document.querySelectorAll('.employee-tab-content').forEach(function(c){
                     if (c.getAttribute('data-content') === tabKey) c.classList.add('active');
                     else c.classList.remove('active');
+                });
+
+                // Load compensation when salary tab is activated
+                if (tabKey === 'salary') {
+                    loadCompensation();
+                }
+            }
+
+            // =============== SALARY CONFIGURATION FUNCTIONS ===============
+
+            function handleCompensationTypeChange() {
+                const type = document.getElementById('compensationType').value;
+                const baseMonthlySalary = document.getElementById('baseMonthlySalary');
+                const hourlyRate = document.getElementById('hourlyRate');
+                const perShiftRate = document.getElementById('perShiftRate');
+
+                // Hide all inputs first
+                baseMonthlySalary.style.display = 'none';
+                hourlyRate.style.display = 'none';
+                perShiftRate.style.display = 'none';
+
+                // Show appropriate input based on type
+                if (type === 'Fixed') {
+                    baseMonthlySalary.style.display = 'block';
+                    baseMonthlySalary.placeholder = 'Nhập lương tháng (VD: 3000000)';
+                } else if (type === 'Hybrid') {
+                    hourlyRate.style.display = 'block';
+                    hourlyRate.placeholder = 'Nhập lương giờ (VD: 25000)';
+                } else if (type === 'PerShift') {
+                    perShiftRate.style.display = 'block';
+                    perShiftRate.placeholder = 'Nhập lương ca (VD: 100000)';
+                }
+            }
+
+            function loadCompensation() {
+                const employeeCode = document.getElementById('modalEmployeeCode').value;
+                if (!employeeCode) {
+                    console.log('No employee code available');
+                    return;
+                }
+
+                fetch('${pageContext.request.contextPath}/compensation?action=get&employeeCode=' + encodeURIComponent(employeeCode))
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success && result.data) {
+                            const data = result.data;
+                            document.getElementById('compensationId').value = data.compensationId || '';
+                            document.getElementById('compensationType').value = data.compensationType || '';
+                            document.getElementById('baseMonthlySalary').value = data.baseMonthlySalary || '';
+                            document.getElementById('hourlyRate').value = data.hourlyRate || '';
+                            document.getElementById('perShiftRate').value = data.perShiftRate || '';
+                            document.getElementById('overtimeRate').value = data.overtimeRate || '';
+                            document.getElementById('bonusAmount').value = data.bonusAmount || '';
+                            document.getElementById('commissionRate').value = data.commissionRate || '';
+                            document.getElementById('allowanceAmount').value = data.allowanceAmount || '';
+                            document.getElementById('deductionAmount').value = data.deductionAmount || '';
+
+                            // Trigger change to show correct input
+                            handleCompensationTypeChange();
+                        } else {
+                            // No compensation found, reset form
+                            clearCompensationForm();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading compensation:', error);
+                    });
+            }
+
+            function clearCompensationForm() {
+                document.getElementById('compensationId').value = '';
+                document.getElementById('compensationType').value = '';
+                document.getElementById('baseMonthlySalary').value = '';
+                document.getElementById('hourlyRate').value = '';
+                document.getElementById('perShiftRate').value = '';
+                document.getElementById('overtimeRate').value = '';
+                document.getElementById('bonusAmount').value = '';
+                document.getElementById('commissionRate').value = '';
+                document.getElementById('allowanceAmount').value = '';
+                document.getElementById('deductionAmount').value = '';
+                handleCompensationTypeChange();
+            }
+
+            function saveCompensation() {
+                const employeeCode = document.getElementById('modalEmployeeCode').value;
+                const compensationType = document.getElementById('compensationType').value;
+
+                if (!employeeCode) {
+                    alert('Không tìm thấy mã nhân viên');
+                    return;
+                }
+
+                if (!compensationType) {
+                    alert('Vui lòng chọn loại lương');
+                    return;
+                }
+
+                const formData = new URLSearchParams();
+                formData.append('action', 'save');
+                formData.append('employeeCode', employeeCode);
+                formData.append('compensationType', compensationType);
+                formData.append('baseMonthlySalary', document.getElementById('baseMonthlySalary').value || '');
+                formData.append('hourlyRate', document.getElementById('hourlyRate').value || '');
+                formData.append('perShiftRate', document.getElementById('perShiftRate').value || '');
+                formData.append('overtimeRate', document.getElementById('overtimeRate').value || '');
+                formData.append('bonusAmount', document.getElementById('bonusAmount').value || '');
+                formData.append('commissionRate', document.getElementById('commissionRate').value || '');
+                formData.append('allowanceAmount', document.getElementById('allowanceAmount').value || '');
+                formData.append('deductionAmount', document.getElementById('deductionAmount').value || '');
+
+                fetch('${pageContext.request.contextPath}/compensation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert(result.message || 'Lưu cấu hình lương thành công!');
+                        loadCompensation(); // Reload to get the new compensationId
+                    } else {
+                        alert('Lỗi: ' + (result.error || 'Không thể lưu cấu hình lương'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving compensation:', error);
+                    alert('Có lỗi xảy ra khi lưu cấu hình lương');
                 });
             }
         </script>

@@ -1,4 +1,4 @@
-﻿USE master;
+USE master;
 GO
 
 IF DB_ID('LiteFlowDBO') IS NOT NULL
@@ -785,6 +785,14 @@ CREATE TABLE EmployeeCompensation (
     BaseMonthlySalary DECIMAL(12,2) NULL,
     HourlyRate DECIMAL(12,2) NULL,
     PerShiftRate DECIMAL(12,2) NULL,
+
+    -- Additional compensation fields
+    OvertimeRate DECIMAL(12,2) NULL,        -- Mức lương làm thêm giờ (VD: 30000 VND/giờ)
+    BonusAmount DECIMAL(12,2) NULL,         -- Tiền thưởng cố định (VD: 1000000 VND)
+    CommissionRate DECIMAL(12,2) NULL,      -- Tỷ lệ hoa hồng % (VD: 5.5 nghĩa là 5.5%)
+    AllowanceAmount DECIMAL(12,2) NULL,     -- Phụ cấp (xăng xe, ăn uống, điện thoại, etc.)
+    DeductionAmount DECIMAL(12,2) NULL,     -- Giảm trừ (bảo hiểm, thuế, phạt, etc.)
+
     Currency NVARCHAR(3) NOT NULL DEFAULT 'VND',
     EffectiveFrom DATE NOT NULL,
     EffectiveTo DATE NULL,
@@ -997,4 +1005,78 @@ CREATE INDEX IX_PersonalSchedules_Employee ON PersonalSchedules(EmployeeID);
 CREATE INDEX IX_PersonalSchedules_StartDate ON PersonalSchedules(StartDate);
 CREATE INDEX IX_PersonalSchedules_Priority ON PersonalSchedules(Priority);
 CREATE INDEX IX_PersonalSchedules_Status ON PersonalSchedules(Status);
+GO
+
+
+IF OBJECT_ID('ForgotClockRequests', 'U') IS NULL
+BEGIN
+    CREATE TABLE ForgotClockRequests (
+        ForgotClockRequestID UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        EmployeeID UNIQUEIDENTIFIER NOT NULL,
+        
+        -- Forgot Details
+        ForgotDate DATE NOT NULL,
+        ForgotType NVARCHAR(20) NOT NULL CHECK (ForgotType IN ('CHECK_IN', 'CHECK_OUT', 'BOTH')),
+        ForgotTime TIME NULL,
+        Reason NVARCHAR(1000) NOT NULL,
+        
+        -- Status
+        Status NVARCHAR(20) NOT NULL DEFAULT N'Chờ duyệt' CHECK (Status IN (N'Chờ duyệt', N'Đã duyệt', N'Từ chối', N'Đã hủy')),
+        
+        -- Review
+        ReviewedBy UNIQUEIDENTIFIER NULL,
+        ReviewedAt DATETIME2 NULL,
+        ReviewNotes NVARCHAR(500) NULL,
+        
+        -- Timestamps
+        CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        UpdatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        
+        -- Foreign Keys
+        CONSTRAINT FK_ForgotClockRequests_Employee FOREIGN KEY (EmployeeID) 
+            REFERENCES Employees(EmployeeID) ON DELETE CASCADE,
+        CONSTRAINT FK_ForgotClockRequests_ReviewedBy FOREIGN KEY (ReviewedBy) 
+            REFERENCES Users(UserID) ON DELETE NO ACTION,
+        
+        -- Constraints
+        CONSTRAINT CK_ForgotClockRequests_ForgotDate CHECK (ForgotDate < CAST(SYSDATETIME() AS DATE))
+    );
+    
+    -- Indexes
+    CREATE INDEX IX_ForgotClockRequests_Employee ON ForgotClockRequests(EmployeeID);
+    CREATE INDEX IX_ForgotClockRequests_Status ON ForgotClockRequests(Status);
+    CREATE INDEX IX_ForgotClockRequests_ForgotDate ON ForgotClockRequests(ForgotDate);
+    CREATE INDEX IX_ForgotClockRequests_CreatedAt ON ForgotClockRequests(CreatedAt);
+    
+    PRINT '✅ ForgotClockRequests table created successfully';
+END
+ELSE
+BEGIN
+    PRINT '⚠️ ForgotClockRequests table already exists';
+END
+GO
+
+-- ============================================================
+-- Trigger to update UpdatedAt timestamp
+-- ============================================================
+
+IF OBJECT_ID('TRG_ForgotClockRequests_UpdatedAt', 'TR') IS NOT NULL
+    DROP TRIGGER TRG_ForgotClockRequests_UpdatedAt;
+GO
+
+CREATE TRIGGER TRG_ForgotClockRequests_UpdatedAt
+ON ForgotClockRequests
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE ForgotClockRequests
+    SET UpdatedAt = SYSDATETIME()
+    FROM ForgotClockRequests fcr
+    INNER JOIN inserted i ON fcr.ForgotClockRequestID = i.ForgotClockRequestID;
+END;
+GO
+
+PRINT '✅ ForgotClockRequests trigger created successfully';
 GO

@@ -135,15 +135,26 @@
         });
       });
       
-      // Initialize Notification Bell
-      initNotificationBell({
-        contextPath: '${pageContext.request.contextPath}',
-        refreshInterval: 60000  // 1 minute
-      });
+      // Initialize Notification Bell (only for non-Employee roles)
+      const notificationBellContainer = document.getElementById('notification-bell-container');
+      if (notificationBellContainer) {
+        initNotificationBell({
+          contextPath: '${pageContext.request.contextPath}',
+          refreshInterval: 60000  // 1 minute
+        });
+      }
     });
   </script>
 </head>
 <body>
+
+<!-- Check user role - Define isEmployee variable -->
+<c:set var="isEmployee" value="false" />
+<c:forEach var="role" items="${sessionScope.UserRoles}">
+  <c:if test="${role == 'Employee'}">
+    <c:set var="isEmployee" value="true" />
+  </c:if>
+</c:forEach>
 
 <div class="app">
   <!-- Top Header Bar -->
@@ -167,8 +178,10 @@
           <i class='bx bx-chevron-down'></i>
         </div>
         <div class="header-icons">
-          <!-- Notification Bell -->
-          <div id="notification-bell-container"></div>
+          <!-- Notification Bell - Hidden for Employee role -->
+          <c:if test="${!isEmployee}">
+            <div id="notification-bell-container"></div>
+          </c:if>
           <div class="header-icon">
             <i class='bx bx-cog'></i>
           </div>
@@ -210,14 +223,6 @@
   <nav class="main-nav">
     <div class="nav-content">
       <div class="nav-menu">
-        <!-- Check nếu KHÔNG phải Employee thì hiển thị các menu khác -->
-        <c:set var="isEmployee" value="false" />
-        <c:forEach var="role" items="${sessionScope.UserRoles}">
-          <c:if test="${role == 'Employee'}">
-            <c:set var="isEmployee" value="true" />
-          </c:if>
-        </c:forEach>
-        
         <!-- Tổng quan - link khác nhau cho Employee và Admin -->
         <c:choose>
           <c:when test="${isEmployee}">
@@ -333,7 +338,7 @@
               <a href="${pageContext.request.contextPath}/employees" class="dropdown-item">
                 <i class='bx bx-group'></i> Danh sách nhân viên
               </a>
-              <a href="${pageContext.request.contextPath}/employee/setupEmployee.jsp" class="dropdown-item">
+              <a href="${pageContext.request.contextPath}/employee/setup" class="dropdown-item">
                 <i class='bx bx-cog'></i> Thiết lập nhân viên
               </a>
             </c:if>
