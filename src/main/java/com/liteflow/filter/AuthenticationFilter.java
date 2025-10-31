@@ -35,9 +35,14 @@ public class AuthenticationFilter extends BaseFilter {
                 "/schedule",
                 "/user/profile",
                 "/user/timesheet",
-                "/user/payroll"
+                "/user/payroll",
+                "/api/notices"  // Employee có thể xem thông báo
         )));
-        ROLE_FUNCTIONS.put("Admin", new HashSet<>(Arrays.asList("/*"))); // full quyền
+        ROLE_FUNCTIONS.put("Admin", new HashSet<>(Arrays.asList(
+                "/*",
+                "/api/send-notification",  // Admin có thể gửi thông báo
+                "/api/notices"  // Admin có thể xem thông báo
+        ))); // full quyền
 
         // ============================================================
         // 🆕 PHÂN QUYỀN MODULE PROCUREMENT (THÊM MỚI)

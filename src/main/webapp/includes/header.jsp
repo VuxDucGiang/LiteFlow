@@ -5,6 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="contextPath" content="${pageContext.request.contextPath}">
   <title>LiteFlow - Hệ thống quản lý</title>
   
   <!-- Icons + Fonts -->
@@ -23,6 +24,9 @@
   
   <!-- Notification Bell Script -->
   <script src="${pageContext.request.contextPath}/js/notification-bell.js"></script>
+
+  <!-- Send Notification Script -->
+  <script src="${pageContext.request.contextPath}/js/send-notification.js"></script>
   
   <!-- Inline Dropdown Fix -->
   <script>
@@ -346,6 +350,9 @@
           <a href="${pageContext.request.contextPath}/reception" class="nav-icon" title="Lễ tân" target="_blank">
             <i class='bx bx-calendar'></i>
           </a>
+          <div class="nav-icon" id="send-notification-icon" title="Gửi thông báo" style="cursor: pointer;">
+            <i class='bx bx-mail-send'></i>
+          </div>
         </c:if>
         <!-- Thu ngân - hiển thị cho tất cả -->
         <a href="${pageContext.request.contextPath}/cashier" class="nav-icon" title="Thu ngân" target="_blank">

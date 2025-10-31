@@ -584,6 +584,46 @@ public class AlertService {
     }
     
     /**
+     * Create manual alert (sent by admin to employees)
+     */
+    public UUID createManualAlert(String title, String message, String priority, UUID createdByUserId) {
+        System.out.println("📨 Creating manual alert from admin: " + title);
+
+        // Create alert history directly without configuration check
+        AlertHistory alert = new AlertHistory("MANUAL_NOTIFICATION", title, message);
+        alert.setPriority(priority != null ? priority : "MEDIUM");
+        alert.setDeliveryStatus("PENDING");
+
+        // Set context data to include creator info
+        JSONObject contextData = new JSONObject();
+        contextData.put("createdBy", createdByUserId.toString());
+        contextData.put("createdAt", LocalDateTime.now().toString());
+        contextData.put("type", "admin_notification");
+        alert.setContextData(contextData.toString());
+
+        // Save to database
+        boolean saved = alertHistoryDAO.insert(alert);
+        if (!saved) {
+            System.err.println("❌ Failed to save manual alert to database");
+            return null;
+        }
+
+        // For manual alerts, only send in-app notification
+        alert.setSentInApp(true);
+        alert.setDeliveryStatus("SENT");
+        alert.setSentAt(LocalDateTime.now());
+
+        // Update the alert with delivery status
+        boolean updated = alertHistoryDAO.update(alert);
+        if (!updated) {
+            System.err.println("⚠️ Failed to update manual alert delivery status (non-critical)");
+        }
+
+        System.out.println("✅ Manual alert created successfully: " + alert.getHistoryID());
+        return alert.getHistoryID();
+    }
+
+    /**
      * Cleanup old alerts
      */
     public int cleanupOldAlerts(int daysOld) {
