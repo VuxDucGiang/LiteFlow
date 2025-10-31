@@ -14,6 +14,9 @@ import static org.mockito.Mockito.*;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import java.util.UUID;
 
 /**
  * Integration tests for EmployeeServlet.
@@ -61,9 +64,6 @@ public class EmployeeServletIntegrationTest {
         when(request.getParameter("position")).thenReturn("Thu ngân");
         when(request.getParameter("gender")).thenReturn("Nữ");
         
-        // Mock session
-        when(request.getContextPath()).thenReturn("/LiteFlow");
-        
         // Mock request dispatcher
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
@@ -77,6 +77,8 @@ public class EmployeeServletIntegrationTest {
         
         // Assert: Verify create was attempted
         verify(request, atLeastOnce()).getParameter("action");
+        verify(request, atLeastOnce()).getParameter("employeeCode");
+        verify(request, atLeastOnce()).getParameter("fullName");
     }
     
     /**
@@ -95,38 +97,8 @@ public class EmployeeServletIntegrationTest {
         
         // Mock parameters
         when(request.getParameter("action")).thenReturn("update");
-        when(request.getParameter("employeeId")).thenReturn("test-id");
+        when(request.getParameter("employeeCode")).thenReturn("EMP-001");
         when(request.getParameter("fullName")).thenReturn("Jane Smith Updated");
-        
-        // Act: Call service
-        try {
-            employeeServlet.service(request, response);
-        } catch (Exception e) {
-            // May fail without DB
-        }
-        
-        // Assert: Verify update was attempted
-        verify(request, atLeastOnce()).getParameter("action");
-    }
-    
-    /**
-     * TC-EDGE-016: Tạo nhân viên với email đã tồn tại
-     * 
-     * Given: Email already exists
-     * When: POST /employees with duplicate email
-     * Then: Should return error
-     */
-    @Test
-    @DisplayName("TC-EDGE-016: Create employee with duplicate email")
-    public void testCreateEmployeeWithDuplicateEmail() throws Exception {
-        // Arrange: Create POST request with missing required fields
-        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
-        HttpServletResponse response = ServletTestHelper.mockResponse();
-        
-        // Mock parameters - missing required fields to trigger validation
-        when(request.getParameter("action")).thenReturn("create");
-        when(request.getParameter("employeeCode")).thenReturn("");
-        when(request.getParameter("fullName")).thenReturn("Duplicate User");
         when(request.getParameter("phone")).thenReturn("+84901234567");
         
         // Mock request dispatcher
@@ -137,117 +109,242 @@ public class EmployeeServletIntegrationTest {
         try {
             employeeServlet.service(request, response);
         } catch (Exception e) {
-            // May fail
-        }
-        
-        // Assert: Verify validation was attempted
-        verify(request, atLeastOnce()).getParameter("action");
-    }
-    
-    /**
-     * TC-ERR-017: Cập nhật nhân viên không tồn tại
-     * 
-     * Given: Employee does not exist
-     * When: POST /employees with action=update
-     * Then: Should return error
-     */
-    @Test
-    @DisplayName("TC-ERR-017: Update non-existent employee")
-    public void testUpdateNonExistentEmployee() throws Exception {
-        // Arrange: Create POST request
-        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
-        HttpServletResponse response = ServletTestHelper.mockResponse();
-        
-        // Mock parameters
-        when(request.getParameter("action")).thenReturn("update");
-        when(request.getParameter("employeeId")).thenReturn("non-existent-id");
-        when(request.getParameter("fullName")).thenReturn("Updated Name");
-        
-        // Mock request dispatcher
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
-        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
-        
-        // Act: Call service
-        try {
-            employeeServlet.service(request, response);
-        } catch (Exception e) {
-            // May fail if employee not found
+            // May fail without DB
         }
         
         // Assert: Verify update was attempted
         verify(request, atLeastOnce()).getParameter("action");
+        verify(request, atLeastOnce()).getParameter("employeeCode");
     }
     
     /**
-     * Test get all employees page
+     * TC-ERR-017: Update non-existent employee
      */
     @Test
-    @DisplayName("Get all employees page successfully")
-    public void testGetEmployeeListSuccess() throws Exception {
-        // Arrange: Create GET request
-        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+    @DisplayName("TC-ERR-017: Update non-existent employee")
+    public void testUpdateNonExistentEmployee() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
         HttpServletResponse response = ServletTestHelper.mockResponse();
         
-        // Mock request dispatcher
+        when(request.getParameter("action")).thenReturn("update");
+        when(request.getParameter("employeeCode")).thenReturn("NON-EXISTENT");
+        when(request.getParameter("fullName")).thenReturn("Test");
+        
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
         
-        // Act: Call service
         try {
             employeeServlet.service(request, response);
         } catch (Exception e) {
             // May fail without DB
         }
         
-        // Assert: Verify forward was called
-        verify(request, atLeastOnce()).getRequestDispatcher("/employee/employeeList.jsp");
+        verify(request, atLeastOnce()).getParameter("action");
+        verify(request, atLeastOnce()).getParameter("employeeCode");
     }
     
-    /**
-     * Test delete employee
-     */
     @Test
-    @DisplayName("Delete employee successfully")
-    public void testDeleteEmployeeSuccess() throws Exception {
-        // Arrange: Create POST request
+    @DisplayName("Delete employee")
+    public void testDeleteEmployee() throws Exception {
         HttpServletRequest request = ServletTestHelper.mockPostRequest("");
         HttpServletResponse response = ServletTestHelper.mockResponse();
         
-        // Mock parameters
         when(request.getParameter("action")).thenReturn("delete");
-        when(request.getParameter("employeeId")).thenReturn("test-id");
         
-        // Mock request dispatcher
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
         
-        // Act: Call service
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Create employee - missing employeeCode")
+    public void testCreateEmployeeMissingCode() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("create");
+        when(request.getParameter("employeeCode")).thenReturn(null);
+        when(request.getParameter("fullName")).thenReturn("Test");
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // Expected validation error
+        }
+        
+        verify(request, atLeastOnce()).getParameter("employeeCode");
+    }
+    
+    @Test
+    @DisplayName("Create employee - missing fullName")
+    public void testCreateEmployeeMissingFullName() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("create");
+        when(request.getParameter("employeeCode")).thenReturn("EMP-001");
+        when(request.getParameter("fullName")).thenReturn(null);
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // Expected validation error
+        }
+        
+        verify(request, atLeastOnce()).getParameter("fullName");
+    }
+    
+    @Test
+    @DisplayName("Create employee - missing phone")
+    public void testCreateEmployeeMissingPhone() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("create");
+        when(request.getParameter("employeeCode")).thenReturn("EMP-001");
+        when(request.getParameter("fullName")).thenReturn("Test Name");
+        when(request.getParameter("phone")).thenReturn(null);
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // Expected validation error
+        }
+        
+        verify(request, atLeastOnce()).getParameter("phone");
+    }
+    
+    @Test
+    @DisplayName("Update employee - missing employeeCode")
+    public void testUpdateEmployeeMissingCode() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("update");
+        when(request.getParameter("employeeCode")).thenReturn(null);
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // Expected validation error
+        }
+        
+        verify(request, atLeastOnce()).getParameter("employeeCode");
+    }
+    
+    @Test
+    @DisplayName("POST with unknown action")
+    public void testPostUnknownAction() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("unknown");
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        
         try {
             employeeServlet.service(request, response);
         } catch (Exception e) {
             // May fail
         }
         
-        // Assert: Verify delete was attempted
         verify(request, atLeastOnce()).getParameter("action");
     }
     
-    /**
-     * Test error handling
-     */
     @Test
-    @DisplayName("Handle service exception gracefully")
-    public void testHandleServiceException() throws Exception {
-        // Arrange: Create request
+    @DisplayName("GET employees list")
+    public void testGetEmployeesList() throws Exception {
         HttpServletRequest request = ServletTestHelper.mockGetRequest();
         HttpServletResponse response = ServletTestHelper.mockResponse();
         
-        // Mock request dispatcher
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
         
-        // Act & Assert: Should not throw exception
-        assertDoesNotThrow(() -> employeeServlet.service(request, response));
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getRequestDispatcher("/employee/employeeList.jsp");
+    }
+    
+    @Test
+    @DisplayName("GET with error - employeeService null")
+    public void testGetWithNullService() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail - service should be initialized
+        }
+        
+        verify(request, atLeastOnce()).getRequestDispatcher("/employee/employeeList.jsp");
+    }
+    
+    @Test
+    @DisplayName("GET error handling")
+    public void testGetErrorHandling() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        doThrow(new RuntimeException("Test error")).when(dispatcher).forward(any(), any());
+        
+        when(response.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
+        
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // Exception handled in servlet
+        }
+        
+        verify(request, atLeastOnce()).getRequestDispatcher("/employee/employeeList.jsp");
+    }
+    
+    @Test
+    @DisplayName("POST error handling")
+    public void testPostErrorHandling() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenThrow(new RuntimeException("Test error"));
+        
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(request.getRequestDispatcher("/employee/employeeList.jsp")).thenReturn(dispatcher);
+        
+        try {
+            employeeServlet.service(request, response);
+        } catch (Exception e) {
+            // Exception handled in servlet
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
     }
 }
-

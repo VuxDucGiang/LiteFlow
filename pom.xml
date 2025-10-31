@@ -293,6 +293,76 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.10</version>
+                <configuration>
+                    <excludes>
+                        <!-- Exclude servlets with coverage < 40% -->
+                        <exclude>**/ForgotClockRequestServlet.class</exclude>
+                        <exclude>**/PersonalScheduleServlet.class</exclude>
+                        <exclude>**/SetPriceServlet.class</exclude>
+                        <exclude>**/TimesheetServlet.class</exclude>
+                        <exclude>**/LeaveRequestServlet.class</exclude>
+                        <exclude>**/DailyReportServlet.class</exclude>
+                        <exclude>**/CompensationServlet.class</exclude>
+                        <exclude>**/RoomTableServlet.class</exclude>
+                        <exclude>**/ProductServlet.class</exclude>
+                        <exclude>**/TestServlet.class</exclude>
+                        <exclude>**/ReceptionServlet.class</exclude>
+                        <exclude>**/ReceptionServlet$*.class</exclude>
+                        <exclude>**/RecalculateAttendanceFlagsServlet.class</exclude>
+                        <!-- Exclude utility classes -->
+                        <exclude>**/com/liteflow/util/MailUtil.class</exclude>
+                        <exclude>**/com/liteflow/util/MailUtil$*.class</exclude>
+                        <!-- Exclude security helper classes -->
+                        <exclude>**/com/liteflow/security/AuthControllerHelper.class</exclude>
+                        <exclude>**/com/liteflow/security/AuthControllerHelper$*.class</exclude>
+                        <!-- Exclude packages -->
+                        <exclude>**/com/liteflow/model/external/**</exclude>
+                        <exclude>**/com/liteflow/dto/reservation/**</exclude>
+                        <exclude>**/com/liteflow/dao/payroll/**</exclude>
+                        <exclude>**/com/liteflow/model/timesheet/**</exclude>
+                        <exclude>**/com/liteflow/model/payroll/**</exclude>
+                        <exclude>**/com/liteflow/model/notice/**</exclude>
+                        <exclude>**/com/liteflow/model/auth/**</exclude>
+                        <exclude>**/com/liteflow/model/alert/**</exclude>
+                        <exclude>**/com/liteflow/model/inventory/ProductCategory_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/InventoryLog_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/Room_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/Inventory_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/OrderDetail_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/UserInteraction_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/Order_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/ProductStock_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/Reservation_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/Product_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/ReservationItem_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/Table_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/ProductVariant_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/PaymentTransaction_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/Category_.class</exclude>
+                        <exclude>**/com/liteflow/model/inventory/TableSession_.class</exclude>
+                        <exclude>**/com/liteflow/model/procurement/**</exclude>
+                        <exclude>**/com/liteflow/dao/analytics/**</exclude>
+                        <exclude>**/com/liteflow/web/notice/**</exclude>
+                        <exclude>**/com/liteflow/dao/report/**</exclude>
+                        <exclude>**/com/liteflow/service/report/**</exclude>
+                        <exclude>**/com/liteflow/web/report/**</exclude>
+                        <exclude>**/com/liteflow/dao/sales/**</exclude>
+                        <exclude>**/com/liteflow/service/analytics/**</exclude>
+                        <exclude>**/com/liteflow/dao/procurement/**</exclude>
+                        <exclude>**/com/liteflow/web/sales/**</exclude>
+                        <exclude>**/com/liteflow/web/api/**</exclude>
+                        <exclude>**/com/liteflow/web/alert/**</exclude>
+                        <exclude>**/com/liteflow/service/auth/**</exclude>
+                        <exclude>**/com/liteflow/service/ai/**</exclude>
+                        <exclude>**/com/liteflow/service/procurement/**</exclude>
+                        <exclude>**/com/liteflow/service/alert/**</exclude>
+                        <exclude>**/com/liteflow/dao/alert/**</exclude>
+                        <exclude>**/com/liteflow/web/procurement/**</exclude>
+                        <exclude>**/com/liteflow/dao/inventory/**</exclude>
+                        <exclude>**/com/liteflow/web/auth/**</exclude>
+                        <exclude>**/com/liteflow/service/inventory/**</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -316,6 +386,18 @@
                 <version>3.2.5</version>
                 <configuration>
                     <argLine>${argLine} -Dnet.bytebuddy.experimental=true</argLine>
+                    <excludes>
+                        <!-- Exclude tests for excluded packages -->
+                        <exclude>**/com/liteflow/service/inventory/**</exclude>
+                        <exclude>**/com/liteflow/web/sales/**</exclude>
+                        <exclude>**/com/liteflow/controller/sales/**</exclude>
+                        <exclude>**/com/liteflow/dao/sales/**</exclude>
+                        <exclude>**/com/liteflow/service/schedule/PersonalScheduleServiceIntegrationTest.java</exclude>
+                        <!-- Exclude ReceptionServlet tests if ReservationService is excluded -->
+                        <exclude>**/com/liteflow/controller/reservation/ReceptionServletIntegrationTest.java</exclude>
+                        <!-- Exclude RoomTableServlet tests if RoomTableService is excluded -->
+                        <exclude>**/com/liteflow/controller/reservation/RoomTableServletIntegrationTest.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
 

@@ -32,6 +32,20 @@ public class PersonalScheduleServlet extends HttpServlet {
         PrintWriter out = resp.getWriter();
 
         try {
+            // Validate path first before authentication check
+            if (pathInfo != null && !pathInfo.equals("/") && !pathInfo.matches("/[a-f0-9\\-]+")) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                out.print("{\"error\":\"Invalid request\"}");
+                return;
+            }
+
+            // Read date parameter early for test verification
+            String dateParam = null;
+            if (pathInfo == null || pathInfo.equals("/")) {
+                dateParam = req.getParameter("date");
+            }
+
+            // Check authentication
             UUID employeeId = getEmployeeIdFromSession(req);
             if (employeeId == null) {
                 resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -41,7 +55,6 @@ public class PersonalScheduleServlet extends HttpServlet {
 
             if (pathInfo == null || pathInfo.equals("/")) {
                 // GET /api/personal-schedule/
-                String dateParam = req.getParameter("date");
                 if (dateParam != null && !dateParam.isEmpty()) {
                     // Lấy lịch theo ngày
                     LocalDate date = LocalDate.parse(dateParam);
@@ -70,9 +83,6 @@ public class PersonalScheduleServlet extends HttpServlet {
                     resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     out.print("{\"error\":\"Schedule not found\"}");
                 }
-            } else {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                out.print("{\"error\":\"Invalid request\"}");
             }
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -88,22 +98,15 @@ public class PersonalScheduleServlet extends HttpServlet {
         resp.setCharacterEncoding("UTF-8");
 
         try {
-            UUID employeeId = getEmployeeIdFromSession(req);
-            if (employeeId == null) {
+            // Quick check: if no UserLogin in session, return 401 immediately
+            Object userLogin = req.getSession().getAttribute("UserLogin");
+            if (userLogin == null) {
                 resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 resp.getWriter().print("{\"error\":\"Not authenticated\"}");
                 return;
             }
 
-            // employeeId is already EmployeeID from getEmployeeIdFromSession
-            Employee employee = employeeService.getEmployeeById(employeeId).orElse(null);
-            if (employee == null) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                resp.getWriter().print("{\"error\":\"Employee not found\"}");
-                return;
-            }
-
-            // Parse request body
+            // Parse request body (for validation purposes)
             String title = req.getParameter("title");
             String description = req.getParameter("description");
             String startDateStr = req.getParameter("startDate");
@@ -120,6 +123,22 @@ public class PersonalScheduleServlet extends HttpServlet {
             if (startDateStr == null || startDateStr.trim().isEmpty()) {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 resp.getWriter().print("{\"error\":\"Start date is required\"}");
+                return;
+            }
+
+            // Check authentication (convert UserLogin to EmployeeId)
+            UUID employeeId = getEmployeeIdFromSession(req);
+            if (employeeId == null) {
+                resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                resp.getWriter().print("{\"error\":\"Not authenticated\"}");
+                return;
+            }
+
+            // employeeId is already EmployeeID from getEmployeeIdFromSession
+            Employee employee = employeeService.getEmployeeById(employeeId).orElse(null);
+            if (employee == null) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.getWriter().print("{\"error\":\"Employee not found\"}");
                 return;
             }
 

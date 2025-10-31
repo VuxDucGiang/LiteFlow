@@ -2,6 +2,7 @@ package com.liteflow.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import com.google.gson.JsonSyntaxException;
 
 import java.security.Key;
 import java.time.Instant;
@@ -55,10 +56,15 @@ public final class JwtUtil {
     }
 
     public static Jws<Claims> parse(String jwt) throws JwtException {
-        return Jwts.parserBuilder()
-                .setSigningKey(KEY)
-                .build()
-                .parseClaimsJws(jwt);
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(KEY)
+                    .build()
+                    .parseClaimsJws(jwt);
+        } catch (JsonSyntaxException e) {
+            // Gson throws JsonSyntaxException for invalid JSON before JWT parsing
+            throw new JwtException("Invalid JWT token: " + e.getMessage(), e);
+        }
     }
 
     public static UserContext parseToUserContext(String jwt) throws JwtException {
