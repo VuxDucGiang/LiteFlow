@@ -12,95 +12,72 @@
 
 ## 📋 **PROMPT 1: INITIAL ANALYSIS & PLANNING**
 
-### **Input Prompt:**
+Với tư cách là một chuyên gia kỹ thuật phần mềm có kinh nghiệm sâu trong xây dựng và vận hành hệ thống quản lý nhà hàng, tôi đang triển khai kế hoạch Integration Testing tự động cho dự án LiteFlow — nền tảng quản lý nhà hàng sử dụng Jakarta EE và Servlet.
 
-```
-Với vai trò là chuyên gia kỹ thuật phần mềm, bạn sẽ lập kế hoạch **Integration Testing cho toàn bộ dự án LiteFlow** (nền tảng quản lý nhà hàng dùng Jakarta EE & Servlet).
-Mục tiêu: Đảm bảo tích hợp các thành phần chính (backend, frontend, các module nghiệp vụ) với coverage integration đạt **>70%**.
+Yêu cầu: Phân tích và lập kế hoạch kiểm thử chi tiết cho toàn bộ hệ thống LiteFlow, đảm bảo tính bao phủ nghiệp vụ và kỹ thuật.
 
-**Yêu cầu:**
-- Xây dựng kế hoạch kiểm thử tích hợp toàn hệ thống.
-- Bao phủ các thành phần backend (servlet, service, DB), frontend (luồng nhập liệu, gọi API), và các module nghiệp vụ như Cashier Order, Employee Management, Inventory, v.v.
-- Phân tích ngắn gọn, rõ ràng, đi thẳng vào các ý chính về phạm vi kiểm thử và chiến lược kiểm thử tích hợp. Không dài dòng.
-- Tập trung vào lập kế hoạch và logic kiểm thử.
+Phạm vi kiểm thử:
+- Bao phủ toàn bộ feature, module của LiteFlow từ backend đến frontend.
+- Backend: Kiểm thử tất cả Servlet, Service, DAO, endpoint, transaction, quy trình nghiệp vụ (Order, Inventory, Employee, Menu, Payment, Reporting...).
+- Frontend: Kiểm thử các màn hình, luồng nhập liệu, tích hợp API, điều hướng và phản hồi UI.
+- Tích hợp: Kiểm tra luồng chính, luồng phụ từng feature; xác thực phối hợp cross-module, xử lý lỗi, phản hồi giao diện và dữ liệu giữa các thành phần hệ thống.
 
-**Mục đích:**
-- Có được bức tranh tổng quan các điểm tích hợp quan trọng.
-- Đảm bảo phối hợp đúng giữa các module, luồng dữ liệu, workflow thực tế.
-- Tạo nền tảng cho việc xây dựng test case tự động, thiết lập môi trường test, chuẩn bị cho coverage report.
+**Mục tiêu:**
+- Xây dựng kế hoạch test chi tiết.
+- Xác định rõ phạm vi, độ bao phủ, và chiến lược kiểm thử.  
+- Chuẩn bị đầu vào cho bước tiếp theo: tạo test cases và test code.
 
-**Đề nghị cấu trúc trả lời/phân tích:**
-1. **Phân tích hệ thống & các module:** Nêu ngắn gọn các module, điểm tích hợp chính.
-2. **Mục tiêu kiểm thử:** Tóm tắt rõ các phạm vi/case cần đảm bảo.
-3. **Chiến lược kiểm thử tích hợp:** Nêu chiến lược ngắn gọn (end-to-end, mock, test lỗi, edge case...).
-4. **Các tình huống đặc biệt/rủi ro:** Nêu ngắn gọn các edge-case, khó khăn hoặc giả định.
-5. **Documentation & Coverage:** Lưu log, kế hoạch, báo cáo coverage (>70%) ở file *.md.
+**Yêu cầu đầu ra:**
+Hãy thực hiện **phân tích và lập kế hoạch**, KHÔNG sinh bất kỳ đoạn code nào.  
+Cấu trúc kết quả như sau:
+
+1. **Feature Analysis:** Phân tích logic nghiệp vụ và luồng dữ liệu của Cashier Order.  
+2. **Test Objectives:** Mục tiêu kiểm thử và phạm vi (backend vs frontend).  
+3. **Test Strategy:** Định nghĩa cách tiếp cận (Unit Test, Integration, Mock Services, Data Validation).  
+4. **Test Environment & Tools:** Mô tả công cụ, framework (JUnit 5, Mockito).  
+5. **Test Case Plan:** Liệt kê các nhóm case chính (dạng mô tả, chưa cần mã).  
 
 **Đầu ra**:
 - Tuyệt đối KHÔNG sinh code, KHÔNG sinh test case ở bước này.
 - Chỉ lập kế hoạch, nhận xét, phân tích logic cô đọng, tập trung vào mục tiêu coverage >70%.
+
 - Lưu:  
 `prompts/outputs_2/Output_PR1.md`
 ```
 
+## 📋 **PROMPT 2: TEST CASE DESIGN - BASIC TESTS (INTEGRATION TESTING TOÀN DỰ ÁN, COVERAGE ≥70%)**
 
-```
----
+### **Nội dung đã điều chỉnh:**
 
-## 📋 **PROMPT 2: THIẾT KẾ TEST CASE – BASIC TESTS (INTEGRATION TESTING TOÀN DỰ ÁN, COVERAGE ≥70%)**
+Sau bước 1 (“Phân tích & lập kế hoạch kiểm thử tích hợp” @Output_2/Output_PR1.md), với phạm vi INTEGRATION TESTING toàn bộ dự án LiteFlow (Jakarta EE + Servlet, backend, frontend, các module nghiệp vụ), hãy thiết kế ma trận test case cho tất cả các tính năng chính.
 
-### **Nội dung Prompt đã điều chỉnh:**
+**Mục tiêu:**  
+Đảm bảo test case tích hợp góp phần đạt coverage tích hợp toàn hệ thống ≥70%. Tập trung kiểm tra phối hợp đúng giữa backend, frontend và các service.
 
-```
-[NGỮ CẢNH RỘNG TOÀN DỰ ÁN]
-Sau khi hoàn tất bước 1 (“Phân tích & lập kế hoạch kiểm thử tích hợp”) @Output_2/Output_PR1.md với phạm vi INTEGRATION TESTING cho toàn bộ dự án LiteFlow (kiến trúc Jakarta EE + Servlet, backend, frontend, các module nghiệp vụ), bạn cần thiết kế ma trận test case cho toàn bộ tính năng tính năng của LiteFlow.
+**Lưu ý:**
+- KHÔNG sinh code.
+- Chỉ thiết kế logic test case, tập trung bao phủ nghiệp vụ và các điểm tích hợp.
+- Kết quả là input cho bước tiếp theo (phát sinh test code tự động).
 
-Mục tiêu tổng thể: Đảm bảo các test case tích hợp này góp phần đạt coverage kiểm thử tích hợp toàn hệ thống ≥70%. Tập trung xác minh sự phối hợp đúng giữa các module backend, frontend, và các service liên quan.
+**Yêu cầu:**
+Xây dựng **Test Case Matrix** cho các feature, chia 3 nhóm:
+1. **Happy Path:** Ca thành công (luồng chuẩn, tích hợp mượt)
+2. **Edge Cases:** Điều kiện biên, dữ liệu đặc biệt
+3. **Error Scenarios:** Lỗi validation, exception, lỗi tích hợp modules/service
 
-- Bao phủ tích hợp backend: Servlet ↔ Service ↔ DB (CRUD, transaction, lỗi/rollback) cho các module chính.
-- Bao phủ tích hợp frontend: luồng nhập liệu, điều hướng, gọi API, xử lý response/lỗi; session/auth flow.
-- E2E ưu tiên (luồng hạnh phúc + lỗi):
-  1) Cashier Order: tạo đơn → tính giá/khuyến mãi → thanh toán → in/ghi nhận → cập nhật tồn.
-  2) Inventory: nhập/xuất kho → đồng bộ với món và đơn hàng.
-  3) Employee Management: đăng nhập → phân quyền → thao tác CRUD phù hợp role.
-- Phi chức năng tối thiểu: tính nhất quán giao dịch, đồng thời cơ bản (song song đặt món/cập nhật tồn), hiệu năng đường nóng (tạo đơn), log & truy vết.
-- Mục tiêu coverage tích hợp >70% trên tầng Servlet+Service (line/branch ở nghiệp vụ trọng yếu; không đòi hỏi unit-coverage).
-
-[LƯU Ý PHẠM VI]
-- KHÔNG sinh code giai đoạn này.
-- Chỉ thiết kế test case logic, rõ, bao phủ nghiệp vụ và các điểm tích hợp chính.
-- Kết quả làm input cho bước tiếp sinh test code tích hợp/tự động.
-
-[YÊU CẦU CHI TIẾT]
-Hãy xây dựng **Test Case Matrix đầy đủ cho các Feature**, đáp ứng kiểm thử tích hợp, phân thành 3 nhóm sau:
-
-1. **Happy Path Scenarios** – Các ca thành công (luồng chuẩn, integration mượt)
-2. **Edge Cases** – Điều kiện/số liệu biên, tích hợp với dữ liệu đặc biệt
-3. **Error Scenarios** – Các lỗi validation, exception, lỗi tích hợp giữa các module/service
-
-Mỗi test case cần thể hiện đầy đủ:
-- Test ID (mã test)
-- Description (mục tiêu/ngữ cảnh kiểm thử tích hợp)
-- Input Data (tableId, items, note... chi tiết)
+Mỗi test case cần ghi rõ:
+- Test ID
+- Description (mục tiêu/ngữ cảnh)
+- Input Data (ví dụ: tableId, items,...)
 - Expected Output (HTTP status, JSON response, UI message, hiệu ứng tích hợp)
-- Mock Behavior (nếu có, ví dụ khi cần giả lập PaymentService, InventoryService…)
+- Mock Behavior (nếu có, ví dụ giả lập PaymentService, InventoryService…)
 
-[ĐỊNH DẠNG & LƯU TRỮ]
-Xuất kết quả **dưới dạng Markdown**, theo cấu trúc mẫu dưới:
+**Định dạng Markdown:** 
 
-📊 TEST CASE MATRIX - INTEGRATION TESTS (Số lượng test-case tuỳ biến theo sự tính toán để coverage được 70% dự án):
-Happy Path 
-TC-HP-001: ...
+📊 TEST CASE MATRIX - INTEGRATION TESTS  
+Happy Path  
+TC-HP-001: ...  
 ...
-
-Edge Cases 
-TC-EDGE-001: ...
-...
-
-Error Scenarios 
-TC-ERR-001: ...
-...
-
 
 Lưu lại vào file:  
 `prompts/outputs_2/Output_PR2.md`
@@ -108,7 +85,7 @@ Lưu lại vào file:
 
 ---
 
-## 📋 **PROMPT 3: CẤU TRÚC THƯ MỤC & VỊ TRÍ ĐẶT TEST CASES**
+## 📋 **PROMPT 3: DIRECTORY STRUCTURE & TEST PLACEMENT**
 
 ### **Input Prompt:**
 
@@ -164,77 +141,28 @@ Lưu:
 ```
 
 ---
-
-## 📋 **PROMPT 4: IMPLEMENT TEST CODE**
+## 📋 **PROMPT 4: GENERATE INTEGRATION TEST FILES - CASHIER ORDER**
 
 ### **Input Prompt:**
 
 ```
-[CONTEXT]
-Dựa trên:
-- @Output_PR2.md: 85 test cases đã thiết kế (22 TCs cho module Cashier/POS Order)
-- @Output_PR3.md: Cấu trúc thư mục & helpers (TestDataBuilder, MockServiceHelper, ServletTestHelper)
+[BẮT ĐẦU SINH CODE TEST]
 
-[TASK]
-Implement **test code hoàn chỉnh** cho Module Cashier/POS Order, bắt đầu với **TC-HP-007 đến TC-ERR-011** (22 test cases).
+- Sinh đầy đủ file test cho module Cashier/POS Order theo cấu trúc chuẩn đã định (Output_PR3), đầy đủ Happy Path, Edge, Error Scenarios (mapping từ Output_PR2).
+- Sử dụng helpers (TestDataBuilder, ServletTestHelper, MockServiceHelper...) và quy ước đặt tên theo Output_PR1/3.
+- Mỗi test gồm 3 phần: Arrange (dữ liệu/mock), Act (gọi logic), Assert (kiểm tra kết quả).
+- Tất cả code được trình bày theo đúng quy ước thư mục/package/class/method, có thể copy vào repo chạy trực tiếp (nếu đủ helper/base).
 
-[REQUIREMENTS]
-1. **Target Module:** `controller/cashier/` 
-2. **Test Files:** 
-   - `CreateOrderIntegrationTest.java` (TC-HP-007, TC-EDGE-005, TC-EDGE-006, TC-EDGE-009)
-   - `PaymentProcessingIntegrationTest.java` (TC-HP-009, TC-HP-010, TC-EDGE-008, TC-ERR-007)
-   - `PromotionServiceIntegrationTest.java` (TC-HP-008, TC-EDGE-007)
-   - `ReceiptGenerationIntegrationTest.java` (TC-HP-011, TC-ERR-008, TC-ERR-011)
-   - `OrderStatusUpdateIntegrationTest.java` (TC-HP-012, TC-HP-013, TC-ERR-009)
-   - `CashierAPIServletIntegrationTest.java` (TC-HP-014, TC-HP-015, TC-EDGE-010)
-   - `SplitPaymentIntegrationTest.java` (TC-HP-016)
+[LƯU Ý]
+- Mỗi test method có @Test, @DisplayName (ghi mã case).
+- Có setUp() @BeforeEach nếu cần.
+- Tên method dạng “should<Action>_when<Condition>”.
+- Không giải thích nghiệp vụ. Chỉ sinh code, trình bày đủ file theo mapping.
 
-3. **Framework:** JUnit 5 + Mockito + H2 in-memory DB
-4. **Pattern:** 
-   ```java
-   @ExtendWith(MockitoExtension.class)
-   class CreateOrderIntegrationTest extends IntegrationTestBase {
-       
-       @Mock private OrderService mockOrderService;
-       @Mock private HttpServletRequest mockRequest;
-       @Mock private HttpServletResponse mockResponse;
-       
-       @BeforeEach
-       void setUp() {
-           // Use TestDataBuilder to create test entities
-           // Use ServletTestHelper for mock request/response
-       }
-       
-       @Test
-       @DisplayName("TC-HP-007: Create order successfully")
-       void shouldCreateOrder_whenValidData() {
-           // Arrange: Build test data với TestDataBuilder
-           // Act: Call servlet method
-           // Assert: Verify response & DB state
-       }
-   }
-   ```
-
-5. **Use Helpers từ PR3:**
-   - `TestDataBuilder.buildProduct()`, `buildOrder()`, `buildOrderItem()`
-   - `ServletTestHelper.mockRequest()`, `mockResponse()`
-   - `MockServiceHelper.mockPaymentSuccess()`, `mockPaymentTimeout()`
-
-6. **Validation:**
-   - HTTP status codes (200, 400, 404, 500)
-   - JSON response structure
-   - DB state changes (verify với EntityManager)
-   - Service method calls (verify với Mockito)
-
-7. **Coverage Target:** ≥70% cho controller/cashier package
-
-[OUTPUT]
-Sinh code cho **1 file test đầu tiên**: `CreateOrderIntegrationTest.java` với 4 test methods tương ứng 4 test cases.
-
-Lưu vào: `src/test/java/com/liteflow/controller/cashier/CreateOrderIntegrationTest.java`
+[VÍ DỤ]
+Bắt đầu file đầu tiên: `CreateOrderIntegrationTest.java` (TC-HP-007, TC-EDGE-005, TC-EDGE-006, TC-EDGE-009). Các file tiếp theo làm tương tự.
 
 ```
-
 ---
 
 ## 📋 **PROMPT 5: MOCK OBJECTS & TEST DATA**
@@ -242,7 +170,7 @@ Lưu vào: `src/test/java/com/liteflow/controller/cashier/CreateOrderIntegration
 ### **Input Prompt:**
 
 ```
-Tạo các helper methods để generate mock data và setup mocks cho test suite ở một class khác:
+Tạo các helper methods để generate mock data và setup mocks cho test suite :
 
 1. Mock HttpServletRequest với JSON body
 2. Mock HttpServletResponse với PrintWriter
@@ -268,7 +196,7 @@ Debug và optimize test suite để:
 
 1. Fix compilation errors
 2. Resolve test failures
-3. Ensure all 20 tests pass (15 basic + 5 real-world)
+3. Ensure all tests pass 
 4. Optimize test performance
 5. Clean up code và remove duplication
 
@@ -279,9 +207,6 @@ Common issues cần fix:
 - Reflection access issues
 - UTF-8 encoding issues
 ```
-
----
-
 ## 📋 **PROMPT 7: FINAL VALIDATION & DOCUMENTATION**
 
 ### **Input Prompt:**
@@ -289,7 +214,7 @@ Common issues cần fix:
 ```
 Validate final test suite và tạo comprehensive documentation:
 
-1. Verify tất cả 20 test cases pass (15 basic + 5 real-world)
+1. Verify tất cả test cases pass 
 2. Tạo TEST_SUMMARY.md với danh sách chi tiết
 3. Viết Readme ở test để hướng dẫn : 
 Clear instructions: How to install, how to run tests 
