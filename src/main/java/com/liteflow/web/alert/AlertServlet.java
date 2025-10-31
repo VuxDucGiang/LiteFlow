@@ -62,14 +62,39 @@ public class AlertServlet extends HttpServlet {
             throws ServletException, IOException {
         
         String pathInfo = request.getPathInfo();
-        HttpSession session = request.getSession();
-        UUID userId = (UUID) session.getAttribute("userId");
+        HttpSession session = request.getSession(false);
         
-        if (userId == null) {
+        if (session == null) {
+            System.err.println("❌ AlertServlet doPost: No session found");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"error\": \"Not authenticated\"}");
+            response.getWriter().write("{\"error\": \"Not authenticated - no session\"}");
             return;
         }
+        
+        // Get userId from session (AuthenticationFilter sets "UserLogin")
+        Object userLoginObj = session.getAttribute("UserLogin");
+        System.out.println("🔍 AlertServlet doPost: UserLogin object: " + userLoginObj + " (type: " + (userLoginObj != null ? userLoginObj.getClass().getName() : "null") + ")");
+        UUID userId = null;
+        
+        if (userLoginObj instanceof UUID) {
+            userId = (UUID) userLoginObj;
+        } else if (userLoginObj instanceof String) {
+            try {
+                userId = UUID.fromString((String) userLoginObj);
+            } catch (IllegalArgumentException e) {
+                // userLoginObj is email, not UUID
+                System.err.println("❌ AlertServlet doPost: Invalid UUID string: " + userLoginObj);
+            }
+        }
+        
+        if (userId == null) {
+            System.err.println("❌ AlertServlet doPost: No valid userId found");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"error\": \"Not authenticated - no user ID\"}");
+            return;
+        }
+        
+        System.out.println("✅ AlertServlet doPost: userId extracted: " + userId);
         
         if (pathInfo == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST);

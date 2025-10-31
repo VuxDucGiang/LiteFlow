@@ -275,6 +275,13 @@ class NotificationBell {
             @keyframes spin {
                 to { transform: rotate(360deg); }
             }
+            
+            /* Mark as read button hover effect */
+            .notification-item button:hover {
+                background: #764ba2 !important;
+                transform: scale(1.1);
+                box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            }
         `;
         
         document.head.appendChild(style);
@@ -284,7 +291,9 @@ class NotificationBell {
      * Load unread count from API
      */
     loadUnreadCount() {
-        fetch(`${this.contextPath}/alert/api/unread-count`)
+        fetch(`${this.contextPath}/alert/api/unread-count`, {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -310,7 +319,9 @@ class NotificationBell {
             </div>
         `;
         
-        fetch(`${this.contextPath}/alert/api/recent?limit=${this.maxDisplayAlerts}`)
+        fetch(`${this.contextPath}/alert/api/recent?limit=${this.maxDisplayAlerts}`, {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -359,7 +370,7 @@ class NotificationBell {
                         <div class="message">${this.escapeHtml(alert.message)}</div>
                         <div class="time">${timeAgo}</div>
                     </div>
-                    ${!alert.isRead && alert.alertType !== 'PO_PENDING' && alert.alertType !== 'PO_OVERDUE' ? `<button onclick="event.stopPropagation(); notificationBell.markAsRead('${alert.historyID}')" style="background: #4caf50; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75em; white-space: nowrap;">✓ Đã đọc</button>` : ''}
+                    ${!alert.isRead && alert.alertType !== 'PO_PENDING' && alert.alertType !== 'PO_OVERDUE' ? `<button onclick="event.stopPropagation(); notificationBell.markAsRead('${alert.historyID}')" title="Đánh dấu đã đọc" style="background: #667eea; color: white; border: none; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.9em; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">✓</button>` : ''}
                 </div>
             `;
             
@@ -456,13 +467,25 @@ class NotificationBell {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `historyId=${historyId}`
+            body: `historyId=${historyId}`,
+            credentials: 'include'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                console.error('HTTP error:', response.status, response.statusText);
+                return response.text().then(text => {
+                    console.error('Response body:', text);
+                    throw new Error(`HTTP ${response.status}: ${text}`);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 this.loadUnreadCount();
                 this.loadRecentAlerts();
+            } else {
+                console.error('Mark as read failed:', data.error);
             }
         })
         .catch(error => {
@@ -475,7 +498,8 @@ class NotificationBell {
      */
     markAllAsRead() {
         fetch(`${this.contextPath}/alert/api/mark-all-read`, {
-            method: 'POST'
+            method: 'POST',
+            credentials: 'include'
         })
         .then(response => response.json())
         .then(data => {

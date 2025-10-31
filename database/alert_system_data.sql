@@ -295,20 +295,7 @@ INSERT INTO AlertHistory (
 );
 
 -- Sample: PO Pending Alert
-INSERT INTO AlertHistory (
-    AlertType, Title, Message,
-    ContextData,
-    SentToSlack, SentToTelegram, SentInApp, DeliveryStatus,
-    Priority, TriggeredAt
-) VALUES (
-    'PO_PENDING',
-    N'🔔 Đơn đặt hàng cần duyệt',
-    N'Đơn hàng PO-2024-11-01 (Trung Nguyên) đang chờ duyệt 2 ngày. Giá trị: 2.5M VND.',
-    '{"poId": "xxx", "supplier": "Trung Nguyên", "amount": 2500000, "pendingDays": 2}',
-    1, 1, 1, 'SENT',
-    'HIGH',
-    DATEADD(HOUR, -4, SYSDATETIME())
-);
+
 
 -- Sample: Daily Summary (with GPT)
 DECLARE @GPTInteractionID UNIQUEIDENTIFIER = NEWID();
