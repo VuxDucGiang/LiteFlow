@@ -2,12 +2,15 @@ package com.liteflow.service.ai;
 
 import com.liteflow.service.analytics.DemandForecastService;
 import com.liteflow.service.report.RevenueReportService;
+import com.liteflow.service.inventory.ProductInventoryService;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,6 +28,7 @@ public class GPTService {
     private final String apiKey;
     private final DemandForecastService demandService;
     private final RevenueReportService revenueService;
+    private final ProductInventoryService productInventoryService;
     
     public GPTService(String apiKey) {
         this.apiKey = apiKey;
@@ -35,6 +39,7 @@ public class GPTService {
             .build();
         this.demandService = new DemandForecastService();
         this.revenueService = new RevenueReportService();
+        this.productInventoryService = new ProductInventoryService();
     }
     
     /**
@@ -134,15 +139,21 @@ public class GPTService {
         
         // Detect if user is asking about stock/inventory/demand forecasting
         String lowerMessage = userMessage.toLowerCase();
+        
+        // Detect stock queries first - "tồn kho" queries should go to stock handler
+        boolean askingAboutStock = lowerMessage.contains("tồn kho") || 
+                                   lowerMessage.contains("số lượng còn lại") ||
+                                   lowerMessage.contains("còn bao nhiêu") ||
+                                   (lowerMessage.contains("số lượng") && !lowerMessage.contains("doanh"));
+        
+        // Demand forecasting queries - loại bỏ "tồn kho" để tránh conflict
         boolean askingAboutDemand = lowerMessage.contains("nhập hàng") || 
-                                    lowerMessage.contains("tồn kho") || 
-                                    lowerMessage.contains("hết hàng") ||
-                                    lowerMessage.contains("out of stock") ||
                                     lowerMessage.contains("dự đoán") ||
                                     lowerMessage.contains("forecast") ||
-                                    lowerMessage.contains("gợi ý") ||
+                                    lowerMessage.contains("gợi ý nhập") ||
                                     lowerMessage.contains("cần mua") ||
-                                    lowerMessage.contains("stock");
+                                    (lowerMessage.contains("hết hàng") && !askingAboutStock) ||
+                                    (lowerMessage.contains("out of stock") && !askingAboutStock);
         
         boolean askingAboutAlerts = lowerMessage.contains("cảnh báo") ||
                                    lowerMessage.contains("alert") ||
@@ -177,6 +188,9 @@ public class GPTService {
             return handleCategoryRevenueQuery(userMessage);
         } else if (askingAboutRevenue) {
             return handleRevenueQuery(userMessage);
+        } else if (askingAboutStock) {
+            // Route stock queries to demand forecast handler but with direct stock query
+            return handleStockQuery(userMessage);
         } else if (askingAboutDemand) {
             return handleDemandForecastQuery(userMessage);
         } else if (askingAboutAlerts) {
@@ -184,6 +198,205 @@ public class GPTService {
         } else {
             // Normal chat
             return chat(userMessage, null);
+        }
+    }
+    
+    /**
+     * Handle stock queries - Query trực tiếp từ ProductStock table
+     */
+    private String handleStockQuery(String userMessage) throws IOException {
+        System.out.println("📦 Handling Stock Query - Query from ProductStock table...");
+        
+        try {
+            // Thresholds
+            final int CRITICAL_THRESHOLD = 10;
+            final int WARNING_THRESHOLD = 20;
+            
+            // Query trực tiếp từ ProductStock table để lấy amount chính xác
+            JSONObject lowStockResult = productInventoryService.getAllLowStockProducts(CRITICAL_THRESHOLD, WARNING_THRESHOLD);
+            
+            if (!lowStockResult.getBoolean("success")) {
+                String error = lowStockResult.optString("error", "Lỗi khi truy vấn tồn kho");
+                return error;
+            }
+            
+            // Get replenishment suggestions from DemandForecastService
+            JSONObject forecastResult = demandService.generateReplenishmentSuggestions();
+            
+            StringBuilder context = new StringBuilder();
+            context.append("**TỔNG QUAN TỒN KHO TỪ DATABASE (ProductStock table):**\n\n");
+            context.append("📊 **Thống kê:**\n");
+            context.append("- Tổng số sản phẩm cần nhập: ").append(lowStockResult.getInt("count")).append("\n");
+            context.append("- Sản phẩm NGUY HIỂM (≤").append(CRITICAL_THRESHOLD).append("): ").append(lowStockResult.getInt("criticalCount")).append("\n");
+            context.append("- Sản phẩm CẢNH BÁO (≤").append(WARNING_THRESHOLD).append("): ").append(lowStockResult.getInt("warningCount")).append("\n\n");
+            
+            // Critical items (URGENT)
+            JSONArray criticalItems = lowStockResult.getJSONArray("criticalItems");
+            if (criticalItems.length() > 0) {
+                context.append("🔴 **SẢN PHẨM NGUY HIỂM - CẦN NHẬP NGAY:**\n");
+                for (int i = 0; i < Math.min(10, criticalItems.length()); i++) {
+                    JSONObject item = criticalItems.getJSONObject(i);
+                    context.append(String.format("%d. %s (Size: %s) - Tồn kho: %d - Giá: %s\n",
+                        i + 1,
+                        item.getString("productName"),
+                        item.getString("size"),
+                        item.getInt("stockAmount"),
+                        formatCurrency(item.getDouble("price"))
+                    ));
+                }
+                if (criticalItems.length() > 10) {
+                    context.append(String.format("... và %d sản phẩm khác\n", criticalItems.length() - 10));
+                }
+                context.append("\n");
+            }
+            
+            // Warning items (HIGH)
+            JSONArray warningItems = lowStockResult.getJSONArray("warningItems");
+            if (warningItems.length() > 0) {
+                context.append("🟡 **SẢN PHẨM CẢNH BÁO - Nên nhập sớm:**\n");
+                for (int i = 0; i < Math.min(10, warningItems.length()); i++) {
+                    JSONObject item = warningItems.getJSONObject(i);
+                    context.append(String.format("%d. %s (Size: %s) - Tồn kho: %d - Giá: %s\n",
+                        i + 1,
+                        item.getString("productName"),
+                        item.getString("size"),
+                        item.getInt("stockAmount"),
+                        formatCurrency(item.getDouble("price"))
+                    ));
+                }
+                if (warningItems.length() > 10) {
+                    context.append(String.format("... và %d sản phẩm khác\n", warningItems.length() - 10));
+                }
+                context.append("\n");
+            }
+            
+            // Get replenishment suggestions
+            JSONArray urgentSuggestions = new JSONArray();
+            JSONArray highPrioritySuggestions = new JSONArray();
+            
+            if (forecastResult.getBoolean("success")) {
+                JSONArray allSuggestions = forecastResult.optJSONArray("allSuggestions");
+                if (allSuggestions != null) {
+                    for (int i = 0; i < allSuggestions.length(); i++) {
+                        JSONObject suggestion = allSuggestions.getJSONObject(i);
+                        String urgency = suggestion.getString("urgency");
+                        if ("URGENT".equals(urgency)) {
+                            urgentSuggestions.put(suggestion);
+                        } else if ("HIGH".equals(urgency)) {
+                            highPrioritySuggestions.put(suggestion);
+                        }
+                    }
+                }
+            }
+            
+            // Add replenishment recommendations
+            boolean needsReplenishment = criticalItems.length() > 0 || warningItems.length() > 0;
+            
+            if (needsReplenishment) {
+                context.append("**⚠️ KHUYẾN NGHỊ NHẬP HÀNG:**\n\n");
+                
+                // Calculate total suggested quantity
+                int totalSuggestedQty = 0;
+                double totalEstimatedValue = 0.0;
+                
+                // Match suggestions with low stock items
+                for (int i = 0; i < criticalItems.length(); i++) {
+                    JSONObject item = criticalItems.getJSONObject(i);
+                    String productName = item.getString("productName");
+                    String size = item.getString("size");
+                    int stock = item.getInt("stockAmount");
+                    
+                    // Find matching suggestion
+                    JSONObject matchingSuggestion = null;
+                    for (int j = 0; j < urgentSuggestions.length(); j++) {
+                        JSONObject suggestion = urgentSuggestions.getJSONObject(j);
+                        if (suggestion.getString("productName").equalsIgnoreCase(productName) &&
+                            suggestion.getString("size").equalsIgnoreCase(size)) {
+                            matchingSuggestion = suggestion;
+                            break;
+                        }
+                    }
+                    
+                    int suggestedQty;
+                    if (matchingSuggestion != null) {
+                        suggestedQty = matchingSuggestion.getInt("suggestedOrderQty");
+                    } else {
+                        suggestedQty = Math.max(20 - stock, 15); // Ít nhất đưa về 20, tối thiểu nhập 15
+                    }
+                    
+                    totalSuggestedQty += suggestedQty;
+                    totalEstimatedValue += suggestedQty * item.getDouble("price");
+                }
+                
+                for (int i = 0; i < warningItems.length(); i++) {
+                    JSONObject item = warningItems.getJSONObject(i);
+                    String productName = item.getString("productName");
+                    String size = item.getString("size");
+                    int stock = item.getInt("stockAmount");
+                    
+                    // Find matching suggestion
+                    JSONObject matchingSuggestion = null;
+                    for (int j = 0; j < highPrioritySuggestions.length(); j++) {
+                        JSONObject suggestion = highPrioritySuggestions.getJSONObject(j);
+                        if (suggestion.getString("productName").equalsIgnoreCase(productName) &&
+                            suggestion.getString("size").equalsIgnoreCase(size)) {
+                            matchingSuggestion = suggestion;
+                            break;
+                        }
+                    }
+                    
+                    int suggestedQty;
+                    if (matchingSuggestion != null) {
+                        suggestedQty = matchingSuggestion.getInt("suggestedOrderQty");
+                    } else {
+                        suggestedQty = Math.max(20 - stock, 15);
+                    }
+                    
+                    totalSuggestedQty += suggestedQty;
+                    totalEstimatedValue += suggestedQty * item.getDouble("price");
+                }
+                
+                context.append("**📋 TÓM TẮT:**\n");
+                context.append(String.format("- 🔴 %d sản phẩm NGUY HIỂM (≤%d) - CẦN NHẬP NGAY\n", 
+                    criticalItems.length(), CRITICAL_THRESHOLD));
+                context.append(String.format("- 🟡 %d sản phẩm CẢNH BÁO (≤%d) - Nên nhập sớm\n", 
+                    warningItems.length(), WARNING_THRESHOLD));
+                if (totalSuggestedQty > 0) {
+                    context.append(String.format("- 💰 Tổng số lượng ước tính nên nhập: %d đơn vị\n", totalSuggestedQty));
+                    context.append(String.format("- 💵 Giá trị đơn hàng ước tính: %s\n", formatCurrency(totalEstimatedValue)));
+                }
+                context.append("- ⚠️ LƯU Ý: Bất kỳ sản phẩm nào có tồn kho ≤").append(WARNING_THRESHOLD).append(" đều được khuyến nghị nhập hàng\n");
+                context.append("- 📋 Hành động: Tạo đơn đặt hàng (PO) trong module Procurement\n");
+            } else {
+                context.append("\n✅ **TÌNH TRẠNG TỒN KHO:**\n");
+                context.append("Tất cả sản phẩm đều đủ hàng (>").append(WARNING_THRESHOLD).append(" đơn vị). Không cần nhập hàng ngay lúc này.\n");
+            }
+            
+            String enhancedPrompt = String.format(
+                "Bạn là AI Inventory Analyst chuyên nghiệp của LiteFlow. " +
+                "Dựa vào dữ liệu tồn kho TRỰC TIẾP TỪ DATABASE (ProductStock table) bên dưới, hãy:\n\n" +
+                "1. Tóm tắt tình trạng tồn kho hiện tại một cách chi tiết\n" +
+                "2. Phân tích các rủi ro:\n" +
+                "   - HẾT HÀNG (stock = 0): Cần nhập NGAY LẬP TỨC\n" +
+                "   - NGUY HIỂM (stock ≤ %d): Cần nhập trong 1-2 ngày\n" +
+                "   - CẢNH BÁO (stock ≤ %d): Nên nhập trong tuần này\n" +
+                "3. Liệt kê các sản phẩm cần nhập hàng với số liệu cụ thể\n" +
+                "4. QUAN TRỌNG: Nếu có bất kỳ sản phẩm nào có tồn kho ≤ %d, BẮT BUỘC phải khuyến nghị nhập hàng\n" +
+                "5. Gợi ý hành động cụ thể (tạo PO, liên hệ nhà cung cấp)\n\n" +
+                "LƯU Ý: Không bao giờ nói 'không cần nhập hàng' nếu có sản phẩm có tồn kho ≤ %d!\n\n" +
+                "Dữ liệu từ database:\n\n%s\n\n" +
+                "Hãy trả lời một cách rõ ràng, có số liệu cụ thể và khuyến nghị thực thi được. " +
+                "Nếu có sản phẩm tồn kho thấp (≤%d), phải nhấn mạnh cần nhập hàng.",
+                CRITICAL_THRESHOLD, WARNING_THRESHOLD, WARNING_THRESHOLD, WARNING_THRESHOLD,
+                context.toString(), WARNING_THRESHOLD
+            );
+            
+            return chat(userMessage, enhancedPrompt);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error in stock query: " + e.getMessage());
+            e.printStackTrace();
+            return "Xin lỗi, tôi gặp lỗi khi kiểm tra tồn kho. Vui lòng thử lại sau.";
         }
     }
     
