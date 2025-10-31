@@ -1336,28 +1336,63 @@ WHERE uHR.Email = 'hr@liteflow.vn';
 GO
 
 -- ============================================================
--- SAMPLE EMPLOYEES FOR TESTING (Without User accounts)
+-- SAMPLE EMPLOYEES FOR TESTING (With User accounts)
 -- ============================================================
 
+-- Create Users first for EMP007-010
+INSERT INTO Users (Email, Phone, PasswordHash, DisplayName, IsActive, Meta)
+SELECT 'giang.do@liteflow.vn', '0901234573', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', N'Đỗ Văn Giang - Đầu bếp', 1, N'{"role":"Employee"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'giang.do@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, PasswordHash, DisplayName, IsActive, Meta)
+SELECT 'ha.bui@liteflow.vn', '0901234574', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', N'Bùi Thị Hà - Phục vụ', 1, N'{"role":"Employee"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'ha.bui@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, PasswordHash, DisplayName, IsActive, Meta)
+SELECT 'ich.dinh@liteflow.vn', '0901234575', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', N'Đinh Văn Ích - Bảo vệ', 1, N'{"role":"Employee"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'ich.dinh@liteflow.vn');
+
+INSERT INTO Users (Email, Phone, PasswordHash, DisplayName, IsActive, Meta)
+SELECT 'kim.ngo@liteflow.vn', '0901234576', '$2a$12$CrcHqEZraWVdxVOSE2w28uT2NVJjrxDekdHKsXygHbGpMiUCXhmUW', N'Ngô Thị Kim - Kế toán', 1, N'{"role":"Employee"}'
+WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Email = 'kim.ngo@liteflow.vn');
+GO
+
+-- Assign Employee role to these users
+INSERT INTO UserRoles (UserID, RoleID)
+SELECT u.UserID, r.RoleID 
+FROM Users u 
+JOIN Roles r ON r.Name = 'Employee'
+WHERE u.Email IN ('giang.do@liteflow.vn', 'ha.bui@liteflow.vn', 'ich.dinh@liteflow.vn', 'kim.ngo@liteflow.vn')
+AND NOT EXISTS (SELECT 1 FROM UserRoles ur WHERE ur.UserID = u.UserID AND ur.RoleID = r.RoleID);
+GO
+
 -- EMP007 - Đầu bếp
-INSERT INTO Employees (EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
-SELECT 'EMP007', N'Đỗ Văn Giang', '0901234573', N'Đầu bếp', N'Nam', N'Đang làm', CAST(SYSDATETIME() AS DATE)
-WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP007');
+INSERT INTO Employees (UserID, EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
+SELECT u.UserID, 'EMP007', N'Đỗ Văn Giang', '0901234573', N'Đầu bếp', N'Nam', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+FROM Users u
+WHERE u.Email = 'giang.do@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP007');
 
 -- EMP008 - Phục vụ
-INSERT INTO Employees (EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
-SELECT 'EMP008', N'Bùi Thị Hà', '0901234574', N'Phục vụ', N'Nữ', N'Đang làm', CAST(SYSDATETIME() AS DATE)
-WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP008');
+INSERT INTO Employees (UserID, EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
+SELECT u.UserID, 'EMP008', N'Bùi Thị Hà', '0901234574', N'Phục vụ', N'Nữ', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+FROM Users u
+WHERE u.Email = 'ha.bui@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP008');
 
 -- EMP009 - Bảo vệ
-INSERT INTO Employees (EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
-SELECT 'EMP009', N'Đinh Văn Ích', '0901234575', N'Bảo vệ', N'Nam', N'Đang làm', CAST(SYSDATETIME() AS DATE)
-WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP009');
+INSERT INTO Employees (UserID, EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
+SELECT u.UserID, 'EMP009', N'Đinh Văn Ích', '0901234575', N'Bảo vệ', N'Nam', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+FROM Users u
+WHERE u.Email = 'ich.dinh@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP009');
 
 -- EMP010 - Kế toán
-INSERT INTO Employees (EmployeeCode, FullName, Phone, Email, Position, Gender, EmploymentStatus, HireDate)
-SELECT 'EMP010', N'Ngô Thị Kim', '0901234576', 'kim.ngo@liteflow.com', N'Kế toán', N'Nữ', N'Đang làm', CAST(SYSDATETIME() AS DATE)
-WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP010');
+INSERT INTO Employees (UserID, EmployeeCode, FullName, Phone, Email, Position, Gender, EmploymentStatus, HireDate)
+SELECT u.UserID, 'EMP010', N'Ngô Thị Kim', '0901234576', 'kim.ngo@liteflow.vn', N'Kế toán', N'Nữ', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+FROM Users u
+WHERE u.Email = 'kim.ngo@liteflow.vn'
+AND NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP010');
 
 GO
 
