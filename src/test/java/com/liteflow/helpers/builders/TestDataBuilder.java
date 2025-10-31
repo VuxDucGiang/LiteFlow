@@ -40,7 +40,6 @@ public class TestDataBuilder {
         user.setPasswordHash("$2a$10$N.gXqZ8Z5fZQJ5fXqZ8Z5.xvZxZ5fZQJ5fXqZ8Z5fZQJ5fXqZ8Z5"); // Test@123
         user.setDisplayName("Test " + roleName);
         user.setIsActive(true);
-        user.setPhone(generateTestPhone());
         return user;
     }
     
@@ -372,6 +371,124 @@ public class TestDataBuilder {
     }
     
     // ==========================================
+    // CASHIER/ORDER MODULE
+    // ==========================================
+    
+    /**
+     * Build a Table for testing.
+     * 
+     * @param tableNumber Table number
+     * @param tableName Table name
+     * @param capacity Table capacity
+     * @return Fully initialized Table entity
+     */
+    public static com.liteflow.model.inventory.Table buildTable(String tableNumber, String tableName, int capacity) {
+        com.liteflow.model.inventory.Table table = new com.liteflow.model.inventory.Table();
+        table.setTableId(UUID.randomUUID());
+        table.setTableNumber(tableNumber);
+        table.setTableName(tableName);
+        table.setCapacity(capacity);
+        table.setStatus("Available");
+        table.setIsActive(true);
+        return table;
+    }
+    
+    /**
+     * Build a TableSession for testing.
+     * 
+     * @param table Table entity (can be null for special tables)
+     * @param customerName Customer name
+     * @return Fully initialized TableSession entity
+     */
+    public static com.liteflow.model.inventory.TableSession buildTableSession(
+            com.liteflow.model.inventory.Table table,
+            String customerName) {
+        com.liteflow.model.inventory.TableSession session = new com.liteflow.model.inventory.TableSession();
+        session.setSessionId(UUID.randomUUID());
+        session.setTable(table);
+        session.setCustomerName(customerName);
+        session.setStatus("Active");
+        session.setPaymentStatus("Unpaid");
+        session.setCheckInTime(java.time.LocalDateTime.now());
+        return session;
+    }
+    
+    /**
+     * Build an Order for testing.
+     * 
+     * @param session TableSession entity
+     * @param orderNumber Order number
+     * @param totalAmount Total amount
+     * @return Fully initialized Order entity
+     */
+    public static com.liteflow.model.inventory.Order buildOrder(
+            com.liteflow.model.inventory.TableSession session,
+            String orderNumber,
+            java.math.BigDecimal totalAmount) {
+        com.liteflow.model.inventory.Order order = new com.liteflow.model.inventory.Order();
+        order.setOrderId(UUID.randomUUID());
+        order.setSession(session);
+        order.setOrderNumber(orderNumber);
+        order.setOrderDate(java.time.LocalDateTime.now());
+        order.setSubTotal(totalAmount);
+        order.setTotalAmount(totalAmount);
+        order.setStatus("Pending");
+        order.setPaymentStatus("Unpaid");
+        return order;
+    }
+    
+    /**
+     * Build an OrderDetail for testing.
+     * 
+     * @param order Order entity
+     * @param productVariant ProductVariant entity
+     * @param quantity Quantity
+     * @param unitPrice Unit price
+     * @return Fully initialized OrderDetail entity
+     */
+    public static com.liteflow.model.inventory.OrderDetail buildOrderDetail(
+            com.liteflow.model.inventory.Order order,
+            com.liteflow.model.inventory.ProductVariant productVariant,
+            int quantity,
+            java.math.BigDecimal unitPrice) {
+        com.liteflow.model.inventory.OrderDetail detail = new com.liteflow.model.inventory.OrderDetail();
+        detail.setOrderDetailId(UUID.randomUUID());
+        detail.setOrder(order);
+        detail.setProductVariant(productVariant);
+        detail.setQuantity(quantity);
+        detail.setUnitPrice(unitPrice);
+        detail.calculateTotalPrice(); // Auto-calculate total
+        detail.setStatus("Pending");
+        return detail;
+    }
+    
+    /**
+     * Build a PaymentTransaction for testing.
+     * 
+     * @param session TableSession entity
+     * @param order Order entity
+     * @param amount Payment amount
+     * @param paymentMethod Payment method (Cash, Card, etc.)
+     * @return Fully initialized PaymentTransaction entity
+     */
+    public static com.liteflow.model.inventory.PaymentTransaction buildPaymentTransaction(
+            com.liteflow.model.inventory.TableSession session,
+            com.liteflow.model.inventory.Order order,
+            java.math.BigDecimal amount,
+            String paymentMethod) {
+        com.liteflow.model.inventory.PaymentTransaction transaction = 
+            new com.liteflow.model.inventory.PaymentTransaction();
+        transaction.setTransactionId(UUID.randomUUID());
+        transaction.setSession(session);
+        transaction.setOrder(order);
+        transaction.setAmount(amount);
+        transaction.setPaymentMethod(paymentMethod);
+        transaction.setPaymentStatus("Completed");
+        transaction.setProcessedAt(java.time.LocalDateTime.now());
+        return transaction;
+    }
+    
+    // ==========================================
     // INVENTORY MODULE
     // ==========================================
     
@@ -472,15 +589,6 @@ public class TestDataBuilder {
         dto.setUnit("Cái");
         dto.setStatus("Đang bán");
         return dto;
-    }
-
-    private static String generateTestPhone() {
-        long value = Math.abs(UUID.randomUUID().getMostSignificantBits());
-        String digits = String.valueOf(value);
-        if (digits.length() < 10) {
-            digits = String.format("%010d", value % 1_000_000_000L);
-        }
-        return "+849" + digits.substring(0, 9);
     }
 }
 
