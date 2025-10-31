@@ -1455,3 +1455,99 @@ BEGIN
 END
 
 GO
+
+-- ============================================================
+-- PERSONAL SCHEDULES - Lịch cá nhân cho nhân viên
+-- ============================================================
+-- Seed data mẫu: 3 lịch cá nhân cho Đỗ Thị F (EMP006)
+
+-- Lấy EmployeeID của Đỗ Thị F
+DECLARE @EmpDTF UNIQUEIDENTIFIER;
+SELECT @EmpDTF = EmployeeID FROM Employees WHERE EmployeeCode = 'EMP006';
+
+IF @EmpDTF IS NOT NULL
+BEGIN
+    PRINT N'Đang tạo lịch cá nhân cho Đỗ Thị F (EMP006)...';
+
+    -- Schedule 1: Học kỹ năng pha chế nâng cao (Priority: High, Status: Pending)
+    INSERT INTO PersonalSchedules (
+        EmployeeID, 
+        Title, 
+        Description, 
+        StartDate, 
+        StartTime, 
+        EndTime, 
+        Priority, 
+        Status, 
+        ReminderDate,
+        Notes
+    )
+    VALUES (
+        @EmpDTF,
+        N'Học kỹ năng pha chế nâng cao',
+        N'Tham gia khóa học pha chế cà phê chuyên nghiệp tại trung tâm đào tạo Barista. Học các kỹ thuật: Latte Art, Pour Over, Cold Brew, Espresso Extraction.',
+        DATEADD(DAY, 3, CAST(SYSDATETIME() AS DATE)),  -- 3 ngày sau
+        '09:00',
+        '12:00',
+        'High',
+        'Pending',
+        DATEADD(HOUR, -12, DATEADD(DAY, 3, CAST(SYSDATETIME() AS DATETIME2))),  -- Nhắc trước 12 giờ
+        N'Cần chuẩn bị: sổ tay, dụng cụ cá nhân. Địa chỉ: 123 Nguyễn Huệ, Q.1. Liên hệ: 0901234567'
+    );
+
+    -- Schedule 2: Kiểm tra và bổ sung kho nguyên liệu (Priority: Medium, Status: InProgress)
+    INSERT INTO PersonalSchedules (
+        EmployeeID, 
+        Title, 
+        Description, 
+        StartDate, 
+        StartTime, 
+        EndTime, 
+        Priority, 
+        Status, 
+        Notes
+    )
+    VALUES (
+        @EmpDTF,
+        N'Kiểm tra và bổ sung kho nguyên liệu',
+        N'Rà soát lại toàn bộ nguyên liệu pha chế: cà phê, sữa, đường, syrup, trà. Lập danh sách cần đặt hàng tuần này.',
+        CAST(SYSDATETIME() AS DATE),  -- Hôm nay
+        '14:00',
+        '16:00',
+        'Medium',
+        'InProgress',
+        N'Đã kiểm tra: cà phê ✓, sữa ✓. Cần kiểm tra: syrup, trà, topping'
+    );
+
+    -- Schedule 3: Họp team pha chế tháng này (Priority: Low, Status: Completed)
+    INSERT INTO PersonalSchedules (
+        EmployeeID, 
+        Title, 
+        Description, 
+        StartDate, 
+        StartTime, 
+        EndTime, 
+        Priority, 
+        Status, 
+        Notes
+    )
+    VALUES (
+        @EmpDTF,
+        N'Họp team pha chế tháng này',
+        N'Tổng kết công việc tháng trước, chia sẻ kinh nghiệm và đề xuất cải tiến quy trình. Thảo luận về menu đồ uống mới cho mùa hè.',
+        DATEADD(DAY, -5, CAST(SYSDATETIME() AS DATE)),  -- 5 ngày trước (đã hoàn thành)
+        '17:00',
+        '18:30',
+        'Low',
+        'Completed',
+        N'✓ Đã hoàn thành. Kết quả: Thống nhất thêm 3 món mới, cải tiến quy trình đóng ca. Người tham gia: 8/10 nhân viên.'
+    );
+
+    PRINT N'✓ Đã tạo 3 lịch cá nhân cho Đỗ Thị F';
+END
+ELSE
+BEGIN
+    PRINT N'⚠️ Không tìm thấy nhân viên Đỗ Thị F (EMP006) trong database';
+END
+
+GO
