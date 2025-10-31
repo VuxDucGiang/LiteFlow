@@ -1,9 +1,8 @@
-## PR2 — MA TRẬN TEST CASE TÍCH HỢP HỆ THỐNG LITEFLOW
+# MA TRẬN TEST CASE TÍCH HỢP - LITEFLOW SYSTEM
 
-### TỔNG QUAN
-**Mục tiêu:** Đảm bảo coverage tích hợp ≥70% trên toàn hệ thống LiteFlow (Servlet ↔ Service ↔ DAO ↔ DB)  
-**Phạm vi:** Tất cả module nghiệp vụ chính với các điểm tích hợp quan trọng  
-**Tổng số test case:** 85 test cases (36 Happy Path + 24 Edge Cases + 25 Error Scenarios)
+**Mục tiêu:** Integration Testing Coverage ≥70%  
+**Phạm vi:** Backend (Servlet ↔ Service ↔ DAO) + Frontend (JSP ↔ API) + Cross-module Integration  
+**Tổng số:** 99 test cases (50 Happy Path + 25 Edge Cases + 24 Error Scenarios)
 
 ---
 
@@ -11,1342 +10,703 @@
 
 ---
 
-### ✅ HAPPY PATH SCENARIOS (36 test cases)
+## ✅ HAPPY PATH SCENARIOS (50 test cases)
 
-#### **Module 1: Authentication & RBAC (6 test cases)**
+### **Module 1: Authentication & RBAC (6 tests)**
 
-**TC-HP-001: Đăng nhập thành công với email/password**
-- **Description:** Kiểm tra tích hợp AuthenticationFilter → AuthService → UserDAO → DB → SessionDAO
-- **Input Data:**
-  ```json
-  {
-    "email": "admin@liteflow.com",
-    "password": "Admin@123",
-    "rememberMe": false
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Session cookie được tạo
-  - JWT token trong response
-  - Redirect đến dashboard phù hợp role
-  - DB: ghi nhật ký UserSessions với status=ACTIVE
-- **Mock Behavior:** None (real DB)
+**TC-HP-001: Login thành công email/password**
+- **Input:** `{email: "admin@liteflow.com", password: "Admin@123"}`
+- **Expected:** HTTP 200, session created, JWT token, redirect dashboard theo role, DB: UserSessions=ACTIVE
+- **Mock:** None (real DB)
 
-**TC-HP-002: Đăng nhập với Google OAuth2**
-- **Description:** Kiểm tra tích hợp OAuth2 flow → AuthService → UserDAO (tạo/cập nhật user)
-- **Input Data:**
-  ```json
-  {
-    "googleToken": "valid_google_jwt_token",
-    "googleId": "108234567890",
-    "email": "user@gmail.com",
-    "displayName": "John Doe"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - User được tạo mới hoặc cập nhật GoogleID
-  - Session được tạo
-  - JWT token trả về
-  - DB: Users table có record mới/cập nhật
-- **Mock Behavior:** Mock Google OAuth verification API
+**TC-HP-002: Login Google OAuth2**
+- **Input:** `{googleToken: "valid_jwt", email: "user@gmail.com"}`
+- **Expected:** HTTP 200, user created/updated, session created, JWT returned
+- **Mock:** Google OAuth2 API verification
 
-**TC-HP-003: Xác thực 2FA (TOTP) thành công**
-- **Description:** Kiểm tra tích hợp 2FA flow → AuthService → UserDAO (verify TOTP secret)
-- **Input Data:**
-  ```json
-  {
-    "userId": "user-uuid-001",
-    "totpCode": "123456",
-    "sessionToken": "temp_session_token"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Session được nâng cấp thành FULLY_AUTHENTICATED
-  - Last2FAVerifiedAt được cập nhật
-  - Redirect đến dashboard
-- **Mock Behavior:** Mock TOTP generator với time-based code cố định
+**TC-HP-003: 2FA TOTP verification**
+- **Input:** `{userId: "uuid-001", totpCode: "123456", sessionToken: "temp_token"}`
+- **Expected:** HTTP 200, session upgraded to FULLY_AUTHENTICATED, last2FAVerifiedAt updated
+- **Mock:** TOTP generator với time-based code
 
-**TC-HP-004: Phân quyền RBAC - Admin tạo user mới**
-- **Description:** Kiểm tra tích hợp AuthorizationFilter → EmployeeService → UserDAO + RoleDAO + UserRoleDAO
-- **Input Data:**
-  ```json
-  {
-    "email": "newemployee@liteflow.com",
-    "displayName": "New Employee",
-    "phone": "+84901234567",
-    "roles": ["EMPLOYEE"],
-    "createdBy": "admin-uuid-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 201 Created
-  - User mới trong DB với PasswordHash (random generated)
-  - UserRoles được gán
-  - Email thông báo gửi đến nhân viên mới
-- **Mock Behavior:** Mock EmailService
+**TC-HP-004: Password recovery - Request OTP**
+- **Input:** `{email: "user@liteflow.com"}`
+- **Expected:** HTTP 200, OTP sent to email, OtpToken record in DB với expiry
+- **Mock:** EmailService (MailUtil)
 
-**TC-HP-005: Phân quyền RBAC - Cashier truy cập POS (authorized)**
-- **Description:** Kiểm tra AuthorizationFilter cho phép Cashier vào /cart/*
-- **Input Data:**
-  - Session: user có role CASHIER
-  - Request: GET /cart/cashier.jsp
-- **Expected Output:**
-  - HTTP 200 OK
-  - Trang POS hiển thị
-  - Filter log ghi "Access granted"
-- **Mock Behavior:** None
+**TC-HP-005: Password recovery - Reset password**
+- **Input:** `{email: "user@liteflow.com", otp: "123456", newPassword: "NewPass@123"}`
+- **Expected:** HTTP 200, password updated (BCrypt hashed), OTP invalidated, confirmation email sent
+- **Mock:** EmailService
 
-**TC-HP-006: Logout và invalidate session**
-- **Description:** Kiểm tra tích hợp LogoutServlet → SessionService → UserSessionDAO
-- **Input Data:**
-  - Session cookie: valid_session_id
-  - Request: POST /auth/logout
-- **Expected Output:**
-  - HTTP 302 Redirect to /auth/login.jsp
-  - Session cookie bị xóa
-  - DB: UserSessions.Status = LOGGED_OUT, LoggedOutAt = timestamp
-- **Mock Behavior:** None
+**TC-HP-006: RBAC - Admin tạo user mới**
+- **Input:** `{email: "newuser@liteflow.com", roles: ["CASHIER"], createdBy: "admin-uuid"}`
+- **Expected:** HTTP 201, User + UserRoles created, welcome email sent
+- **Mock:** EmailService
 
 ---
 
-#### **Module 2: Cashier/POS Order Management (10 test cases)**
+### **Module 2: Cashier/POS Order Management (10 tests)**
 
-**TC-HP-007: Tạo đơn hàng mới thành công**
-- **Description:** Kiểm tra tích hợp CreateOrderServlet → OrderService → OrderDAO + OrderItemDAO + InventoryService
-- **Input Data:**
-  ```json
-  {
-    "tableId": "table-uuid-001",
-    "roomId": "room-uuid-001",
-    "items": [
-      {"productId": "prod-001", "quantity": 2, "unitPrice": 50000, "note": "No sugar"},
-      {"productId": "prod-002", "quantity": 1, "unitPrice": 75000}
-    ],
-    "cashierId": "cashier-uuid-001",
-    "orderType": "DINE_IN"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 201 Created
-  - Response: `{"orderId": "order-uuid-xxx", "totalAmount": 175000, "status": "PENDING"}`
-  - DB: Orders table có record mới với Status=PENDING
-  - DB: OrderItems có 2 records
-  - DB: Inventory stock giảm tương ứng (nếu có tracking)
-  - DB: Table.Status = OCCUPIED
-- **Mock Behavior:** None (real DB transaction)
+**TC-HP-007: Tạo order mới**
+- **Input:** `{tableId: "table-001", items: [{productId: "prod-001", quantity: 2}]}`
+- **Expected:** HTTP 201, Order + OrderItems created, stock deducted (ProductStock -2), Kitchen notification sent, table status=OCCUPIED
+- **Mock:** None
 
-**TC-HP-008: Áp dụng khuyến mãi cho đơn hàng**
-- **Description:** Kiểm tra tích hợp PromotionService → OrderService → PricingService
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-001",
-    "promotionCode": "SUMMER2025",
-    "orderTotal": 175000
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"discountAmount": 35000, "finalAmount": 140000, "promotionApplied": true}`
-  - DB: Orders.DiscountAmount = 35000, FinalAmount = 140000
-  - DB: PromotionUsages có record mới
-- **Mock Behavior:** None
+**TC-HP-008: Thêm item vào order hiện có**
+- **Input:** `{orderId: "order-001", productId: "prod-002", quantity: 1}`
+- **Expected:** HTTP 200, OrderItem added, stock deducted, order total recalculated
+- **Mock:** None
 
-**TC-HP-009: Thanh toán đơn hàng (Cash)**
-- **Description:** Kiểm tra tích hợp PaymentServlet → PaymentService → OrderService → ReceiptService
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-001",
-    "paymentMethod": "CASH",
-    "amountPaid": 200000,
-    "cashierId": "cashier-uuid-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"paymentId": "payment-uuid-xxx", "change": 60000, "receiptId": "receipt-001"}`
-  - DB: Payments table có record, Status=COMPLETED
-  - DB: Orders.Status = PAID, PaidAt = timestamp
-  - DB: Receipts table có record với details
-- **Mock Behavior:** None
+**TC-HP-009: Xóa item khỏi order**
+- **Input:** `{orderId: "order-001", orderItemId: "item-001"}`
+- **Expected:** HTTP 200, OrderItem removed, stock restored, total recalculated
+- **Mock:** None
 
-**TC-HP-010: Thanh toán đơn hàng (Credit Card)**
-- **Description:** Kiểm tra tích hợp PaymentService → External Payment Gateway → OrderService
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-002",
-    "paymentMethod": "CREDIT_CARD",
-    "cardToken": "tok_visa_1234",
-    "amount": 340000
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"paymentId": "payment-uuid-xxx", "transactionId": "txn_ext_123", "status": "COMPLETED"}`
-  - DB: Payments với ExternalTransactionId
-  - DB: Orders.Status = PAID
-- **Mock Behavior:** Mock PaymentGatewayService trả về success response
+**TC-HP-010: Apply discount coupon**
+- **Input:** `{orderId: "order-001", discountCode: "SAVE10"}`
+- **Expected:** HTTP 200, discount 10% applied, total giảm, discount info saved
+- **Mock:** None
 
-**TC-HP-011: In hóa đơn sau thanh toán**
-- **Description:** Kiểm tra tích hợp ReceiptServlet → ReceiptService → OrderDAO + PaymentDAO
-- **Input Data:**
-  - Request: GET /receipt/print?orderId=order-uuid-001
-- **Expected Output:**
-  - HTTP 200 OK
-  - Content-Type: application/pdf hoặc text/html
-  - Response body chứa thông tin đầy đủ: items, prices, payment, timestamp
-  - DB: Receipts.PrintedCount += 1
-- **Mock Behavior:** None
+**TC-HP-011: Payment Cash**
+- **Input:** `{orderId: "order-001", paymentMethod: "CASH", amount: 200000}`
+- **Expected:** HTTP 200, order status=COMPLETED, SalesInvoice created, receipt HTML generated, table status=AVAILABLE
+- **Mock:** None
 
-**TC-HP-012: Cập nhật trạng thái đơn hàng (PENDING → PREPARING)**
-- **Description:** Kiểm tra tích hợp KitchenServlet → OrderService → NotificationService
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-001",
-    "newStatus": "PREPARING",
-    "kitchenStaffId": "staff-uuid-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - DB: Orders.Status = PREPARING, UpdatedBy = staff-uuid-001
-  - Notification gửi đến cashier (via WebSocket hoặc polling)
-- **Mock Behavior:** Mock NotificationService
+**TC-HP-012: Payment Credit Card**
+- **Input:** `{orderId: "order-001", paymentMethod: "CARD", cardToken: "tok_visa_123"}`
+- **Expected:** HTTP 200, PaymentGateway called, transaction ID saved, order completed
+- **Mock:** PaymentGateway (return success transaction)
 
-**TC-HP-013: Cập nhật trạng thái đơn hàng (PREPARING → READY → SERVED)**
-- **Description:** Kiểm tra workflow hoàn chỉnh của đơn hàng trong bếp
-- **Input Data:**
-  - Step 1: `{"orderId": "xxx", "status": "READY"}`
-  - Step 2: `{"orderId": "xxx", "status": "SERVED"}`
-- **Expected Output:**
-  - HTTP 200 OK cho cả 2 requests
-  - DB: Orders.Status thay đổi theo workflow
-  - DB: OrderStatusHistory có log cho mỗi lần chuyển đổi
-  - Table.Status = AVAILABLE khi SERVED
-- **Mock Behavior:** None
+**TC-HP-013: Split bill**
+- **Input:** `{orderId: "order-001", split: [{items: ["item-1", "item-2"]}, {items: ["item-3"]}]}`
+- **Expected:** HTTP 200, 2 new orders created, items divided correctly, original order archived
+- **Mock:** None
 
-**TC-HP-014: Hủy đơn hàng (với lý do)**
-- **Description:** Kiểm tra tích hợp CancelOrderServlet → OrderService → InventoryService (rollback stock)
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-003",
-    "cancelReason": "Customer requested",
-    "cancelledBy": "manager-uuid-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - DB: Orders.Status = CANCELLED, CancelledAt, CancelReason
-  - DB: Inventory stock được hoàn trả
-  - DB: Table.Status = AVAILABLE
-- **Mock Behavior:** None
+**TC-HP-014: Load order history**
+- **Input:** `{tableId: "table-001", fromDate: "2025-10-01"}`
+- **Expected:** HTTP 200, list of orders sorted DESC by date
+- **Mock:** None
 
-**TC-HP-015: Lấy lịch sử đơn hàng theo ngày**
-- **Description:** Kiểm tra tích hợp OrderHistoryServlet → OrderService → OrderDAO (JOIN complex)
-- **Input Data:**
-  - Request: GET /api/orders?date=2025-10-31&cashierId=cashier-uuid-001
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: JSON array với các orders, bao gồm items, payment, customer info
-  - Sorted by CreatedAt DESC
-- **Mock Behavior:** None
+**TC-HP-015: Print invoice**
+- **Input:** `{orderId: "order-001"}`
+- **Expected:** HTTP 200, HTML invoice với items, tax, total, QR code payment
+- **Mock:** None
 
-**TC-HP-016: Chia bill (Split Payment)**
-- **Description:** Kiểm tra tích hợp SplitPaymentService → PaymentService → OrderService
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-004",
-    "splitType": "EQUAL",
-    "numberOfPeople": 3,
-    "totalAmount": 300000
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"splitAmounts": [100000, 100000, 100000], "splitPaymentIds": ["pay-1", "pay-2", "pay-3"]}`
-  - DB: Payments có 3 records, mỗi cái 100000
-  - DB: Orders.Status = PAID khi tất cả splits đã thanh toán
-- **Mock Behavior:** None
+**TC-HP-016: Close order session**
+- **Input:** `{orderId: "order-001"}`
+- **Expected:** HTTP 200, order session closed, table released, revenue recorded
+- **Mock:** None
 
 ---
 
-#### **Module 3: Inventory Management (7 test cases)**
+### **Module 3: Inventory Management (7 tests)**
 
-**TC-HP-017: Thêm sản phẩm mới vào kho**
-- **Description:** Kiểm tra tích hợp ProductServlet → ProductService → ProductDAO + CategoryDAO
-- **Input Data:**
-  ```json
-  {
-    "name": "Cappuccino",
-    "category": "Beverages",
-    "unitPrice": 45000,
-    "costPrice": 20000,
-    "stockQuantity": 100,
-    "unit": "cup",
-    "minStockLevel": 20,
-    "isActive": true
-  }
-  ```
-- **Expected Output:**
-  - HTTP 201 Created
-  - Response: `{"productId": "prod-uuid-xxx", "message": "Product created"}`
-  - DB: Products table có record mới
-  - DB: InventoryLogs có record (INITIAL_STOCK)
-- **Mock Behavior:** None
+**TC-HP-017: Tạo product với image upload**
+- **Input:** `{name: "Phở Bò", price: 50000, category: "MAIN", image: file(2MB)}`
+- **Expected:** HTTP 201, Product created, image saved to `/uploads/products/`, stock initialized=0
+- **Mock:** None
 
-**TC-HP-018: Cập nhật tồn kho (nhập hàng)**
-- **Description:** Kiểm tra tích hợp InventoryServlet → InventoryService → InventoryDAO + InventoryLogDAO
-- **Input Data:**
-  ```json
-  {
-    "productId": "prod-uuid-001",
-    "quantityChange": +50,
-    "transactionType": "STOCK_IN",
-    "reason": "Supplier delivery",
-    "performedBy": "manager-uuid-001",
-    "referenceId": "PO-2025-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - DB: Products.StockQuantity += 50
-  - DB: InventoryLogs có record với type=STOCK_IN
-- **Mock Behavior:** None
+**TC-HP-018: Update product info**
+- **Input:** `{productId: "prod-001", name: "Phở Bò Đặc Biệt", price: 60000}`
+- **Expected:** HTTP 200, Product updated, audit log recorded
+- **Mock:** None
 
-**TC-HP-019: Cập nhật tồn kho (xuất hàng cho đơn)**
-- **Description:** Kiểm tra tích hợp tự động khi tạo đơn → InventoryService giảm stock
-- **Input Data:** Triggered từ TC-HP-007 (tạo đơn)
-- **Expected Output:**
-  - DB: Products.StockQuantity giảm theo items trong đơn
-  - DB: InventoryLogs có records với type=STOCK_OUT, ReferenceId=orderId
-- **Mock Behavior:** None
+**TC-HP-019: Soft delete product**
+- **Input:** `{productId: "prod-001"}`
+- **Expected:** HTTP 200, Product.isActive=false, không hiển thị trong menu
+- **Mock:** None
 
-**TC-HP-020: Cảnh báo tồn kho thấp**
-- **Description:** Kiểm tra tích hợp InventoryService → AlertService → NotificationService
-- **Input Data:**
-  - Background job hoặc trigger: kiểm tra Products.StockQuantity < MinStockLevel
-- **Expected Output:**
-  - DB: Alerts table có record mới với type=LOW_STOCK
-  - Notification gửi đến Manager/Admin
-- **Mock Behavior:** Mock NotificationService (email/SMS)
+**TC-HP-020: Set variant price**
+- **Input:** `{productId: "prod-001", variantId: "var-L", price: 70000}`
+- **Expected:** HTTP 200, ProductVariant price updated
+- **Mock:** None
 
-**TC-HP-021: Lấy danh sách sản phẩm với filter và phân trang**
-- **Description:** Kiểm tra tích hợp ProductServlet → ProductService → ProductDAO (complex query)
-- **Input Data:**
-  - Request: GET /api/products?category=Beverages&status=active&page=1&size=20&sort=name
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"items": [...], "total": 45, "page": 1, "totalPages": 3}`
-  - Sorted alphabetically
-- **Mock Behavior:** None
+**TC-HP-021: Create room**
+- **Input:** `{name: "VIP Room", capacity: 10}`
+- **Expected:** HTTP 201, Room created
+- **Mock:** None
 
-**TC-HP-022: Import sản phẩm từ Excel**
-- **Description:** Kiểm tra tích hợp ExcelImportServlet → ExcelService → ProductService (bulk insert)
-- **Input Data:**
-  - File: products.xlsx với 50 rows
-  - Columns: Name, Category, UnitPrice, CostPrice, StockQuantity
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"imported": 48, "failed": 2, "errors": [...]}`
-  - DB: Products có 48 records mới
-- **Mock Behavior:** None
+**TC-HP-022: Create table trong room**
+- **Input:** `{roomId: "room-001", tableNumber: 5, seats: 4}`
+- **Expected:** HTTP 201, Table created, linked to room
+- **Mock:** None
 
-**TC-HP-023: Export báo cáo tồn kho ra Excel**
-- **Description:** Kiểm tra tích hợp ReportServlet → InventoryService → ExcelExportService
-- **Input Data:**
-  - Request: GET /api/inventory/export?format=xlsx&date=2025-10-31
-- **Expected Output:**
-  - HTTP 200 OK
-  - Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-  - File tải về chứa đầy đủ sản phẩm, stock, giá trị tồn
-- **Mock Behavior:** None
+**TC-HP-023: Low stock alert**
+- **Input:** (ProductStock quantity < threshold trigger)
+- **Expected:** Alert generated, notification sent to admin, alert log saved
+- **Mock:** EmailService / NotificationService
 
 ---
 
-#### **Module 4: Employee Management (6 test cases)**
+### **Module 4: Employee & HR Management (6 tests)**
 
-**TC-HP-024: Tạo hồ sơ nhân viên mới**
-- **Description:** Kiểm tra tích hợp EmployeeServlet → EmployeeService → UserDAO + EmployeeDAO + RoleDAO
-- **Input Data:**
-  ```json
-  {
-    "email": "staff@liteflow.com",
-    "displayName": "Jane Smith",
-    "phone": "+84912345678",
-    "role": "KITCHEN_STAFF",
-    "hireDate": "2025-10-01",
-    "salary": 8000000,
-    "department": "Kitchen"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 201 Created
-  - DB: Users có user mới với role KITCHEN_STAFF
-  - DB: Employees có record với salary, hireDate, department
-  - Email chào mừng gửi đến nhân viên
-- **Mock Behavior:** Mock EmailService
+**TC-HP-024: Tạo employee mới**
+- **Input:** `{name: "Nguyen Van A", email: "nva@liteflow.com", role: "CASHIER"}`
+- **Expected:** HTTP 201, Employee + User created, credentials generated, welcome email sent
+- **Mock:** EmailService
 
-**TC-HP-025: Cập nhật thông tin nhân viên**
-- **Description:** Kiểm tra tích hợp EmployeeServlet → EmployeeService → EmployeeDAO
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-001",
-    "salary": 9000000,
-    "department": "Management",
-    "updatedBy": "admin-uuid-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - DB: Employees.Salary = 9000000, Department = Management
-  - DB: EmployeeHistory có log thay đổi
-- **Mock Behavior:** None
+**TC-HP-025: Clock-in attendance**
+- **Input:** `{employeeId: "emp-001", timestamp: "2025-10-31T08:00:00"}`
+- **Expected:** HTTP 200, EmployeeAttendance record created với clockInTime
+- **Mock:** None
 
-**TC-HP-026: Chấm công nhân viên (Check-in/Check-out)**
-- **Description:** Kiểm tra tích hợp AttendanceServlet → AttendanceService → AttendanceDAO
-- **Input Data:**
-  - Check-in: `{"employeeId": "emp-uuid-001", "action": "CHECK_IN", "timestamp": "2025-10-31T08:00:00Z"}`
-  - Check-out: `{"employeeId": "emp-uuid-001", "action": "CHECK_OUT", "timestamp": "2025-10-31T17:00:00Z"}`
-- **Expected Output:**
-  - HTTP 200 OK cho cả 2
-  - DB: Attendance có record với CheckInTime và CheckOutTime
-  - DB: WorkHours = 9.0 (calculated)
-- **Mock Behavior:** None
+**TC-HP-026: Clock-out attendance**
+- **Input:** `{employeeId: "emp-001", timestamp: "2025-10-31T17:00:00"}`
+- **Expected:** HTTP 200, EmployeeAttendance updated với clockOutTime, hoursWorked calculated (9h)
+- **Mock:** None
 
-**TC-HP-027: Tạo lịch làm việc cho nhân viên**
-- **Description:** Kiểm tra tích hợp ScheduleServlet → ScheduleService → ScheduleDAO
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-001",
-    "shifts": [
-      {"date": "2025-11-01", "shiftType": "MORNING", "startTime": "08:00", "endTime": "16:00"},
-      {"date": "2025-11-02", "shiftType": "EVENING", "startTime": "16:00", "endTime": "00:00"}
-    ],
-    "createdBy": "manager-uuid-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 201 Created
-  - DB: Schedules có 2 records
-  - Notification gửi đến nhân viên về lịch làm việc
-- **Mock Behavior:** Mock NotificationService
+**TC-HP-027: Tạo shift template**
+- **Input:** `{name: "Morning Shift", startTime: "08:00", endTime: "12:00"}`
+- **Expected:** HTTP 201, ShiftTemplate created
+- **Mock:** None
 
-**TC-HP-028: Tính lương cho nhân viên (Paysheet)**
-- **Description:** Kiểm tra tích hợp PayrollServlet → PayrollService → AttendanceService + EmployeeService
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-001",
-    "month": "2025-10",
-    "baseSalary": 8000000,
-    "overtimeHours": 10,
-    "deductions": 500000
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"totalSalary": 8700000, "breakdown": {...}}`
-  - DB: Payrolls có record với details
-- **Mock Behavior:** None
+**TC-HP-028: Assign employee to shift**
+- **Input:** `{employeeId: "emp-001", shiftId: "shift-001", date: "2025-11-01"}`
+- **Expected:** HTTP 201, EmployeeShift created, no conflict with existing shifts
+- **Mock:** None
 
-**TC-HP-029: Lấy báo cáo hiệu suất nhân viên**
-- **Description:** Kiểm tra tích hợp ReportServlet → EmployeeService (complex aggregation)
-- **Input Data:**
-  - Request: GET /api/reports/employee-performance?employeeId=emp-uuid-001&month=2025-10
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: JSON với total orders, total revenue, attendance rate, customer feedback
-- **Mock Behavior:** None
+**TC-HP-029: Calculate payroll**
+- **Input:** `{employeeId: "emp-001", period: "2025-10"}`
+- **Expected:** HTTP 200, payroll calculated (baseSalary + overtime + bonus), Paysheet generated
+- **Mock:** None
 
 ---
 
-#### **Module 5: Table & Reservation (4 test cases)**
+### **Module 5: Kitchen Management (2 tests)**
 
-**TC-HP-030: Tạo đặt bàn mới**
-- **Description:** Kiểm tra tích hợp ReservationServlet → ReservationService → TableService
-- **Input Data:**
-  ```json
-  {
-    "customerId": "customer-uuid-001",
-    "tableId": "table-uuid-005",
-    "reservationDate": "2025-11-05",
-    "reservationTime": "19:00",
-    "numberOfGuests": 4,
-    "specialRequest": "Window seat",
-    "phone": "+84987654321"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 201 Created
-  - DB: Reservations table có record, Status=CONFIRMED
-  - DB: Tables.Status = RESERVED (cho time slot đó)
-  - SMS/Email confirmation gửi đến khách
-- **Mock Behavior:** Mock NotificationService
+**TC-HP-030: Display order queue**
+- **Input:** GET `/kitchen/orders?status=PENDING`
+- **Expected:** HTTP 200, list of pending orders sorted by timestamp ASC
+- **Mock:** None
 
-**TC-HP-031: Check-in khách đặt bàn**
-- **Description:** Kiểm tra tích hợp ReservationServlet → ReservationService → TableService
-- **Input Data:**
-  ```json
-  {
-    "reservationId": "reservation-uuid-001",
-    "action": "CHECK_IN",
-    "actualArrivalTime": "2025-11-05T19:05:00Z"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - DB: Reservations.Status = CHECKED_IN
-  - DB: Tables.Status = OCCUPIED
-- **Mock Behavior:** None
-
-**TC-HP-032: Hủy đặt bàn**
-- **Description:** Kiểm tra tích hợp ReservationServlet → ReservationService
-- **Input Data:**
-  ```json
-  {
-    "reservationId": "reservation-uuid-002",
-    "cancelReason": "Customer cancelled",
-    "cancelledBy": "customer-uuid-002"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - DB: Reservations.Status = CANCELLED
-  - DB: Tables.Status = AVAILABLE
-- **Mock Behavior:** None
-
-**TC-HP-033: Lấy danh sách bàn trống theo thời gian**
-- **Description:** Kiểm tra tích hợp TableServlet → TableService (complex availability query)
-- **Input Data:**
-  - Request: GET /api/tables/available?date=2025-11-05&time=19:00&guests=4
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: Array of available tables với capacity >= 4
-  - Exclude tables có reservation trong time slot ±2h
-- **Mock Behavior:** None
+**TC-HP-031: Update order status**
+- **Input:** `{orderId: "order-001", status: "PREPARING"}`
+- **Expected:** HTTP 200, order status updated, notification sent to cashier dashboard
+- **Mock:** NotificationService (WebSocket/AJAX)
 
 ---
 
-#### **Module 6: Procurement (3 test cases)**
+### **Module 6: Table Reservation (4 tests)**
 
-**TC-HP-034: Tạo Purchase Order (PO) mới**
-- **Description:** Kiểm tra tích hợp ProcurementServlet → ProcurementService → SupplierService → PODAO
-- **Input Data:**
-  ```json
-  {
-    "supplierId": "supplier-uuid-001",
-    "items": [
-      {"productId": "prod-uuid-010", "quantity": 100, "unitPrice": 15000},
-      {"productId": "prod-uuid-011", "quantity": 50, "unitPrice": 25000}
-    ],
-    "expectedDeliveryDate": "2025-11-10",
-    "createdBy": "manager-uuid-001"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 201 Created
-  - Response: `{"poId": "PO-2025-002", "totalAmount": 2750000}`
-  - DB: PurchaseOrders có record, Status=PENDING
-  - DB: PurchaseOrderItems có 2 records
-- **Mock Behavior:** None
+**TC-HP-032: Create reservation**
+- **Input:** `{customerName: "Tran Thi B", phone: "0901234567", date: "2025-11-01", time: "19:00", guests: 4}`
+- **Expected:** HTTP 201, Reservation created, table availability checked, confirmation SMS sent
+- **Mock:** SMSService
 
-**TC-HP-035: Nhận hàng và cập nhật tồn kho**
-- **Description:** Kiểm tra tích hợp GoodsReceiptServlet → InventoryService → PurchaseOrderService
-- **Input Data:**
-  ```json
-  {
-    "poId": "PO-2025-002",
-    "receivedItems": [
-      {"productId": "prod-uuid-010", "receivedQuantity": 100, "condition": "GOOD"},
-      {"productId": "prod-uuid-011", "receivedQuantity": 50, "condition": "GOOD"}
-    ],
-    "receivedBy": "warehouse-staff-001",
-    "receivedDate": "2025-11-10"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - DB: PurchaseOrders.Status = RECEIVED
-  - DB: GoodsReceipts có record
-  - DB: Products.StockQuantity tăng tương ứng
-  - DB: InventoryLogs có records (STOCK_IN)
-- **Mock Behavior:** None
+**TC-HP-033: Add pre-order items**
+- **Input:** `{reservationId: "res-001", items: [{productId: "prod-001", quantity: 2}]}`
+- **Expected:** HTTP 200, ReservationItems created, estimated total calculated
+- **Mock:** None
 
-**TC-HP-036: Lấy báo cáo procurement theo tháng**
-- **Description:** Kiểm tra tích hợp ReportServlet → ProcurementService (aggregation + JOIN)
-- **Input Data:**
-  - Request: GET /api/reports/procurement?month=2025-10&supplierId=supplier-uuid-001
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: JSON với total POs, total amount, received vs pending, top products
-- **Mock Behavior:** None
+**TC-HP-034: Confirm customer arrival**
+- **Input:** `{reservationId: "res-001"}`
+- **Expected:** HTTP 200, reservation status=ARRIVED, table assigned, Order session created
+- **Mock:** None
+
+**TC-HP-035: Cancel reservation**
+- **Input:** `{reservationId: "res-001"}`
+- **Expected:** HTTP 200, status=CANCELLED, table released, notification sent
+- **Mock:** SMSService
 
 ---
 
-### ⚠️ EDGE CASES (24 test cases)
+### **Module 7: Procurement (3 tests)**
 
-#### **Module 1: Authentication & RBAC (4 test cases)**
+**TC-HP-036: Create Purchase Order**
+- **Input:** `{supplierId: "sup-001", items: [{ingredientId: "ing-001", quantity: 100, unitPrice: 5000}]}`
+- **Expected:** HTTP 201, PurchaseOrder + POItems created, status=PENDING
+- **Mock:** None
 
-**TC-EDGE-001: Đăng nhập với password gần đúng (typo)**
-- **Description:** Kiểm tra xử lý sai password với typo nhỏ
-- **Input Data:**
-  ```json
-  {
-    "email": "admin@liteflow.com",
-    "password": "Admin@12" // thiếu ký tự cuối
-  }
-  ```
-- **Expected Output:**
-  - HTTP 401 Unauthorized
-  - Response: `{"error": "Invalid credentials"}`
-  - DB: không tạo session
-  - DB: LoginAttempts += 1 (nếu có tracking)
-- **Mock Behavior:** None
+**TC-HP-037: Record Goods Receipt**
+- **Input:** `{poId: "po-001", receivedItems: [{poItemId: "poi-001", receivedQty: 100}]}`
+- **Expected:** HTTP 201, GoodsReceipt created, inventory stock updated (+100), PO status=RECEIVED
+- **Mock:** None
 
-**TC-EDGE-002: Session expire và auto logout**
-- **Description:** Kiểm tra AuthenticationFilter xử lý session hết hạn
-- **Input Data:**
-  - Session: expired (CreatedAt + 8h < now)
-  - Request: GET /api/orders
-- **Expected Output:**
-  - HTTP 401 Unauthorized
-  - Redirect to /auth/login.jsp
-  - Session cookie bị xóa
-- **Mock Behavior:** None
-
-**TC-EDGE-003: Đăng nhập đồng thời từ nhiều thiết bị**
-- **Description:** Kiểm tra hệ thống xử lý multiple sessions cho cùng user
-- **Input Data:**
-  - User đăng nhập từ browser A → session-001
-  - User đăng nhập từ browser B → session-002
-- **Expected Output:**
-  - Cả 2 sessions đều ACTIVE (hoặc session-001 bị invalidate nếu config single-session)
-  - DB: UserSessions có 2 records hoặc 1 (tùy policy)
-- **Mock Behavior:** None
-
-**TC-EDGE-004: RBAC - Manager truy cập endpoint của Admin (403)**
-- **Description:** Kiểm tra AuthorizationFilter block access không đủ quyền
-- **Input Data:**
-  - Session: user có role MANAGER
-  - Request: DELETE /api/users/{userId}
-- **Expected Output:**
-  - HTTP 403 Forbidden
-  - Response: `{"error": "Insufficient permissions"}`
-- **Mock Behavior:** None
+**TC-HP-038: Invoice matching**
+- **Input:** `{invoiceNumber: "INV-001", poId: "po-001", amount: 500000}`
+- **Expected:** HTTP 200, Invoice matched with PO + GR, status=APPROVED if amounts match
+- **Mock:** None
 
 ---
 
-#### **Module 2: Cashier/POS Order (6 test cases)**
+### **Module 8: Reporting & Analytics (2 tests)**
 
-**TC-EDGE-005: Tạo đơn với số lượng item = 0**
-- **Description:** Kiểm tra validation tại Service layer
-- **Input Data:**
-  ```json
-  {
-    "tableId": "table-uuid-001",
-    "items": [
-      {"productId": "prod-001", "quantity": 0, "unitPrice": 50000}
-    ]
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Item quantity must be greater than 0"}`
-- **Mock Behavior:** None
+**TC-HP-039: Generate revenue report**
+- **Input:** `{startDate: "2025-10-01", endDate: "2025-10-31"}`
+- **Expected:** HTTP 200, report data with totalRevenue, orderCount, avgOrderValue
+- **Mock:** None
 
-**TC-EDGE-006: Tạo đơn với sản phẩm inactive**
-- **Description:** Kiểm tra validation product status trước khi tạo order
-- **Input Data:**
-  ```json
-  {
-    "items": [
-      {"productId": "prod-inactive-001", "quantity": 1}
-    ]
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Product prod-inactive-001 is not available"}`
-- **Mock Behavior:** None
-
-**TC-EDGE-007: Áp dụng khuyến mãi đã hết hạn**
-- **Description:** Kiểm tra PromotionService validate expiry date
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-001",
-    "promotionCode": "EXPIRED2024"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Promotion code has expired"}`
-- **Mock Behavior:** None
-
-**TC-EDGE-008: Thanh toán với số tiền nhỏ hơn total**
-- **Description:** Kiểm tra validation payment amount
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-001",
-    "paymentMethod": "CASH",
-    "amountPaid": 100000,
-    "orderTotal": 175000
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Insufficient payment amount"}`
-- **Mock Behavior:** None
-
-**TC-EDGE-009: Tạo đơn với table đã bị occupied**
-- **Description:** Kiểm tra concurrent access handling cho Table
-- **Input Data:**
-  - Table.Status = OCCUPIED
-  - Request: Create order cho table đó
-- **Expected Output:**
-  - HTTP 409 Conflict
-  - Response: `{"error": "Table is already occupied"}`
-- **Mock Behavior:** None
-
-**TC-EDGE-010: Hủy đơn đã thanh toán**
-- **Description:** Kiểm tra business rule không cho phép hủy đơn đã PAID
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-paid-001",
-    "cancelReason": "Customer changed mind"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Cannot cancel paid order. Please process refund instead."}`
-- **Mock Behavior:** None
+**TC-HP-040: Get top-selling products**
+- **Input:** `{period: "2025-10", limit: 10}`
+- **Expected:** HTTP 200, list of products sorted by revenue DESC
+- **Mock:** None
 
 ---
 
-#### **Module 3: Inventory (5 test cases)**
+### **Module 9: Frontend E2E Integration (10 tests)**
 
-**TC-EDGE-011: Cập nhật stock âm (overselling)**
-- **Description:** Kiểm tra InventoryService prevent negative stock
-- **Input Data:**
-  ```json
-  {
-    "productId": "prod-uuid-001",
-    "quantityChange": -150,
-    "currentStock": 100
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Insufficient stock. Available: 100"}`
-  - DB: Stock không thay đổi
-- **Mock Behavior:** None
+**TC-FE-001: Login flow E2E**
+- **Steps:** Open `/auth/login.jsp` → Fill email/password → Submit → Verify redirect to `/dashboard.jsp`
+- **Expected:** Dashboard hiển thị, session active, user info trong header
+- **Mock:** None
 
-**TC-EDGE-012: Import Excel với dữ liệu duplicate (SKU/Name)**
-- **Description:** Kiểm tra ExcelService xử lý duplicate entries
-- **Input Data:**
-  - File có 2 rows với cùng SKU "SKU-001"
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"imported": 1, "failed": 1, "errors": ["Row 3: Duplicate SKU"]}`
-  - DB: chỉ có 1 product được tạo
-- **Mock Behavior:** None
+**TC-FE-002: Cashier order flow E2E**
+- **Steps:** Login cashier → Navigate `/cart/cashier.jsp` → Select table → Add items → Payment → Print receipt
+- **Expected:** Order created in DB, invoice PDF displayed, table released
+- **Mock:** None
 
-**TC-EDGE-013: Cập nhật giá sản phẩm thành 0 hoặc âm**
-- **Description:** Kiểm tra validation business rule
-- **Input Data:**
-  ```json
-  {
-    "productId": "prod-uuid-001",
-    "unitPrice": -5000
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Unit price must be positive"}`
-- **Mock Behavior:** None
+**TC-FE-003: Employee clock-in E2E**
+- **Steps:** Login employee → Navigate `/attendance.jsp` → Click "Clock In" → Verify timestamp
+- **Expected:** Attendance record created, timestamp hiển thị trên UI
+- **Mock:** None
 
-**TC-EDGE-014: Filter sản phẩm với category không tồn tại**
-- **Description:** Kiểm tra ProductDAO xử lý invalid filter
-- **Input Data:**
-  - Request: GET /api/products?category=NonExistentCategory
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"items": [], "total": 0}`
-- **Mock Behavior:** None
+**TC-FE-004: Product creation E2E**
+- **Steps:** Login admin → Navigate `/inventory/productlist.jsp` → Click "Add Product" → Fill form + upload image → Submit
+- **Expected:** Product appears in list, image displayed
+- **Mock:** None
 
-**TC-EDGE-015: Tồn kho bằng chính xác min stock level (boundary)**
-- **Description:** Kiểm tra alert trigger ở boundary
-- **Input Data:**
-  - Product.StockQuantity = 20
-  - Product.MinStockLevel = 20
-- **Expected Output:**
-  - Alert được trigger (vì stock <= min)
-  - DB: Alerts có record LOW_STOCK
-- **Mock Behavior:** None
+**TC-FE-005: Reservation creation E2E**
+- **Steps:** Open `/reception/reception.jsp` → Fill reservation form → Submit → Verify confirmation message
+- **Expected:** Reservation created, confirmation message displayed
+- **Mock:** SMSService
+
+**TC-FE-006: Form validation - Empty fields**
+- **Steps:** Submit any form with empty required fields
+- **Expected:** Error messages displayed next to fields, form not submitted
+- **Mock:** None
+
+**TC-FE-007: AJAX cart update**
+- **Steps:** In cashier page, add item to cart → Verify total updates without page reload
+- **Expected:** AJAX call to `/cashier/api/cart`, DOM updated, no page refresh
+- **Mock:** None
+
+**TC-FE-008: Unauthorized access redirect**
+- **Steps:** Login as CASHIER → Navigate to `/employees` (admin only)
+- **Expected:** Redirect to `/accessDenied.jsp` with 403 message
+- **Mock:** None
+
+**TC-FE-009: Kitchen order refresh**
+- **Steps:** Login as CHEF → Open `/kitchen/kitchen.jsp` → Verify order list auto-refreshes every 10s
+- **Expected:** AJAX polling active, new orders appear automatically
+- **Mock:** None
+
+**TC-FE-010: Revenue report chart rendering**
+- **Steps:** Login admin → Navigate `/report/revenue.jsp` → Select date range → View chart
+- **Expected:** Chart.js renders line chart with revenue data
+- **Mock:** None
 
 ---
 
-#### **Module 4: Employee (4 test cases)**
+## ⚠️ EDGE CASES (25 test cases)
 
-**TC-EDGE-016: Tạo nhân viên với email đã tồn tại**
-- **Description:** Kiểm tra unique constraint validation
-- **Input Data:**
-  ```json
-  {
-    "email": "existing@liteflow.com",
-    "displayName": "Duplicate User"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 409 Conflict
-  - Response: `{"error": "Email already exists"}`
-- **Mock Behavior:** None
+### **Module 1: Authentication (3 tests)**
 
-**TC-EDGE-017: Check-out mà chưa check-in**
-- **Description:** Kiểm tra AttendanceService validate workflow
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-001",
-    "action": "CHECK_OUT",
-    "noCheckInRecord": true
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "No check-in record found"}`
-- **Mock Behavior:** None
+**TC-EDGE-001: Password case sensitive**
+- **Input:** `{email: "admin@liteflow.com", password: "admin@123"}` (wrong case)
+- **Expected:** HTTP 401, error "Invalid credentials"
+- **Mock:** None
 
-**TC-EDGE-018: Tính lương với overtime vượt giới hạn**
-- **Description:** Kiểm tra PayrollService validation overtime hours
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-001",
-    "month": "2025-10",
-    "overtimeHours": 120 // > max allowed (80h)
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Overtime hours exceed maximum allowed (80h)"}`
-- **Mock Behavior:** None
+**TC-EDGE-002: TOTP code expired (>30s)**
+- **Input:** `{totpCode: "123456"}` (generated 35s ago)
+- **Expected:** HTTP 400, error "TOTP code expired"
+- **Mock:** TOTP time mock
 
-**TC-EDGE-019: Tạo lịch làm việc trùng ca**
-- **Description:** Kiểm tra ScheduleService detect conflicts
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-001",
-    "shifts": [
-      {"date": "2025-11-01", "startTime": "08:00", "endTime": "16:00"},
-      {"date": "2025-11-01", "startTime": "14:00", "endTime": "22:00"}
-    ]
-  }
-  ```
-- **Expected Output:**
-  - HTTP 409 Conflict
-  - Response: `{"error": "Shift conflict detected for 2025-11-01"}`
-- **Mock Behavior:** None
+**TC-EDGE-003: RBAC - Cashier cố access admin route**
+- **Input:** Cashier session, GET `/employees`
+- **Expected:** HTTP 403 Forbidden, redirect to access denied
+- **Mock:** None
 
 ---
 
-#### **Module 5: Table & Reservation (3 test cases)**
+### **Module 2: Cashier Order (6 tests)**
 
-**TC-EDGE-020: Đặt bàn cho quá khứ**
-- **Description:** Kiểm tra ReservationService validate date
-- **Input Data:**
-  ```json
-  {
-    "reservationDate": "2025-10-01",
-    "reservationTime": "19:00",
-    "currentDate": "2025-10-31"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Cannot make reservation in the past"}`
-- **Mock Behavior:** None
+**TC-EDGE-004: Order với quantity = 0**
+- **Input:** `{productId: "prod-001", quantity: 0}`
+- **Expected:** HTTP 400, validation error "Quantity must be > 0"
+- **Mock:** None
 
-**TC-EDGE-021: Đặt bàn với số lượng khách > capacity**
-- **Description:** Kiểm tra TableService validation
-- **Input Data:**
-  ```json
-  {
-    "tableId": "table-uuid-small",
-    "numberOfGuests": 10,
-    "tableCapacity": 4
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Number of guests exceeds table capacity"}`
-- **Mock Behavior:** None
+**TC-EDGE-005: Order sản phẩm out of stock**
+- **Input:** `{productId: "prod-001"}` (stock = 0)
+- **Expected:** HTTP 400, error "Product out of stock"
+- **Mock:** None
 
-**TC-EDGE-022: Check-in reservation đã quá giờ (late arrival)**
-- **Description:** Kiểm tra ReservationService xử lý late check-in
-- **Input Data:**
-  ```json
-  {
-    "reservationId": "reservation-uuid-001",
-    "reservationTime": "19:00",
-    "actualArrivalTime": "20:30" // late 1.5h
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK (hoặc 409 nếu table đã cho khách khác)
-  - Response có warning: `{"status": "CHECKED_IN", "warning": "Late arrival"}`
-- **Mock Behavior:** None
+**TC-EDGE-006: Apply invalid discount code**
+- **Input:** `{discountCode: "INVALID"}`
+- **Expected:** HTTP 400, error "Invalid discount code"
+- **Mock:** None
+
+**TC-EDGE-007: Order với total = 0 (all free)**
+- **Input:** `{items: [{productId: "prod-free", price: 0, quantity: 2}]}`
+- **Expected:** HTTP 201, order created, payment skipped, status=COMPLETED
+- **Mock:** None
+
+**TC-EDGE-008: Concurrent order on same table**
+- **Input:** 2 simultaneous requests tạo order cho table-001
+- **Expected:** 1 success, 1 fail với "Table already has active order"
+- **Mock:** None (test race condition)
+
+**TC-EDGE-009: Split bill với total không khớp**
+- **Input:** `{split: [{items: ["item-1"]}, {items: ["item-2"]}]}` nhưng tổng ≠ original total
+- **Expected:** HTTP 400, error "Split amounts do not match original total"
+- **Mock:** None
 
 ---
 
-#### **Module 6: Procurement (2 test cases)**
+### **Module 3: Inventory (5 tests)**
 
-**TC-EDGE-023: Tạo PO với supplier inactive**
-- **Description:** Kiểm tra ProcurementService validate supplier status
-- **Input Data:**
-  ```json
-  {
-    "supplierId": "supplier-inactive-001",
-    "items": [...]
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Supplier is inactive"}`
-- **Mock Behavior:** None
+**TC-EDGE-010: Upload image >5MB**
+- **Input:** Image file 6MB
+- **Expected:** HTTP 400, error "File size exceeds 5MB limit"
+- **Mock:** None
 
-**TC-EDGE-024: Nhận hàng với số lượng != PO quantity**
-- **Description:** Kiểm tra GoodsReceiptService xử lý partial receipt
-- **Input Data:**
-  ```json
-  {
-    "poId": "PO-2025-002",
-    "receivedItems": [
-      {"productId": "prod-uuid-010", "receivedQuantity": 80, "orderedQuantity": 100}
-    ]
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"status": "PARTIALLY_RECEIVED", "discrepancies": [...]}`
-  - DB: PurchaseOrders.Status = PARTIALLY_RECEIVED
-  - DB: Stock chỉ tăng 80
-- **Mock Behavior:** None
+**TC-EDGE-011: Tạo product với tên trùng**
+- **Input:** `{name: "Phở Bò"}` (already exists)
+- **Expected:** HTTP 409 Conflict hoặc warning "Duplicate product name"
+- **Mock:** None
+
+**TC-EDGE-012: Set negative price**
+- **Input:** `{price: -100}`
+- **Expected:** HTTP 400, validation error "Price must be positive"
+- **Mock:** None
+
+**TC-EDGE-013: Delete product đang có order active**
+- **Input:** `{productId: "prod-001"}` (có trong pending order)
+- **Expected:** HTTP 409, error "Cannot delete product with active orders"
+- **Mock:** None
+
+**TC-EDGE-014: Stock deduction xuống âm**
+- **Input:** Deduct 10 units khi stock = 5
+- **Expected:** HTTP 400, error "Insufficient stock"
+- **Mock:** None
 
 ---
 
-### ❌ ERROR SCENARIOS (25 test cases)
+### **Module 4: Employee (4 tests)**
 
-#### **Module 1: Authentication & RBAC (5 test cases)**
+**TC-EDGE-015: Clock-in khi chưa clock-out lần trước**
+- **Input:** Employee có attendance record chưa clock-out
+- **Expected:** HTTP 400, warning "Previous shift not closed, auto clock-out applied"
+- **Mock:** None
 
-**TC-ERR-001: Đăng nhập với user không tồn tại**
-- **Description:** Kiểm tra AuthService xử lý user not found
-- **Input Data:**
-  ```json
-  {
-    "email": "nonexistent@liteflow.com",
-    "password": "AnyPassword"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 401 Unauthorized
-  - Response: `{"error": "Invalid credentials"}`
-  - Không leak thông tin "user not found"
-- **Mock Behavior:** None
+**TC-EDGE-016: Assign overlapping shifts**
+- **Input:** Shift 8-12h và shift 11-15h cùng ngày
+- **Expected:** HTTP 409, error "Shift time conflict"
+- **Mock:** None
 
-**TC-ERR-002: Xác thực 2FA với TOTP code sai**
-- **Description:** Kiểm tra AuthService reject invalid TOTP
-- **Input Data:**
-  ```json
-  {
-    "userId": "user-uuid-001",
-    "totpCode": "000000"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 401 Unauthorized
-  - Response: `{"error": "Invalid 2FA code"}`
-  - DB: Failed2FAAttempts += 1
-- **Mock Behavior:** None
+**TC-EDGE-017: Calculate payroll với 0 hours**
+- **Input:** Employee không có attendance records trong period
+- **Expected:** HTTP 200, payroll = baseSalary only (no overtime)
+- **Mock:** None
 
-**TC-ERR-003: Google OAuth với invalid token**
-- **Description:** Kiểm tra AuthService xử lý lỗi OAuth verification
-- **Input Data:**
-  ```json
-  {
-    "googleToken": "invalid_or_expired_token"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 401 Unauthorized
-  - Response: `{"error": "OAuth verification failed"}`
-- **Mock Behavior:** Mock Google API trả về error
-
-**TC-ERR-004: Database connection lost khi đăng nhập**
-- **Description:** Kiểm tra exception handling khi DB down
-- **Input Data:**
-  - Valid credentials
-  - DB connection đột ngột bị mất
-- **Expected Output:**
-  - HTTP 503 Service Unavailable
-  - Response: `{"error": "Service temporarily unavailable"}`
-  - Log ghi chi tiết SQLException
-- **Mock Behavior:** Mock DAO throw SQLException
-
-**TC-ERR-005: Tạo user với password không đủ mạnh**
-- **Description:** Kiểm tra validation password policy
-- **Input Data:**
-  ```json
-  {
-    "email": "weak@liteflow.com",
-    "password": "123"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Password must be at least 8 characters, contain uppercase, lowercase, number, and special char"}`
-- **Mock Behavior:** None
+**TC-EDGE-018: Leave request vượt quota**
+- **Input:** `{leaveType: "ANNUAL", days: 10}` (remaining quota = 5)
+- **Expected:** HTTP 400, error "Insufficient leave balance"
+- **Mock:** None
 
 ---
 
-#### **Module 2: Cashier/POS Order (6 test cases)**
+### **Module 5: Kitchen (1 test)**
 
-**TC-ERR-006: Tạo đơn khi DB transaction rollback**
-- **Description:** Kiểm tra transaction handling khi partial failure
-- **Input Data:**
-  - Valid order data
-  - Trigger exception sau khi insert Orders nhưng trước khi insert OrderItems
-- **Expected Output:**
-  - HTTP 500 Internal Server Error
-  - DB: Orders table KHÔNG có record mới (rollback thành công)
-  - DB: OrderItems table KHÔNG có records
-- **Mock Behavior:** Mock OrderItemDAO throw exception
-
-**TC-ERR-007: Thanh toán khi Payment Gateway timeout**
-- **Description:** Kiểm tra tích hợp với external service bị timeout
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-001",
-    "paymentMethod": "CREDIT_CARD",
-    "cardToken": "tok_visa_1234"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 504 Gateway Timeout
-  - Response: `{"error": "Payment gateway timeout. Please try again."}`
-  - DB: Orders.Status = PENDING (không đổi)
-  - DB: Payments.Status = FAILED
-- **Mock Behavior:** Mock PaymentGatewayService throw TimeoutException
-
-**TC-ERR-008: Thanh toán thành công nhưng ghi receipt lỗi**
-- **Description:** Kiểm tra idempotency và rollback partial failure
-- **Input Data:**
-  - Valid payment data
-  - Trigger exception khi ReceiptService.create()
-- **Expected Output:**
-  - HTTP 500 Internal Server Error
-  - DB: Payments.Status = COMPLETED (đã commit)
-  - DB: Orders.Status = PAID
-  - DB: Receipts KHÔNG có record
-  - Log warning: "Receipt generation failed, payment successful"
-  - Background job retry receipt generation
-- **Mock Behavior:** Mock ReceiptDAO throw exception
-
-**TC-ERR-009: Cập nhật order status với invalid workflow**
-- **Description:** Kiểm tra OrderService validate state transition
-- **Input Data:**
-  ```json
-  {
-    "orderId": "order-uuid-001",
-    "currentStatus": "PENDING",
-    "newStatus": "SERVED" // skip PREPARING, READY
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Invalid status transition: PENDING -> SERVED"}`
-- **Mock Behavior:** None
-
-**TC-ERR-010: Tạo đơn khi inventory update fail (race condition)**
-- **Description:** Kiểm tra concurrency handling
-- **Input Data:**
-  - 2 requests đồng thời đặt món có stock = 1
-  - Request 1: quantity = 1
-  - Request 2: quantity = 1
-- **Expected Output:**
-  - Request 1: HTTP 201 Created
-  - Request 2: HTTP 409 Conflict, `{"error": "Insufficient stock"}`
-  - DB: chỉ 1 order được tạo
-  - DB: Stock = 0
-- **Mock Behavior:** None (test concurrent requests)
-
-**TC-ERR-011: In hóa đơn cho order không tồn tại**
-- **Description:** Kiểm tra ReceiptService xử lý invalid orderId
-- **Input Data:**
-  - Request: GET /receipt/print?orderId=non-existent-uuid
-- **Expected Output:**
-  - HTTP 404 Not Found
-  - Response: `{"error": "Order not found"}`
-- **Mock Behavior:** None
+**TC-EDGE-019: Update order status đã SERVED**
+- **Input:** `{orderId: "order-001", status: "PREPARING"}` (current=SERVED)
+- **Expected:** HTTP 400, warning "Cannot change status of completed order"
+- **Mock:** None
 
 ---
 
-#### **Module 3: Inventory (5 test cases)**
+### **Module 6: Reservation (3 tests)**
 
-**TC-ERR-012: Thêm sản phẩm với SKU duplicate (DB constraint)**
-- **Description:** Kiểm tra exception handling cho unique constraint violation
-- **Input Data:**
-  ```json
-  {
-    "sku": "SKU-EXISTING",
-    "name": "New Product"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 409 Conflict
-  - Response: `{"error": "SKU already exists"}`
-  - Log ghi SQLIntegrityConstraintViolationException
-- **Mock Behavior:** None
+**TC-EDGE-020: Reservation khi no tables available**
+- **Input:** `{date: "2025-11-01", time: "19:00"}` (all tables occupied)
+- **Expected:** HTTP 400, error "No tables available at this time"
+- **Mock:** None
 
-**TC-ERR-013: Cập nhật stock khi product không tồn tại**
-- **Description:** Kiểm tra InventoryService validation
-- **Input Data:**
-  ```json
-  {
-    "productId": "non-existent-uuid",
-    "quantityChange": +50
-  }
-  ```
-- **Expected Output:**
-  - HTTP 404 Not Found
-  - Response: `{"error": "Product not found"}`
-- **Mock Behavior:** None
+**TC-EDGE-021: Pre-order item out of stock**
+- **Input:** `{productId: "prod-001"}` (stock = 0)
+- **Expected:** HTTP 200 with warning "Product may not be available upon arrival"
+- **Mock:** None
 
-**TC-ERR-014: Import Excel file bị corrupt hoặc sai format**
-- **Description:** Kiểm tra ExcelService exception handling
-- **Input Data:**
-  - File: corrupted.xlsx (không parse được)
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Invalid file format"}`
-- **Mock Behavior:** None
-
-**TC-ERR-015: Export Excel khi không có dữ liệu**
-- **Description:** Kiểm tra ExcelExportService xử lý empty result
-- **Input Data:**
-  - Request: GET /api/inventory/export?date=2020-01-01 (no data)
-- **Expected Output:**
-  - HTTP 200 OK
-  - File tải về có header nhưng không có data rows
-- **Mock Behavior:** None
-
-**TC-ERR-016: Alert service không gửi được email (SMTP fail)**
-- **Description:** Kiểm tra AlertService handle notification failure
-- **Input Data:**
-  - Low stock trigger
-  - SMTP server down
-- **Expected Output:**
-  - DB: Alerts.Status = PENDING (not SENT)
-  - Log error: "Failed to send notification"
-  - Background job retry sau 5 phút
-- **Mock Behavior:** Mock EmailService throw MessagingException
+**TC-EDGE-022: Reservation overdue >15 min**
+- **Input:** Reservation time=18:00, current time=18:20, status=PENDING
+- **Expected:** Job auto-cancel, status=NO_SHOW, table released, notification sent
+- **Mock:** Scheduled job trigger
 
 ---
 
-#### **Module 4: Employee (4 test cases)**
+### **Module 7: Procurement (2 tests)**
 
-**TC-ERR-017: Cập nhật nhân viên không tồn tại**
-- **Description:** Kiểm tra EmployeeService validation
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "non-existent-uuid",
-    "salary": 10000000
-  }
-  ```
-- **Expected Output:**
-  - HTTP 404 Not Found
-  - Response: `{"error": "Employee not found"}`
-- **Mock Behavior:** None
+**TC-EDGE-023: Goods receipt quantity < PO quantity**
+- **Input:** `{receivedQty: 80}` (ordered 100)
+- **Expected:** HTTP 200, partial receipt, PO status=PARTIALLY_RECEIVED
+- **Mock:** None
 
-**TC-ERR-018: Chấm công với timestamp trong tương lai**
-- **Description:** Kiểm tra AttendanceService validate timestamp
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-001",
-    "action": "CHECK_IN",
-    "timestamp": "2025-12-31T08:00:00Z" // future
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Timestamp cannot be in the future"}`
-- **Mock Behavior:** None
-
-**TC-ERR-019: Tính lương khi không có attendance records**
-- **Description:** Kiểm tra PayrollService xử lý missing data
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-uuid-new",
-    "month": "2025-10"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 200 OK
-  - Response: `{"totalSalary": 0, "workDays": 0, "warning": "No attendance records found"}`
-- **Mock Behavior:** None
-
-**TC-ERR-020: Tạo lịch làm việc khi employee inactive**
-- **Description:** Kiểm tra ScheduleService validation
-- **Input Data:**
-  ```json
-  {
-    "employeeId": "emp-inactive-001",
-    "shifts": [...]
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Cannot schedule shifts for inactive employee"}`
-- **Mock Behavior:** None
+**TC-EDGE-024: Invoice amount ≠ PO amount**
+- **Input:** `{invoiceAmount: 520000}` (PO amount = 500000)
+- **Expected:** HTTP 200 with warning "Amount mismatch", status=PENDING_REVIEW
+- **Mock:** None
 
 ---
 
-#### **Module 5: Table & Reservation (3 test cases)**
+### **Module 8: Reporting (1 test)**
 
-**TC-ERR-021: Tạo reservation với tableId không tồn tại**
-- **Description:** Kiểm tra ReservationService validation
-- **Input Data:**
-  ```json
-  {
-    "tableId": "non-existent-table-uuid",
-    "reservationDate": "2025-11-05"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 404 Not Found
-  - Response: `{"error": "Table not found"}`
-- **Mock Behavior:** None
-
-**TC-ERR-022: Check-in reservation đã bị hủy**
-- **Description:** Kiểm tra ReservationService validate status
-- **Input Data:**
-  ```json
-  {
-    "reservationId": "reservation-cancelled-001",
-    "action": "CHECK_IN"
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Cannot check-in cancelled reservation"}`
-- **Mock Behavior:** None
-
-**TC-ERR-023: Lấy available tables khi DB query timeout**
-- **Description:** Kiểm tra TableService exception handling
-- **Input Data:**
-  - Request: GET /api/tables/available?date=2025-11-05
-  - DB query quá lâu (> 5s)
-- **Expected Output:**
-  - HTTP 504 Gateway Timeout
-  - Response: `{"error": "Query timeout"}`
-  - Log ghi QueryTimeoutException
-- **Mock Behavior:** Mock TableDAO throw SQLException
+**TC-EDGE-025: Report với empty date range**
+- **Input:** `{startDate: "2025-12-01", endDate: "2025-12-31"}` (future, no data)
+- **Expected:** HTTP 200, empty report with zero values
+- **Mock:** None
 
 ---
 
-#### **Module 6: Procurement (2 test cases)**
+## ❌ ERROR SCENARIOS (24 test cases)
 
-**TC-ERR-024: Tạo PO với items rỗng**
-- **Description:** Kiểm tra ProcurementService validation
-- **Input Data:**
-  ```json
-  {
-    "supplierId": "supplier-uuid-001",
-    "items": []
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Purchase order must contain at least one item"}`
-- **Mock Behavior:** None
+### **Module 1: Authentication (2 tests)**
 
-**TC-ERR-025: Nhận hàng khi PO đã hoàn tất (duplicate goods receipt)**
-- **Description:** Kiểm tra GoodsReceiptService prevent duplicate
-- **Input Data:**
-  ```json
-  {
-    "poId": "PO-completed-001",
-    "currentStatus": "COMPLETED",
-    "receivedItems": [...]
-  }
-  ```
-- **Expected Output:**
-  - HTTP 400 Bad Request
-  - Response: `{"error": "Purchase order already completed"}`
-- **Mock Behavior:** None
+**TC-ERR-001: Login với email không tồn tại**
+- **Input:** `{email: "notexist@test.com", password: "any"}`
+- **Expected:** HTTP 401, error "Invalid credentials"
+- **Mock:** None
+
+**TC-ERR-002: Password recovery với invalid email**
+- **Input:** `{email: "notexist@test.com"}`
+- **Expected:** HTTP 200 (security: không leak email exists), no OTP sent
+- **Mock:** EmailService (track no call made)
 
 ---
 
-## 📈 PHÂN TÍCH BẢO PHỦ (COVERAGE ESTIMATION)
+### **Module 2: Cashier Order (6 tests)**
 
-### Coverage theo Module
+**TC-ERR-003: Tạo order với invalid table ID**
+- **Input:** `{tableId: "invalid-id"}`
+- **Expected:** HTTP 404, error "Table not found"
+- **Mock:** None
 
-| Module | Happy Path | Edge Cases | Error Scenarios | Tổng TC | Ước tính Coverage |
-|--------|-----------|------------|-----------------|---------|-------------------|
-| **Authentication & RBAC** | 6 | 4 | 5 | **15** | **~80%** |
-| **Cashier/POS Order** | 10 | 6 | 6 | **22** | **~85%** |
-| **Inventory Management** | 7 | 5 | 5 | **17** | **~75%** |
-| **Employee Management** | 6 | 4 | 4 | **14** | **~70%** |
-| **Table & Reservation** | 4 | 3 | 3 | **10** | **~65%** |
-| **Procurement** | 3 | 2 | 2 | **7** | **~60%** |
-| **TỔNG CỘNG** | **36** | **24** | **25** | **85** | **≥70%** |
+**TC-ERR-004: Tạo order với invalid product ID**
+- **Input:** `{productId: "invalid-id"}`
+- **Expected:** HTTP 404, error "Product not found"
+- **Mock:** None
 
-### Các điểm tích hợp được bao phủ
+**TC-ERR-005: Payment fail - Gateway timeout**
+- **Input:** Payment request
+- **Expected:** HTTP 500, transaction rollback, order status=PENDING, error message "Payment processing failed"
+- **Mock:** PaymentGateway throw TimeoutException
 
-✅ **Frontend ↔ Servlet ↔ Service ↔ DAO ↔ DB** (end-to-end flow)  
-✅ **Transaction Management** (rollback, partial failure)  
-✅ **Concurrency Control** (race conditions, optimistic locking)  
-✅ **Authentication & Authorization** (session, JWT, RBAC)  
-✅ **External Service Integration** (Payment Gateway, Email, SMS)  
-✅ **Business Logic Validation** (workflow, constraints, business rules)  
-✅ **Error Handling & Exception Management**  
-✅ **Data Integrity** (FK constraints, unique constraints, cascades)  
+**TC-ERR-006: Xóa item từ completed order**
+- **Input:** `{orderId: "order-completed"}` (status=COMPLETED)
+- **Expected:** HTTP 400, error "Cannot modify completed order"
+- **Mock:** None
 
-### Metrics đo lường
+**TC-ERR-007: Database connection lost khi tạo order**
+- **Input:** Any order creation request
+- **Expected:** HTTP 500, transaction rollback, no partial data in DB
+- **Mock:** DAO throw SQLException
 
-- **Line Coverage**: ≥70% trên các gói `com.liteflow.controller`, `com.liteflow.service`
-- **Branch Coverage**: ≥60% trên các điều kiện nghiệp vụ quan trọng
-- **Integration Points**: 100% các luồng tích hợp E2E ưu tiên được test
-- **Critical Paths**: 100% các ca dùng chính được test (Order flow, Auth flow, Payment flow)
+**TC-ERR-008: Stock deduction race condition**
+- **Input:** 2 concurrent orders cho product có stock = 1
+- **Expected:** 1 success, 1 fail với "Insufficient stock" (optimistic locking)
+- **Mock:** None (test concurrency)
 
 ---
 
-## 🎯 KẾT LUẬN
+### **Module 3: Inventory (5 tests)**
 
-Ma trận test case này bao phủ **85 test cases** trên **6 module nghiệp vụ chính** của hệ thống LiteFlow, với ước tính đạt **≥70% coverage tích hợp** trên tầng Servlet + Service + DAO.
+**TC-ERR-009: Upload invalid file format (PDF)**
+- **Input:** PDF file thay vì image
+- **Expected:** HTTP 400, error "Invalid image format. Only JPG, PNG allowed"
+- **Mock:** None
 
-**Ưu tiên thực thi:**
-1. **Phase 1** (Critical): Authentication, Order Management (TC-HP-001 đến TC-HP-016)
-2. **Phase 2** (Core Business): Inventory, Employee, Payment (TC-HP-017 đến TC-HP-029)
-3. **Phase 3** (Supporting): Reservation, Procurement, Reporting (TC-HP-030 đến TC-HP-036)
-4. **Phase 4** (Robustness): Tất cả Edge Cases + Error Scenarios
+**TC-ERR-010: Tạo product với missing required fields**
+- **Input:** `{name: null, price: 50000}`
+- **Expected:** HTTP 400, validation error "Product name is required"
+- **Mock:** None
 
-**Tài liệu kế tiếp:** PR3 - Môi trường test & seed data, PR4 - Implementation test code, PR5 - Báo cáo coverage.
+**TC-ERR-011: Update non-existent product**
+- **Input:** `{productId: "non-existent"}`
+- **Expected:** HTTP 404, error "Product not found"
+- **Mock:** None
 
+**TC-ERR-012: Tạo table với số bàn trùng trong room**
+- **Input:** `{roomId: "room-001", tableNumber: 5}` (already exists)
+- **Expected:** HTTP 409, error "Table number already exists in this room"
+- **Mock:** None
+
+**TC-ERR-013: Low stock alert fail - EmailService unavailable**
+- **Input:** Stock threshold trigger
+- **Expected:** Alert logged in DB, error logged, system continues (no throw)
+- **Mock:** EmailService throw Exception
+
+---
+
+### **Module 4: Employee (4 tests)**
+
+**TC-ERR-014: Tạo employee với duplicate email**
+- **Input:** `{email: "existing@liteflow.com"}`
+- **Expected:** HTTP 409 Conflict, error "Email already exists"
+- **Mock:** None
+
+**TC-ERR-015: Clock-in với invalid employee ID**
+- **Input:** `{employeeId: "non-existent"}`
+- **Expected:** HTTP 404, error "Employee not found"
+- **Mock:** None
+
+**TC-ERR-016: Assign shift với past date**
+- **Input:** `{date: "2025-10-01"}` (date < today)
+- **Expected:** HTTP 400, error "Cannot assign shift in the past"
+- **Mock:** None
+
+**TC-ERR-017: Calculate payroll fail - DB error**
+- **Input:** Valid payroll request
+- **Expected:** HTTP 500, error logged, no partial payroll data
+- **Mock:** DAO throw SQLException
+
+---
+
+### **Module 5: Kitchen (1 test)**
+
+**TC-ERR-018: Update non-existent order**
+- **Input:** `{orderId: "non-existent"}`
+- **Expected:** HTTP 404, error "Order not found"
+- **Mock:** None
+
+---
+
+### **Module 6: Reservation (3 tests)**
+
+**TC-ERR-019: Create reservation với past date**
+- **Input:** `{date: "2025-10-01"}` (date < today)
+- **Expected:** HTTP 400, error "Cannot create reservation in the past"
+- **Mock:** None
+
+**TC-ERR-020: Confirm arrival của cancelled reservation**
+- **Input:** `{reservationId: "res-001"}` (status=CANCELLED)
+- **Expected:** HTTP 400, error "Cannot confirm cancelled reservation"
+- **Mock:** None
+
+**TC-ERR-021: Cancel completed reservation**
+- **Input:** `{reservationId: "res-001"}` (status=COMPLETED)
+- **Expected:** HTTP 400, error "Cannot cancel completed reservation"
+- **Mock:** None
+
+---
+
+### **Module 7: Procurement (2 tests)**
+
+**TC-ERR-022: Create PO với invalid supplier ID**
+- **Input:** `{supplierId: "non-existent"}`
+- **Expected:** HTTP 404, error "Supplier not found"
+- **Mock:** None
+
+**TC-ERR-023: Record GR với invalid PO ID**
+- **Input:** `{poId: "non-existent"}`
+- **Expected:** HTTP 404, error "Purchase Order not found"
+- **Mock:** None
+
+---
+
+### **Module 8: Reporting (1 test)**
+
+**TC-ERR-024: Generate report với invalid date range (start > end)**
+- **Input:** `{startDate: "2025-10-31", endDate: "2025-10-01"}`
+- **Expected:** HTTP 400, error "Invalid date range: start date must be before end date"
+- **Mock:** None
+
+---
+
+## 📋 TEST CASE SUMMARY
+
+| Module | Happy Path | Edge Cases | Error Scenarios | **Total** | Coverage Target |
+|--------|-----------|-----------|----------------|----------|----------------|
+| **1. Authentication & RBAC** | 6 | 3 | 2 | **11** | 75% |
+| **2. Cashier/POS Order** | 10 | 6 | 6 | **22** | 80% |
+| **3. Inventory Management** | 7 | 5 | 5 | **17** | 75% |
+| **4. Employee & HR** | 6 | 4 | 4 | **14** | 70% |
+| **5. Kitchen Management** | 2 | 1 | 1 | **4** | 65% |
+| **6. Table Reservation** | 4 | 3 | 3 | **10** | 70% |
+| **7. Procurement** | 3 | 2 | 2 | **7** | 65% |
+| **8. Reporting & Analytics** | 2 | 1 | 1 | **4** | 60% |
+| **9. Frontend E2E** | 10 | 0 | 0 | **10** | N/A |
+| **TỔNG CỘNG** | **50** | **25** | **24** | **99** | **≥70%** |
+
+---
+
+## 🎯 INTEGRATION POINTS COVERAGE
+
+**Các điểm tích hợp được test:**
+
+✅ **Frontend ↔ Backend:** JSP form submit → Servlet → Response (TC-FE-001 đến TC-FE-010)  
+✅ **Servlet ↔ Service:** Request handling → Business logic execution (All TC-HP, TC-EDGE, TC-ERR)  
+✅ **Service ↔ DAO:** Transaction management, query execution (All backend tests)  
+✅ **DAO ↔ Database:** CRUD, constraints, cascade delete (TC-ERR-007, TC-ERR-017)  
+✅ **Cross-module Integration:**
+  - Order → Inventory (stock deduction): TC-HP-007, TC-EDGE-005, TC-ERR-008
+  - Order → Kitchen (notification): TC-HP-007, TC-HP-031
+  - Order → Payment (transaction): TC-HP-011, TC-HP-012, TC-ERR-005
+  - Reservation → Order (arrival): TC-HP-034
+  - Procurement → Inventory (goods receipt): TC-HP-037
+  - Employee → Payroll (attendance): TC-HP-029
+  
+✅ **External Services Mock:**
+  - EmailService: TC-HP-004, TC-HP-005, TC-HP-006, TC-HP-024
+  - PaymentGateway: TC-HP-012, TC-ERR-005
+  - OAuth2 API: TC-HP-002
+  - SMSService: TC-HP-032, TC-HP-035
+  
+✅ **Concurrency & Race Conditions:** TC-EDGE-008, TC-ERR-008  
+✅ **Transaction Rollback:** TC-ERR-005, TC-ERR-007, TC-ERR-017  
+✅ **Scheduled Jobs:** TC-EDGE-022 (Overdue reservation check)
+
+---
+
+## 🚀 EXECUTION PRIORITY
+
+**Phase 1 (Critical - Week 1):**
+- Module 1 (Auth): 11 tests
+- Module 2 (Order): 22 tests
+- **Target:** 33 tests, P0 coverage
+
+**Phase 2 (High - Week 2):**
+- Module 3 (Inventory): 17 tests
+- Module 4 (Employee): 14 tests
+- **Target:** 31 tests, P1 coverage
+
+**Phase 3 (Medium - Week 3):**
+- Module 5 (Kitchen): 4 tests
+- Module 6 (Reservation): 10 tests
+- Module 9 (Frontend E2E): 10 tests
+- **Target:** 24 tests
+
+**Phase 4 (Low - Week 4):**
+- Module 7 (Procurement): 7 tests
+- Module 8 (Reporting): 4 tests
+- **Target:** 11 tests
+
+**Total:** 99 tests over 4 weeks
+
+---
+
+## 📝 NOTES
+
+**Mock Strategy:**
+- Chỉ mock external services (Email, Payment, SMS, OAuth2)
+- Tất cả business logic, DAO, DB integration dùng real components
+- SQL Server test instance (clone production schema)
+
+**Data Preparation:**
+- Seed data: 10 users (các roles), 20 products, 10 tables, 5 sample orders
+- Database reset sau mỗi test class (transaction rollback)
+- `TestDataBuilder.java` quản lý test data generation
+
+**Test Helpers:**
+- `ServletTestHelper.java`: Mock HttpServletRequest/Response
+- `MockServiceHelper.java`: Quản lý external service mocks
+- `TestDataBuilder.java`: Generate entities
+
+**Coverage Report:**
+- JaCoCo plugin: Line ≥70%, Branch ≥60%
+- Surefire report: Test execution time, pass/fail rate
+- Export: HTML + XML cho CI/CD
+
+---
+
+**Tiếp theo:** PR3 - Test Environment Setup & Seed Data → PR4 - Test Implementation
+
+**Lưu:** `prompts/outputs_2/Output_PR2.md` ✅
