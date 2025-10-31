@@ -121,6 +121,21 @@ public class ChatBotServlet extends HttpServlet {
                 return;
             }
             
+            // Get user ID from session for PO creation
+            java.util.UUID userId = null;
+            try {
+                jakarta.servlet.http.HttpSession session = request.getSession(false);
+                if (session != null) {
+                    String userLogin = (String) session.getAttribute("UserLogin");
+                    if (userLogin != null && !userLogin.isEmpty()) {
+                        userId = java.util.UUID.fromString(userLogin);
+                        System.out.println("👤 User ID from session: " + userId);
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ Could not get user ID from session: " + e.getMessage());
+            }
+            
             System.out.println("💬 ChatBot request from: " + request.getRemoteAddr());
             System.out.println("   Message: " + userMessage);
             
@@ -130,8 +145,8 @@ public class ChatBotServlet extends HttpServlet {
                 // Custom system prompt provided
                 gptResponse = gptService.chat(userMessage, systemPrompt);
             } else {
-                // Use intelligent chat with demand forecasting
-                gptResponse = gptService.chatWithIntelligence(userMessage);
+                // Use intelligent chat with demand forecasting and PO creation support
+                gptResponse = gptService.chatWithIntelligence(userMessage, userId);
             }
             
             // Build success response

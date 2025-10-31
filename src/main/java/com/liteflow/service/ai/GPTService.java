@@ -3,14 +3,15 @@ package com.liteflow.service.ai;
 import com.liteflow.service.analytics.DemandForecastService;
 import com.liteflow.service.report.RevenueReportService;
 import com.liteflow.service.inventory.ProductInventoryService;
+import com.liteflow.service.procurement.POAutoCreationService;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -133,8 +134,10 @@ public class GPTService {
     /**
      * Intelligent chat with demand forecasting capabilities
      * Detects keywords and provides data-driven responses
+     * @param userMessage User's message
+     * @param userId Optional user ID for PO creation (can be null)
      */
-    public String chatWithIntelligence(String userMessage) throws IOException {
+    public String chatWithIntelligence(String userMessage, UUID userId) throws IOException {
         System.out.println("🧠 Intelligent Chat: Analyzing message...");
         
         // Detect if user is asking about stock/inventory/demand forecasting
@@ -190,12 +193,68 @@ public class GPTService {
             return handleRevenueQuery(userMessage);
         } else if (askingAboutStock) {
             // Route stock queries to demand forecast handler but with direct stock query
-            return handleStockQuery(userMessage);
+            return handleStockQuery(userMessage, userId);
         } else if (askingAboutDemand) {
             return handleDemandForecastQuery(userMessage);
         } else if (askingAboutAlerts) {
             return handleStockAlertQuery(userMessage);
         } else {
+            // Normal chat - check if it's a confirmation for PO creation
+            // If not asking about stock but user confirmed PO, check if we can create PO
+            boolean userConfirmedPO = lowerMessage.contains("có") || 
+                                     lowerMessage.contains("đồng ý") || 
+                                     lowerMessage.contains("tạo đơn") ||
+                                     lowerMessage.contains("tạo po") ||
+                                     lowerMessage.contains("đặt hàng") ||
+                                     lowerMessage.contains("ok") ||
+                                     lowerMessage.contains("yes");
+            
+            if (userConfirmedPO && userId != null && !askingAboutStock) {
+                // User might be confirming PO creation from previous stock query
+                // Try to get low stock items and create PO
+                try {
+                    final int CRITICAL_THRESHOLD = 10;
+                    final int WARNING_THRESHOLD = 20;
+                    JSONObject lowStockResult = productInventoryService.getAllLowStockProducts(CRITICAL_THRESHOLD, WARNING_THRESHOLD);
+                    
+                    if (lowStockResult.getBoolean("success")) {
+                        JSONArray criticalItems = lowStockResult.getJSONArray("criticalItems");
+                        JSONArray warningItems = lowStockResult.getJSONArray("warningItems");
+                        
+                        JSONArray allLowStockItems = new JSONArray();
+                        if (criticalItems.length() > 0) {
+                            for (int i = 0; i < criticalItems.length(); i++) {
+                                allLowStockItems.put(criticalItems.getJSONObject(i));
+                            }
+                        }
+                        if (warningItems.length() > 0) {
+                            for (int i = 0; i < warningItems.length(); i++) {
+                                allLowStockItems.put(warningItems.getJSONObject(i));
+                            }
+                        }
+                        
+                        if (allLowStockItems.length() > 0) {
+                            System.out.println("🚀 User confirmed PO creation in normal chat. Creating PO...");
+                            POAutoCreationService poAutoService = new POAutoCreationService();
+                            Map<UUID, UUID> createdPOs = poAutoService.createPOsFromLowStockItems(allLowStockItems, userId);
+                            
+                            if (!createdPOs.isEmpty()) {
+                                StringBuilder poMessage = new StringBuilder();
+                                poMessage.append("✅ Đã tạo ").append(createdPOs.size()).append(" đơn đặt hàng tự động:\n\n");
+                                for (Map.Entry<UUID, UUID> entry : createdPOs.entrySet()) {
+                                    poMessage.append("- Đơn hàng ID: ").append(entry.getValue()).append("\n");
+                                }
+                                poMessage.append("\nVui lòng kiểm tra trong module 'Mua sắm' -> 'Đơn đặt hàng' để duyệt đơn hàng.");
+                                return poMessage.toString();
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Error checking for PO creation in normal chat: " + e.getMessage());
+                    // Continue to normal chat
+                }
+            }
+            
             // Normal chat
             return chat(userMessage, null);
         }
@@ -203,8 +262,10 @@ public class GPTService {
     
     /**
      * Handle stock queries - Query trực tiếp từ ProductStock table
+     * @param userMessage User's message
+     * @param userId Optional user ID for PO creation (can be null)
      */
-    private String handleStockQuery(String userMessage) throws IOException {
+    private String handleStockQuery(String userMessage, UUID userId) throws IOException {
         System.out.println("📦 Handling Stock Query - Query from ProductStock table...");
         
         try {
@@ -289,8 +350,56 @@ public class GPTService {
                 }
             }
             
+            // Detect user confirmation for PO creation
+            String lowerMessage = userMessage.toLowerCase();
+            boolean userConfirmedPO = lowerMessage.contains("có") || 
+                                     lowerMessage.contains("đồng ý") || 
+                                     lowerMessage.contains("tạo đơn") ||
+                                     lowerMessage.contains("tạo po") ||
+                                     lowerMessage.contains("đặt hàng") ||
+                                     lowerMessage.contains("ok") ||
+                                     lowerMessage.contains("yes");
+            
             // Add replenishment recommendations
             boolean needsReplenishment = criticalItems.length() > 0 || warningItems.length() > 0;
+            
+            // Combine all low stock items for PO creation
+            JSONArray allLowStockItems = new JSONArray();
+            if (criticalItems.length() > 0) {
+                for (int i = 0; i < criticalItems.length(); i++) {
+                    allLowStockItems.put(criticalItems.getJSONObject(i));
+                }
+            }
+            if (warningItems.length() > 0) {
+                for (int i = 0; i < warningItems.length(); i++) {
+                    allLowStockItems.put(warningItems.getJSONObject(i));
+                }
+            }
+            
+            // If user confirmed and has low stock items, create PO
+            if (needsReplenishment && userConfirmedPO && userId != null && allLowStockItems.length() > 0) {
+                try {
+                    System.out.println("🚀 User confirmed PO creation. Creating PO for " + allLowStockItems.length() + " items...");
+                    POAutoCreationService poAutoService = new POAutoCreationService();
+                    Map<UUID, UUID> createdPOs = poAutoService.createPOsFromLowStockItems(allLowStockItems, userId);
+                    
+                    if (!createdPOs.isEmpty()) {
+                        StringBuilder poMessage = new StringBuilder();
+                        poMessage.append("✅ Đã tạo ").append(createdPOs.size()).append(" đơn đặt hàng tự động:\n\n");
+                        for (Map.Entry<UUID, UUID> entry : createdPOs.entrySet()) {
+                            poMessage.append("- Đơn hàng ID: ").append(entry.getValue()).append("\n");
+                        }
+                        poMessage.append("\nVui lòng kiểm tra trong module 'Mua sắm' -> 'Đơn đặt hàng' để duyệt đơn hàng.\n\n");
+                        return poMessage.toString();
+                    } else {
+                        return "Xin lỗi, không thể tạo đơn đặt hàng. Vui lòng kiểm tra lại thông tin nhà cung cấp hoặc liên hệ quản trị viên.";
+                    }
+                } catch (Exception e) {
+                    System.err.println("❌ Error creating PO: " + e.getMessage());
+                    e.printStackTrace();
+                    return "Xin lỗi, đã xảy ra lỗi khi tạo đơn đặt hàng: " + e.getMessage();
+                }
+            }
             
             if (needsReplenishment) {
                 context.append("**⚠️ KHUYẾN NGHỊ NHẬP HÀNG:**\n\n");
@@ -367,6 +476,9 @@ public class GPTService {
                 }
                 context.append("- ⚠️ LƯU Ý: Bất kỳ sản phẩm nào có tồn kho ≤").append(WARNING_THRESHOLD).append(" đều được khuyến nghị nhập hàng\n");
                 context.append("- 📋 Hành động: Tạo đơn đặt hàng (PO) trong module Procurement\n");
+                context.append("\n**🤖 AI CÓ THỂ TỰ ĐỘNG TẠO ĐƠN ĐẶT HÀNG:**\n");
+                context.append("Bạn có muốn tôi tự động tạo đơn đặt hàng (PO) cho các sản phẩm trên không?\n");
+                context.append("Trả lời: 'có', 'đồng ý', 'tạo đơn', hoặc 'đặt hàng' để tôi tạo đơn hàng tự động.\n");
             } else {
                 context.append("\n✅ **TÌNH TRẠNG TỒN KHO:**\n");
                 context.append("Tất cả sản phẩm đều đủ hàng (>").append(WARNING_THRESHOLD).append(" đơn vị). Không cần nhập hàng ngay lúc này.\n");
@@ -382,11 +494,12 @@ public class GPTService {
                 "   - CẢNH BÁO (stock ≤ %d): Nên nhập trong tuần này\n" +
                 "3. Liệt kê các sản phẩm cần nhập hàng với số liệu cụ thể\n" +
                 "4. QUAN TRỌNG: Nếu có bất kỳ sản phẩm nào có tồn kho ≤ %d, BẮT BUỘC phải khuyến nghị nhập hàng\n" +
-                "5. Gợi ý hành động cụ thể (tạo PO, liên hệ nhà cung cấp)\n\n" +
+                "5. Gợi ý hành động cụ thể (tạo PO, liên hệ nhà cung cấp)\n" +
+                "6. QUAN TRỌNG: Nếu có sản phẩm tồn kho thấp, cuối câu trả lời HÃY HỎI user: 'Bạn có muốn tôi tự động tạo đơn đặt hàng (PO) không? Trả lời: có/đồng ý/tạo đơn để tôi tạo đơn hàng tự động.'\n\n" +
                 "LƯU Ý: Không bao giờ nói 'không cần nhập hàng' nếu có sản phẩm có tồn kho ≤ %d!\n\n" +
                 "Dữ liệu từ database:\n\n%s\n\n" +
                 "Hãy trả lời một cách rõ ràng, có số liệu cụ thể và khuyến nghị thực thi được. " +
-                "Nếu có sản phẩm tồn kho thấp (≤%d), phải nhấn mạnh cần nhập hàng.",
+                "Nếu có sản phẩm tồn kho thấp (≤%d), phải nhấn mạnh cần nhập hàng và HỎI user có muốn tạo PO tự động không.",
                 CRITICAL_THRESHOLD, WARNING_THRESHOLD, WARNING_THRESHOLD, WARNING_THRESHOLD,
                 context.toString(), WARNING_THRESHOLD
             );
