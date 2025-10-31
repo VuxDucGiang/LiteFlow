@@ -56,6 +56,8 @@
     <class>com.liteflow.model.alert.AlertHistory</class>
     <class>com.liteflow.model.alert.GPTInteraction</class>
     <class>com.liteflow.model.alert.UserAlertPreference</class>
+    <!-- Notice Board entities -->
+    <class>com.liteflow.model.notice.Notice</class>
     <properties>
       <property name="jakarta.persistence.jdbc.driver" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
       <property name="jakarta.persistence.jdbc.url" value="jdbc:sqlserver://localhost:1433;databaseName=LiteFlowDBO;encrypt=true;trustServerCertificate=true;"/>
