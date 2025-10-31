@@ -76,6 +76,12 @@ GO
 DELETE FROM Categories;
 GO
 
+-- Delete reservation items and reservations
+DELETE FROM ReservationItems;
+GO
+DELETE FROM Reservations;
+GO
+
 -- Delete tables
 DELETE FROM Tables;
 GO
@@ -875,157 +881,6 @@ WHERE ts.CustomerName = N'Lê Văn Cường'
 
 GO
 
--- ============================================================
--- 4️⃣.1 THÊM ORDER STATUS HISTORY (Lịch sử thay đổi trạng thái - cho kitchen notifications)
--- ============================================================
-
--- Lịch sử cho ORD-HISTORY-001 (Nguyễn Văn An)
-INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
-SELECT 
-    o.OrderID,
-    'Pending',
-    'Preparing',
-    u.UserID,
-    DATEADD(MINUTE, 2, o.OrderDate),  -- 2 phút sau khi order được tạo
-    (
-        SELECT 
-            p.Name AS productName,
-            pv.Size AS size,
-            od.Quantity AS quantity,
-            od.UnitPrice AS unitPrice,
-            od.SpecialInstructions AS note
-        FROM OrderDetails od
-        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
-        INNER JOIN Products p ON pv.ProductID = p.ProductID
-        WHERE od.OrderID = o.OrderID
-        FOR JSON PATH
-    )
-FROM Orders o
-CROSS JOIN Users u
-WHERE o.OrderNumber = 'ORD-HISTORY-001' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
-SELECT 
-    o.OrderID,
-    'Preparing',
-    'Ready',
-    u.UserID,
-    DATEADD(MINUTE, 12, o.OrderDate),  -- 12 phút sau khi order được tạo
-    (
-        SELECT 
-            p.Name AS productName,
-            pv.Size AS size,
-            od.Quantity AS quantity,
-            od.UnitPrice AS unitPrice,
-            od.SpecialInstructions AS note
-        FROM OrderDetails od
-        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
-        INNER JOIN Products p ON pv.ProductID = p.ProductID
-        WHERE od.OrderID = o.OrderID
-        FOR JSON PATH
-    )
-FROM Orders o
-CROSS JOIN Users u
-WHERE o.OrderNumber = 'ORD-HISTORY-001' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
-SELECT 
-    o.OrderID,
-    'Ready',
-    'Served',
-    u.UserID,
-    DATEADD(MINUTE, 15, o.OrderDate),  -- 15 phút sau khi order được tạo
-    (
-        SELECT 
-            p.Name AS productName,
-            pv.Size AS size,
-            od.Quantity AS quantity,
-            od.UnitPrice AS unitPrice,
-            od.SpecialInstructions AS note
-        FROM OrderDetails od
-        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
-        INNER JOIN Products p ON pv.ProductID = p.ProductID
-        WHERE od.OrderID = o.OrderID
-        FOR JSON PATH
-    )
-FROM Orders o
-CROSS JOIN Users u
-WHERE o.OrderNumber = 'ORD-HISTORY-001' AND u.Email = 'cashier1@liteflow.vn';
-
--- Lịch sử cho ORD-HISTORY-002 (Lê Văn Cường - VIP)
-INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
-SELECT 
-    o.OrderID,
-    'Pending',
-    'Preparing',
-    u.UserID,
-    DATEADD(MINUTE, 1, o.OrderDate),  -- VIP được ưu tiên
-    (
-        SELECT 
-            p.Name AS productName,
-            pv.Size AS size,
-            od.Quantity AS quantity,
-            od.UnitPrice AS unitPrice,
-            od.SpecialInstructions AS note
-        FROM OrderDetails od
-        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
-        INNER JOIN Products p ON pv.ProductID = p.ProductID
-        WHERE od.OrderID = o.OrderID
-        FOR JSON PATH
-    )
-FROM Orders o
-CROSS JOIN Users u
-WHERE o.OrderNumber = 'ORD-HISTORY-002' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
-SELECT 
-    o.OrderID,
-    'Preparing',
-    'Ready',
-    u.UserID,
-    DATEADD(MINUTE, 18, o.OrderDate),  -- 18 phút (order lớn hơn)
-    (
-        SELECT 
-            p.Name AS productName,
-            pv.Size AS size,
-            od.Quantity AS quantity,
-            od.UnitPrice AS unitPrice,
-            od.SpecialInstructions AS note
-        FROM OrderDetails od
-        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
-        INNER JOIN Products p ON pv.ProductID = p.ProductID
-        WHERE od.OrderID = o.OrderID
-        FOR JSON PATH
-    )
-FROM Orders o
-CROSS JOIN Users u
-WHERE o.OrderNumber = 'ORD-HISTORY-002' AND u.Email = 'cashier1@liteflow.vn';
-
-INSERT INTO OrderStatusHistory (OrderID, OldStatus, NewStatus, ChangedBy, ChangedAt, OrderDetailsSnapshot)
-SELECT 
-    o.OrderID,
-    'Ready',
-    'Served',
-    u.UserID,
-    DATEADD(MINUTE, 20, o.OrderDate),
-    (
-        SELECT 
-            p.Name AS productName,
-            pv.Size AS size,
-            od.Quantity AS quantity,
-            od.UnitPrice AS unitPrice,
-            od.SpecialInstructions AS note
-        FROM OrderDetails od
-        INNER JOIN ProductVariant pv ON od.ProductVariantID = pv.ProductVariantID
-        INNER JOIN Products p ON pv.ProductID = p.ProductID
-        WHERE od.OrderID = o.OrderID
-        FOR JSON PATH
-    )
-FROM Orders o
-CROSS JOIN Users u
-WHERE o.OrderNumber = 'ORD-HISTORY-002' AND u.Email = 'cashier1@liteflow.vn';
-
-GO
 
 -- ============================================================
 -- 5️⃣ CẬP NHẬT TRẠNG THÁI BÀN
@@ -1054,6 +909,186 @@ WHERE TableName IN ('Bàn Ngoài Trời 4');
 UPDATE Tables 
 SET Status = 'Available'
 WHERE TableName IN ('Bàn Ngoài Trời 1', 'Bàn Họp 1', 'Bàn Họp 3', 'Bàn Lễ Tân 1', 'Bàn Lễ Tân 3');
+
+GO
+
+-- ============================================================
+-- 5️⃣.1 RESERVATIONS - DỮ LIỆU MẪU ĐẶT BÀN
+-- ============================================================
+
+-- Đặt bàn cho hôm nay (đã xác nhận, có gán bàn)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(CAST(SYSDATETIME() AS DATE), 'ddMMyyyy') + '-001',
+    N'Nguyễn Văn Hưng',
+    '0901234567',
+    'hung.nguyen@email.com',
+    DATEADD(HOUR, 3, SYSDATETIME()), -- 3 giờ sau
+    4,
+    t.TableID,
+    r.RoomID,
+    
+    'PENDING',
+    N'Đặt bàn gia đình, cần ghế em bé'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn Gia Đình 2';
+
+-- Lấy ReservationID vừa tạo để thêm món đặt trước
+DECLARE @Res1ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0901234567');
+
+-- Thêm món đặt trước
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res1ID, p.ProductID, 2, N'Ít đường'
+FROM Products p WHERE p.Name = N'Cà phê sữa đá';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res1ID, p.ProductID, 4, NULL
+FROM Products p WHERE p.Name = N'Trà sữa trân châu';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res1ID, p.ProductID, 2, N'Không cay'
+FROM Products p WHERE p.Name = N'Khoai tây chiên';
+
+-- Đặt bàn cho ngày mai (chưa gán bàn)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, Status, Notes)
+VALUES (
+    FORMAT(DATEADD(DAY, 1, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Trần Thị Mai',
+    '0912345678',
+    'mai.tran@email.com',
+    DATEADD(HOUR, 19, CAST(DATEADD(DAY, 1, SYSDATETIME()) AS DATETIME2)), -- Ngày mai 7PM
+    6,
+    
+    'PENDING',
+    N'Sinh nhật, cần không gian riêng tư'
+);
+
+-- Thêm món đặt trước cho đặt bàn ngày mai
+DECLARE @Res2ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0912345678');
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res2ID, p.ProductID, 6, NULL
+FROM Products p WHERE p.Name = N'Latte';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res2ID, p.ProductID, 3, NULL
+FROM Products p WHERE p.Name = N'Bánh tiramisu';
+
+-- Đặt bàn VIP (hôm nay, buổi tối, đã gán bàn VIP)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(CAST(SYSDATETIME() AS DATE), 'ddMMyyyy') + '-002',
+    N'Lê Văn Thành',
+    '0923456789',
+    'thanh.le@company.com',
+    DATEADD(HOUR, 19, CAST(SYSDATETIME() AS DATETIME2)), -- Hôm nay 7PM
+    4,
+    t.TableID,
+    r.RoomID,
+    
+    'PENDING',
+    N'Khách VIP, yêu cầu phục vụ đặc biệt'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn VIP 1';
+
+DECLARE @Res3ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0923456789');
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res3ID, p.ProductID, 4, N'Nóng'
+FROM Products p WHERE p.Name = N'Latte';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res3ID, p.ProductID, 4, NULL
+FROM Products p WHERE p.Name = N'Bánh tiramisu';
+
+-- Đặt bàn đã hoàn thành (hôm qua)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(DATEADD(DAY, -1, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Phạm Minh Tuấn',
+    '0934567890',
+    NULL, -- Không có email
+    DATEADD(HOUR, 12, CAST(DATEADD(DAY, -1, SYSDATETIME()) AS DATETIME2)), -- Hôm qua 12PM
+    2,
+    t.TableID,
+    r.RoomID,
+    
+    'SEATED',
+    N'Đã nhận bàn và phục vụ'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn Lễ Tân 2';
+
+DECLARE @Res4ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0934567890');
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res4ID, p.ProductID, 2, NULL
+FROM Products p WHERE p.Name = N'Cà phê đen';
+
+-- Đặt bàn bị hủy
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, ArrivalTime, NumberOfGuests, Status, Notes)
+VALUES (
+    FORMAT(DATEADD(DAY, -2, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Hoàng Thị Lan',
+    '0945678901',
+    DATEADD(HOUR, 18, CAST(DATEADD(DAY, -2, SYSDATETIME()) AS DATETIME2)), -- 2 ngày trước 6PM
+    3,
+    
+    'CANCELLED',
+    N'Khách hủy do lý do cá nhân'
+);
+
+-- Đặt bàn không đến (NO_SHOW)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, ArrivalTime, NumberOfGuests, TableID, RoomID, Status, Notes)
+SELECT 
+    FORMAT(DATEADD(DAY, -1, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-002',
+    N'Đỗ Văn Khoa',
+    '0956789012',
+    DATEADD(HOUR, 19, CAST(DATEADD(DAY, -1, SYSDATETIME()) AS DATETIME2)), -- Hôm qua 7PM
+    5,
+    t.TableID,
+    r.RoomID,
+    
+    'NO_SHOW',
+    N'Khách không đến, quá 30 phút tự động hủy'
+FROM Tables t
+JOIN Rooms r ON t.RoomID = r.RoomID
+WHERE t.TableName = N'Bàn Họp 1';
+
+-- Đặt bàn cho tuần sau (nhiều khách, chưa gán bàn)
+INSERT INTO Reservations (ReservationCode, CustomerName, CustomerPhone, CustomerEmail, ArrivalTime, NumberOfGuests, Status, Notes)
+VALUES (
+    FORMAT(DATEADD(DAY, 7, CAST(SYSDATETIME() AS DATE)), 'ddMMyyyy') + '-001',
+    N'Vũ Thị Hồng',
+    '0967890123',
+    'hong.vu@email.com',
+    DATEADD(HOUR, 12, CAST(DATEADD(DAY, 7, SYSDATETIME()) AS DATETIME2)), -- Tuần sau 12PM
+    10,
+    
+    'PENDING',
+    N'Tiệc công ty, cần không gian lớn'
+);
+
+DECLARE @Res7ID UNIQUEIDENTIFIER = (SELECT TOP 1 ReservationID FROM Reservations WHERE CustomerPhone = '0967890123');
+
+-- Đặt nhiều món
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 10, NULL
+FROM Products p WHERE p.Name = N'Cà phê sữa đá';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 10, NULL
+FROM Products p WHERE p.Name = N'Trà đào cam sả';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 5, NULL
+FROM Products p WHERE p.Name = N'Croissant bơ';
+
+INSERT INTO ReservationItems (ReservationID, ProductID, Quantity, Note)
+SELECT @Res7ID, p.ProductID, 3, N'Phần lớn'
+FROM Products p WHERE p.Name = N'Khoai tây chiên';
 
 GO
 

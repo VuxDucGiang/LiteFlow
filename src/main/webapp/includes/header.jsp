@@ -347,6 +347,9 @@
           <a href="${pageContext.request.contextPath}/kitchen" class="nav-icon" title="Nhà bếp" target="_blank">
             <i class='bx bxs-bowl-hot'></i>
           </a>
+          <a href="${pageContext.request.contextPath}/reception" class="nav-icon" title="Lễ tân" target="_blank">
+            <i class='bx bx-calendar'></i>
+          </a>
           <div class="nav-icon" id="send-notification-icon" title="Gửi thông báo" style="cursor: pointer;">
             <i class='bx bx-mail-send'></i>
           </div>

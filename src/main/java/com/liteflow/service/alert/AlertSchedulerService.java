@@ -5,6 +5,7 @@ import com.liteflow.dao.procurement.PurchaseOrderDAO;
 import com.liteflow.model.alert.AlertConfiguration;
 import com.liteflow.model.procurement.PurchaseOrder;
 import com.liteflow.service.report.RevenueReportService;
+import com.liteflow.service.inventory.ReservationService;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
@@ -34,6 +35,7 @@ public class AlertSchedulerService {
     private final AlertService alertService;
     private final PurchaseOrderDAO poDAO;
     private final RevenueReportService revenueService;
+    private final ReservationService reservationService;
     private final ScheduledExecutorService scheduler;
     private boolean isRunning = false;
     
@@ -42,7 +44,8 @@ public class AlertSchedulerService {
         this.alertService = new AlertService();
         this.poDAO = new PurchaseOrderDAO();
         this.revenueService = new RevenueReportService();
-        this.scheduler = Executors.newScheduledThreadPool(2);
+        this.reservationService = new ReservationService();
+        this.scheduler = Executors.newScheduledThreadPool(3);
     }
     
     /**
@@ -70,6 +73,14 @@ public class AlertSchedulerService {
             this::checkConditionBasedAlerts,
             0,  // Start immediately
             1,  // Run every 1 minute
+            TimeUnit.MINUTES
+        );
+        
+        // Schedule reservation overdue checks every 5 minutes
+        scheduler.scheduleAtFixedRate(
+            this::checkReservationOverdue,
+            0,  // Start immediately
+            5,  // Run every 5 minutes
             TimeUnit.MINUTES
         );
         
@@ -274,6 +285,27 @@ public class AlertSchedulerService {
         System.out.println("🔔 Manual trigger: PO Checks");
         checkPOPendingAlerts();
         checkPOOverdueAlerts();
+    }
+    
+    /**
+     * Check for overdue reservations (more than 30 minutes past arrival time)
+     */
+    private void checkReservationOverdue() {
+        try {
+            System.out.println("🏨 Checking overdue reservations...");
+            
+            int count = reservationService.autoCheckOverdue();
+            
+            if (count > 0) {
+                System.out.println("✅ Marked " + count + " overdue reservations as NO_SHOW");
+            } else {
+                System.out.println("✅ No overdue reservations found");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error checking overdue reservations: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
