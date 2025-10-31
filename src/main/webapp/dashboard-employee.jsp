@@ -280,7 +280,44 @@ function formatDate(dateString) {
   const dayName = days[date.getDay()];
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${dayName}, ${day}/${month}/${date.getFullYear()}`;
+  return dayName + ', ' + day + '/' + month + '/' + date.getFullYear();
+}
+
+// Format date to Vietnamese short format (DD/MM/YYYY)
+function formatDateVN(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString + 'T00:00:00');
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return day + '/' + month + '/' + year;
+}
+
+// Send notification to admin/manager
+async function sendNotificationToAdmin(notificationData) {
+  try {
+    const formData = new URLSearchParams();
+    formData.append('type', notificationData.type);
+    formData.append('title', notificationData.title);
+    formData.append('message', notificationData.message);
+    formData.append('priority', notificationData.priority || 'MEDIUM');
+    if (notificationData.targetUrl) {
+      formData.append('targetUrl', notificationData.targetUrl);
+    }
+    
+    const response = await fetch(CONTEXT_PATH + '/api/notification/send-to-admin', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (response.ok) {
+      console.log('✅ Notification sent to admin successfully');
+    } else {
+      console.warn('⚠️ Failed to send notification to admin');
+    }
+  } catch (error) {
+    console.error('❌ Error sending notification to admin:', error);
+  }
 }
 
 // Open add schedule modal - MUST be available immediately
@@ -725,7 +762,7 @@ async function toggleClock() {
     const data = await response.json();
 
     if (response.ok && data.success) {
-      messageEl.textContent = data.message || `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} thành công!`;
+      messageEl.textContent = data.message || (actionText.charAt(0).toUpperCase() + actionText.slice(1) + ' thành công!');
       messageEl.className = 'attendance-message success';
 
       // Update time display
@@ -736,7 +773,7 @@ async function toggleClock() {
       }
 
       // Clear message after 3 seconds
-      setTimeout(() => {
+      setTimeout(function() {
         messageEl.textContent = '';
         messageEl.className = 'attendance-message';
       }, 3000);
@@ -744,22 +781,22 @@ async function toggleClock() {
       // Reload status to update button
       await loadAttendanceStatus();
     } else {
-      messageEl.textContent = data.error || `Không thể ${actionText}`;
+      messageEl.textContent = data.error || ('Không thể ' + actionText);
       messageEl.className = 'attendance-message error';
       btn.disabled = false;
 
-      setTimeout(() => {
+      setTimeout(function() {
         messageEl.textContent = '';
         messageEl.className = 'attendance-message';
       }, 5000);
     }
   } catch (error) {
-    console.error(`Error ${actionText}:`, error);
+    console.error('Error ' + actionText + ':', error);
     messageEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
     messageEl.className = 'attendance-message error';
     btn.disabled = false;
 
-    setTimeout(() => {
+    setTimeout(function() {
       messageEl.textContent = '';
       messageEl.className = 'attendance-message';
     }, 5000);
@@ -853,8 +890,20 @@ async function saveLeaveRequest() {
     if (response.ok) {
       alert('Đơn xin nghỉ đã được gửi thành công! Vui lòng chờ phê duyệt.');
       closeLeaveRequestModal();
-      // Optionally reload leave requests list if you have one
-      // loadLeaveRequests();
+      
+      // Send notification to admin/manager
+      await sendNotificationToAdmin({
+        type: 'LEAVE_REQUEST',
+        title: 'Đơn xin nghỉ phép mới',
+        message: 'Nhân viên đã gửi đơn xin ' + leaveType + ' từ ' + formatDateVN(startDate) + ' đến ' + formatDateVN(endDate),
+        priority: 'MEDIUM',
+        targetUrl: CONTEXT_PATH + '/employee/leave-requests'
+      });
+      
+      // Refresh notification bell if exists
+      if (typeof notificationBell !== 'undefined' && notificationBell) {
+        notificationBell.refresh();
+      }
     } else {
       alert('Không thể gửi đơn xin nghỉ: ' + (data.error || 'Unknown error'));
     }
@@ -875,12 +924,154 @@ window.saveLeaveRequest = saveLeaveRequest;
 
 // Open forgot clock in modal
 function openForgotClockModal() {
-  alert('Chức năng "Quên chấm công" đang được phát triển.\nVui lòng liên hệ quản lý để được hỗ trợ.');
-  // TODO: Implement forgot clock modal similar to leave request
+  console.log('=== openForgotClockModal called ===');
+  try {
+    const modal = document.getElementById('forgotClockModal');
+    if (!modal) {
+      console.error('❌ Forgot clock modal element not found!');
+      alert('Không thể mở form. Modal element không tồn tại. Vui lòng tải lại trang.');
+      return;
+    }
+
+    // Reset form
+    document.getElementById('forgotClockDate').value = '';
+    document.getElementById('forgotClockType').value = 'CHECK_IN';
+    document.getElementById('forgotClockTime').value = '';
+    document.getElementById('forgotClockReason').value = '';
+
+    // Set default date to yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    document.getElementById('forgotClockDate').value = yesterday.toISOString().split('T')[0];
+
+    // Show/hide time field based on type
+    updateForgotClockTimeField();
+
+    // Show modal
+    modal.style.display = 'flex';
+    modal.style.zIndex = '10000';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+
+    console.log('✅ Forgot clock modal opened successfully');
+  } catch (error) {
+    console.error('❌ Error opening forgot clock modal:', error);
+    alert('Có lỗi xảy ra khi mở form: ' + error.message);
+  }
+}
+
+// Close forgot clock modal
+function closeForgotClockModal() {
+  const modal = document.getElementById('forgotClockModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Update time field based on forgot clock type
+function updateForgotClockTimeField() {
+  const type = document.getElementById('forgotClockType').value;
+  const timeGroup = document.getElementById('forgotClockTimeGroup');
+  const timeLabel = document.getElementById('forgotClockTimeLabel');
+  
+  if (type === 'CHECK_IN') {
+    timeLabel.innerHTML = 'Giờ vào (nếu nhớ)';
+    timeGroup.style.display = 'block';
+  } else if (type === 'CHECK_OUT') {
+    timeLabel.innerHTML = 'Giờ ra (nếu nhớ)';
+    timeGroup.style.display = 'block';
+  } else {
+    timeGroup.style.display = 'none';
+  }
+}
+
+// Save forgot clock request
+async function saveForgotClockRequest() {
+  const forgotDate = document.getElementById('forgotClockDate').value;
+  const forgotType = document.getElementById('forgotClockType').value;
+  const forgotTime = document.getElementById('forgotClockTime').value;
+  const reason = document.getElementById('forgotClockReason').value.trim();
+
+  if (!forgotDate || !forgotType || !reason) {
+    alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+    return;
+  }
+
+  // Validate date is not in future
+  const selectedDate = new Date(forgotDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (selectedDate >= today) {
+    alert('Ngày quên chấm công phải là ngày trong quá khứ');
+    return;
+  }
+
+  // Validate date is not too old (e.g., max 7 days ago)
+  const maxDaysAgo = new Date();
+  maxDaysAgo.setDate(maxDaysAgo.getDate() - 7);
+  maxDaysAgo.setHours(0, 0, 0, 0);
+  
+  if (selectedDate < maxDaysAgo) {
+    alert('Chỉ có thể báo quên chấm công trong vòng 7 ngày gần đây');
+    return;
+  }
+
+  const formData = new URLSearchParams();
+  formData.append('forgotDate', forgotDate);
+  formData.append('forgotType', forgotType);
+  if (forgotTime) {
+    formData.append('forgotTime', forgotTime);
+  }
+  formData.append('reason', reason);
+
+  try {
+    const response = await fetch(CONTEXT_PATH + '/api/forgot-clock/', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert('Yêu cầu quên chấm công đã được gửi thành công! Vui lòng chờ quản lý xét duyệt.');
+      closeForgotClockModal();
+      
+      // Get forgot type text
+      let forgotTypeText = '';
+      switch(forgotType) {
+        case 'CHECK_IN': forgotTypeText = 'chấm công vào'; break;
+        case 'CHECK_OUT': forgotTypeText = 'chấm công ra'; break;
+        case 'BOTH': forgotTypeText = 'chấm công vào và ra'; break;
+      }
+      
+      // Send notification to admin/manager
+      await sendNotificationToAdmin({
+        type: 'FORGOT_CLOCK',
+        title: 'Yêu cầu quên chấm công',
+        message: 'Nhân viên báo quên ' + forgotTypeText + ' vào ngày ' + formatDateVN(forgotDate),
+        priority: 'HIGH',
+        targetUrl: CONTEXT_PATH + '/attendance/forgot-clock-requests'
+      });
+      
+      // Refresh notification bell if exists
+      if (typeof notificationBell !== 'undefined' && notificationBell) {
+        notificationBell.refresh();
+      }
+    } else {
+      alert('Không thể gửi yêu cầu: ' + (data.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Error saving forgot clock request:', error);
+    alert('Có lỗi xảy ra khi gửi yêu cầu');
+  }
 }
 
 // Make forgot clock functions globally accessible
 window.openForgotClockModal = openForgotClockModal;
+window.closeForgotClockModal = closeForgotClockModal;
+window.saveForgotClockRequest = saveForgotClockRequest;
+window.updateForgotClockTimeField = updateForgotClockTimeField;
 
 // Setup modal close on outside click for leave request modal
 function setupLeaveRequestModalCloseOnOutsideClick() {
@@ -894,9 +1085,22 @@ function setupLeaveRequestModalCloseOnOutsideClick() {
   }
 }
 
+// Setup modal close on outside click for forgot clock modal
+function setupForgotClockModalCloseOnOutsideClick() {
+  const modal = document.getElementById('forgotClockModal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeForgotClockModal();
+      }
+    });
+  }
+}
+
 // Call setup function when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
   setupLeaveRequestModalCloseOnOutsideClick();
+  setupForgotClockModalCloseOnOutsideClick();
 });
 </script>
 
@@ -1000,6 +1204,52 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeLeaveRequestModal()">Hủy</button>
       <button class="btn-save" onclick="saveLeaveRequest()">Gửi đơn</button>
+    </div>
+  </div>
+</div>
+
+<!-- Forgot Clock Modal -->
+<div id="forgotClockModal" class="modal-overlay" style="display: none; z-index: 10000;">
+  <div class="modal-content" onclick="event.stopPropagation();">
+    <div class="modal-header">
+      <h3>Báo quên chấm công</h3>
+      <button class="modal-close" onclick="closeForgotClockModal()">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Ngày quên chấm công <span class="required">*</span></label>
+        <input type="date" id="forgotClockDate" class="form-control" required />
+      </div>
+
+      <div class="form-group">
+        <label>Loại quên chấm công <span class="required">*</span></label>
+        <select id="forgotClockType" class="form-control" onchange="updateForgotClockTimeField()" required>
+          <option value="CHECK_IN">Quên chấm công vào</option>
+          <option value="CHECK_OUT">Quên chấm công ra</option>
+          <option value="BOTH">Quên chấm cả vào và ra</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="forgotClockTimeGroup">
+        <label id="forgotClockTimeLabel">Giờ vào (nếu nhớ)</label>
+        <input type="time" id="forgotClockTime" class="form-control" />
+      </div>
+
+      <div class="form-group">
+        <label>Lý do <span class="required">*</span></label>
+        <textarea id="forgotClockReason" class="form-control" rows="4" placeholder="Nhập lý do quên chấm công (bắt buộc)" required></textarea>
+      </div>
+
+      <div class="form-note">
+        <i class='bx bx-info-circle'></i>
+        <span>Yêu cầu sẽ được gửi đến quản lý để xét duyệt. Chỉ có thể báo quên chấm công trong vòng 7 ngày gần đây.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeForgotClockModal()">Hủy</button>
+      <button class="btn-save" onclick="saveForgotClockRequest()">Gửi yêu cầu</button>
     </div>
   </div>
 </div>

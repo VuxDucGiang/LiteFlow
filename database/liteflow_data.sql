@@ -1334,3 +1334,89 @@ JOIN Users u ON u.UserID = e.UserID AND u.Email = 'giangducx2312@gmail.com'
 CROSS JOIN Users uHR
 WHERE uHR.Email = 'hr@liteflow.vn';
 GO
+
+-- ============================================================
+-- SAMPLE EMPLOYEES FOR TESTING (Without User accounts)
+-- ============================================================
+
+-- EMP007 - Đầu bếp
+INSERT INTO Employees (EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
+SELECT 'EMP007', N'Đỗ Văn Giang', '0901234573', N'Đầu bếp', N'Nam', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP007');
+
+-- EMP008 - Phục vụ
+INSERT INTO Employees (EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
+SELECT 'EMP008', N'Bùi Thị Hà', '0901234574', N'Phục vụ', N'Nữ', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP008');
+
+-- EMP009 - Bảo vệ
+INSERT INTO Employees (EmployeeCode, FullName, Phone, Position, Gender, EmploymentStatus, HireDate)
+SELECT 'EMP009', N'Đinh Văn Ích', '0901234575', N'Bảo vệ', N'Nam', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP009');
+
+-- EMP010 - Kế toán
+INSERT INTO Employees (EmployeeCode, FullName, Phone, Email, Position, Gender, EmploymentStatus, HireDate)
+SELECT 'EMP010', N'Ngô Thị Kim', '0901234576', 'kim.ngo@liteflow.com', N'Kế toán', N'Nữ', N'Đang làm', CAST(SYSDATETIME() AS DATE)
+WHERE NOT EXISTS (SELECT 1 FROM Employees WHERE EmployeeCode = 'EMP010');
+
+GO
+
+-- ============================================================
+-- SAMPLE EMPLOYEE COMPENSATIONS FOR TESTING
+-- ============================================================
+
+-- Compensation for EMP001 (Owner) - Lương cứng
+DECLARE @Emp1ID UNIQUEIDENTIFIER;
+SELECT @Emp1ID = EmployeeID FROM Employees WHERE EmployeeCode = 'EMP001';
+
+IF @Emp1ID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM EmployeeCompensation WHERE EmployeeID = @Emp1ID AND IsActive = 1)
+BEGIN
+    INSERT INTO EmployeeCompensation (
+        EmployeeID, CompensationType, BaseMonthlySalary,
+        OvertimeRate, BonusAmount, AllowanceAmount, DeductionAmount,
+        EffectiveFrom, IsActive
+    )
+    VALUES (
+        @Emp1ID, 'Fixed', 30000000,      -- 30M/tháng
+        50000, 2000000, 1000000, 500000, -- Overtime, Bonus, Allowance, Deduction
+        CAST(SYSDATETIME() AS DATE), 1
+    );
+END
+
+-- Compensation for EMP002 (Cashier) - Theo giờ
+DECLARE @Emp2ID UNIQUEIDENTIFIER;
+SELECT @Emp2ID = EmployeeID FROM Employees WHERE EmployeeCode = 'EMP002';
+
+IF @Emp2ID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM EmployeeCompensation WHERE EmployeeID = @Emp2ID AND IsActive = 1)
+BEGIN
+    INSERT INTO EmployeeCompensation (
+        EmployeeID, CompensationType, HourlyRate,
+        OvertimeRate, CommissionRate, AllowanceAmount,
+        EffectiveFrom, IsActive
+    )
+    VALUES (
+        @Emp2ID, 'Hybrid', 25000,        -- 25k/giờ
+        35000, 2.5, 300000,              -- Overtime, Commission, Allowance
+        CAST(SYSDATETIME() AS DATE), 1
+    );
+END
+
+-- Compensation for EMP003 (Inventory) - Theo ca
+DECLARE @Emp3ID UNIQUEIDENTIFIER;
+SELECT @Emp3ID = EmployeeID FROM Employees WHERE EmployeeCode = 'EMP003';
+
+IF @Emp3ID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM EmployeeCompensation WHERE EmployeeID = @Emp3ID AND IsActive = 1)
+BEGIN
+    INSERT INTO EmployeeCompensation (
+        EmployeeID, CompensationType, PerShiftRate,
+        OvertimeRate, BonusAmount, AllowanceAmount, DeductionAmount,
+        EffectiveFrom, IsActive
+    )
+    VALUES (
+        @Emp3ID, 'PerShift', 150000,     -- 150k/ca
+        40000, 500000, 200000, 100000,   -- Overtime, Bonus, Allowance, Deduction
+        CAST(SYSDATETIME() AS DATE), 1
+    );
+END
+
+GO

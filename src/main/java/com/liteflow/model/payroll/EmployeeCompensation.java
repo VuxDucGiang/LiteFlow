@@ -52,6 +52,21 @@ public class EmployeeCompensation implements Serializable {
     @Column(name = "Notes", length = 500)
     private String notes;
 
+    @Column(name = "OvertimeRate", precision = 12, scale = 2)
+    private BigDecimal overtimeRate;
+
+    @Column(name = "BonusAmount", precision = 12, scale = 2)
+    private BigDecimal bonusAmount;
+
+    @Column(name = "CommissionRate", precision = 12, scale = 2)
+    private BigDecimal commissionRate;
+
+    @Column(name = "AllowanceAmount", precision = 12, scale = 2)
+    private BigDecimal allowanceAmount;
+
+    @Column(name = "DeductionAmount", precision = 12, scale = 2)
+    private BigDecimal deductionAmount;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CreatedBy")
     private User createdBy;
@@ -104,6 +119,16 @@ public class EmployeeCompensation implements Serializable {
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public BigDecimal getOvertimeRate() { return overtimeRate; }
+    public void setOvertimeRate(BigDecimal overtimeRate) { this.overtimeRate = overtimeRate; }
+    public BigDecimal getBonusAmount() { return bonusAmount; }
+    public void setBonusAmount(BigDecimal bonusAmount) { this.bonusAmount = bonusAmount; }
+    public BigDecimal getCommissionRate() { return commissionRate; }
+    public void setCommissionRate(BigDecimal commissionRate) { this.commissionRate = commissionRate; }
+    public BigDecimal getAllowanceAmount() { return allowanceAmount; }
+    public void setAllowanceAmount(BigDecimal allowanceAmount) { this.allowanceAmount = allowanceAmount; }
+    public BigDecimal getDeductionAmount() { return deductionAmount; }
+    public void setDeductionAmount(BigDecimal deductionAmount) { this.deductionAmount = deductionAmount; }
 }
 
 
