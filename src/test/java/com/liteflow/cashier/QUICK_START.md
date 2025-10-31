@@ -1,19 +1,25 @@
-# 🚀 Quick Start Guide - CreateOrderServlet Tests
+# 🚀 Quick Start Guide - LiteFlow Test Suite
 
 ## ⚡ TL;DR (Too Long; Didn't Read)
 
 ```bash
-# Run all tests
+# Run ALL tests in project
+mvn test
+
+# Run only CreateOrderServlet tests
 mvn test -Dtest=CreateOrderServletTest
 
-# Generate coverage report
+# Run all tests in cashier package
+mvn test -Dtest=com.liteflow.cashier.*
+
+# Generate coverage report for all tests
 mvn clean test jacoco:report
 
 # View coverage
 start target/site/jacoco/index.html  # Windows
 ```
 
-**Result:** 20 tests, 100% pass rate, 97% coverage ✅
+**CreateOrderServlet Result:** 20 tests, 100% pass rate, 97% coverage ✅
 
 ---
 
@@ -46,29 +52,77 @@ The cashier order creation endpoint (`POST /api/order/create`)
 
 ## 💻 Maven Commands
 
-### Basic Commands
+### Run ALL Tests
 
 ```bash
-# Run all tests in the project
+# Run ALL tests in the entire project
 mvn test
 
+# Run all tests with clean build
+mvn clean test
+
+# Run all tests in quiet mode
+mvn test -q
+
+# Run all tests with verbose output
+mvn test -X
+```
+
+### Run Tests by Package
+
+```bash
+# Run all tests in cashier package
+mvn test -Dtest=com.liteflow.cashier.*
+
+# Run all tests in util package
+mvn test -Dtest=com.liteflow.util.*
+
+# Run all tests in helpers package
+mvn test -Dtest=com.liteflow.helpers.*
+
+# Run multiple packages
+mvn test -Dtest=com.liteflow.cashier.*,com.liteflow.util.*
+```
+
+### Run Specific Test Class
+
+```bash
 # Run only CreateOrderServlet tests
 mvn test -Dtest=CreateOrderServletTest
 
+# Run only PasswordUtil tests
+mvn test -Dtest=PasswordUtilTest
+
+# Run multiple specific classes
+mvn test -Dtest=CreateOrderServletTest,PasswordUtilTest
+```
+
+### Run with Options
+
+```bash
 # Run in quiet mode (less output)
 mvn test -Dtest=CreateOrderServletTest -q
 
-# Run with verbose output
+# Run with verbose output (debug)
 mvn test -Dtest=CreateOrderServletTest -X
+
+# Run tests in parallel (faster)
+mvn test -T 4  # 4 threads
 ```
 
 ### Coverage Commands
 
 ```bash
-# Generate coverage report
+# Generate coverage for ALL tests
 mvn clean test jacoco:report
 
-# Run tests without cleaning
+# Generate coverage for specific test
+mvn clean test -Dtest=CreateOrderServletTest jacoco:report
+
+# Generate coverage for package
+mvn clean test -Dtest=com.liteflow.cashier.* jacoco:report
+
+# Run tests without cleaning (faster)
 mvn test jacoco:report
 
 # View coverage report location
@@ -122,13 +176,26 @@ JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 mvn test -Dtest=CreateOrderServletTest
 ## 🏗️ Project Structure
 
 ```
-src/test/java/com/liteflow/cashier/
-├── CreateOrderServletTest.java    # Main test suite (20 tests)
-├── OrderTestHelper.java            # Test utilities
-├── TEST_SUMMARY.md                 # Detailed test report
-├── README.md                       # Full user guide
-├── VALIDATION_CHECKLIST.md         # Quality checklist
-└── QUICK_START.md                  # This file
+src/test/java/com/liteflow/
+├── cashier/
+│   ├── CreateOrderServletTest.java    # Order creation tests (20 tests)
+│   ├── OrderTestHelper.java           # Test utilities
+│   ├── TEST_SUMMARY.md                # Test report
+│   └── README.md                      # User guide
+├── util/
+│   └── PasswordUtilTest.java          # Password utility tests
+├── helpers/
+│   ├── base/
+│   │   ├── IntegrationTestBase.java   # Base class for integration tests
+│   │   └── TestScenarios.java         # Pre-built test scenarios
+│   ├── builders/
+│   │   └── TestDataBuilder.java       # Entity builders
+│   └── mocks/
+│       ├── MockServiceHelper.java     # Service mocks
+│       └── ServletTestHelper.java     # HTTP mocking
+└── resources/
+    ├── META-INF/test-persistence.xml  # H2 test database config
+    └── application-test.properties    # Test properties
 ```
 
 ---
@@ -228,10 +295,27 @@ TC-INFRA-001: CORS preflight headers
 mvn clean install
 ```
 
+### Issue: "No tests were executed"
+**Possible Causes:**
+1. Wrong test class name
+2. Test class not in correct package
+
+**Solution:**
+```bash
+# Check test class exists
+mvn test -Dtest=CreateOrderServletTest -X
+
+# List all test classes
+find src/test/java -name "*Test.java"
+
+# Run all tests (don't specify -Dtest)
+mvn test
+```
+
 ### Issue: Vietnamese characters show as `?`
 **Solution:**
 ```bash
-mvn test -Dtest=CreateOrderServletTest -Dfile.encoding=UTF-8
+mvn test -Dfile.encoding=UTF-8
 ```
 > This is a console display issue, not a code bug. The Java code handles UTF-8 correctly.
 
@@ -246,6 +330,20 @@ mvn clean test jacoco:report
 Ensure `mockito-junit-jupiter` is in `pom.xml`, then run:
 ```bash
 mvn clean install
+```
+
+### Issue: Tests run too slow
+**Solution - Run in parallel:**
+```bash
+mvn test -T 4  # Use 4 threads
+mvn test -T 1C # 1 thread per CPU core
+```
+
+### Issue: Need to skip tests temporarily
+**Solution:**
+```bash
+mvn clean install -DskipTests
+# Note: Not recommended for production builds
 ```
 
 ---
@@ -271,6 +369,26 @@ mvn clean install
 
 ## 📈 Expected Output
 
+### For ALL Tests (`mvn test`)
+```
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.liteflow.cashier.CreateOrderServletTest
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running com.liteflow.util.PasswordUtilTest
+[INFO] Tests run: X, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: X, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+```
+
+### For Specific Test (`mvn test -Dtest=CreateOrderServletTest`)
 ```
 [INFO] -------------------------------------------------------
 [INFO]  T E S T S
@@ -289,13 +407,37 @@ mvn clean install
 
 ---
 
+## 🚀 Quick Command Reference
+
+### Most Common Commands
+
+```bash
+# 1. Run ALL tests in project
+mvn test
+
+# 2. Run with coverage report
+mvn clean test jacoco:report
+
+# 3. Run specific test class
+mvn test -Dtest=CreateOrderServletTest
+
+# 4. Run all tests in a package
+mvn test -Dtest=com.liteflow.cashier.*
+
+# 5. View coverage report
+start target/site/jacoco/index.html  # Windows
+open target/site/jacoco/index.html   # Mac
+xdg-open target/site/jacoco/index.html  # Linux
+```
+
 ## 🚀 Next Steps
 
-1. ✅ Run tests: `mvn test -Dtest=CreateOrderServletTest`
-2. ✅ Check coverage: `mvn jacoco:report`
+1. ✅ Run all tests: `mvn test`
+2. ✅ Check coverage: `mvn clean test jacoco:report`
 3. ✅ Read full guide: [`README.md`](./README.md)
 4. ✅ Review test details: [`TEST_SUMMARY.md`](./TEST_SUMMARY.md)
 5. ✅ Validate quality: [`VALIDATION_CHECKLIST.md`](./VALIDATION_CHECKLIST.md)
+6. ✅ Check helper classes: [`../helpers/base/IntegrationTestBase.java`](../helpers/base/IntegrationTestBase.java)
 
 ---
 
