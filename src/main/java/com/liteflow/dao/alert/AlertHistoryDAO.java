@@ -280,6 +280,7 @@ public class AlertHistoryDAO {
     
     /**
      * Mark alert as read
+     * For LOW_INVENTORY and DAILY_SUMMARY alerts, delete the alert instead of just marking as read
      */
     public boolean markAsRead(UUID historyID, UUID userId) {
         EntityManager em = emf.createEntityManager();
@@ -287,11 +288,20 @@ public class AlertHistoryDAO {
             em.getTransaction().begin();
             AlertHistory alert = em.find(AlertHistory.class, historyID);
             if (alert != null) {
-                alert.markAsRead(userId);
-                em.merge(alert);
+                String alertType = alert.getAlertType();
+                
+                // Delete alert if it's LOW_INVENTORY or DAILY_SUMMARY
+                if ("LOW_INVENTORY".equals(alertType) || "DAILY_SUMMARY".equals(alertType)) {
+                    em.remove(alert);
+                    System.out.println("🗑️ Alert deleted (mark as read): " + historyID + " (" + alertType + ")");
+                } else {
+                    // Otherwise, just mark as read
+                    alert.markAsRead(userId);
+                    em.merge(alert);
+                    System.out.println("✅ Alert marked as read: " + historyID + " (" + alertType + ")");
+                }
             }
             em.getTransaction().commit();
-            System.out.println("✅ Alert marked as read: " + historyID);
             return true;
         } catch (Exception e) {
             if (em.getTransaction().isActive()) {

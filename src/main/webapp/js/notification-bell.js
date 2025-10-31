@@ -352,10 +352,15 @@ class NotificationBell {
             const timeAgo = this.formatTimeAgo(alert.minutesAgo);
             
             item.innerHTML = `
-                <span class="priority-badge ${alert.priority.toLowerCase()}">${alert.priority}</span>
-                <div class="title">${this.escapeHtml(alert.title)}</div>
-                <div class="message">${this.escapeHtml(alert.message)}</div>
-                <div class="time">${timeAgo}</div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <span class="priority-badge ${alert.priority.toLowerCase()}">${alert.priority}</span>
+                        <div class="title">${this.escapeHtml(alert.title)}</div>
+                        <div class="message">${this.escapeHtml(alert.message)}</div>
+                        <div class="time">${timeAgo}</div>
+                    </div>
+                    ${!alert.isRead && alert.alertType !== 'PO_PENDING' && alert.alertType !== 'PO_OVERDUE' ? `<button onclick="event.stopPropagation(); notificationBell.markAsRead('${alert.historyID}')" style="background: #4caf50; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75em; white-space: nowrap;">✓ Đã đọc</button>` : ''}
+                </div>
             `;
             
             content.appendChild(item);
@@ -408,9 +413,8 @@ class NotificationBell {
      * Handle alert click
      */
     onAlertClick(alert) {
-        if (!alert.isRead) {
-            this.markAsRead(alert.historyID);
-        }
+        // Don't auto-mark as read when clicking
+        // Only mark as read when clicking the "Đã đọc" button
         
         // Get target URL based on alert type
         const targetUrl = this.getAlertTargetUrl(alert);
