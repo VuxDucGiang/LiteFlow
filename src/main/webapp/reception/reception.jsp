@@ -357,7 +357,7 @@
 
     <!-- ========== PRODUCT SELECTOR MODAL ========== -->
     <div class="modal-overlay" id="productSelectorOverlay" onclick="closeProductSelector()"></div>
-    <div class="modal product-selector-modal" id="productSelectorModal">
+    <div class="modal product-selector-modal" id="productSelectorModal" onclick="event.stopPropagation()">
         <div class="modal-header">
             <h3>
                 <i class='bx bx-search'></i>
@@ -420,6 +420,32 @@
         <div class="sidebar-footer" style="border-top:none; padding: 16px; gap: 10px;">
             <button class="btn btn-secondary" onclick="closeActionModal()"><i class='bx bx-x'></i> Hủy</button>
             <button class="btn btn-primary" id="actionModalConfirmBtn"><i class='bx bx-check'></i> Xác nhận</button>
+        </div>
+    </div>
+
+    <!-- Logout Modal -->
+    <div class="modal-overlay" id="logoutModalOverlay" onclick="closeLogoutModal()" style="display: none;"></div>
+    <div id="logoutModal" class="modal" onclick="event.stopPropagation()" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class='bx bx-log-out'></i> Xác nhận đăng xuất</h3>
+                <button class="close-modal-btn" onclick="closeLogoutModal()">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?</p>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeLogoutModal()">
+                    <i class='bx bx-x'></i> Hủy
+                </button>
+                <button class="btn btn-danger" onclick="confirmLogout()">
+                    <i class='bx bx-log-out'></i> Đăng xuất
+                </button>
+            </div>
         </div>
     </div>
 

@@ -1039,7 +1039,8 @@ BEGIN
             REFERENCES Users(UserID) ON DELETE NO ACTION,
         
         -- Constraints
-        CONSTRAINT CK_ForgotClockRequests_ForgotDate CHECK (ForgotDate < CAST(SYSDATETIME() AS DATE))
+        -- Allow same day requests (<= instead of <) for employees who forgot to clock in/out today
+        CONSTRAINT CK_ForgotClockRequests_ForgotDate CHECK (ForgotDate <= CAST(SYSDATETIME() AS DATE))
     );
     
     -- Indexes

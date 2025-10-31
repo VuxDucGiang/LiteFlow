@@ -24,6 +24,8 @@ let tables = [];
 let rooms = [];
 let menuItems = [];
 let categories = [];
+let reservations = []; // Today's reservations
+let reservationSyncInterval = null; // Interval for auto-refresh
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
@@ -112,6 +114,19 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // ✅ Load notification history từ database
   loadNotificationHistory();
+  
+  // ✅ Initialize reservations
+  if (window.reservationsData) {
+    reservations = window.reservationsData || [];
+    console.log('📅 Reservations loaded:', reservations.length);
+  }
+  
+  // ✅ Load today's reservations and start auto-refresh
+  loadTodayReservations();
+  startReservationSync();
+  
+  // ✅ Re-render tables to show reservation status
+  renderTables();
 });
 
 // Render tables
@@ -325,6 +340,10 @@ function renderTableItem(table) {
     capacity = 4; // Default fallback
   }
   
+  // ✅ Check for reservation for this table today
+  const tableReservation = getReservationForTable(table.id);
+  const reservationStatusHtml = tableReservation ? renderReservationStatus(tableReservation) : '';
+  
   return `
     <div class="table-item ${statusClass} ${isSelected ? 'selected' : ''}" 
          data-table-id="${table.id}" data-status="${statusClass}"
@@ -338,6 +357,7 @@ function renderTableItem(table) {
       <span class="status-badge ${statusClass}">
         ${statusText}
       </span>
+      ${reservationStatusHtml}
     </div>
   `;
 }
@@ -397,6 +417,294 @@ function renderMenu() {
       `;
     }).join('');
   }
+}
+
+// ========================================
+// RESERVATION FUNCTIONS
+// ========================================
+
+/**
+ * Get reservation for a specific table today
+ */
+function getReservationForTable(tableId) {
+  if (!reservations || reservations.length === 0) return null;
+  if (!tableId) return null;
+  
+  // Convert tableId to string for comparison
+  const tableIdStr = String(tableId);
+  
+  // Find reservation with matching tableId and status not CANCELLED or CLOSED
+  const reservation = reservations.find(r => {
+    if (!r.tableId) return false;
+    const reservationTableId = String(r.tableId);
+    return reservationTableId === tableIdStr && 
+           r.status !== 'CANCELLED' && 
+           r.status !== 'CLOSED';
+  });
+  
+  return reservation || null;
+}
+
+/**
+ * Render reservation status HTML for table item
+ */
+function renderReservationStatus(reservation) {
+  if (!reservation) return '';
+  
+  const arrivalTime = new Date(reservation.arrivalTime);
+  const timeStr = arrivalTime.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  return `
+    <div class="table-reservation-status">
+      <div class="reservation-info-item">
+        <i class='bx bx-time'></i>
+        <span>${timeStr}</span>
+      </div>
+      <div class="reservation-info-item">
+        <i class='bx bx-user'></i>
+        <span>${reservation.numberOfGuests} khách</span>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Load today's reservations from API
+ */
+function loadTodayReservations() {
+  const today = new Date();
+  const dateStr = formatDateForFilter(today);
+  
+  fetch(`${contextPath}/reception/api/reservations?date=${dateStr}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.reservations) {
+        reservations = data.reservations || [];
+        console.log('📅 Reservations loaded:', reservations.length);
+        
+        // Re-render tables to update reservation status
+        renderTables();
+        
+        // Re-render sidebar if open
+        if (document.getElementById('reservationSidebar')?.classList.contains('active')) {
+          renderReservationList();
+        }
+      }
+    })
+    .catch(error => {
+      console.error('❌ Error loading reservations:', error);
+    });
+}
+
+/**
+ * Format date for API (YYYY-MM-DD)
+ */
+function formatDateForFilter(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Start auto-refresh for reservations (every 30 seconds)
+ */
+function startReservationSync() {
+  // Clear existing interval if any
+  if (reservationSyncInterval) {
+    clearInterval(reservationSyncInterval);
+  }
+  
+  // Start new interval
+  reservationSyncInterval = setInterval(() => {
+    loadTodayReservations();
+  }, 30000); // 30 seconds
+  
+  console.log('✅ Reservation sync started (30s interval)');
+}
+
+/**
+ * Stop auto-refresh for reservations
+ */
+function stopReservationSync() {
+  if (reservationSyncInterval) {
+    clearInterval(reservationSyncInterval);
+    reservationSyncInterval = null;
+    console.log('⏸️ Reservation sync stopped');
+  }
+}
+
+/**
+ * Open reservation sidebar
+ */
+function openReservationSidebar() {
+  const overlay = document.getElementById('reservationSidebarOverlay');
+  const sidebar = document.getElementById('reservationSidebar');
+  
+  if (overlay && sidebar) {
+    overlay.classList.add('active');
+    sidebar.classList.add('active');
+    renderReservationList();
+  }
+}
+
+/**
+ * Close reservation sidebar
+ */
+function closeReservationSidebar() {
+  const overlay = document.getElementById('reservationSidebarOverlay');
+  const sidebar = document.getElementById('reservationSidebar');
+  
+  if (overlay && sidebar) {
+    overlay.classList.remove('active');
+    sidebar.classList.remove('active');
+  }
+}
+
+/**
+ * Render reservation list in sidebar
+ */
+function renderReservationList() {
+  const container = document.getElementById('reservationListSidebar');
+  if (!container) return;
+  
+  // Get filter values
+  const searchInput = document.getElementById('reservationSearchInput');
+  const statusFilter = document.getElementById('reservationStatusFilter');
+  
+  const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+  const statusValue = statusFilter ? statusFilter.value : '';
+  
+  // Filter reservations
+  let filtered = reservations || [];
+  
+  if (statusValue) {
+    filtered = filtered.filter(r => r.status === statusValue);
+  }
+  
+  if (searchTerm) {
+    filtered = filtered.filter(r => {
+      const name = (r.customerName || '').toLowerCase();
+      const phone = (r.customerPhone || '').toLowerCase();
+      const code = (r.reservationCode || '').toLowerCase();
+      return name.includes(searchTerm) || 
+             phone.includes(searchTerm) || 
+             code.includes(searchTerm);
+    });
+  }
+  
+  // Sort: CLOSED at bottom, others by arrival time
+  filtered.sort((a, b) => {
+    const aClosed = a.status === 'CLOSED' ? 1 : 0;
+    const bClosed = b.status === 'CLOSED' ? 1 : 0;
+    if (aClosed !== bClosed) return aClosed - bClosed;
+    const aTime = new Date(a.arrivalTime);
+    const bTime = new Date(b.arrivalTime);
+    return aTime - bTime;
+  });
+  
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class='bx bx-calendar-x'></i>
+        <p>Không có đặt bàn nào</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const html = filtered.map(r => {
+    const arrivalTime = new Date(r.arrivalTime);
+    const timeStr = arrivalTime.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const dateStr = arrivalTime.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit'
+    });
+    
+    const statusLabel = getReservationStatusLabel(r.status);
+    const statusClass = r.status ? r.status.toLowerCase() : '';
+    
+    return `
+      <div class="reservation-card">
+        <div class="reservation-card-header">
+          <div class="reservation-card-info">
+            <h3>${escapeHtml(r.customerName || 'N/A')}</h3>
+            <p>Mã: ${r.reservationCode || 'N/A'}</p>
+          </div>
+          <span class="status-badge ${statusClass}">${statusLabel}</span>
+        </div>
+        
+        <div class="reservation-card-details">
+          <div class="detail-item">
+            <i class='bx bx-time'></i>
+            <span>${timeStr} (${dateStr})</span>
+          </div>
+          <div class="detail-item">
+            <i class='bx bx-user'></i>
+            <span>${r.numberOfGuests || 0} khách</span>
+          </div>
+          <div class="detail-item">
+            <i class='bx bx-phone'></i>
+            <span>${r.customerPhone || 'N/A'}</span>
+          </div>
+          ${r.tableName ? `
+            <div class="detail-item">
+              <i class='bx bx-chair'></i>
+              <span>${r.tableName}</span>
+            </div>
+          ` : ''}
+        </div>
+        
+        ${r.notes ? `
+          <div class="detail-item" style="margin: 6px 0 0 0; color:#4b5563;">
+            <i class='bx bx-note'></i>
+            <span>${escapeHtml(r.notes)}</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+/**
+ * Filter reservation list in sidebar
+ */
+function filterReservationList() {
+  renderReservationList();
+}
+
+/**
+ * Get reservation status label in Vietnamese
+ */
+function getReservationStatusLabel(status) {
+  const labels = {
+    'PENDING': 'Chờ xác nhận',
+    'CONFIRMED': 'Đã xác nhận',
+    'SEATED': 'Đang phục vụ',
+    'CANCELLED': 'Đã hủy',
+    'NO_SHOW': 'Không đến',
+    'CLOSED': 'Đã đóng'
+  };
+  return labels[status] || status || 'N/A';
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // Populate menu categories - Dropdown version

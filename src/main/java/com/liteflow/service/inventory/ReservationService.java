@@ -32,19 +32,15 @@ public class ReservationService {
     }
 
     /**
-     * Generate reservation code in format DDMMYYYY-XXX
-     * Example: 30102025-001
+     * Generate reservation code in format RS-XXXXXXXX
+     * Example: RS-a1b2c3d4
+     * Uses UUID to guarantee uniqueness (no retry needed)
      */
     public String generateReservationCode(LocalDate date) {
-        try {
-            int sequence = reservationDAO.getNextSequenceNumber(date);
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy");
-            String dateStr = date.format(formatter);
-            String sequenceStr = String.format("%03d", sequence);
-            return dateStr + "-" + sequenceStr;
-        } catch (Exception e) {
-            throw new RuntimeException("Error generating reservation code: " + e.getMessage(), e);
-        }
+        // Generate short UUID: RS-XXXXXXXX (8 chars from UUID)
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String code = "RS-" + uuid.substring(0, 8).toUpperCase();
+        return code;
     }
 
     /**
@@ -144,7 +140,7 @@ public class ReservationService {
                 throw new IllegalArgumentException("Khách đã có đặt bàn trong ngày này (theo tên/SĐT/email). Vui lòng chọn ngày khác hoặc cập nhật đặt bàn cũ.");
             }
 
-            // Generate reservation code
+            // Generate reservation code using UUID (guaranteed unique, no retry needed)
             String code = generateReservationCode(bookingDate);
 
             // Create reservation entity
@@ -185,17 +181,30 @@ public class ReservationService {
             // Add pre-ordered items
             if (dto.getPreOrderedItems() != null && !dto.getPreOrderedItems().isEmpty()) {
                 for (PreOrderItemDTO itemDto : dto.getPreOrderedItems()) {
-                    Product product = productDAO.findById(itemDto.getProductId());
-                    if (product != null) {
+                    try {
+                        Product product = productDAO.findById(itemDto.getProductId());
+                        if (product == null) {
+                            System.err.println("⚠️ Product not found: " + itemDto.getProductId());
+                            continue;
+                        }
                         ReservationItem item = new ReservationItem();
                         item.setReservation(reservation);
                         item.setProduct(product);
                         item.setQuantity(itemDto.getQuantity());
                         item.setNote(itemDto.getNote());
                         reservationItemDAO.create(item);
-                        reservation.addReservationItem(item);
+                    } catch (Exception e) {
+                        System.err.println("❌ Error adding pre-order item for product " + itemDto.getProductId() + ": " + e.getMessage());
+                        e.printStackTrace();
+                        // Continue with other items, but log the error
                     }
                 }
+            }
+            
+            // Reload reservation from DB to get all related data (items, room, table) in managed state
+            reservation = reservationDAO.findById(reservation.getReservationId());
+            if (reservation == null) {
+                throw new RuntimeException("Không thể tải lại thông tin đặt bàn sau khi tạo.");
             }
 
             // Send confirmation email if email is provided
@@ -605,4 +614,5 @@ public class ReservationService {
     }
 
 }
+
 

@@ -26,6 +26,11 @@
     <class>com.liteflow.model.inventory.ProductVariant</class>
     <class>com.liteflow.model.inventory.Room</class>
     <class>com.liteflow.model.inventory.Table</class>
+    <class>com.liteflow.model.inventory.Reservation</class>
+    <class>com.liteflow.model.inventory.ReservationItem</class>
+    <class>com.liteflow.model.inventory.TableSession</class>
+    <class>com.liteflow.model.inventory.PaymentTransaction</class>
+    <class>com.liteflow.model.inventory.UserInteraction</class>
     <!-- Payroll entities -->
     <class>com.liteflow.model.payroll.PayPeriod</class>
     <class>com.liteflow.model.payroll.PayrollRun</class>
@@ -38,6 +43,8 @@
     <class>com.liteflow.model.timesheet.EmployeeShiftTimesheet</class>
     <class>com.liteflow.model.timesheet.EmployeeAttendance</class>
     <class>com.liteflow.model.timesheet.PersonalSchedule</class>
+    <class>com.liteflow.model.timesheet.ForgotClockRequest</class>
+    <class>com.liteflow.model.timesheet.LeaveRequest</class>
     <!-- Procurement entities -->
     <class>com.liteflow.model.procurement.Supplier</class>
     <class>com.liteflow.model.procurement.SupplierSLA</class>

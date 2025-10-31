@@ -22,12 +22,23 @@ public class ReservationItemDAO extends GenericDAO<ReservationItem, UUID> {
         var tx = em.getTransaction();
         try {
             tx.begin();
+            // Merge Reservation and Product entities to attach them to current EntityManager context
+            // This prevents "detached entity" errors when Reservation/Product were created in a different EntityManager
+            if (item.getReservation() != null && item.getReservation().getReservationId() != null) {
+                item.setReservation(em.merge(item.getReservation()));
+            }
+            if (item.getProduct() != null && item.getProduct().getProductId() != null) {
+                item.setProduct(em.merge(item.getProduct()));
+            }
             em.persist(item);
             tx.commit();
             return item;
         } catch (Exception e) {
             if (tx.isActive()) tx.rollback();
-            throw new RuntimeException("Error creating reservation item: " + e.getMessage(), e);
+            String errorMsg = "Error creating reservation item: " + e.getMessage();
+            System.err.println("❌ " + errorMsg);
+            e.printStackTrace();
+            throw new RuntimeException(errorMsg, e);
         } finally {
             em.close();
         }

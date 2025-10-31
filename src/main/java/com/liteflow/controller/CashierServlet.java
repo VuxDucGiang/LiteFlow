@@ -1,6 +1,11 @@
 package com.liteflow.controller;
 
 import com.liteflow.dao.BaseDAO;
+import com.liteflow.dao.inventory.ReservationDAO;
+import com.liteflow.model.inventory.Reservation;
+import com.liteflow.model.inventory.ReservationItem;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.servlet.ServletException;
@@ -9,10 +14,22 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.*;
 
 @WebServlet({"/cashier", "/cart/cashier"})
 public class CashierServlet extends HttpServlet {
+    
+    private ReservationDAO reservationDAO;
+    private Gson gson;
+    
+    @Override
+    public void init() throws ServletException {
+        this.reservationDAO = new ReservationDAO();
+        this.gson = new GsonBuilder()
+                .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .create();
+    }
     
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -54,20 +71,26 @@ public class CashierServlet extends HttpServlet {
             List<Map<String, Object>> categories = getCategories();
             System.out.println("✅ Categories loaded: " + categories.size());
             
+            // Lấy danh sách đặt bàn hôm nay
+            List<Map<String, Object>> reservations = getTodayReservations();
+            System.out.println("✅ Reservations loaded: " + reservations.size());
+            
             // Convert to JSON strings for JavaScript
-            com.google.gson.Gson gson = new com.google.gson.Gson();
             String menuItemsJson = gson.toJson(menuItems);
             String tablesJson = gson.toJson(tables);
             String roomsJson = gson.toJson(rooms);
             String categoriesJson = gson.toJson(categories);
+            String reservationsJson = gson.toJson(reservations);
             
             System.out.println("Menu Items JSON length: " + menuItemsJson.length());
             System.out.println("Tables JSON length: " + tablesJson.length());
+            System.out.println("Reservations JSON length: " + reservationsJson.length());
             
             request.setAttribute("menuItemsJson", menuItemsJson);
             request.setAttribute("tablesJson", tablesJson);
             request.setAttribute("roomsJson", roomsJson);
             request.setAttribute("categoriesJson", categoriesJson);
+            request.setAttribute("reservationsJson", reservationsJson);
             
             System.out.println("=== Forwarding to cashier.jsp ===");
             request.getRequestDispatcher("/cart/cashier.jsp").forward(request, response);
@@ -246,5 +269,82 @@ public class CashierServlet extends HttpServlet {
         }
         
         return categories;
+    }
+    
+    /**
+     * Get today's reservations for cashier page
+     */
+    private List<Map<String, Object>> getTodayReservations() {
+        List<Map<String, Object>> reservations = new ArrayList<>();
+        
+        try {
+            LocalDate today = LocalDate.now();
+            List<Reservation> todayReservations = reservationDAO.findByDate(today);
+            
+            for (Reservation reservation : todayReservations) {
+                reservations.add(convertToReservationDTO(reservation));
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi lấy danh sách đặt bàn: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return reservations;
+    }
+    
+    /**
+     * Convert Reservation entity to DTO map for JSON serialization
+     */
+    private Map<String, Object> convertToReservationDTO(Reservation reservation) {
+        if (reservation == null) {
+            return new HashMap<>();
+        }
+        
+        Map<String, Object> dto = new HashMap<>();
+        dto.put("reservationId", reservation.getReservationId() != null ? reservation.getReservationId().toString() : null);
+        dto.put("reservationCode", reservation.getReservationCode());
+        dto.put("customerName", reservation.getCustomerName());
+        dto.put("customerPhone", reservation.getCustomerPhone());
+        dto.put("customerEmail", reservation.getCustomerEmail());
+        dto.put("arrivalTime", reservation.getArrivalTime() != null ? reservation.getArrivalTime().toString() : null);
+        dto.put("numberOfGuests", reservation.getNumberOfGuests());
+        dto.put("status", reservation.getStatus());
+        dto.put("notes", reservation.getNotes());
+        dto.put("createdAt", reservation.getCreatedAt() != null ? reservation.getCreatedAt().toString() : null);
+        dto.put("updatedAt", reservation.getUpdatedAt() != null ? reservation.getUpdatedAt().toString() : null);
+        
+        if (reservation.getTable() != null) {
+            dto.put("tableId", reservation.getTable().getTableId() != null ? reservation.getTable().getTableId().toString() : null);
+            dto.put("tableName", reservation.getTable().getTableName());
+        }
+        
+        if (reservation.getRoom() != null) {
+            dto.put("roomId", reservation.getRoom().getRoomId() != null ? reservation.getRoom().getRoomId().toString() : null);
+            dto.put("roomName", reservation.getRoom().getName());
+        }
+        
+        // Pre-ordered items - handle null safely
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (reservation.getReservationItems() != null) {
+            try {
+                for (ReservationItem item : reservation.getReservationItems()) {
+                    if (item != null && item.getProduct() != null) {
+                        Map<String, Object> itemDto = new HashMap<>();
+                        itemDto.put("productId", item.getProduct().getProductId() != null ? item.getProduct().getProductId().toString() : null);
+                        itemDto.put("productName", item.getProduct().getName());
+                        itemDto.put("quantity", item.getQuantity());
+                        itemDto.put("note", item.getNote());
+                        items.add(itemDto);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Error converting reservation items to DTO: " + e.getMessage());
+                // Continue with empty items list
+            }
+        }
+        dto.put("preOrderedItems", items);
+        
+        return dto;
     }
 }
