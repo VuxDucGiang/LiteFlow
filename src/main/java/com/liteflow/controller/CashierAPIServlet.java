@@ -538,8 +538,8 @@ public class CashierAPIServlet extends HttpServlet {
                 // 1. Tìm hoặc tạo active session
                 com.liteflow.model.inventory.TableSession session = null;
                 
-                // ✅ Với special tables, không tìm session (vì không có table entity)
                 if (!isSpecialTable && tableId != null) {
+                    // ✅ Với bàn thường, tìm session active theo tableId
                     String sessionQuery = "SELECT s FROM TableSession s WHERE s.table.tableId = :tableId AND s.status = 'Active'";
                     Query query = em.createQuery(sessionQuery);
                     query.setParameter("tableId", tableId);
@@ -550,6 +550,24 @@ public class CashierAPIServlet extends HttpServlet {
                     if (!sessions.isEmpty()) {
                         session = sessions.get(0);
                         System.out.println("📋 Sử dụng session có sẵn: " + session.getSessionId());
+                    }
+                } else if (isSpecialTable) {
+                    // ✅ Với special tables, tìm session active gần nhất (có orders chưa checkout)
+                    // Tìm session có orders và status = Active, sắp xếp theo thời gian mới nhất
+                    String specialSessionQuery = "SELECT DISTINCT s FROM TableSession s " +
+                                                 "JOIN s.orders o " +
+                                                 "WHERE s.table IS NULL " +
+                                                 "AND s.status = 'Active' " +
+                                                 "ORDER BY s.checkInTime DESC";
+                    Query specialQuery = em.createQuery(specialSessionQuery);
+                    specialQuery.setMaxResults(1); // Lấy session mới nhất
+                    
+                    @SuppressWarnings("unchecked")
+                    List<com.liteflow.model.inventory.TableSession> specialSessions = specialQuery.getResultList();
+                    
+                    if (!specialSessions.isEmpty()) {
+                        session = specialSessions.get(0);
+                        System.out.println("📋 Sử dụng session special table có sẵn: " + session.getSessionId());
                     }
                 }
                 
@@ -646,65 +664,29 @@ public class CashierAPIServlet extends HttpServlet {
                 updateQuery.executeUpdate();
                 
                 // 5. Trừ số lượng sản phẩm trong kho sau khi thanh toán
-                String ordersQuery = "SELECT o FROM Order o WHERE o.session.sessionId = :sessionId";
-                Query ordersQueryObj = em.createQuery(ordersQuery);
-                ordersQueryObj.setParameter("sessionId", session.getSessionId());
-                
+                // ✅ Nhận orderItems trực tiếp từ request hoặc lấy từ orders trong session
                 @SuppressWarnings("unchecked")
-                List<com.liteflow.model.inventory.Order> orders = ordersQueryObj.getResultList();
+                List<Map<String, Object>> orderItemsFromRequest = (List<Map<String, Object>>) requestData.get("orderItems");
                 
-                for (com.liteflow.model.inventory.Order order : orders) {
-                    // Fetch order details to avoid LazyInitializationException
-                    order.getOrderDetails().size(); // This triggers lazy loading
+                if (orderItemsFromRequest != null && !orderItemsFromRequest.isEmpty()) {
+                    // ✅ Trừ stock trực tiếp từ orderItems (giống cơ chế kitchen)
+                    System.out.println("📦 Trừ stock từ orderItems trực tiếp: " + orderItemsFromRequest.size() + " món");
+                    deductStockFromItems(em, orderItemsFromRequest);
+                } else {
+                    // ✅ Fallback: Trừ stock từ orders trong session (nếu có)
+                    String ordersQuery = "SELECT o FROM Order o WHERE o.session.sessionId = :sessionId";
+                    Query ordersQueryObj = em.createQuery(ordersQuery);
+                    ordersQueryObj.setParameter("sessionId", session.getSessionId());
                     
-                    for (com.liteflow.model.inventory.OrderDetail orderDetail : order.getOrderDetails()) {
-                        // Fetch product variant to avoid LazyInitializationException
-                        orderDetail.getProductVariant();
-                        
-                        // Get the product variant ID and quantity
-                        UUID productVariantId = orderDetail.getProductVariant().getProductVariantId();
-                        Integer quantityToDeduct = orderDetail.getQuantity();
-                        
-                        if (quantityToDeduct == null || quantityToDeduct <= 0) {
-                            continue;
-                        }
-                        
-                        // Find ProductStock by ProductVariant
-                        String stockQuery = "SELECT ps FROM ProductStock ps WHERE ps.productVariant.productVariantId = :variantId";
-                        Query stockQueryObj = em.createQuery(stockQuery);
-                        stockQueryObj.setParameter("variantId", productVariantId);
-                        
-                        @SuppressWarnings("unchecked")
-                        List<com.liteflow.model.inventory.ProductStock> productStocks = stockQueryObj.getResultList();
-                        
-                        if (!productStocks.isEmpty()) {
-                            // Update the first stock record (should be unique per variant)
-                            com.liteflow.model.inventory.ProductStock productStock = productStocks.get(0);
-                            int currentAmount = productStock.getAmount() != null ? productStock.getAmount() : 0;
-                            int newAmount = Math.max(0, currentAmount - quantityToDeduct);
-                            
-                            System.out.println("📦 Deducting stock for ProductVariant: " + productVariantId);
-                            System.out.println("   Current amount: " + currentAmount);
-                            System.out.println("   Quantity to deduct: " + quantityToDeduct);
-                            System.out.println("   New amount: " + newAmount);
-                            
-                            productStock.setAmount(newAmount);
-                            em.merge(productStock);
-                            
-                            // Create inventory log for tracking
-                            com.liteflow.model.inventory.InventoryLog inventoryLog = new com.liteflow.model.inventory.InventoryLog();
-                            inventoryLog.setProductVariant(orderDetail.getProductVariant());
-                            inventoryLog.setActionType("Sale");
-                            inventoryLog.setQuantityChanged(-quantityToDeduct); // Negative for sale
-                            inventoryLog.setActionDate(LocalDateTime.now());
-                            inventoryLog.setStoreLocation(productStock.getInventory().getStoreLocation());
-                            
-                            em.persist(inventoryLog);
-                            
-                            System.out.println("✅ Stock updated successfully");
-                        } else {
-                            System.out.println("⚠️ No ProductStock found for ProductVariant: " + productVariantId);
-                        }
+                    @SuppressWarnings("unchecked")
+                    List<com.liteflow.model.inventory.Order> orders = ordersQueryObj.getResultList();
+                    
+                    if (orders.isEmpty()) {
+                        System.out.println("⚠️ Warning: Không tìm thấy orders nào trong session và không có orderItems từ request!");
+                        System.out.println("   Stock sẽ không được cập nhật.");
+                    } else {
+                        System.out.println("📋 Tìm thấy " + orders.size() + " orders trong session để trừ stock");
+                        deductStockFromOrders(em, orders);
                     }
                 }
                 
@@ -743,6 +725,140 @@ public class CashierAPIServlet extends HttpServlet {
     // =============================================
     // UTILITY METHODS
     // =============================================
+    
+    /**
+     * Trừ stock từ danh sách items (variantId, quantity) - giống cơ chế kitchen
+     * @param em EntityManager
+     * @param items Danh sách items với variantId và quantity
+     */
+    private void deductStockFromItems(EntityManager em, List<Map<String, Object>> items) {
+        for (Map<String, Object> item : items) {
+            try {
+                String variantIdStr = (String) item.get("variantId");
+                if (variantIdStr == null || variantIdStr.isEmpty()) {
+                    continue;
+                }
+                
+                UUID productVariantId = UUID.fromString(variantIdStr);
+                Integer quantityToDeduct = null;
+                
+                Object qtyObj = item.get("quantity");
+                if (qtyObj instanceof Number) {
+                    quantityToDeduct = ((Number) qtyObj).intValue();
+                } else if (qtyObj instanceof String) {
+                    quantityToDeduct = Integer.parseInt((String) qtyObj);
+                }
+                
+                if (quantityToDeduct == null || quantityToDeduct <= 0) {
+                    continue;
+                }
+                
+                // Find ProductStock by ProductVariant
+                String stockQuery = "SELECT ps FROM ProductStock ps WHERE ps.productVariant.productVariantId = :variantId";
+                Query stockQueryObj = em.createQuery(stockQuery);
+                stockQueryObj.setParameter("variantId", productVariantId);
+                
+                @SuppressWarnings("unchecked")
+                List<com.liteflow.model.inventory.ProductStock> productStocks = stockQueryObj.getResultList();
+                
+                if (!productStocks.isEmpty()) {
+                    // Update the first stock record (should be unique per variant)
+                    com.liteflow.model.inventory.ProductStock productStock = productStocks.get(0);
+                    int currentAmount = productStock.getAmount() != null ? productStock.getAmount() : 0;
+                    int newAmount = Math.max(0, currentAmount - quantityToDeduct);
+                    
+                    System.out.println("📦 Deducting stock for ProductVariant: " + productVariantId);
+                    System.out.println("   Current amount: " + currentAmount);
+                    System.out.println("   Quantity to deduct: " + quantityToDeduct);
+                    System.out.println("   New amount: " + newAmount);
+                    
+                    productStock.setAmount(newAmount);
+                    em.merge(productStock);
+                    
+                    // Create inventory log for tracking
+                    com.liteflow.model.inventory.ProductVariant productVariant = productStock.getProductVariant();
+                    com.liteflow.model.inventory.InventoryLog inventoryLog = new com.liteflow.model.inventory.InventoryLog();
+                    inventoryLog.setProductVariant(productVariant);
+                    inventoryLog.setActionType("Sale");
+                    inventoryLog.setQuantityChanged(-quantityToDeduct); // Negative for sale
+                    inventoryLog.setActionDate(LocalDateTime.now());
+                    inventoryLog.setStoreLocation(productStock.getInventory().getStoreLocation());
+                    
+                    em.persist(inventoryLog);
+                    
+                    System.out.println("✅ Stock updated successfully");
+                } else {
+                    System.out.println("⚠️ No ProductStock found for ProductVariant: " + productVariantId);
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi khi trừ stock cho item: " + e.getMessage());
+                e.printStackTrace();
+                // Continue với item tiếp theo
+            }
+        }
+    }
+    
+    /**
+     * Trừ stock từ danh sách orders (fallback method)
+     * @param em EntityManager
+     * @param orders Danh sách orders
+     */
+    private void deductStockFromOrders(EntityManager em, List<com.liteflow.model.inventory.Order> orders) {
+        for (com.liteflow.model.inventory.Order order : orders) {
+            // Fetch order details to avoid LazyInitializationException
+            order.getOrderDetails().size(); // This triggers lazy loading
+            
+            for (com.liteflow.model.inventory.OrderDetail orderDetail : order.getOrderDetails()) {
+                // Fetch product variant to avoid LazyInitializationException
+                orderDetail.getProductVariant();
+                
+                // Get the product variant ID and quantity
+                UUID productVariantId = orderDetail.getProductVariant().getProductVariantId();
+                Integer quantityToDeduct = orderDetail.getQuantity();
+                
+                if (quantityToDeduct == null || quantityToDeduct <= 0) {
+                    continue;
+                }
+                
+                // Find ProductStock by ProductVariant
+                String stockQuery = "SELECT ps FROM ProductStock ps WHERE ps.productVariant.productVariantId = :variantId";
+                Query stockQueryObj = em.createQuery(stockQuery);
+                stockQueryObj.setParameter("variantId", productVariantId);
+                
+                @SuppressWarnings("unchecked")
+                List<com.liteflow.model.inventory.ProductStock> productStocks = stockQueryObj.getResultList();
+                
+                if (!productStocks.isEmpty()) {
+                    // Update the first stock record (should be unique per variant)
+                    com.liteflow.model.inventory.ProductStock productStock = productStocks.get(0);
+                    int currentAmount = productStock.getAmount() != null ? productStock.getAmount() : 0;
+                    int newAmount = Math.max(0, currentAmount - quantityToDeduct);
+                    
+                    System.out.println("📦 Deducting stock for ProductVariant: " + productVariantId);
+                    System.out.println("   Current amount: " + currentAmount);
+                    System.out.println("   Quantity to deduct: " + quantityToDeduct);
+                    System.out.println("   New amount: " + newAmount);
+                    
+                    productStock.setAmount(newAmount);
+                    em.merge(productStock);
+                    
+                    // Create inventory log for tracking
+                    com.liteflow.model.inventory.InventoryLog inventoryLog = new com.liteflow.model.inventory.InventoryLog();
+                    inventoryLog.setProductVariant(orderDetail.getProductVariant());
+                    inventoryLog.setActionType("Sale");
+                    inventoryLog.setQuantityChanged(-quantityToDeduct); // Negative for sale
+                    inventoryLog.setActionDate(LocalDateTime.now());
+                    inventoryLog.setStoreLocation(productStock.getInventory().getStoreLocation());
+                    
+                    em.persist(inventoryLog);
+                    
+                    System.out.println("✅ Stock updated successfully");
+                } else {
+                    System.out.println("⚠️ No ProductStock found for ProductVariant: " + productVariantId);
+                }
+            }
+        }
+    }
     
     private void sendErrorResponse(HttpServletResponse response, int statusCode, String message)
             throws IOException {

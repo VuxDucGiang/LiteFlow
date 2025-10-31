@@ -1782,9 +1782,16 @@ function setupEventListeners() {
       return;
     }
     
+    // ✅ Gửi orderItems trực tiếp để backend trừ stock (giống cơ chế kitchen)
+    // Không cần tạo orders trước, chỉ cần trừ stock
+    const orderItemsToSend = orderItems.map(item => ({
+      variantId: item.variantId,
+      quantity: item.quantity
+    }));
+    
     // ✅ Bỏ confirm modal - thanh toán trực tiếp
     try {
-      // Gọi API checkout
+      // Gọi API checkout với orderItems để trừ stock trực tiếp
       const response = await fetch(contextPath + '/api/cashier/checkout', {
         method: 'POST',
         headers: {
@@ -1793,7 +1800,8 @@ function setupEventListeners() {
         body: JSON.stringify({
           tableId: selectedTable.id,
           paymentMethod: paymentMethod,
-          totalAmount: finalTotal // Gửi tổng tiền để backend lưu vào session
+          totalAmount: finalTotal, // Gửi tổng tiền để backend lưu vào session
+          orderItems: orderItemsToSend // ✅ Gửi orderItems để trừ stock trực tiếp
         })
       });
       
