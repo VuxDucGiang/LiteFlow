@@ -50,12 +50,12 @@ class LiteFlowChatBot {
                             <img src="${contextPath}/img/trans_logo.png" alt="LiteFlow AI">
                         </div>
                         <div class="chatbot-header-text">
-                            <h3>LiteFlow AI Assistant</h3>
-                            <p>Trợ lý thông minh • Powered by GPT</p>
+                            <h3>LiteFlow AI</h3>
+                            <p>Trợ lý thông minh của bạn ✨</p>
                         </div>
                     </div>
                     <button class="chatbot-close" id="chatbot-close" aria-label="Close Chat">
-                        ✕
+                        ×
                     </button>
                 </div>
                 
@@ -65,9 +65,9 @@ class LiteFlowChatBot {
                         <div class="chatbot-welcome-icon">
                             <img src="${contextPath}/img/trans_logo.png" alt="LiteFlow" style="width: 64px; height: 64px; object-fit: contain;">
                         </div>
-                        <h4>Chào mừng đến với LiteFlow! 👋</h4>
-                        <p style="margin: 8px 0 0 0; color: var(--gray-600, #4b5563);">
-                            Tôi là trợ lý AI của bạn. Hỏi tôi bất cứ điều gì về hệ thống quản lý nhà hàng!
+                        <h4>Xin chào! 👋</h4>
+                        <p style="margin: 8px 0 0 0;">
+                            Tôi là trợ lý AI của bạn. Hỏi tôi bất cứ điều gì về hệ thống LiteFlow nhé!
                         </p>
                     </div>
                 </div>
@@ -78,11 +78,14 @@ class LiteFlowChatBot {
                         type="text" 
                         class="chatbot-input" 
                         id="chatbot-input" 
-                        placeholder="Nhập tin nhắn..."
+                        placeholder="Nhập câu hỏi của bạn..."
                         autocomplete="off"
                     />
                     <button class="chatbot-send-btn" id="chatbot-send" aria-label="Send Message">
-                        ➤
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -120,7 +123,10 @@ class LiteFlowChatBot {
         if (this.isOpen) {
             window.classList.add('active');
             button.classList.add('active');
-            document.getElementById('chatbot-input').focus();
+            // Smooth focus with slight delay for better UX
+            setTimeout(() => {
+                document.getElementById('chatbot-input').focus();
+            }, 100);
         } else {
             window.classList.remove('active');
             button.classList.remove('active');
@@ -166,13 +172,13 @@ class LiteFlowChatBot {
                 this.addMessage('bot', data.response);
             } else {
                 // Show error
-                this.addMessage('bot', '❌ ' + (data.error || 'Đã xảy ra lỗi. Vui lòng thử lại.'));
+                this.addMessage('bot', 'Xin lỗi, có vấn đề xảy ra. ' + (data.error || 'Vui lòng thử lại sau nhé! 🙏'));
             }
             
         } catch (error) {
             console.error('ChatBot API Error:', error);
             this.hideTyping();
-            this.addMessage('bot', '❌ Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
+            this.addMessage('bot', 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng của bạn. 🔌');
         }
     }
     
@@ -209,8 +215,13 @@ class LiteFlowChatBot {
         
         messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
         
-        // Scroll to bottom
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        // Smooth scroll to bottom
+        setTimeout(() => {
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }, 50);
         
         // Save to history
         this.messages.push({ role, content, time });
@@ -246,7 +257,14 @@ class LiteFlowChatBot {
         `;
         
         messagesContainer.insertAdjacentHTML('beforeend', typingHTML);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Smooth scroll to bottom
+        setTimeout(() => {
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }, 50);
         
         // Disable send button
         document.getElementById('chatbot-send').disabled = true;
