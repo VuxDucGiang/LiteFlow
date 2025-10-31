@@ -53,6 +53,9 @@
             </div>
         </div>
         <script>
+            // Get form element first so it's available in event handlers
+            const otpForm = document.getElementById('otp-form');
+            
             // Auto-advance & digit-only handling for OTP inputs (same as verify-signup)
             const otpInputs = document.querySelectorAll('.otp-inputs input');
             otpInputs.forEach((input, idx, arr) => {
@@ -73,14 +76,42 @@
                     if (val.length === 1 && idx < arr.length - 1) arr[idx + 1].focus();
                 });
                 input.addEventListener('keydown', (e) => {
+                    // Handle Enter key - submit form if all fields are filled
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const allFilled = Array.from(arr).every(inp => inp.value && inp.value.trim() !== '');
+                        if (allFilled) {
+                            otpForm.submit();
+                        } else {
+                            const firstEmpty = Array.from(arr).find(inp => !inp.value || inp.value.trim() === '');
+                            if (firstEmpty) firstEmpty.focus();
+                        }
+                        return;
+                    }
+                    
+                    // Handle Backspace - improved logic: always move to previous field after deleting
+                    if (e.key === 'Backspace') {
+                        if (input.value) {
+                            // If current field has value, clear it and move to previous field
+                            input.value = '';
+                            if (idx > 0) {
+                                arr[idx - 1].focus();
+                            }
+                        } else if (idx > 0) {
+                            // If current field is empty, move to previous field and clear it
+                            arr[idx - 1].value = '';
+                            arr[idx - 1].focus();
+                        }
+                        e.preventDefault(); // Prevent default backspace behavior
+                        return;
+                    }
+                    
                     // Allow navigation and edit keys
-                    const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'];
+                    const allowed = ['Delete','ArrowLeft','ArrowRight','Tab'];
                     if (allowed.includes(e.key)) return;
+                    
                     // Only single digit keys
                     if (!/^[0-9]$/.test(e.key)) e.preventDefault();
-                    if (e.key === 'Backspace' && !input.value && idx > 0) {
-                        arr[idx - 1].focus();
-                    }
                 });
                 input.addEventListener('focus', () => input.select());
                 // Handle paste of multi-digit codes, digits only
@@ -169,7 +200,6 @@
             }
 
             // Custom form validation: require all 6 digits, show inline error instead of native bubble
-            const otpForm = document.getElementById('otp-form');
             if (otpForm) {
                 otpForm.addEventListener('submit', function(e) {
                     const inputs = Array.from(document.querySelectorAll('.otp-inputs input'));

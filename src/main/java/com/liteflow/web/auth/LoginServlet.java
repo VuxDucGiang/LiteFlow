@@ -42,6 +42,9 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
+        // Đảm bảo session được tạo trước khi tạo CSRF token
+        // Điều này đảm bảo session cookie được gửi về browser ngay từ đầu
+        session = req.getSession(true);
         generateCsrf(req);
         req.getRequestDispatcher("/auth/login.jsp").forward(req, resp);
     }
@@ -50,15 +53,64 @@ public class LoginServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        // ✅ CSRF
+        // ✅ CSRF Protection
         String csrfForm = req.getParameter("csrfToken");
-        String csrfSess = (String) req.getSession().getAttribute("csrfToken");
-        if (csrfSess == null || !csrfSess.equals(csrfForm)) {
+        
+        // Lấy session hiện có - tạo mới nếu chưa có (để đảm bảo session cookie được gửi về browser)
+        // Nếu session không tồn tại, có thể do cookie chưa được gửi từ browser
+        HttpSession session = req.getSession(false);
+        String csrfSess = null;
+        boolean sessionJustCreated = false;
+        
+        if (session != null) {
+            csrfSess = (String) session.getAttribute("csrfToken");
+        } else {
+            // Session không tồn tại - có thể do cookie chưa được gửi từ browser
+            // Tạo session mới để đảm bảo cookie được gửi về browser
+            session = req.getSession(true);
+            sessionJustCreated = true;
+            LOG.info("[LoginServlet] Session not found in POST request, created new session");
+        }
+        
+        // Kiểm tra CSRF token: phải có cả token từ form và từ session, và chúng phải khớp
+        if (csrfForm == null || csrfForm.isBlank()) {
+            LOG.warning("[LoginServlet] CSRF token missing from form");
             generateCsrf(req);
             req.setAttribute("error", "Invalid request. Please refresh and try again.");
             req.getRequestDispatcher("/auth/login.jsp").forward(req, resp);
             return;
         }
+        
+        // Nếu session vừa được tạo hoặc không có CSRF token trong session
+        if (csrfSess == null || csrfSess.isBlank()) {
+            if (sessionJustCreated) {
+                // Session vừa được tạo - đây có thể là lần submit đầu tiên khi cookie chưa được gửi
+                // Tạo CSRF token mới và lưu vào session, sau đó yêu cầu user refresh
+                LOG.info("[LoginServlet] New session created, generating CSRF token and requesting refresh");
+                generateCsrf(req);
+                req.setAttribute("error", "Please refresh the page and try again.");
+                req.getRequestDispatcher("/auth/login.jsp").forward(req, resp);
+                return;
+            } else {
+                // Session đã tồn tại nhưng không có CSRF token - tạo token mới
+                LOG.warning("[LoginServlet] Session exists but CSRF token missing");
+                generateCsrf(req);
+                req.setAttribute("error", "Session expired. Please refresh and try again.");
+                req.getRequestDispatcher("/auth/login.jsp").forward(req, resp);
+                return;
+            }
+        }
+        
+        // Kiểm tra CSRF token có khớp không
+        if (!csrfSess.equals(csrfForm)) {
+            LOG.warning("[LoginServlet] CSRF token mismatch");
+            generateCsrf(req);
+            req.setAttribute("error", "Invalid request. Please refresh and try again.");
+            req.getRequestDispatcher("/auth/login.jsp").forward(req, resp);
+            return;
+        }
+        
+        // CSRF token hợp lệ, tiếp tục xử lý login
 
         String email = req.getParameter("id"); // field name=id trong form
         String password = req.getParameter("password");
@@ -191,7 +243,10 @@ public class LoginServlet extends HttpServlet {
         }
 
         if (needOtp) {
-            HttpSession session = req.getSession(true);
+            // Sử dụng lại session đã được khai báo ở đầu method, đảm bảo session tồn tại
+            if (session == null) {
+                session = req.getSession(true);
+            }
             session.setAttribute("pendingUser", user.getUserID());
             session.setAttribute("pendingAccessToken", accessToken);
             // Mark OTP context so VerifyOtpServlet knows this is a login OTP

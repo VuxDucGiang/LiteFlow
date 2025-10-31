@@ -1,5 +1,21 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%
+    // Đảm bảo CSRF token được tạo nếu chưa có (khi JSP được load trực tiếp không qua servlet)
+    // Sử dụng biến implicit 'session' của JSP, không cần khai báo lại
+    if (request.getAttribute("csrfToken") == null) {
+        // Đảm bảo session tồn tại
+        if (session == null) {
+            session = request.getSession(true);
+        }
+        String csrfToken = (String) session.getAttribute("csrfToken");
+        if (csrfToken == null || csrfToken.isEmpty()) {
+            csrfToken = java.util.UUID.randomUUID().toString();
+            session.setAttribute("csrfToken", csrfToken);
+        }
+        request.setAttribute("csrfToken", csrfToken);
+    }
+%>
 <html>
     <head>
         <title>LiteFlow - Login</title>
