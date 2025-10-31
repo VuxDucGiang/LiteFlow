@@ -344,6 +344,98 @@ public class NotificationService {
     public NotificationChannel getChannelById(UUID channelID) {
         return channelDAO.getById(channelID);
     }
+    
+    /**
+     * Send Telegram message directly to a user's Chat ID
+     * This method is used for direct user notifications (not via NotificationChannel)
+     * @param chatId Telegram Chat ID
+     * @param title Message title
+     * @param message Message content
+     * @param priority Priority level (CRITICAL, HIGH, MEDIUM, LOW)
+     * @param botToken Telegram Bot Token (if null, will try to get from default channel)
+     * @return true if sent successfully
+     */
+    public boolean sendTelegramToUser(String chatId, String title, String message, String priority, String botToken) {
+        try {
+            // Use provided bot token or get from default Telegram channel
+            String token = botToken;
+            if (token == null || token.isEmpty()) {
+                NotificationChannel defaultTelegram = channelDAO.getDefaultTelegramChannel();
+                if (defaultTelegram != null && defaultTelegram.getTelegramBotToken() != null) {
+                    token = defaultTelegram.getTelegramBotToken();
+                } else {
+                    System.err.println("❌ Telegram bot token not provided and no default Telegram channel configured");
+                    return false;
+                }
+            }
+            
+            if (chatId == null || chatId.isEmpty()) {
+                System.err.println("❌ Telegram chat ID is required");
+                return false;
+            }
+            
+            // Build Telegram message (HTML format)
+            String emoji = getPriorityEmoji(priority);
+            StringBuilder telegramMessage = new StringBuilder();
+            telegramMessage.append(emoji).append(" <b>").append(escapeHtml(title)).append("</b>\n\n");
+            // Message đã được format sẵn với HTML tags, chỉ cần escape các ký tự đặc biệt nhưng giữ lại tags
+            // Không escape HTML tags trong message vì chúng đã được format đúng
+            telegramMessage.append(message).append("\n\n");
+            telegramMessage.append("<i>Priority: ").append(escapeHtml(priority != null ? priority : "MEDIUM")).append(" | ");
+            telegramMessage.append(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+            telegramMessage.append("</i>");
+            
+            // Build request
+            JSONObject requestBody = new JSONObject();
+            requestBody.put("chat_id", chatId);
+            requestBody.put("text", telegramMessage.toString());
+            requestBody.put("parse_mode", "HTML");
+            
+            // Send HTTP POST
+            String apiUrl = "https://api.telegram.org/bot" + token + "/sendMessage";
+            URL url = new URL(apiUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+            
+            // Read response
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                System.out.println("✅ Telegram message sent to user: " + chatId);
+                return true;
+            } else {
+                // Read error
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        response.append(line);
+                    }
+                    System.err.println("❌ Telegram API error (" + responseCode + "): " + response.toString());
+                }
+                return false;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Telegram send to user failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Overloaded method with default priority
+     */
+    public boolean sendTelegramToUser(String chatId, String title, String message, String botToken) {
+        return sendTelegramToUser(chatId, title, message, "MEDIUM", botToken);
+    }
 }
 
 

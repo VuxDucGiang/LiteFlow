@@ -48,13 +48,12 @@ public class AuthenticationFilter extends BaseFilter {
         // 🆕 PHÂN QUYỀN MODULE PROCUREMENT (THÊM MỚI)
         // ============================================================
         // Cho phép truy cập các đường dẫn trong module Procurement:
-        // /procurement/supplier, /procurement/po, /procurement/invoice, /procurement/gr ...
+        // /procurement/supplier, /procurement/po, /procurement/gr ...
         Set<String> procurementPaths = new HashSet<>(Arrays.asList(
                 "/procurement",
                 "/procurement/dashboard",
                 "/procurement/supplier",
                 "/procurement/po",
-                "/procurement/invoice",
                 "/procurement/gr"
         ));
 

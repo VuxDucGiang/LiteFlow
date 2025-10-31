@@ -304,6 +304,7 @@ GO
 -- ============================================================
 -- 5️⃣ GOODS RECEIPTS (Phiếu nhận hàng)
 -- ============================================================
+-- GoodsReceipts cho PO COMPLETED
 INSERT INTO GoodsReceipts (POID, ReceivedBy, ReceiveDate, Notes, Status)
 SELECT 
     po.POID,
@@ -313,13 +314,13 @@ SELECT
     'FULL'
 FROM PurchaseOrders po
 JOIN Suppliers s ON s.SupplierID = po.SupplierID
-WHERE s.Name IN (N'Công ty Cà phê Trung Nguyên', N'Nhà cung cấp Sữa Vinamilk') AND po.Status = 'APPROVED';
+WHERE s.Name IN (N'Công ty Cà phê Trung Nguyên', N'Nhà cung cấp Sữa Vinamilk') AND po.Status = 'COMPLETED';
 GO
 
 -- ============================================================
 -- 5.1️⃣ GOODS RECEIPT ITEMS (Chi tiết phiếu nhận hàng) - 🆕
 -- ============================================================
--- Cà phê Trung Nguyên - Nhận đầy đủ
+-- Cà phê Trung Nguyên - Nhận đầy đủ (PO COMPLETED)
 INSERT INTO GoodsReceiptItems (ReceiptID, POItemID, ProductName, OrderedQuantity, ReceivedQuantity, UnitPrice, QualityStatus, Notes)
 SELECT 
     gr.ReceiptID,
@@ -334,9 +335,9 @@ FROM GoodsReceipts gr
 JOIN PurchaseOrders po ON gr.POID = po.POID
 JOIN PurchaseOrderItems poi ON poi.POID = po.POID
 JOIN Suppliers s ON po.SupplierID = s.SupplierID
-WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'APPROVED';
+WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'COMPLETED';
 
--- Sữa Vinamilk - Nhận thiếu 2 hộp (98/100)
+-- Sữa Vinamilk - Nhận thiếu 2 hộp (98/100) - từ PO COMPLETED
 INSERT INTO GoodsReceiptItems (ReceiptID, POItemID, ProductName, OrderedQuantity, ReceivedQuantity, UnitPrice, QualityStatus, DiscrepancyReason, Notes)
 SELECT 
     gr.ReceiptID,
@@ -352,7 +353,7 @@ FROM GoodsReceipts gr
 JOIN PurchaseOrders po ON gr.POID = po.POID
 JOIN PurchaseOrderItems poi ON poi.POID = po.POID
 JOIN Suppliers s ON po.SupplierID = s.SupplierID
-WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'APPROVED';
+WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'COMPLETED';
 
 -- Cà phê Espresso (COMPLETED) - Nhận đủ nhưng có 5 gói lỗi
 INSERT INTO GoodsReceiptItems (ReceiptID, POItemID, ProductName, OrderedQuantity, ReceivedQuantity, UnitPrice, QualityStatus, DefectiveQuantity, Notes)
@@ -376,7 +377,7 @@ GO
 -- ============================================================
 -- 6️⃣ INVOICES (Hóa đơn)
 -- ============================================================
--- Invoice từ Cà phê Trung Nguyên - Khớp hoàn toàn
+-- Invoice từ Cà phê Trung Nguyên - Khớp hoàn toàn (từ PO COMPLETED)
 INSERT INTO Invoices (POID, SupplierID, InvoiceDate, TotalAmount, Matched, MatchNote, MatchStatus)
 SELECT 
     po.POID,
@@ -388,9 +389,9 @@ SELECT
     'MATCHED'
 FROM PurchaseOrders po
 JOIN Suppliers s ON s.SupplierID = po.SupplierID
-WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'APPROVED';
+WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'COMPLETED';
 
--- Invoice từ Vinamilk - Chênh lệch (tính tiền 100 hộp nhưng chỉ nhận 98)
+-- Invoice từ Vinamilk - Chênh lệch (tính tiền 100 hộp nhưng chỉ nhận 98) - từ PO COMPLETED
 INSERT INTO Invoices (POID, SupplierID, InvoiceDate, TotalAmount, Matched, MatchNote, MatchStatus)
 SELECT 
     po.POID,
@@ -402,13 +403,13 @@ SELECT
     'MISMATCHED'
 FROM PurchaseOrders po
 JOIN Suppliers s ON s.SupplierID = po.SupplierID
-WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'APPROVED';
+WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'COMPLETED';
 GO
 
 -- ============================================================
 -- 6.1️⃣ INVOICE ITEMS (Chi tiết hóa đơn) - 🆕
 -- ============================================================
--- Invoice Items cho Cà phê Trung Nguyên - Matched
+-- Invoice Items cho Cà phê Trung Nguyên - Matched (từ PO COMPLETED)
 INSERT INTO InvoiceItems (InvoiceID, POItemID, ProductName, Quantity, UnitPrice, Matched, MatchNote)
 SELECT 
     i.InvoiceID,
@@ -422,9 +423,9 @@ FROM Invoices i
 JOIN PurchaseOrders po ON i.POID = po.POID
 JOIN PurchaseOrderItems poi ON poi.POID = po.POID
 JOIN Suppliers s ON po.SupplierID = s.SupplierID
-WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'APPROVED';
+WHERE s.Name = N'Công ty Cà phê Trung Nguyên' AND po.Status = 'COMPLETED';
 
--- Invoice Items cho Vinamilk - Mismatched (Invoice 100, Received 98)
+-- Invoice Items cho Vinamilk - Mismatched (Invoice 100, Received 98) - từ PO COMPLETED
 INSERT INTO InvoiceItems (InvoiceID, POItemID, ProductName, Quantity, UnitPrice, Matched, DiscrepancyQuantity, MatchNote)
 SELECT 
     i.InvoiceID,
@@ -439,7 +440,7 @@ FROM Invoices i
 JOIN PurchaseOrders po ON i.POID = po.POID
 JOIN PurchaseOrderItems poi ON poi.POID = po.POID
 JOIN Suppliers s ON po.SupplierID = s.SupplierID
-WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'APPROVED';
+WHERE s.Name = N'Nhà cung cấp Sữa Vinamilk' AND po.Status = 'COMPLETED';
 
 -- Manual Invoice (không có PO) - Mua khẩn cấp
 DECLARE @ManualSupplierID UNIQUEIDENTIFIER;

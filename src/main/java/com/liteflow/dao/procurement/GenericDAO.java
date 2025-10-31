@@ -3,6 +3,7 @@ package com.liteflow.dao.procurement;
 import com.liteflow.dao.BaseDAO;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class GenericDAO<T, ID> extends BaseDAO<T, ID> {
@@ -83,7 +84,15 @@ public abstract class GenericDAO<T, ID> extends BaseDAO<T, ID> {
     public List<T> getAll() {
         EntityManager em = emf.createEntityManager();
         try {
-            return em.createQuery("SELECT e FROM " + clazz.getSimpleName() + " e", clazz).getResultList();
+            String jpql = "SELECT e FROM " + clazz.getSimpleName() + " e";
+            System.out.println("📊 GenericDAO.getAll() - Entity: " + clazz.getSimpleName() + ", JPQL: " + jpql);
+            List<T> results = em.createQuery(jpql, clazz).getResultList();
+            System.out.println("📊 GenericDAO.getAll() - Found " + results.size() + " records");
+            return results;
+        } catch (Exception e) {
+            System.err.println("❌ Error in GenericDAO.getAll() for " + clazz.getSimpleName() + ": " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
         } finally { em.close(); }
     }
 }
