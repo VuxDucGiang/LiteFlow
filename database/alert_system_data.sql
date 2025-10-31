@@ -424,4 +424,123 @@ PRINT '📊 GPT Cost Summary:';
 SELECT * FROM vw_GPTCostSummary;
 GO
 
+-- ============================================================
+-- 6️⃣ SAMPLE NOTICES FOR EMPLOYEE DASHBOARD
+-- Thông báo mẫu hiển thị trên dashboard nhân viên
+-- ============================================================
+
+DECLARE @AdminID UNIQUEIDENTIFIER = (SELECT TOP 1 UserID FROM Users WHERE Email = 'owner@liteflow.vn');
+DECLARE @Notice1ID UNIQUEIDENTIFIER = NEWID();
+DECLARE @Notice2ID UNIQUEIDENTIFIER = NEWID();
+DECLARE @Notice3ID UNIQUEIDENTIFIER = NEWID();
+
+-- Notice 1: Important - Holiday Announcement
+INSERT INTO Notices (
+    NoticeID,
+    Title,
+    Content,
+    NoticeType,
+    IsPinned,
+    PublishedAt,
+    ExpiresAt,
+    IsActive,
+    CreatedBy,
+    ViewCount
+) VALUES (
+    @Notice1ID,
+    N'Thông báo nghỉ lễ Quốc Khánh',
+    N'Công ty thông báo lịch nghỉ lễ Quốc Khánh 2/9 từ ngày 31/8 đến 3/9. Toàn thể nhân viên nghỉ theo quy định.',
+    'important',
+    1, -- Pinned to top
+    CAST('2025-10-30' AS DATETIME2),
+    CAST('2025-09-03' AS DATETIME2), -- Expires after holiday
+    1,
+    @AdminID,
+    45 -- Sample view count
+);
+
+-- Notice 2: General - Attendance Process Update
+INSERT INTO Notices (
+    NoticeID,
+    Title,
+    Content,
+    NoticeType,
+    IsPinned,
+    PublishedAt,
+    ExpiresAt,
+    IsActive,
+    CreatedBy,
+    ViewCount
+) VALUES (
+    @Notice2ID,
+    N'Cập nhật quy trình chấm công mới',
+    N'Từ ngày 1/11, quy trình chấm công sẽ được cập nhật. Vui lòng chấm công đúng giờ và báo cáo khi quên chấm công.',
+    'general',
+    0,
+    CAST('2025-10-29' AS DATETIME2),
+    CAST('2025-11-30' AS DATETIME2), -- Expires end of November
+    1,
+    @AdminID,
+    32
+);
+
+-- Notice 3: Info - Department Meeting Schedule
+INSERT INTO Notices (
+    NoticeID,
+    Title,
+    Content,
+    NoticeType,
+    IsPinned,
+    PublishedAt,
+    ExpiresAt,
+    IsActive,
+    CreatedBy,
+    ViewCount
+) VALUES (
+    @Notice3ID,
+    N'Lịch họp phòng ban tháng 11',
+    N'Lịch họp phòng ban đã được cập nhật. Vui lòng kiểm tra lịch cá nhân của bạn.',
+    'info',
+    0,
+    CAST('2025-10-28' AS DATETIME2),
+    CAST('2025-11-30' AS DATETIME2),
+    1,
+    @AdminID,
+    28
+);
+
+-- Sample Notice Reads (some employees already read some notices)
+DECLARE @Employee1ID UNIQUEIDENTIFIER = (SELECT TOP 1 EmployeeID FROM Employees);
+DECLARE @Employee2ID UNIQUEIDENTIFIER = (SELECT EmployeeID FROM Employees WHERE EmployeeID != @Employee1ID);
+
+-- Employee 1 read Notice 1 and 2
+IF @Employee1ID IS NOT NULL
+BEGIN
+    INSERT INTO NoticeReads (NoticeID, UserID, ReadAt)
+    VALUES 
+        (@Notice1ID, (SELECT UserID FROM Employees WHERE EmployeeID = @Employee1ID), DATEADD(HOUR, -2, SYSDATETIME())),
+        (@Notice2ID, (SELECT UserID FROM Employees WHERE EmployeeID = @Employee1ID), DATEADD(HOUR, -5, SYSDATETIME()));
+END
+
+-- Employee 2 read only Notice 1
+IF @Employee2ID IS NOT NULL
+BEGIN
+    INSERT INTO NoticeReads (NoticeID, UserID, ReadAt)
+    VALUES 
+        (@Notice1ID, (SELECT UserID FROM Employees WHERE EmployeeID = @Employee2ID), DATEADD(HOUR, -1, SYSDATETIME()));
+END
+
+PRINT '';
+PRINT '========================================';
+PRINT '📢 NOTICES DATA LOADED!';
+PRINT '========================================';
+PRINT 'Total Notices: 3';
+PRINT '  1. Holiday Announcement (Important, Pinned)';
+PRINT '  2. Attendance Update (General)';
+PRINT '  3. Meeting Schedule (Info)';
+PRINT '';
+PRINT '✅ Sample notice reads created for testing';
+PRINT '========================================';
+GO
+
 
