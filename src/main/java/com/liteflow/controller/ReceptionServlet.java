@@ -340,7 +340,21 @@ public class ReceptionServlet extends HttpServlet {
             if (json.has("customerEmail") && !json.get("customerEmail").isJsonNull()) {
                 dto.setCustomerEmail(json.get("customerEmail").getAsString());
             }
-            dto.setArrivalTime(LocalDateTime.parse(json.get("arrivalTime").getAsString()));
+            // Parse arrival time - handle both ISO format and datetime-local format
+            String arrivalTimeStr = json.get("arrivalTime").getAsString();
+            LocalDateTime arrivalTime;
+            try {
+                // Try ISO format first (e.g., "2025-10-31T20:00:00" or "2025-10-31T20:00:00.000")
+                arrivalTime = LocalDateTime.parse(arrivalTimeStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (Exception e1) {
+                try {
+                    // Try datetime-local format (e.g., "2025-10-31T20:00")
+                    arrivalTime = LocalDateTime.parse(arrivalTimeStr);
+                } catch (Exception e2) {
+                    throw new IllegalArgumentException("Định dạng thời gian không hợp lệ: " + arrivalTimeStr + ". Vui lòng chọn lại thời gian.");
+                }
+            }
+            dto.setArrivalTime(arrivalTime);
             dto.setNumberOfGuests(json.get("numberOfGuests").getAsInt());
             
             if (json.has("roomId") && !json.get("roomId").isJsonNull()) {
@@ -379,6 +393,7 @@ public class ReceptionServlet extends HttpServlet {
             Map<String, Object> responseMap = new HashMap<>();
             responseMap.put("success", true);
             responseMap.put("message", "Đặt bàn thành công");
+            responseMap.put("reservationCode", reservation.getReservationCode());
             responseMap.put("reservation", convertToReservationDTO(reservation));
             
             sendJsonResponse(response, responseMap);
@@ -386,8 +401,35 @@ public class ReceptionServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             sendJsonError(response, 400, e.getMessage());
         } catch (Exception e) {
+            System.err.println("❌ Error in handleCreateReservation:");
             e.printStackTrace();
-            sendJsonError(response, 500, "Error creating reservation: " + e.getMessage());
+            
+            // Extract root cause for better error message
+            Throwable rootCause = e;
+            int depth = 0;
+            while (rootCause.getCause() != null && depth < 5) {
+                rootCause = rootCause.getCause();
+                depth++;
+            }
+            
+            String errorMessage = "Lỗi khi tạo đặt bàn";
+            if (rootCause.getMessage() != null && !rootCause.getMessage().isEmpty()) {
+                String causeMsg = rootCause.getMessage();
+                // Translate common database errors to Vietnamese
+                if (causeMsg.contains("UNIQUE constraint") || causeMsg.contains("duplicate key")) {
+                    errorMessage = "Mã đặt bàn đã tồn tại. Vui lòng thử lại.";
+                } else if (causeMsg.contains("foreign key") || causeMsg.contains("FK_")) {
+                    errorMessage = "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin bàn/phòng/sản phẩm.";
+                } else if (causeMsg.contains("detached entity")) {
+                    errorMessage = "Lỗi kỹ thuật khi lưu dữ liệu. Vui lòng thử lại.";
+                } else if (causeMsg.contains("transaction") || causeMsg.contains("commit")) {
+                    errorMessage = "Lỗi khi lưu dữ liệu vào cơ sở dữ liệu. Vui lòng thử lại hoặc liên hệ quản trị viên.";
+                } else {
+                    errorMessage = "Lỗi: " + causeMsg;
+                }
+            }
+            
+            sendJsonError(response, 500, errorMessage);
         }
     }
 
@@ -713,37 +755,51 @@ public class ReceptionServlet extends HttpServlet {
      * Convert Reservation to DTO for JSON response
      */
     private Map<String, Object> convertToReservationDTO(Reservation reservation) {
+        if (reservation == null) {
+            return new HashMap<>();
+        }
+        
         Map<String, Object> dto = new HashMap<>();
-        dto.put("reservationId", reservation.getReservationId().toString());
+        dto.put("reservationId", reservation.getReservationId() != null ? reservation.getReservationId().toString() : null);
         dto.put("reservationCode", reservation.getReservationCode());
         dto.put("customerName", reservation.getCustomerName());
         dto.put("customerPhone", reservation.getCustomerPhone());
-        dto.put("arrivalTime", reservation.getArrivalTime().toString());
+        dto.put("customerEmail", reservation.getCustomerEmail());
+        dto.put("arrivalTime", reservation.getArrivalTime() != null ? reservation.getArrivalTime().toString() : null);
         dto.put("numberOfGuests", reservation.getNumberOfGuests());
         dto.put("status", reservation.getStatus());
         dto.put("notes", reservation.getNotes());
-        dto.put("createdAt", reservation.getCreatedAt().toString());
-        dto.put("updatedAt", reservation.getUpdatedAt().toString());
+        dto.put("createdAt", reservation.getCreatedAt() != null ? reservation.getCreatedAt().toString() : null);
+        dto.put("updatedAt", reservation.getUpdatedAt() != null ? reservation.getUpdatedAt().toString() : null);
         
         if (reservation.getTable() != null) {
-            dto.put("tableId", reservation.getTable().getTableId().toString());
+            dto.put("tableId", reservation.getTable().getTableId() != null ? reservation.getTable().getTableId().toString() : null);
             dto.put("tableName", reservation.getTable().getTableName());
         }
         
         if (reservation.getRoom() != null) {
-            dto.put("roomId", reservation.getRoom().getRoomId().toString());
+            dto.put("roomId", reservation.getRoom().getRoomId() != null ? reservation.getRoom().getRoomId().toString() : null);
             dto.put("roomName", reservation.getRoom().getName());
         }
         
-        // Pre-ordered items
+        // Pre-ordered items - handle null safely
         List<Map<String, Object>> items = new ArrayList<>();
-        for (ReservationItem item : reservation.getReservationItems()) {
-            Map<String, Object> itemDto = new HashMap<>();
-            itemDto.put("productId", item.getProduct().getProductId().toString());
-            itemDto.put("productName", item.getProduct().getName());
-            itemDto.put("quantity", item.getQuantity());
-            itemDto.put("note", item.getNote());
-            items.add(itemDto);
+        if (reservation.getReservationItems() != null) {
+            try {
+                for (ReservationItem item : reservation.getReservationItems()) {
+                    if (item != null && item.getProduct() != null) {
+                        Map<String, Object> itemDto = new HashMap<>();
+                        itemDto.put("productId", item.getProduct().getProductId() != null ? item.getProduct().getProductId().toString() : null);
+                        itemDto.put("productName", item.getProduct().getName());
+                        itemDto.put("quantity", item.getQuantity());
+                        itemDto.put("note", item.getNote());
+                        items.add(itemDto);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Error converting reservation items to DTO: " + e.getMessage());
+                // Continue with empty items list
+            }
         }
         dto.put("preOrderedItems", items);
         

@@ -25,6 +25,30 @@ GO
 DELETE FROM TableSessions;
 GO
 
+-- Delete payroll and compensation data first (before employees)
+DELETE FROM PayrollAdjustments;
+GO
+DELETE FROM PayrollEntries;
+GO
+DELETE FROM PayrollRuns;
+GO
+DELETE FROM PayPeriods;
+GO
+DELETE FROM EmployeeCompEvents;
+GO
+DELETE FROM EmployeeCompensation;
+GO
+DELETE FROM PayPolicies;
+GO
+DELETE FROM ShiftPayRules;
+GO
+DELETE FROM PersonalSchedules;
+GO
+DELETE FROM ForgotClockRequests;
+GO
+DELETE FROM EmployeeAttendance;
+GO
+
 -- Delete scheduling data (shifts -> assignments -> templates)
 -- Must delete in correct order due to foreign key constraints
 DELETE FROM EmployeeShiftTimesheets;
@@ -36,7 +60,7 @@ GO
 DELETE FROM ShiftTemplates;
 GO
 
--- Delete employees (after deleting timesheets)
+-- Delete employees (after deleting timesheets and related data)
 DELETE FROM Employees;
 GO
 
@@ -82,12 +106,28 @@ GO
 DELETE FROM Reservations;
 GO
 
+-- Delete order status history
+DELETE FROM OrderStatusHistory;
+GO
+
 -- Delete tables
 DELETE FROM Tables;
 GO
 
 -- Delete rooms
 DELETE FROM Rooms;
+GO
+
+-- Delete audit logs and user interactions
+DELETE FROM AuditLogs;
+GO
+DELETE FROM UserInteractions;
+GO
+
+-- Delete exchange rates and holidays
+DELETE FROM ExchangeRates;
+GO
+DELETE FROM HolidayCalendar;
 GO
 
 -- ============================================================

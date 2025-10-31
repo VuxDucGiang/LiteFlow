@@ -25,12 +25,32 @@ public class ReservationDAO extends GenericDAO<Reservation, UUID> {
         var tx = em.getTransaction();
         try {
             tx.begin();
+            // Merge related entities to ensure they're attached to this EntityManager
+            if (reservation.getRoom() != null && reservation.getRoom().getRoomId() != null) {
+                reservation.setRoom(em.merge(reservation.getRoom()));
+            }
+            if (reservation.getTable() != null && reservation.getTable().getTableId() != null) {
+                reservation.setTable(em.merge(reservation.getTable()));
+            }
             em.persist(reservation);
+            // Flush to ensure ID is generated and trigger @PrePersist callbacks
+            em.flush();
             tx.commit();
+            // Note: Entity becomes detached after em.close(), so we return it as-is
+            // The caller should reload it if needed using findById()
             return reservation;
         } catch (Exception e) {
-            if (tx.isActive()) tx.rollback();
-            throw new RuntimeException("Error creating reservation: " + e.getMessage(), e);
+            if (tx.isActive()) {
+                try {
+                    tx.rollback();
+                } catch (Exception rollbackEx) {
+                    System.err.println("❌ Error during rollback: " + rollbackEx.getMessage());
+                }
+            }
+            String errorMsg = "Error creating reservation: " + e.getMessage();
+            System.err.println("❌ " + errorMsg);
+            e.printStackTrace();
+            throw new RuntimeException(errorMsg, e);
         } finally {
             em.close();
         }
@@ -61,13 +81,23 @@ public class ReservationDAO extends GenericDAO<Reservation, UUID> {
     public Reservation findById(UUID reservationId) {
         EntityManager em = emf.createEntityManager();
         try {
-            Reservation reservation = em.find(Reservation.class, reservationId);
-            if (reservation != null) {
-                // Eager load reservation items
-                reservation.getReservationItems().size();
-            }
-            return reservation;
+            // Use JOIN FETCH to load all related data in one query
+            TypedQuery<Reservation> query = em.createQuery(
+                "SELECT DISTINCT r FROM Reservation r " +
+                "LEFT JOIN FETCH r.reservationItems ri " +
+                "LEFT JOIN FETCH ri.product " +
+                "LEFT JOIN FETCH r.table t " +
+                "LEFT JOIN FETCH t.room " +
+                "LEFT JOIN FETCH r.room " +
+                "WHERE r.reservationId = :id", 
+                Reservation.class
+            );
+            query.setParameter("id", reservationId);
+            List<Reservation> results = query.getResultList();
+            return results.isEmpty() ? null : results.get(0);
         } catch (Exception e) {
+            System.err.println("❌ Error finding reservation by ID: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Error finding reservation by ID: " + e.getMessage(), e);
         } finally {
             em.close();

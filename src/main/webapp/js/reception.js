@@ -778,7 +778,18 @@ function submitReservation() {
         },
         body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if response is ok
+        if (!response.ok) {
+            // Try to parse error JSON
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            }).catch(() => {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            });
+        }
+        return response.json();
+    })
     .then(result => {
         if (result.success) {
             const title = editingReservationId ? 'Cập nhật thành công' : 'Đặt bàn thành công';
@@ -813,12 +824,23 @@ function submitReservation() {
             // Final sync from server to ensure consistency
             setTimeout(() => refreshData(), 100);
         } else {
-            showNotification('error', 'Thất bại', result.message || 'Có lỗi xảy ra khi lưu đặt bàn');
+            const errorMsg = result.message || 'Có lỗi xảy ra khi lưu đặt bàn';
+            console.error('Server returned error:', errorMsg);
+            showNotification('error', 'Thất bại', errorMsg);
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        showNotification('error', 'Lỗi kết nối', 'Không thể kết nối đến server. Vui lòng thử lại.');
+        console.error('Error submitting reservation:', error);
+        let errorMessage = 'Không thể kết nối đến server. Vui lòng thử lại.';
+        
+        if (error.message) {
+            // Use the error message from server if available
+            errorMessage = error.message;
+        } else if (error instanceof TypeError && error.message.includes('fetch')) {
+            errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.';
+        }
+        
+        showNotification('error', 'Lỗi', errorMessage);
     });
 }
 
@@ -1292,10 +1314,41 @@ function navigate(page) {
     }
 }
 
+/**
+ * Logout functions (matching kitchen style)
+ */
 function logout() {
-    if (confirm('Bạn có chắc muốn đăng xuất?')) {
-        window.location.href = `${contextPath}/logout`;
+    openLogoutModal();
+}
+
+function openLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    const overlay = document.getElementById('logoutModalOverlay');
+    if (modal && overlay) {
+        overlay.style.display = 'block';
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            overlay.classList.add('active');
+            modal.classList.add('show');
+        }, 10);
     }
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    const overlay = document.getElementById('logoutModalOverlay');
+    if (modal && overlay) {
+        modal.classList.remove('show');
+        overlay.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+        }, 300);
+    }
+}
+
+function confirmLogout() {
+    window.location.href = contextPath + '/logout';
 }
 
 // ========================================

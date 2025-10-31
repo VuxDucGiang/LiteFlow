@@ -78,7 +78,6 @@ public class Reservation {
         if (status == null) {
             status = "PENDING";
         }
-        // no-op
     }
 
     @PreUpdate
