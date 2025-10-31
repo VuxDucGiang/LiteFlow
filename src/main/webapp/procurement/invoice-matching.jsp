@@ -415,10 +415,6 @@
 
         <!-- Purchase Invoice Section -->
             <div style="margin-bottom: 20px; text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
-                <button class="btn btn-success" onclick="(function(){ var m=document.getElementById('matchModal'); var n=document.querySelector('.main-nav'); if(m) m.style.display='block'; if(n) n.style.display='none'; document.body.style.overflow='hidden'; })()">
-                    <i class='bx bx-receipt'></i>
-                    Đối chiếu từ PO
-                </button>
                 <button class="btn btn-success" onclick="(function(){ var m=document.getElementById('manualModal'); var n=document.querySelector('.main-nav'); if(m){ m.style.display='block'; var d=document.getElementById('manualInvoiceDate'); if(d) d.value=new Date().toISOString().split('T')[0]; } if(n) n.style.display='none'; document.body.style.overflow='hidden'; })()">
                     <i class='bx bx-edit'></i>
                     Nhập Hóa đơn thủ công
@@ -445,8 +441,7 @@
                         <tr>
                             <td colspan="9" class="empty-state">
                                 <h3>📋 Chưa có hóa đơn nào</h3>
-                                <p>Hãy tạo hóa đơn đầu tiên để bắt đầu đối chiếu</p>
-                                <button class="btn btn-success" onclick="openMatchModal()">Tạo hóa đơn</button>
+                                <p>Hãy tạo hóa đơn đầu tiên để bắt đầu</p>
                             </td>
                         </tr>
                     </c:when>
@@ -595,129 +590,6 @@
         </div>
     </div>
 
-    <!-- Modal Đối chiếu từ PO -->
-    <div id="matchModal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">
-                <h2>🔍 Đối chiếu Hóa đơn từ Đơn đặt hàng (PO)</h2>
-                <span class="close" onclick="(function(){ var m=document.getElementById('matchModal'); var n=document.querySelector('.main-nav'); if(m) m.style.display='none'; if(n) n.style.display='flex'; document.body.style.overflow='auto'; })()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; margin-bottom: 20px; border-radius: 6px;">
-                    <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                        <strong>💡 Nghiệp vụ:</strong> Đối chiếu hóa đơn thực tế từ nhà cung cấp với đơn đặt hàng (PO) đã tạo. 
-                        Hệ thống sẽ so sánh số tiền và tự động phát hiện chênh lệch.
-                    </p>
-                </div>
-
-                <form id="matchForm" action="${pageContext.request.contextPath}/procurement/invoice" method="post" onsubmit="return validateMatchForm()">
-                    <input type="hidden" name="action" value="match">
-                    
-                    <div class="form-group">
-                        <label for="poSelect" style="font-weight: 600; color: #374151;">
-                            <i class='bx bx-receipt'></i> Chọn đơn đặt hàng (PO) *
-                        </label>
-                        <select id="poSelect" name="poid" onchange="loadPODetails()" required style="font-size: 15px; padding: 12px;">
-                            <option value="">-- Chọn đơn hàng cần đối chiếu --</option>
-                            <c:choose>
-                                <c:when test="${empty completedPOs}">
-                                    <option disabled style="color: #ef4444;">⚠️ Không có đơn hàng nào sẵn sàng (cần APPROVED)</option>
-                                </c:when>
-                                <c:otherwise>
-                                    <c:forEach var="po" items="${completedPOs}">
-                                        <option value="${po.poid}" data-supplier="${po.supplierID}" data-amount="${po.totalAmount}">
-                                            PO-${po.poid.toString().substring(0,8)} | Số tiền: <fmt:formatNumber value="${po.totalAmount}" pattern="#,##0"/> ₫
-                                        </option>
-                                    </c:forEach>
-                                </c:otherwise>
-                            </c:choose>
-                        </select>
-                        <c:if test="${empty completedPOs}">
-                            <small style="display: block; margin-top: 6px; color: #ef4444;">
-                                <i class='bx bx-error-circle'></i> Chưa có PO nào được duyệt. Vui lòng tạo và duyệt PO trước.
-                            </small>
-                        </c:if>
-                    </div>
-
-                    <div id="poDetails" style="display: none;">
-                        <!-- Info comparison boxes -->
-                        <div class="comparison" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                            <div class="comparison-item" style="background: #f0fdf4; border: 2px solid #86efac; border-radius: 10px; padding: 20px;">
-                                <h4 style="margin: 0 0 15px 0; color: #15803d; display: flex; align-items: center; gap: 8px;">
-                                    <i class='bx bx-package' style="font-size: 24px;"></i>
-                                    <span>Thông tin Đơn hàng (PO)</span>
-                                </h4>
-                                <div id="poInfo"></div>
-                                <div id="poItemsPreview" style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #86efac;">
-                                    <div style="font-size: 13px; color: #16a34a; margin-bottom: 8px;">
-                                        <i class='bx bx-list-ul'></i> <strong>Sản phẩm trong PO:</strong>
-                                    </div>
-                                    <div id="poItemsList" style="max-height: 150px; overflow-y: auto; font-size: 13px; color: #166534;"></div>
-                                </div>
-                            </div>
-                            <div class="comparison-item" style="background: #fef3c7; border: 2px solid #fbbf24; border-radius: 10px; padding: 20px;">
-                                <h4 style="margin: 0 0 15px 0; color: #92400e; display: flex; align-items: center; gap: 8px;">
-                                    <i class='bx bx-file' style="font-size: 24px;"></i>
-                                    <span>Hóa đơn thực tế từ NCC</span>
-                                </h4>
-                                
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="invoiceNumber" style="font-weight: 600; color: #78350f; font-size: 13px;">Số hóa đơn</label>
-                                    <input type="text" id="invoiceNumber" name="invoiceNumber" placeholder="VD: HD-2024-001" 
-                                           style="padding: 10px; border: 2px solid #fbbf24; font-size: 14px;">
-                                </div>
-                                
-                                <div class="form-group" style="margin-bottom: 15px;">
-                                    <label for="invoiceDate" style="font-weight: 600; color: #78350f; font-size: 13px;">Ngày hóa đơn *</label>
-                                    <input type="date" id="invoiceDate" name="invoiceDate" style="padding: 10px; border: 2px solid #fbbf24;">
-                                </div>
-                                
-                                <div style="border-top: 2px dashed #fbbf24; padding-top: 15px; margin-top: 10px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <label style="font-weight: 600; color: #78350f; font-size: 13px; margin: 0;">
-                                            <i class='bx bx-list-ul'></i> Chi tiết sản phẩm trên hóa đơn *
-                                        </label>
-                                        <button type="button" onclick="addInvoiceItemRow()" class="btn btn-sm" 
-                                                style="background: #92400e; color: white; padding: 6px 12px; font-size: 12px; border-radius: 4px;">
-                                            <i class='bx bx-plus'></i> Thêm
-                                        </button>
-                                    </div>
-                                    <div id="invoiceItemsContainer" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px; min-height: 60px;">
-                                        <div style="text-align: center; padding: 20px; color: #9ca3af;">
-                                            <i class='bx bx-loader bx-spin' style="font-size: 24px;"></i>
-                                            <div style="margin-top: 8px;">Chờ chọn đơn hàng...</div>
-                                        </div>
-                                    </div>
-                                    <div style="background: #fef3c7; padding: 10px; border-radius: 6px; border: 1px solid #fbbf24;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                                            <span style="font-weight: 700; color: #78350f;">TỔNG TIỀN HÓA ĐƠN:</span>
-                                            <span id="invoiceTotalDisplay" style="font-size: 18px; font-weight: 800; color: #92400e;">0 ₫</span>
-                                        </div>
-                                    </div>
-                                    <input type="hidden" id="invoiceTotal" name="total" value="0">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Comparison result -->
-                        <div id="comparisonResult" style="display: none;"></div>
-                    </div>
-
-                    <input type="hidden" id="supplierID" name="supplierID">
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-warning" onclick="(function(){ var m=document.getElementById('matchModal'); var n=document.querySelector('.main-nav'); if(m) m.style.display='none'; if(n) n.style.display='flex'; document.body.style.overflow='auto'; })()">
-                            <i class='bx bx-x'></i> Hủy
-                        </button>
-                        <button type="submit" id="matchSubmitBtn" class="btn btn-success" style="font-size: 16px; padding: 12px 24px;" disabled>
-                            <i class='bx bx-check-circle'></i> <span id="matchSubmitText">Đang tải...</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Nhập Hóa đơn thủ công -->
     <div id="manualModal" class="modal">
         <div class="modal-content">
@@ -795,8 +667,6 @@
     </div>
 
     <script>
-        let currentPOAmount = 0;
-        
         // Function to add new item row
         function addManualItemRow(e) {
             if (e) {
@@ -846,33 +716,6 @@
             }
         }
         
-        // Simple functions to open/close modals with main-nav hide
-        function openMatchModalSimple() {
-            const modal = document.getElementById('matchModal');
-            const mainNav = document.querySelector('.main-nav');
-            
-            if (modal) {
-                modal.style.display = 'block';
-            }
-            if (mainNav) {
-                mainNav.style.display = 'none';
-            }
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeMatchModalSimple() {
-            const modal = document.getElementById('matchModal');
-            const mainNav = document.querySelector('.main-nav');
-            
-            if (modal) {
-                modal.style.display = 'none';
-            }
-            if (mainNav) {
-                mainNav.style.display = 'flex';
-            }
-            document.body.style.overflow = 'auto';
-        }
-
         function closeManualModalSimple() {
             const modal = document.getElementById('manualModal');
             const mainNav = document.querySelector('.main-nav');
@@ -931,304 +774,6 @@
 
         // All modal interactions use inline onclick - no backdrop close needed
 
-        // Make loadPODetails global so it can be called from inline onchange
-        window.loadPODetails = function() {
-            const poSelect = document.getElementById('poSelect');
-            const selectedOption = poSelect.options[poSelect.selectedIndex];
-            
-            if (selectedOption.value) {
-                const poId = selectedOption.value;
-                const supplierID = selectedOption.getAttribute('data-supplier');
-                const poAmount = parseFloat(selectedOption.getAttribute('data-amount')) || 0;
-                
-                currentPOAmount = poAmount;
-                document.getElementById('supplierID').value = supplierID;
-                document.getElementById('poDetails').style.display = 'block';
-                
-                // Enable required validation for invoice amount
-                document.getElementById('invoiceAmount').setAttribute('required', 'required');
-                
-                // Display PO info
-                document.getElementById('poInfo').innerHTML = `
-                    <div class="info-row" style="margin-bottom: 10px;">
-                        <span class="info-label" style="color: #15803d; font-weight: 600;">Mã PO:</span>
-                        <span class="info-value" style="color: #166534; font-weight: 700;">PO-${poId.substring(0,8)}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label" style="color: #15803d; font-weight: 600;">Tổng tiền PO:</span>
-                        <span class="info-value" style="color: #166534; font-weight: 700; font-size: 18px;">${poAmount.toLocaleString('vi-VN')} ₫</span>
-                    </div>
-                `;
-                
-                // Set default invoice date to today
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('invoiceDate').value = today;
-                
-                // ===================================================================
-                // OPTIMIZATION: Single AJAX call for BOTH preview AND invoice items
-                // ===================================================================
-                const itemsList = document.getElementById('poItemsList');
-                const itemsContainer = document.getElementById('invoiceItemsContainer');
-                const submitBtn = document.getElementById('matchSubmitBtn');
-                const submitText = document.getElementById('matchSubmitText');
-                
-                // Show loading state in BOTH panels
-                itemsList.innerHTML = '<div style="color: #059669; text-align: center; padding: 10px;"><i class="bx bx-loader bx-spin"></i> Đang tải...</div>';
-                itemsContainer.innerHTML = `
-                    <div style="text-align: center; padding: 20px; color: #059669;">
-                        <i class='bx bx-loader bx-spin' style="font-size: 24px;"></i>
-                        <div style="margin-top: 8px;">Đang tải sản phẩm từ PO...</div>
-                    </div>
-                `;
-                submitBtn.disabled = true;
-                submitText.textContent = 'Đang tải...';
-                
-                // ===================================================================
-                // AGGRESSIVE TIMEOUT: 3 seconds max, then fallback to manual entry
-                // ===================================================================
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout!
-                
-                // Fallback timer - force enable after 3.5s no matter what
-                const forceEnableTimer = setTimeout(() => {
-                    console.warn('[FORCE ENABLE] Server took too long, enabling manual entry');
-                    itemsList.innerHTML = '<div style="color: #f59e0b; text-align: center; padding: 10px;"><i class="bx bx-time"></i> Server chậm - Nhập thủ công</div>';
-                    itemsContainer.innerHTML = '';
-                    addInvoiceItemRow('', 1, 0);
-                    submitBtn.disabled = false;
-                    submitText.textContent = 'Đối chiếu PO';
-                }, 3500);
-                
-                fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poId, {
-                    signal: controller.signal
-                })
-                    .then(response => {
-                        clearTimeout(timeoutId);
-                        clearTimeout(forceEnableTimer);
-                        if (!response.ok) throw new Error('HTTP ' + response.status);
-                        return response.json();
-                    })
-                    .then(items => {
-                        clearTimeout(forceEnableTimer);
-                        console.log('[PO Items] SUCCESS - Received', items.length, 'items');
-                        
-                        // ===== Update LEFT panel (Preview) =====
-                        if (items && items.length > 0) {
-                            let html = '<table style="width: 100%; font-size: 13px; border-collapse: collapse;">';
-                            html += '<thead><tr style="background: #d1fae5; border-bottom: 2px solid #86efac;">';
-                            html += '<th style="padding: 6px; text-align: left;">Sản phẩm</th>';
-                            html += '<th style="padding: 6px; text-align: center; width: 60px;">SL</th>';
-                            html += '<th style="padding: 6px; text-align: right; width: 100px;">Đơn giá</th>';
-                            html += '</tr></thead><tbody>';
-                            
-                            items.forEach((item, index) => {
-                                const bgColor = index % 2 === 0 ? '#f0fdf4' : 'white';
-                                html += `<tr style="background: ${bgColor}; border-bottom: 1px solid #d1fae5;">`;
-                                html += `<td style="padding: 6px;">${item.itemName}</td>`;
-                                html += `<td style="padding: 6px; text-align: center; font-weight: 600;">${item.quantity}</td>`;
-                                html += `<td style="padding: 6px; text-align: right; font-weight: 600;">${item.unitPrice.toLocaleString('vi-VN')} ₫</td>`;
-                                html += '</tr>';
-                            });
-                            
-                            html += '</tbody></table>';
-                            itemsList.innerHTML = html;
-                            
-                            // ===== Update RIGHT panel (Invoice Items) =====
-                            itemsContainer.innerHTML = '';
-                            items.forEach(item => {
-                                addInvoiceItemRow(item.itemName, item.quantity, item.unitPrice);
-                            });
-                        } else {
-                            itemsList.innerHTML = '<div style="color: #6b7280; text-align: center; padding: 10px;">PO không có sản phẩm</div>';
-                            itemsContainer.innerHTML = '';
-                            addInvoiceItemRow('', 1, 0);
-                        }
-                        
-                        submitBtn.disabled = false;
-                        submitText.textContent = 'Đối chiếu PO';
-                    })
-                    .catch(error => {
-                        clearTimeout(timeoutId);
-                        clearTimeout(forceEnableTimer);
-                        console.error('[PO Items] FAILED:', error);
-                        
-                        // IMMEDIATE fallback - no waiting!
-                        itemsList.innerHTML = '<div style="color: #f59e0b; text-align: center; padding: 10px;"><i class="bx bx-error"></i> Không tải được - Nhập thủ công</div>';
-                        itemsContainer.innerHTML = '';
-                        addInvoiceItemRow('', 1, 0);
-                        submitBtn.disabled = false;
-                        submitText.textContent = 'Đối chiếu PO';
-                    });
-            } else {
-                document.getElementById('poDetails').style.display = 'none';
-                document.getElementById('comparisonResult').style.display = 'none';
-            }
-        }
-        
-        // Add invoice item row (pre-filled or empty)
-        function addInvoiceItemRow(itemName = '', quantity = 1, unitPrice = 0) {
-            const container = document.getElementById('invoiceItemsContainer');
-            const rowIndex = container.children.length;
-            
-            const row = document.createElement('div');
-            row.className = 'invoice-item-row';
-            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1.2fr 1.2fr 50px; gap: 8px; margin-bottom: 8px; padding: 8px; background: white; border-radius: 6px; border: 1px solid #fbbf24; align-items: center;';
-            
-            row.innerHTML = `
-                <input type="text" name="itemName[]" value="${itemName}" placeholder="Tên sản phẩm" required
-                       style="padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
-                <input type="number" name="itemQuantity[]" value="${quantity}" placeholder="SL" min="1" required
-                       onchange="calculateInvoiceTotal()"
-                       style="padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
-                <input type="number" name="itemUnitPrice[]" value="${unitPrice}" placeholder="Đơn giá" step="1000" min="0" required
-                       onchange="calculateInvoiceTotal()"
-                       style="padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px;">
-                <div style="text-align: right; font-weight: 600; color: #92400e; font-size: 13px; padding: 8px 4px;">
-                    <span class="item-subtotal">0 ₫</span>
-                </div>
-                <button type="button" onclick="removeInvoiceItemRow(this)" class="btn btn-danger" 
-                        style="padding: 8px; height: 36px; font-size: 12px;">
-                    <i class='bx bx-trash'></i>
-                </button>
-            `;
-            
-            container.appendChild(row);
-            calculateInvoiceTotal();
-        }
-        
-        // Remove invoice item row
-        function removeInvoiceItemRow(button) {
-            const container = document.getElementById('invoiceItemsContainer');
-            const rows = container.querySelectorAll('.invoice-item-row');
-            
-            if (rows.length > 1) {
-                button.closest('.invoice-item-row').remove();
-                calculateInvoiceTotal();
-            } else {
-                alert('Phải có ít nhất 1 sản phẩm trên hóa đơn');
-            }
-        }
-        
-        // Calculate invoice total
-        function calculateInvoiceTotal() {
-            const container = document.getElementById('invoiceItemsContainer');
-            const rows = container.querySelectorAll('.invoice-item-row');
-            
-            let total = 0;
-            rows.forEach(row => {
-                const quantity = parseFloat(row.querySelector('input[name="itemQuantity[]"]').value) || 0;
-                const unitPrice = parseFloat(row.querySelector('input[name="itemUnitPrice[]"]').value) || 0;
-                const subtotal = quantity * unitPrice;
-                
-                // Update subtotal display
-                row.querySelector('.item-subtotal').textContent = subtotal.toLocaleString('vi-VN') + ' ₫';
-                
-                total += subtotal;
-            });
-            
-            // Update total display
-            document.getElementById('invoiceTotalDisplay').textContent = total.toLocaleString('vi-VN') + ' ₫';
-            document.getElementById('invoiceTotal').value = total;
-            
-            // Update comparison if PO amount is available
-            if (currentPOAmount > 0) {
-                compareAmountsWithTotal(total);
-            }
-        }
-        
-        // Validate match form before submit
-        function validateMatchForm() {
-            const container = document.getElementById('invoiceItemsContainer');
-            const rows = container.querySelectorAll('.invoice-item-row');
-            
-            if (rows.length === 0) {
-                alert('Vui lòng thêm ít nhất 1 sản phẩm vào hóa đơn!');
-                return false;
-            }
-            
-            // Check if all items have complete data
-            for (let row of rows) {
-                const name = row.querySelector('input[name="itemName[]"]').value.trim();
-                const qty = row.querySelector('input[name="itemQuantity[]"]').value;
-                const price = row.querySelector('input[name="itemUnitPrice[]"]').value;
-                
-                if (!name || !qty || !price || qty <= 0 || price < 0) {
-                    alert('Vui lòng điền đầy đủ và đúng thông tin cho tất cả sản phẩm!');
-                    return false;
-                }
-            }
-            
-            return true;
-        }
-        
-        // Compare amounts with calculated total
-        function compareAmountsWithTotal(invoiceAmount) {
-            const difference = invoiceAmount - currentPOAmount;
-            const resultDiv = document.getElementById('comparisonResult');
-            
-            if (invoiceAmount > 0) {
-                resultDiv.style.display = 'block';
-                
-                if (Math.abs(difference) < 1000) {
-                    resultDiv.innerHTML = `
-                        <div class="comparison-alert matched">
-                            <i class='bx bx-check-circle'></i> 
-                            <strong>✅ Khớp!</strong> Hóa đơn khớp với đơn hàng.
-                            <br>Chênh lệch: ${difference.toLocaleString('vi-VN')} ₫
-                        </div>
-                    `;
-                } else {
-                    const alertClass = difference > 0 ? 'unmatched' : 'matched';
-                    const icon = difference > 0 ? 'bx-error' : 'bx-info-circle';
-                    const message = difference > 0 ? '⚠️ Vượt giá!' : 'ℹ️ Thấp hơn!';
-                    
-                    resultDiv.innerHTML = `
-                        <div class="comparison-alert ${alertClass}">
-                            <i class='bx ${icon}'></i>
-                            <strong>${message}</strong> Hóa đơn ${difference > 0 ? 'cao' : 'thấp'} hơn đơn hàng.
-                            <br>Chênh lệch: ${Math.abs(difference).toLocaleString('vi-VN')} ₫
-                        </div>
-                    `;
-                }
-            } else {
-                resultDiv.style.display = 'none';
-            }
-        }
-
-        function compareAmounts() {
-            const invoiceAmount = parseFloat(document.getElementById('invoiceAmount').value) || 0;
-            const difference = invoiceAmount - currentPOAmount;
-            const resultDiv = document.getElementById('comparisonResult');
-            
-            if (invoiceAmount > 0) {
-                resultDiv.style.display = 'block';
-                
-                if (Math.abs(difference) < 1000) {
-                    resultDiv.innerHTML = `
-                        <div class="comparison-alert matched">
-                            <i class='bx bx-check-circle'></i> 
-                            <strong>Khớp!</strong> Hóa đơn khớp với đơn hàng.
-                            <br>Chênh lệch: ${difference.toLocaleString('vi-VN')} ₫
-                        </div>
-                    `;
-                } else {
-                    const alertClass = difference > 0 ? 'unmatched' : 'matched';
-                    const icon = difference > 0 ? 'bx-error' : 'bx-info-circle';
-                    const message = difference > 0 ? 'Vượt giá!' : 'Thấp hơn!';
-                    
-                    resultDiv.innerHTML = `
-                        <div class="comparison-alert ${alertClass}">
-                            <i class='bx ${icon}'></i>
-                            <strong>${message}</strong> Hóa đơn ${difference > 0 ? 'cao' : 'thấp'} hơn đơn hàng.
-                            <br>Chênh lệch: ${Math.abs(difference).toLocaleString('vi-VN')} ₫
-                        </div>
-                    `;
-                }
-            } else {
-                resultDiv.style.display = 'none';
-            }
-        }
-
         // Store all invoice data for quick lookup
         const invoicesData = {};
         <c:forEach var="invData" items="${invoices}">
@@ -1244,6 +789,40 @@
                 difference: ${invData.difference}
             };
         </c:forEach>
+
+        // LoadPOItems function for detail modal
+        function loadPOItems(poid) {
+            const itemsBody = document.getElementById('detail_items');
+            itemsBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Đang tải...</td></tr>';
+
+            // AJAX request to get PO items
+            fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poid)
+                .then(response => response.json())
+                .then(items => {
+                    if (items && items.length > 0) {
+                        let html = '';
+                        items.forEach((item, index) => {
+                            const total = item.quantity * item.unitPrice;
+                            html += `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${item.itemName}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${formatCurrency(item.unitPrice)}</td>
+                                    <td class="amount">${formatCurrency(total)}</td>
+                                </tr>
+                            `;
+                        });
+                        itemsBody.innerHTML = html;
+                    } else {
+                        itemsBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Không có sản phẩm</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading PO items:', error);
+                    itemsBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444;">Lỗi tải dữ liệu</td></tr>';
+                });
+        }
 
         function viewDetails(invoiceId) {
             const data = invoicesData[invoiceId];
@@ -1288,39 +867,6 @@
 
             // Show modal
             document.getElementById('detailModal').style.display = 'block';
-        }
-
-        function loadPOItems(poid) {
-            const itemsBody = document.getElementById('detail_items');
-            itemsBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Đang tải...</td></tr>';
-
-            // AJAX request to get PO items
-            fetch('${pageContext.request.contextPath}/procurement/po-items?poid=' + poid)
-                .then(response => response.json())
-                .then(items => {
-                    if (items && items.length > 0) {
-                        let html = '';
-                        items.forEach((item, index) => {
-                            const total = item.quantity * item.unitPrice;
-                            html += `
-                                <tr>
-                                    <td>${index + 1}</td>
-                                    <td>${item.itemName}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>${formatCurrency(item.unitPrice)}</td>
-                                    <td class="amount">${formatCurrency(total)}</td>
-                                </tr>
-                            `;
-                        });
-                        itemsBody.innerHTML = html;
-                    } else {
-                        itemsBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Không có sản phẩm</td></tr>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading PO items:', error);
-                    itemsBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444;">Lỗi tải dữ liệu</td></tr>';
-                });
         }
 
         function closeDetailModal() {
@@ -1405,323 +951,12 @@
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const matchModal = document.getElementById('matchModal');
             const detailModal = document.getElementById('detailModal');
             
-            if (event.target === matchModal) {
-                closeModal();
-            }
             if (event.target === detailModal) {
                 closeDetailModal();
             }
         }
-            
-            let url = '${pageContext.request.contextPath}/sales/invoices?action=list&limit=' + salesPageSize + '&offset=' + offset;
-            
-            // Apply search filter
-            if (salesSearchKeyword.trim()) {
-                url = '${pageContext.request.contextPath}/sales/invoices?action=search&keyword=' + 
-                      encodeURIComponent(salesSearchKeyword) + '&limit=' + salesPageSize + '&offset=' + offset;
-            }
-            // Apply date filter
-            else if (salesStartDateFilter && salesEndDateFilter) {
-                url = '${pageContext.request.contextPath}/sales/invoices?action=filter&startDate=' + 
-                      salesStartDateFilter + '&endDate=' + salesEndDateFilter + 
-                      '&limit=' + salesPageSize + '&offset=' + offset;
-            }
-            
-            console.log('📊 Loading sales invoices from:', url);
-            
-            fetch(url)
-                .then(response => {
-                    console.log('📡 Response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('📦 Received data:', data);
-                    if (data.success) {
-                        console.log('✅ Success! Invoice count:', data.invoices ? data.invoices.length : 0);
-                        renderSalesInvoices(data.invoices);
-                        salesTotalCount = data.totalCount || data.count || 0;
-                        updateSalesPagination();
-                    } else {
-                        throw new Error(data.message || 'Failed to load sales invoices');
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ Error loading sales invoices:', error);
-                    document.getElementById('salesInvoiceTableBody').innerHTML = 
-                        '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ef4444;">' +
-                        '<i class="bx bx-error" style="font-size: 48px;"></i>' +
-                        '<p style="margin-top: 15px;">Lỗi tải dữ liệu: ' + error.message + '</p>' +
-                        '<p style="margin-top: 10px; font-size: 13px; color: #6b7280;">Vui lòng mở Console (F12) để xem chi tiết lỗi</p></td></tr>';
-                });
-        };
-        
-        /**
-         * Render sales invoices table
-         */
-        window.renderSalesInvoices = function(invoices) {
-            const tbody = document.getElementById('salesInvoiceTableBody');
-            
-            if (!invoices || invoices.length === 0) {
-                tbody.innerHTML = 
-                    '<tr><td colspan="8" style="text-align: center; padding: 40px;">' +
-                    '<div class="empty-state">' +
-                    '<i class="bx bx-receipt" style="font-size: 64px; color: #d1d5db;"></i>' +
-                    '<h3 style="margin: 20px 0 10px 0; color: #6b7280;">Không tìm thấy hóa đơn</h3>' +
-                    '<p style="color: #9ca3af;">Thử thay đổi bộ lọc hoặc tìm kiếm</p>' +
-                    '</div></td></tr>';
-                return;
-            }
-            
-            let html = '';
-            invoices.forEach((invoice, index) => {
-                const paymentBadge = getPaymentMethodBadge(invoice.paymentMethod);
-                
-                html += '<tr style="animation: slideIn 0.3s ease ' + (index * 0.05) + 's both;">';
-                html += '    <td><strong>' + (invoice.orderNumber || 'N/A') + '</strong></td>';
-                html += '    <td>' + (invoice.orderDateFormatted || formatDate(invoice.orderDate)) + '</td>';
-                html += '    <td>';
-                html += '        <strong>' + (invoice.customerName || 'Khách lẻ') + '</strong>';
-                if (invoice.customerPhone) {
-                    html += '<br><small style="color: #6b7280;">' + invoice.customerPhone + '</small>';
-                }
-                html += '    </td>';
-                html += '    <td>';
-                if (invoice.roomName || invoice.tableName) {
-                    html += (invoice.roomName || '') + (invoice.roomName && invoice.tableName ? ' - ' : '') + (invoice.tableName || '');
-                } else {
-                    html += '<span style="color: #9ca3af;">-</span>';
-                }
-                html += '    </td>';
-                html += '    <td><strong style="color: #059669; font-size: 15px;">' + formatCurrency(invoice.totalAmount) + '</strong></td>';
-                html += '    <td>' + paymentBadge + '</td>';
-                html += '    <td>' + (invoice.createdByName || '-') + '</td>';
-                html += '    <td>';
-                html += '        <button class="btn btn-info" onclick="viewSalesInvoiceDetails(\'' + invoice.orderId + '\')" title="Xem chi tiết">';
-                html += '            <i class="bx bx-show"></i>';
-                html += '        </button>';
-                html += '    </td>';
-                html += '</tr>';
-            });
-            
-            tbody.innerHTML = html;
-            
-            console.log('✅ Rendered ' + invoices.length + ' sales invoices');
-        };
-        
-        /**
-         * Get payment method badge HTML
-         */
-        window.getPaymentMethodBadge = function(method) {
-            const badges = {
-                'Cash': '<span style="background: #10b981; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💵 Tiền mặt</span>',
-                'Card': '<span style="background: #3b82f6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💳 Thẻ</span>',
-                'Transfer': '<span style="background: #8b5cf6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🏦 Chuyển khoản</span>',
-                'E-Wallet': '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">📱 Ví điện tử</span>'
-            };
-            return badges[method] || '<span style="color: #6b7280;">' + (method || 'N/A') + '</span>';
-        };
-        
-        /**
-         * Update pagination controls
-         */
-        window.updateSalesPagination = function() {
-            const paginationDiv = document.getElementById('salesPagination');
-            const prevBtn = document.getElementById('salesPrevBtn');
-            const nextBtn = document.getElementById('salesNextBtn');
-            const pageInfo = document.getElementById('salesPageInfo');
-            
-            const totalPages = Math.ceil(salesTotalCount / salesPageSize);
-            const currentPageNum = salesCurrentPage + 1;
-            
-            if (totalPages > 1) {
-                paginationDiv.style.display = 'block';
-                pageInfo.textContent = 'Trang ' + currentPageNum + ' / ' + totalPages + ' (Tổng: ' + salesTotalCount + ' hóa đơn)';
-                
-                prevBtn.disabled = salesCurrentPage === 0;
-                nextBtn.disabled = salesCurrentPage >= totalPages - 1;
-            } else {
-                paginationDiv.style.display = 'none';
-            }
-        };
-        
-        /**
-         * View sales invoice details
-         */
-        window.viewSalesInvoiceDetails = function(orderId) {
-            console.log('📋 Loading sales invoice details:', orderId);
-            
-            fetch('${pageContext.request.contextPath}/sales/invoices?action=details&id=' + orderId)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.invoice) {
-                        showSalesInvoiceModal(data.invoice);
-                    } else {
-                        alert('Lỗi: ' + (data.message || 'Không tải được chi tiết hóa đơn'));
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ Error loading invoice details:', error);
-                    alert('Lỗi kết nối: ' + error.message);
-                });
-        };
-        
-        /**
-         * Show sales invoice details modal
-         */
-        window.showSalesInvoiceModal = function(invoice) {
-            // Build modal content
-            let modalHTML = '<div class="modal" id="salesInvoiceModal" style="display: block;">';
-            modalHTML += '  <div class="modal-content" style="max-width: 900px; animation: slideDown 0.3s ease;">';
-            modalHTML += '    <div class="modal-header" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 25px; border-radius: 12px 12px 0 0;">';
-            modalHTML += '      <h2 style="margin: 0; font-size: 24px;">🧾 Chi tiết Hóa đơn Bán hàng</h2>';
-            modalHTML += '      <span class="close" onclick="closeSalesInvoiceModal()" style="cursor: pointer; font-size: 32px;">&times;</span>';
-            modalHTML += '    </div>';
-            modalHTML += '    <div class="modal-body" style="padding: 30px; max-height: 70vh; overflow-y: auto;">';
-            
-            // Invoice info
-            modalHTML += '      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #d1fae5 100%); padding: 25px; border-radius: 12px; margin-bottom: 25px; border-left: 5px solid #10b981;">';
-            modalHTML += '        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
-            modalHTML += '          <div><strong style="color: #065f46;">📋 Mã đơn:</strong><br><span style="font-size: 18px; color: #047857;">' + (invoice.orderNumber || 'N/A') + '</span></div>';
-            modalHTML += '          <div><strong style="color: #065f46;">📅 Ngày bán:</strong><br>' + (invoice.orderDateFormatted || formatDate(invoice.orderDate)) + '</div>';
-            modalHTML += '          <div><strong style="color: #065f46;">👤 Khách hàng:</strong><br>' + (invoice.customerName || 'Khách lẻ');
-            if (invoice.customerPhone) modalHTML += '<br><small style="color: #6b7280;">' + invoice.customerPhone + '</small>';
-            modalHTML += '          </div>';
-            modalHTML += '          <div><strong style="color: #065f46;">🪑 Bàn/Phòng:</strong><br>' + ((invoice.roomName || '') + (invoice.roomName && invoice.tableName ? ' - ' : '') + (invoice.tableName || '-')) + '</div>';
-            modalHTML += '          <div><strong style="color: #065f46;">💳 Thanh toán:</strong><br>' + getPaymentMethodBadge(invoice.paymentMethod) + '</div>';
-            modalHTML += '          <div><strong style="color: #065f46;">👨‍💼 Nhân viên:</strong><br>' + (invoice.createdByName || '-') + '</div>';
-            modalHTML += '        </div>';
-            modalHTML += '      </div>';
-            
-            // Items table
-            if (invoice.items && invoice.items.length > 0) {
-                modalHTML += '      <h3 style="margin-bottom: 15px; color: #374151;">📦 Sản phẩm</h3>';
-                modalHTML += '      <table class="invoice-table" style="margin-bottom: 25px;">';
-                modalHTML += '        <thead><tr><th>Sản phẩm</th><th>Size</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead>';
-                modalHTML += '        <tbody>';
-                
-                invoice.items.forEach(item => {
-                    modalHTML += '          <tr>';
-                    modalHTML += '            <td>' + (item.productName || '-') + '</td>';
-                    modalHTML += '            <td>' + (item.size || '-') + '</td>';
-                    modalHTML += '            <td>' + (item.quantity || 0) + '</td>';
-                    modalHTML += '            <td>' + formatCurrency(item.unitPrice) + '</td>';
-                    modalHTML += '            <td><strong>' + formatCurrency(item.totalPrice) + '</strong></td>';
-                    modalHTML += '          </tr>';
-                });
-                
-                modalHTML += '        </tbody></table>';
-            }
-            
-            // Summary
-            modalHTML += '      <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 2px solid #e5e7eb;">';
-            modalHTML += '        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 15px;">';
-            if (invoice.subTotal) {
-                modalHTML += '          <div><strong>Tạm tính:</strong></div><div style="text-align: right;">' + formatCurrency(invoice.subTotal) + '</div>';
-            }
-            if (invoice.vat) {
-                modalHTML += '          <div><strong>VAT:</strong></div><div style="text-align: right;">' + formatCurrency(invoice.vat) + '</div>';
-            }
-            if (invoice.discount) {
-                modalHTML += '          <div><strong>Giảm giá:</strong></div><div style="text-align: right; color: #ef4444;">-' + formatCurrency(invoice.discount) + '</div>';
-            }
-            modalHTML += '          <div style="border-top: 2px solid #d1d5db; padding-top: 10px; margin-top: 5px;"><strong style="font-size: 18px; color: #059669;">TỔNG TIỀN:</strong></div>';
-            modalHTML += '          <div style="text-align: right; border-top: 2px solid #d1d5db; padding-top: 10px; margin-top: 5px;"><strong style="font-size: 20px; color: #059669;">' + formatCurrency(invoice.totalAmount) + '</strong></div>';
-            modalHTML += '        </div>';
-            if (invoice.notes) {
-                modalHTML += '        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;"><strong>📝 Ghi chú:</strong><br>' + invoice.notes + '</div>';
-            }
-            modalHTML += '      </div>';
-            
-            modalHTML += '    </div>';
-            modalHTML += '    <div class="modal-footer" style="padding: 20px; text-align: right; border-top: 1px solid #e5e7eb;">';
-            modalHTML += '      <button class="btn" onclick="closeSalesInvoiceModal()" style="background: #6b7280; color: white; padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer;">Đóng</button>';
-            modalHTML += '    </div>';
-            modalHTML += '  </div>';
-            modalHTML += '</div>';
-            
-            // Remove old modal if exists
-            const oldModal = document.getElementById('salesInvoiceModal');
-            if (oldModal) oldModal.remove();
-            
-            // Append to body
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            document.body.style.overflow = 'hidden';
-        };
-        
-        /**
-         * Close sales invoice modal
-         */
-        window.closeSalesInvoiceModal = function() {
-            const modal = document.getElementById('salesInvoiceModal');
-            if (modal) modal.remove();
-            document.body.style.overflow = '';
-        };
-        
-        /**
-         * Search sales invoices (debounced)
-         */
-        window.debouncedSalesSearch = function() {
-            clearTimeout(salesSearchTimeout);
-            salesSearchTimeout = setTimeout(() => {
-                salesSearchKeyword = document.getElementById('salesSearchInput').value;
-                salesCurrentPage = 0;
-                window.loadSalesInvoices(0);
-            }, 500);
-        };
-        
-        /**
-         * Filter sales invoices by date
-         */
-        window.filterSalesInvoices = function() {
-            salesStartDateFilter = document.getElementById('salesStartDate').value;
-            salesEndDateFilter = document.getElementById('salesEndDate').value;
-            salesSearchKeyword = ''; // Clear search when filtering
-            salesCurrentPage = 0;
-            window.loadSalesInvoices(0);
-        };
-        
-        /**
-         * Reset all filters
-         */
-        window.resetSalesFilters = function() {
-            document.getElementById('salesSearchInput').value = '';
-            document.getElementById('salesStartDate').value = '';
-            document.getElementById('salesEndDate').value = '';
-            salesSearchKeyword = '';
-            salesStartDateFilter = '';
-            salesEndDateFilter = '';
-            salesCurrentPage = 0;
-            window.loadSalesInvoices(0);
-        };
-        
-        /**
-         * Format date helper
-         */
-        window.formatDate = function(dateStr) {
-            if (!dateStr) return '-';
-            try {
-                const date = new Date(dateStr);
-                return date.toLocaleDateString('vi-VN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            } catch (e) {
-                return dateStr;
-            }
-        };
-        
-        console.log('✅ All Sales Invoice functions loaded globally');
-        
-        // ==================== END SALES INVOICE FUNCTIONS ====================
 
         // Initialize on load
         window.onload = function() {
