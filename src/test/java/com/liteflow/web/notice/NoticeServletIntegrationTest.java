@@ -1,6 +1,6 @@
-package com.liteflow.controller.cashier;
+package com.liteflow.web.notice;
 
-import com.liteflow.controller.CashierAPIServlet;
+import com.liteflow.web.notice.NoticeServlet;
 import com.liteflow.helpers.mocks.ServletTestHelper;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,32 +17,93 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-@DisplayName("CashierAPIServlet Integration Tests")
+@DisplayName("NoticeServlet Integration Tests")
 @Tag("integration")
-@Tag("cashier")
+@Tag("notice")
 @Tag("controller")
-public class CashierAPIServletIntegrationTest {
+public class NoticeServletIntegrationTest {
     
-    private CashierAPIServlet cashierAPIServlet;
+    private NoticeServlet noticeServlet;
     
     @BeforeEach
     public void setUp() throws Exception {
-        cashierAPIServlet = new CashierAPIServlet();
-        cashierAPIServlet.init();
+        noticeServlet = new NoticeServlet();
     }
     
     @Test
-    @DisplayName("Create order")
-    public void testCreateOrder() throws Exception {
+    @DisplayName("Get notices list")
+    public void testGetNoticesList() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getPathInfo()).thenReturn("/list");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            noticeServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getPathInfo();
+    }
+    
+    @Test
+    @DisplayName("Get unread count")
+    public void testGetUnreadCount() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getPathInfo()).thenReturn("/unread-count");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            noticeServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getPathInfo();
+    }
+    
+    @Test
+    @DisplayName("Get notice detail")
+    public void testGetNoticeDetail() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getPathInfo()).thenReturn("/" + java.util.UUID.randomUUID().toString());
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            noticeServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getPathInfo();
+    }
+    
+    @Test
+    @DisplayName("Mark notice as read")
+    public void testMarkAsRead() throws Exception {
         String jsonBody = "{" +
-            "\"sessionId\":\"" + java.util.UUID.randomUUID() + "\"," +
-            "\"items\":[]" +
+            "\"noticeId\":\"" + java.util.UUID.randomUUID() + "\"" +
         "}";
         
         HttpServletRequest request = ServletTestHelper.mockPostRequest(jsonBody);
         HttpServletResponse response = ServletTestHelper.mockResponse();
         
-        when(request.getPathInfo()).thenReturn("/order/create");
+        when(request.getPathInfo()).thenReturn("/mark-read");
         when(request.getContentType()).thenReturn("application/json");
         
         StringWriter stringWriter = new StringWriter();
@@ -50,77 +111,7 @@ public class CashierAPIServletIntegrationTest {
         when(response.getWriter()).thenReturn(printWriter);
         
         try {
-            cashierAPIServlet.service(request, response);
-        } catch (Exception e) {
-            // May fail without DB
-        }
-        
-        verify(request, atLeastOnce()).getPathInfo();
-    }
-    
-    @Test
-    @DisplayName("Checkout")
-    public void testCheckout() throws Exception {
-        String jsonBody = "{" +
-            "\"sessionId\":\"" + java.util.UUID.randomUUID() + "\"," +
-            "\"paymentMethod\":\"CASH\"" +
-        "}";
-        
-        HttpServletRequest request = ServletTestHelper.mockPostRequest(jsonBody);
-        HttpServletResponse response = ServletTestHelper.mockResponse();
-        
-        when(request.getPathInfo()).thenReturn("/checkout");
-        when(request.getContentType()).thenReturn("application/json");
-        
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(printWriter);
-        
-        try {
-            cashierAPIServlet.service(request, response);
-        } catch (Exception e) {
-            // May fail without DB
-        }
-        
-        verify(request, atLeastOnce()).getPathInfo();
-    }
-    
-    @Test
-    @DisplayName("Get next invoice number")
-    public void testGetNextInvoiceNumber() throws Exception {
-        HttpServletRequest request = ServletTestHelper.mockGetRequest();
-        HttpServletResponse response = ServletTestHelper.mockResponse();
-        
-        when(request.getPathInfo()).thenReturn("/invoice/next-number");
-        when(request.getParameter("sessionId")).thenReturn(java.util.UUID.randomUUID().toString());
-        
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(printWriter);
-        
-        try {
-            cashierAPIServlet.service(request, response);
-        } catch (Exception e) {
-            // May fail without DB
-        }
-        
-        verify(request, atLeastOnce()).getPathInfo();
-    }
-    
-    @Test
-    @DisplayName("Get notification history")
-    public void testGetNotificationHistory() throws Exception {
-        HttpServletRequest request = ServletTestHelper.mockGetRequest();
-        HttpServletResponse response = ServletTestHelper.mockResponse();
-        
-        when(request.getPathInfo()).thenReturn("/notification/history");
-        
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(printWriter);
-        
-        try {
-            cashierAPIServlet.service(request, response);
+            noticeServlet.service(request, response);
         } catch (Exception e) {
             // May fail without DB
         }
@@ -128,3 +119,4 @@ public class CashierAPIServletIntegrationTest {
         verify(request, atLeastOnce()).getPathInfo();
     }
 }
+

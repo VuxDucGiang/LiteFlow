@@ -1,24 +1,33 @@
 ## PR3 — CẤU TRÚC THƯ MỤC & MAPPING TEST CASES
 
 ### TỔNG QUAN
-**Mục tiêu:** Thiết kế cấu trúc thư mục test Integration Testing tuân thủ Maven Standard  
-**Phạm vi:** Mapping 85 test cases từ PR2 vào cấu trúc module rõ ràng  
-**Chiến lược dữ liệu:** Sử dụng Test Builders & Mocks thay vì SQL seed files
+**Mục tiêu:** Thiết kế cấu trúc thư mục test Integration Testing tuân thủ Maven Standard để đạt coverage >70%  
+**Phạm vi:** Mapping toàn bộ modules trong dự án (không chỉ 85 TCs ban đầu)  
+**Chiến lược dữ liệu:** 
+- **Ưu tiên:** Mocks & Helpers cho fast tests
+- **Hỗ trợ:** H2 in-memory database khi cần test persistence logic
+- **Nguyên tắc:** Không lỗi khi sử dụng H2, đảm bảo tests chạy ổn định
 
 ---
 
 ## 📂 PHẦN 1: SOURCE CODE & MODULE ANALYSIS
 
-### 1.1. Module Nghiệp Vụ Chính (6 modules)
+### 1.1. Module Nghiệp Vụ Chính (Toàn bộ dự án)
 
-| Module | Main Components | Test Priority |
-|--------|----------------|---------------|
-| **Authentication & RBAC** | `web/auth/*`, `filter/*`, `AuthService` | Critical |
-| **Cashier/POS Order** | `CashierServlet`, `OrderService`, `PaymentService` | Critical |
-| **Inventory** | `ProductServlet`, `InventoryService`, `ExcelService` | High |
-| **Employee** | `EmployeeServlet`, `AttendanceServlet`, `TimesheetService` | Medium |
-| **Reservation** | `ReceptionServlet`, `ReservationService`, `TableService` | Medium |
-| **Procurement** | `web/procurement/*`, `ProcurementService` | Low |
+| Module | Main Components | Test Priority | Status |
+|--------|----------------|---------------|--------|
+| **Authentication & RBAC** | `web/auth/*`, `filter/*`, `AuthService` | Critical | ⏳ Pending |
+| **Cashier/POS Order** | `CashierServlet`, `OrderService`, `PaymentService` | Critical | ⏳ Pending |
+| **Inventory** | `ProductServlet`, `InventoryService` | High | ⏳ Pending |
+| **Employee** | `EmployeeServlet`, `AttendanceServlet`, `TimesheetService` | Medium | ⏳ Pending |
+| **Reservation** | `ReceptionServlet`, `ReservationService`, `TableService` | Medium | ⏳ Pending |
+| **Procurement** | `web/procurement/*`, `ProcurementService` | Medium | ⏳ Pending |
+| **Sales** | `SalesInvoiceServlet`, `SalesService` | Medium | ⏳ Pending |
+| **Alert & Notification** | `AlertServlet`, `NotificationChannel` | Low | ⏳ Pending |
+| **Report & Analytics** | `RevenueReportServlet`, `DashboardServlet` | Low | ⏳ Pending |
+| **Schedule** | `ScheduleServlet`, `PersonalScheduleService` | Low | ⏳ Pending |
+| **Compensation & Payroll** | `CompensationServlet`, `PayrollService` | Low | ⏳ Pending |
+| **AI & API** | `ChatBotServlet`, `DemandForecastServlet` | Low | ⏳ Pending |
 
 ---
 
@@ -29,64 +38,81 @@
 ```
 src/test/java/com/liteflow/
 ├── controller/          # Servlet Integration Tests
-│   ├── auth/           (9 files - TC-HP-001 to TC-ERR-005)
-│   ├── cashier/        (7 files - TC-HP-007 to TC-ERR-011)
-│   ├── inventory/      (4 files - TC-HP-017 to TC-ERR-016)
-│   ├── employee/       (8 files - TC-HP-024 to TC-ERR-020)
-│   ├── reservation/    (5 files - TC-HP-030 to TC-ERR-023)
-│   └── procurement/    (5 files - TC-HP-034 to TC-ERR-025)
+│   ├── auth/           ⏳ Multiple files (Login, Signup, Logout, OAuth2, OTP, Forgot, Refresh, LoginGoogle)
+│   ├── cashier/        ⏳ Multiple files (CashierServlet, CashierAPIServlet)
+│   ├── inventory/      ⏳ Multiple files (ProductServlet)
+│   ├── employee/       ⏳ Multiple files (EmployeeServlet, Attendance, Timesheet)
+│   ├── reservation/    ⏳ 2 files (ReceptionServlet, RoomTableServlet)
+│   ├── procurement/    ⏳ 3 files (PurchaseOrder, GoodsReceipt, Invoice)
+│   ├── sales/          ⏳ 2 files (SalesInvoiceServlet, SalesInvoicePage)
+│   └── report/         ⏳ 2 files (RevenueReportServlet, DashboardServlet)
 │
 ├── service/            # Service Layer Integration Tests
-│   ├── auth/          (5 files)
-│   ├── order/         (4 files)
-│   ├── inventory/     (4 files)
-│   ├── employee/      (6 files)
-│   └── procurement/   (3 files)
+│   ├── auth/          ⏳ Multiple files (AuthService, UserService, OtpService, RoleService)
+│   ├── order/         ⏳ Multiple files (OrderService)
+│   ├── inventory/     ⏳ Multiple files (ProductService)
+│   ├── employee/      ⏳ Multiple files (EmployeeService, TimesheetService)
+│   ├── procurement/   ⏳ 2 files (ProcurementService, SupplierService)
+│   └── compensation/  ⏳ 1 file (CompensationService)
 │
-├── integration/        # E2E & Special Tests
-│   ├── e2e/           (3 files - critical flows)
-│   ├── transaction/   (2 files - rollback scenarios)
-│   └── concurrency/   (2 files - race conditions)
+├── filter/            ⏳ 3 files (Authentication, Authorization, Session)
 │
-├── filter/            (3 files - auth/session)
-│
-└── helpers/           # Test Utilities
-    ├── builders/      (Test data builders)
-    ├── mocks/         (External service mocks)
-    └── base/          (Base test classes)
+└── helpers/           # Test Utilities ✅ IMPLEMENTED
+    ├── builders/      ✅ TestDataBuilder.java
+    └── mocks/         ✅ ServletTestHelper.java
 
 src/test/resources/
-├── test-persistence.xml
-├── application-test.properties
-└── mock-responses/    (JSON mock data)
+└── mock-responses/    (JSON mock data - optional)
 ```
 
-### 2.2. Chi Tiết Files Theo Module
+### 2.2. Chi Tiết Files Theo Module (Actual Implementation)
 
-**Module 1: Authentication & RBAC (15 TCs → 9 files)**
-- `controller/auth/`: LoginServlet, OAuth2, Logout, OTP, Signup (9 files)
-- `filter/`: AuthenticationFilter, AuthorizationFilter, Session (3 files)
+**⏳ Module 1: Authentication & RBAC**
+- `service/auth/AuthServiceIntegrationTest.java`
+- `service/auth/UserServiceIntegrationTest.java`
+- `service/auth/OtpServiceIntegrationTest.java`
+- `service/auth/RoleServiceIntegrationTest.java`
+- `controller/auth/LoginServletIntegrationTest.java`
+- `controller/auth/SignupServletIntegrationTest.java`
+- `controller/auth/LogoutServletIntegrationTest.java`
+- `controller/auth/OAuth2CallbackServletIntegrationTest.java`
+- `controller/auth/OtpServletIntegrationTest.java`
+- `controller/auth/ForgotPasswordServletIntegrationTest.java`
+- `controller/auth/RefreshServletIntegrationTest.java`
+- `controller/auth/LoginGoogleServletIntegrationTest.java`
 
-**Module 2: Cashier/POS Order (22 TCs → 11 files)**
-- `controller/cashier/`: CreateOrder, Payment, Receipt, SplitPayment (7 files)
-- `controller/kitchen/`: KitchenServlet, OrderStatusUpdate (2 files)
-- `service/order/`: OrderService, PaymentService, PromotionService (4 files)
+**⏳ Module 2: Cashier/POS Order**
+- `service/order/OrderServiceIntegrationTest.java`
+- `controller/cashier/CashierAPIServletIntegrationTest.java`
+- `controller/cashier/CashierServletIntegrationTest.java`
 
-**Module 3: Inventory (17 TCs → 8 files)**
-- `controller/inventory/`: ProductServlet, StockUpdate, ExcelImportExport (4 files)
-- `service/inventory/`: ProductService, InventoryService, AlertService (4 files)
+**⏳ Module 3: Inventory**
+- `service/inventory/ProductServiceIntegrationTest.java`
+- `controller/inventory/ProductServletIntegrationTest.java`
 
-**Module 4: Employee (14 TCs → 14 files)**
-- `controller/employee/`: Employee, Attendance, Timesheet, Schedule, Compensation (8 files)
-- `service/employee/`: EmployeeService, AttendanceService, PayrollService (6 files)
+**⏳ Module 4: Employee**
+- `service/employee/EmployeeServiceIntegrationTest.java`
+- `service/employee/TimesheetServiceIntegrationTest.java`
+- `controller/employee/EmployeeServletIntegrationTest.java`
+- `controller/employee/AttendanceServletIntegrationTest.java`
+- `controller/employee/TimesheetServletIntegrationTest.java`
 
-**Module 5: Reservation (10 TCs → 8 files)**
-- `controller/reservation/`: ReceptionServlet, ReservationCreate/CheckIn/Cancel (5 files)
-- `service/reservation/`: ReservationService, TableAvailability (3 files)
+**⏳ Module 5: Reservation - Pending**
+- `controller/reservation/ReceptionServletIntegrationTest.java`
+- `controller/reservation/RoomTableServletIntegrationTest.java`
 
-**Module 6: Procurement (7 TCs → 8 files)**
-- `controller/procurement/`: PurchaseOrder, GoodsReceipt, Invoice (5 files)
-- `service/procurement/`: ProcurementService, InvoiceMatching (3 files)
+**⏳ Module 6: Procurement - Pending**
+- `controller/procurement/PurchaseOrderServletIntegrationTest.java`
+- `controller/procurement/GoodsReceiptServletIntegrationTest.java`
+- `controller/procurement/InvoiceServletIntegrationTest.java`
+
+**⏳ Additional Modules - Pending**
+- `controller/sales/SalesInvoiceServletIntegrationTest.java`
+- `controller/report/RevenueReportServletIntegrationTest.java`
+- `controller/schedule/ScheduleServletIntegrationTest.java`
+- `controller/compensation/CompensationServletIntegrationTest.java`
+- `filter/AuthenticationFilterIntegrationTest.java`
+- `filter/AuthorizationFilterIntegrationTest.java`
 
 ---
 
@@ -100,90 +126,144 @@ src/test/resources/
 | **E2E Test** | `<Feature>E2ETest.java` | `OrderFlowE2ETest.java` |
 | **Special Tests** | `<Feature>ConcurrencyTest.java` | `StockConcurrencyTest.java` |
 
-### 3.2. Tổng Hợp Mapping (85 TCs → 58 Files)
+### 3.2. Tổng Hợp Mapping (Actual Progress)
 
-| Module | Happy Path | Edge Cases | Errors | Total TCs | Test Files |
-|--------|-----------|------------|--------|-----------|------------|
-| **Auth & RBAC** | 6 | 4 | 5 | 15 | 12 files |
-| **Cashier/POS** | 10 | 6 | 6 | 22 | 11 files |
-| **Inventory** | 7 | 5 | 5 | 17 | 8 files |
-| **Employee** | 6 | 4 | 4 | 14 | 14 files |
-| **Reservation** | 4 | 3 | 3 | 10 | 8 files |
-| **Procurement** | 3 | 2 | 2 | 7 | 8 files |
-| **E2E/Special** | - | - | - | - | 7 files |
-| **TOTAL** | **36** | **24** | **25** | **85** | **~68 files**
+| Module | Status | Test Files | Total Tests | Coverage Est. |
+|--------|--------|-----------|-------------|---------------|
+| **Auth & RBAC** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Cashier/POS** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Inventory** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Employee** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Reservation** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Procurement** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Sales** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Report** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **Filter** | ⏳ Pending | Multiple files | Target: ≥70% coverage |
+| **TOTAL** | **All modules** | **All test files** | **Target: ≥70% overall** |
 
 ---
 
 ## 🗂️ PHẦN 4: CHIẾN LƯỢC TẠO DỮ LIỆU TEST
 
-### 4.1. Test Resources (Minimal)
+### 4.1. Chiến Lược Kết Hợp (Hybrid Approach)
+
+**Ưu tiên:**
+1. **Mocks & Helpers** (Primary) - Fast, isolated tests
+   - ✅ Mockito mocks cho DAOs
+   - ✅ TestDataBuilder tạo test entities  
+   - ✅ ServletTestHelper mock HTTP objects
+   - ✅ Không cần database, tests chạy nhanh
+
+2. **H2 In-Memory** (Supporting) - Khi cần test persistence
+   - ✅ H2 database cho integration tests phức tạp
+   - ✅ test-persistence.xml cấu hình entity scanning
+   - ✅ @Transactional để rollback sau mỗi test
+   - ✅ SQL seed files cho test data thực tế
+
+### 4.2. Test Resources
 
 ```
 src/test/resources/
-├── META-INF/test-persistence.xml       # H2 in-memory config
-├── application-test.properties         # Test configs
-└── mock-responses/                     # JSON mock data
-    ├── payment-success.json
-    ├── oauth-response.json
-    └── email-notification.json
-```
-
-### 4.2. Test Persistence Config
-
-```xml
-<persistence-unit name="LiteFlowTestPU">
-    <properties>
-        <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver"/>
-        <property name="jakarta.persistence.jdbc.url" 
-                  value="jdbc:h2:mem:testdb;MODE=MSSQLServer"/>
-        <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
-        <property name="hibernate.show_sql" value="false"/>
-    </properties>
-</persistence-unit>
+├── META-INF/
+│   └── persistence.xml                 # H2 configuration (optional)
+├── mock-responses/                     # JSON mock data (optional)
+│   ├── payment-success.json
+│   └── oauth-response.json
+└── test-data.sql                       # Seed data (optional)
 ```
 
 ### 4.3. Test Properties
 
 ```properties
-# Mock External Services
-mock.payment.gateway=true
-mock.email.service=true
-mock.oauth.service=true
-
-# Coverage
+# JaCoCo Coverage
+jacoco.version=0.8.10
 jacoco.output=target/jacoco-integration
+
+# Maven Surefire
+surefire.version=3.2.5
+
+# H2 Database (nếu dùng)
+jdbc.driver=h2
+jdbc.url=jdbc:h2:mem:testdb
+jdbc.user=sa
+jdbc.password=
 ```
 
 ---
 
 ## 📐 PHẦN 5: TEST DATA BUILDERS & HELPERS
 
-### 5.1. IntegrationTestBase.java - Base Class
+### 5.1. IntegrationTestBase (Optional for H2 tests)
 
+**Chọn approach dựa trên nhu cầu:**
+
+**Option A: Mock-Only Tests (Recommended for fast tests)**
 ```java
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public abstract class IntegrationTestBase {
-    protected static EntityManagerFactory emf;
-    protected EntityManager em;
+@DisplayName("Service Integration Tests")
+@Tag("integration")
+public class MyServiceIntegrationTest {
     
-    @BeforeAll
-    public static void setUpClass() {
-        emf = Persistence.createEntityManagerFactory("LiteFlowTestPU");
-    }
+    private MyService service;
+    private MyDAO mockDao;
     
     @BeforeEach
     public void setUp() {
+        mockDao = mock(MyDAO.class);
+        service = new MyService(mockDao);  // Inject mock
+    }
+    
+    @Test
+    public void testSomething() {
+        // Arrange: setup mocks
+        when(mockDao.findById(any())).thenReturn(testEntity);
+        
+        // Act: call service
+        Result result = service.doSomething();
+        
+        // Assert: verify behavior
+        assertNotNull(result);
+        verify(mockDao, times(1)).findById(any());
+    }
+}
+```
+
+**Option B: H2 Database Tests (For persistence logic)**
+```java
+@DisplayName("Service Integration Tests with H2")
+@Tag("integration")
+public class MyServiceH2IntegrationTest {
+    
+    private EntityManagerFactory emf;
+    private EntityManager em;
+    private MyService service;
+    
+    @BeforeEach
+    public void setUp() {
+        emf = Persistence.createEntityManagerFactory("test-persistence");
         em = emf.createEntityManager();
+        service = new MyService(new MyDAO(em));
         em.getTransaction().begin();
     }
     
     @AfterEach
     public void tearDown() {
-        if (em.getTransaction().isActive()) {
-            em.getTransaction().rollback();
-        }
+        em.getTransaction().rollback();
         em.close();
+        emf.close();
+    }
+    
+    @Test
+    public void testPersistence() {
+        // Arrange: persist test data
+        MyEntity entity = TestDataBuilder.buildMyEntity();
+        em.persist(entity);
+        em.flush();
+        
+        // Act: call service
+        Result result = service.findById(entity.getId());
+        
+        // Assert: verify database state
+        assertNotNull(result);
     }
 }
 ```
@@ -410,45 +490,52 @@ public class ServletTestHelper {
 }
 ```
 
-### 5.5. TestScenarios.java - Complex Scenarios
+### 5.4. TestScenarios.java (Optional Helper)
 
+**Sử dụng khi cần:**
+- Reusable test scenarios cho H2 tests
+- Complex setup với multiple entities
+- Common assertions patterns
+
+**Alternative: Helper methods trong test class**
 ```java
-public class TestScenarios {
+public class OrderServiceIntegrationTest {
     
-    // Tạo full scenario cho test
-    public static OrderTestScenario createOrderScenario(EntityManager em) {
-        // 1. Create users & roles
-        Role cashierRole = TestDataBuilder.buildRole("CASHIER");
-        User cashier = TestDataBuilder.buildUser("cashier@test.com", "CASHIER");
-        em.persist(cashierRole);
-        em.persist(cashier);
-        
-        // 2. Create products
-        Product p1 = TestDataBuilder.buildProduct("Coffee", 45000, 100);
-        Product p2 = TestDataBuilder.buildProduct("Tea", 35000, 80);
-        em.persist(p1);
-        em.persist(p2);
-        
-        // 3. Create table
-        Table table = TestDataBuilder.buildTable(1, 4);
-        em.persist(table);
-        
-        em.flush();
-        
-        return new OrderTestScenario(cashier, table, Arrays.asList(p1, p2));
+    // Helper for common setup
+    private Order createTestOrder() {
+        return TestDataBuilder.buildOrder("table-001", "PENDING");
     }
     
-    public static EmployeeTestScenario createEmployeeScenario(EntityManager em) {
-        Role managerRole = TestDataBuilder.buildRole("MANAGER");
-        User manager = TestDataBuilder.buildUser("manager@test.com", "MANAGER");
-        em.persist(managerRole);
-        em.persist(manager);
-        
-        Employee emp = TestDataBuilder.buildEmployee(manager, "Kitchen");
-        em.persist(emp);
-        em.flush();
-        
-        return new EmployeeTestScenario(manager, emp);
+    private List<Product> createTestProducts() {
+        return Arrays.asList(
+            TestDataBuilder.buildProduct("Coffee", 45000, 100),
+            TestDataBuilder.buildProduct("Tea", 35000, 80)
+        );
+    }
+    
+    @Test
+    public void testOrderCreation() {
+        Order order = createTestOrder();
+        List<Product> products = createTestProducts();
+        // ... test logic
+    }
+}
+```
+
+**Nếu dùng H2, có thể tạo IntegrationTestBase:**
+```java
+public abstract class IntegrationTestBase {
+    
+    protected EntityManager em;
+    
+    @BeforeEach
+    public void setUp() {
+        // Setup EntityManager và begin transaction
+    }
+    
+    @AfterEach
+    public void tearDown() {
+        // Rollback transaction
     }
 }
 ```
@@ -457,71 +544,157 @@ public class TestScenarios {
 
 ## 📊 PHẦN 6: LỢI ÍCH & COVERAGE
 
-### 6.1. Lợi Ích Thiết Kế
+### 6.1. Lợi Ích Thiết Kế (Hybrid Strategy)
 
 | Khía cạnh | Lợi ích |
 |-----------|---------|
-| **Builder Pattern** | Tạo test data linh hoạt, không cần SQL |
-| **Mock Services** | Kiểm soát external dependencies, test error cases |
-| **Test Scenarios** | Tái sử dụng setup phức tạp across tests |
+| **Builder Pattern** | Tạo test data linh hoạt |
+| **Mock Services** | Kiểm soát dependencies, test error cases |
+| **Option A: Mock-Only** | Tests chạy nhanh, không cần DB |
+| **Option B: H2 Support** | Test persistence logic thực tế |
 | **Phân module** | Chạy tests theo module, dễ maintain |
-| **H2 + create-drop** | Test isolation, mỗi test độc lập |
+| **Isolation** | Mỗi test độc lập |
+| **Flexibility** | Chọn approach phù hợp từng test case |
 
-### 6.2. Coverage Ước Tính
+### 6.2. Coverage Mục Tiêu
 
-| Layer | Test Files | Coverage Target |
-|-------|-----------|-----------------|
-| Controller | ~38 files | 75-80% |
-| Service | ~22 files | 80-85% |
-| Integration/E2E | ~7 files | 100% critical paths |
-| **TOTAL** | **~68 files** | **≥70% overall** |
+| Layer | Target | Target Files |
+|-------|--------|--------------|
+| **Controller** | ≥75% | Multiple servlet test files |
+| **Service** | ≥80% | Multiple service test files |
+| **Filter** | ≥70% | Filter test files |
+| **TOTAL** | **≥70%** | **All test files** |
+
+**Strategy:**
+- Implement tests cho từng module theo priority
+- Sử dụng mocks/helpers ưu tiên
+- H2 database khi cần test persistence logic
+- Đảm bảo không lỗi khi sử dụng H2
 
 ---
 
-## 📋 PHẦN 7: CHECKLIST TRIỂN KHAI
+## 📋 PHẦN 7: CHECKLIST TRIỂN KHAI (UPDATED)
 
 ### Setup (Phase 1)
 - [ ] Tạo test directory structure
-- [ ] Setup `test-persistence.xml` (H2 in-memory)
-- [ ] Implement `IntegrationTestBase.java`
+- [ ] Implement `TestDataBuilder.java` (all entities)
+- [ ] Implement `ServletTestHelper.java`
+- [ ] Optional: `IntegrationTestBase.java` (for H2 tests)
+- [ ] Optional: `test-persistence.xml` (for H2 configuration)
 
 ### Helpers (Phase 2)
-- [ ] Implement `TestDataBuilder.java` (all entities)
-- [ ] Implement `MockServiceHelper.java`
+- [ ] Implement `TestDataBuilder.java`
 - [ ] Implement `ServletTestHelper.java`
-- [ ] Implement `TestScenarios.java`
+- [ ] Optional: `IntegrationTestBase.java` (H2 test support)
+- [ ] Optional: `TestScenarios.java` (reusable scenarios)
 
-### Implementation (Phase 3 - theo priority)
-1. **Auth & RBAC** (15 TCs) - Critical
-2. **Cashier/POS** (22 TCs) - Critical
-3. **Inventory** (17 TCs) - High
-4. **Employee** (14 TCs) - Medium
-5. **Reservation** (10 TCs) - Medium
-6. **Procurement** (7 TCs) - Low
+### Implementation (Phase 3 - Status)
+1. **Auth & RBAC** ⏳ PENDING
+2. **Cashier/POS** ⏳ PENDING
+3. **Inventory** ⏳ PENDING
+4. **Employee** ⏳ PENDING
+5. **Reservation** ⏳ PENDING
+6. **Procurement** ⏳ PENDING
+7. **Sales** ⏳ PENDING
+8. **Report** ⏳ PENDING
+9. **Filter** ⏳ PENDING
+10. **Schedule** ⏳ PENDING
+11. **Compensation** ⏳ PENDING
+12. **Alert & Notification** ⏳ PENDING
+13. **AI & API** ⏳ PENDING
 
-### E2E & CI/CD (Phase 4)
-- [ ] E2E flow tests (3 critical flows)
-- [ ] Transaction & concurrency tests
+### CI/CD (Phase 4)
 - [ ] Configure JaCoCo coverage
-- [ ] CI pipeline integration
+- [ ] Run coverage report
+- [ ] Implement all modules to reach 70%+
 
 ---
 
-## 🎯 TÓM TẮT
+## 🎯 TÓM TẮT (UPDATED)
 
 ### Điểm Nổi Bật
-✅ **No SQL seed files** - Dùng builders/mocks để generate data  
-✅ **85 test cases → 68 test files** - Mapping rõ ràng  
-✅ **Builder cho mọi entity** - User, Product, Order, Employee, etc.  
-✅ **Mock external services** - Payment, Email, OAuth  
-✅ **Test scenarios** - Complex setups reusable  
+✅ **Hybrid Approach** - Ưu tiên mocks & helpers, hỗ trợ H2 khi cần  
+✅ **Flexible Testing** - Mock-only cho speed, H2 cho persistence logic  
+✅ **No Database Errors** - Đảm bảo tests chạy ổn định với cả 2 approaches  
+✅ **Target Coverage** - Mục tiêu ≥70% cho toàn bộ dự án  
+✅ **Comprehensive Testing** - Test tất cả modules trong dự án  
 
-### Metrics
-- **Total Files:** ~68 integration test files
-- **Coverage Target:** ≥70% (Servlet + Service layers)
-- **Execution Time:** ~8-12 minutes
+### Modules Cần Test
+- Module 1: Auth & RBAC
+- Module 2: Cashier/POS
+- Module 3: Inventory
+- Module 4: Employee
 
-### Bước Tiếp Theo
-**PR4:** Implement test code theo cấu trúc này  
-**PR5:** Run tests & collect coverage reports  
-**PR6:** Final report & recommendations
+### Các Module Cần Test
+- Module 5: Reservation
+- Module 6: Procurement
+- Module 7: Sales
+- Module 8: Report
+- Module 9: Filter
+- Module 10: Schedule
+- Module 11: Compensation
+- Module 12: Alert & Notification
+- Module 13: AI & API
+
+### Bước Tiếp Theo để đạt 70%+ Coverage
+
+#### Phase 1: Coverage Report (Immediate)
+```bash
+# Generate coverage report
+mvn clean test jacoco:report
+
+# View report
+open target/site/jacoco/index.html
+```
+
+#### Phase 2: Implement Priority Modules
+
+**Priority 1: Critical Modules (Med-High)**
+1. **Reservation**
+   - `ReceptionServletIntegrationTest.java`
+   - `RoomTableServletIntegrationTest.java`
+   - `ReservationServiceIntegrationTest.java`
+
+2. **Procurement**
+   - `PurchaseOrderServletIntegrationTest.java`
+   - `GoodsReceiptServletIntegrationTest.java`
+   - `InvoiceServletIntegrationTest.java`
+   - `ProcurementServiceIntegrationTest.java`
+   - `SupplierServiceIntegrationTest.java`
+
+3. **Sales**
+   - `SalesInvoiceServletIntegrationTest.java`
+   - `SalesInvoicePageServletIntegrationTest.java`
+
+**Priority 2: Supporting Modules (Low-Medium)**
+4. **Filter**
+   - `AuthenticationFilterIntegrationTest.java`
+   - `AuthorizationFilterIntegrationTest.java`
+   - `SessionFilterIntegrationTest.java`
+
+5. **Report**
+   - `RevenueReportServletIntegrationTest.java`
+   - `DashboardServletIntegrationTest.java`
+
+6. **Schedule**
+   - `ScheduleServletIntegrationTest.java`
+   - `PersonalScheduleServletIntegrationTest.java`
+
+#### Phase 3: Final Push
+
+7. **Compensation**
+8. **Alert & Notification**
+9. **AI & API**
+10. **Misc Servlets**
+
+#### Estimated Timeline
+- **Target:** ≥70% coverage overall
+- **Approach:** Implement tests cho từng module theo priority
+- **Strategy:** Sử dụng mocks/helpers ưu tiên, H2 khi cần persistence logic
+
+#### Success Criteria
+✅ All tests passing  
+✅ JaCoCo coverage ≥70% overall  
+✅ All critical paths covered  
+✅ Stable execution (no database errors)  
+✅ Fast execution với mock-only tests

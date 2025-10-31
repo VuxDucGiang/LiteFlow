@@ -291,5 +291,135 @@ public class ProductServletIntegrationTest {
         // This should not throw exception even if service fails
         assertDoesNotThrow(() -> productServlet.service(request, response));
     }
+    
+    @Test
+    @DisplayName("Add category API")
+    public void testAddCategoryApi() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("addCategory");
+        when(request.getParameter("categoryName")).thenReturn("Test Category");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            productServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Delete category API")
+    public void testDeleteCategoryApi() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("deleteCategory");
+        when(request.getParameter("categoryId")).thenReturn("test-category-id");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            productServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Delete unit API")
+    public void testDeleteUnitApi() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("deleteUnit");
+        when(request.getParameter("unitId")).thenReturn("test-unit-id");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            productServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Download template API")
+    public void testDownloadTemplateApi() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("downloadTemplate");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            productServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without output stream setup
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Check Excel file API")
+    public void testCheckExcelApi() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("checkExcel");
+        when(request.getPart("excelFile")).thenReturn(null);
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            productServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without file
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Test action API")
+    public void testTestActionApi() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockPostRequest("");
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("test");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            productServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
 }
 

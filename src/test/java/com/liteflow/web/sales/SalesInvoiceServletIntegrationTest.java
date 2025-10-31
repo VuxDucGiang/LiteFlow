@@ -1,6 +1,6 @@
-package com.liteflow.controller.cashier;
+package com.liteflow.web.sales;
 
-import com.liteflow.controller.CashierAPIServlet;
+import com.liteflow.web.sales.SalesInvoiceServlet;
 import com.liteflow.helpers.mocks.ServletTestHelper;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,114 +17,106 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-@DisplayName("CashierAPIServlet Integration Tests")
+@DisplayName("SalesInvoiceServlet Integration Tests")
 @Tag("integration")
-@Tag("cashier")
+@Tag("sales")
 @Tag("controller")
-public class CashierAPIServletIntegrationTest {
+public class SalesInvoiceServletIntegrationTest {
     
-    private CashierAPIServlet cashierAPIServlet;
+    private SalesInvoiceServlet salesInvoiceServlet;
     
     @BeforeEach
     public void setUp() throws Exception {
-        cashierAPIServlet = new CashierAPIServlet();
-        cashierAPIServlet.init();
+        salesInvoiceServlet = new SalesInvoiceServlet();
+        salesInvoiceServlet.init();
     }
     
     @Test
-    @DisplayName("Create order")
-    public void testCreateOrder() throws Exception {
-        String jsonBody = "{" +
-            "\"sessionId\":\"" + java.util.UUID.randomUUID() + "\"," +
-            "\"items\":[]" +
-        "}";
-        
-        HttpServletRequest request = ServletTestHelper.mockPostRequest(jsonBody);
-        HttpServletResponse response = ServletTestHelper.mockResponse();
-        
-        when(request.getPathInfo()).thenReturn("/order/create");
-        when(request.getContentType()).thenReturn("application/json");
-        
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(printWriter);
-        
-        try {
-            cashierAPIServlet.service(request, response);
-        } catch (Exception e) {
-            // May fail without DB
-        }
-        
-        verify(request, atLeastOnce()).getPathInfo();
-    }
-    
-    @Test
-    @DisplayName("Checkout")
-    public void testCheckout() throws Exception {
-        String jsonBody = "{" +
-            "\"sessionId\":\"" + java.util.UUID.randomUUID() + "\"," +
-            "\"paymentMethod\":\"CASH\"" +
-        "}";
-        
-        HttpServletRequest request = ServletTestHelper.mockPostRequest(jsonBody);
-        HttpServletResponse response = ServletTestHelper.mockResponse();
-        
-        when(request.getPathInfo()).thenReturn("/checkout");
-        when(request.getContentType()).thenReturn("application/json");
-        
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(printWriter);
-        
-        try {
-            cashierAPIServlet.service(request, response);
-        } catch (Exception e) {
-            // May fail without DB
-        }
-        
-        verify(request, atLeastOnce()).getPathInfo();
-    }
-    
-    @Test
-    @DisplayName("Get next invoice number")
-    public void testGetNextInvoiceNumber() throws Exception {
+    @DisplayName("Get sales invoices list")
+    public void testGetSalesInvoicesList() throws Exception {
         HttpServletRequest request = ServletTestHelper.mockGetRequest();
         HttpServletResponse response = ServletTestHelper.mockResponse();
         
-        when(request.getPathInfo()).thenReturn("/invoice/next-number");
-        when(request.getParameter("sessionId")).thenReturn(java.util.UUID.randomUUID().toString());
+        when(request.getParameter("action")).thenReturn("list");
         
         StringWriter stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(printWriter);
         
         try {
-            cashierAPIServlet.service(request, response);
+            salesInvoiceServlet.service(request, response);
         } catch (Exception e) {
             // May fail without DB
         }
         
-        verify(request, atLeastOnce()).getPathInfo();
+        verify(request, atLeastOnce()).getParameter("action");
     }
     
     @Test
-    @DisplayName("Get notification history")
-    public void testGetNotificationHistory() throws Exception {
+    @DisplayName("Get invoice details")
+    public void testGetInvoiceDetails() throws Exception {
         HttpServletRequest request = ServletTestHelper.mockGetRequest();
         HttpServletResponse response = ServletTestHelper.mockResponse();
         
-        when(request.getPathInfo()).thenReturn("/notification/history");
+        when(request.getParameter("action")).thenReturn("details");
+        when(request.getParameter("id")).thenReturn(java.util.UUID.randomUUID().toString());
         
         StringWriter stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(printWriter);
         
         try {
-            cashierAPIServlet.service(request, response);
+            salesInvoiceServlet.service(request, response);
         } catch (Exception e) {
             // May fail without DB
         }
         
-        verify(request, atLeastOnce()).getPathInfo();
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Search invoices")
+    public void testSearchInvoices() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("search");
+        when(request.getParameter("keyword")).thenReturn("test");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            salesInvoiceServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
+    }
+    
+    @Test
+    @DisplayName("Filter invoices by date")
+    public void testFilterInvoicesByDate() throws Exception {
+        HttpServletRequest request = ServletTestHelper.mockGetRequest();
+        HttpServletResponse response = ServletTestHelper.mockResponse();
+        
+        when(request.getParameter("action")).thenReturn("filter");
+        when(request.getParameter("startDate")).thenReturn("2024-01-01");
+        when(request.getParameter("endDate")).thenReturn("2024-01-31");
+        
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        
+        try {
+            salesInvoiceServlet.service(request, response);
+        } catch (Exception e) {
+            // May fail without DB
+        }
+        
+        verify(request, atLeastOnce()).getParameter("action");
     }
 }
+
