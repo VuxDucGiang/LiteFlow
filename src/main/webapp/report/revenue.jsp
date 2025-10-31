@@ -359,6 +359,236 @@
             to { transform: rotate(360deg); }
         }
         
+        /* 🆕 TODAY'S DASHBOARD STYLES */
+        .today-dashboard {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+            border: 3px solid rgba(255,255,255,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .today-dashboard::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse-bg 3s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-bg {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+        
+        .today-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .today-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .today-title h2 {
+            color: white;
+            font-size: 2em;
+            margin: 0;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .pulse-indicator {
+            width: 12px;
+            height: 12px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+        
+        .live-badge {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+        
+        .today-date {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        
+        .today-content {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 25px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .today-main-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .today-revenue-display {
+            text-align: center;
+        }
+        
+        .today-label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        .today-value {
+            font-size: 3.5em;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+        
+        .today-comparison {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.95em;
+        }
+        
+        .comparison-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .comparison-badge.positive {
+            background: rgba(76, 175, 80, 0.15);
+            color: #2e7d32;
+        }
+        
+        .comparison-badge.negative {
+            background: rgba(244, 67, 54, 0.15);
+            color: #c62828;
+        }
+        
+        .comparison-badge.neutral {
+            background: rgba(158, 158, 158, 0.15);
+            color: #616161;
+        }
+        
+        .comparison-text {
+            color: var(--text-secondary);
+        }
+        
+        .today-sparkline {
+            position: relative;
+            height: 100px;
+            margin-top: 10px;
+        }
+        
+        .sparkline-label {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            margin-top: 8px;
+        }
+        
+        .today-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+        
+        .today-stat-item {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .today-stat-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .stat-icon-mini {
+            font-size: 2em;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 12px;
+        }
+        
+        .stat-info-mini {
+            flex: 1;
+        }
+        
+        .stat-value-mini {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 3px;
+        }
+        
+        .stat-label-mini {
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-change-mini {
+            color: var(--text-secondary);
+            font-size: 0.8em;
+            margin-top: 3px;
+        }
+        
         /* Responsive */
         @media (max-width: 1200px) {
             .charts-grid {
@@ -385,6 +615,19 @@
                 width: 100%;
                 flex-direction: column;
             }
+            
+            /* Today's Dashboard Responsive */
+            .today-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .today-title h2 {
+                font-size: 1.5em;
+            }
+            
+            .today-value {
+                font-size: 2.5em;
+            }
         }
 </style>
 
@@ -410,12 +653,75 @@
             </div>
         </div>
         
+        <!-- 🆕 TODAY'S DASHBOARD -->
+        <div class="today-dashboard" id="todayDashboard" style="display: none;">
+            <div class="today-header">
+                <div class="today-title">
+                    <span class="pulse-indicator"></span>
+                    <h2>🌟 Doanh Thu Hôm Nay</h2>
+                    <span class="live-badge">LIVE</span>
+                </div>
+                <div class="today-date" id="todayDate"></div>
+            </div>
+            
+            <div class="today-content">
+                <!-- Main Revenue Card -->
+                <div class="today-main-card">
+                    <div class="today-revenue-display">
+                        <div class="today-label">Tổng Doanh Thu</div>
+                        <div class="today-value" id="todayRevenueValue">0 ₫</div>
+                        <div class="today-comparison">
+                            <span class="comparison-badge" id="todayComparisonBadge">
+                                <span id="todayGrowthIcon">→</span>
+                                <span id="todayGrowthValue">0%</span>
+                            </span>
+                            <span class="comparison-text">so với hôm qua</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Mini Sparkline Chart -->
+                    <div class="today-sparkline">
+                        <canvas id="todaySparklineChart"></canvas>
+                        <div class="sparkline-label">Xu hướng theo giờ</div>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats Grid -->
+                <div class="today-stats-grid">
+                    <div class="today-stat-item">
+                        <div class="stat-icon-mini">🛒</div>
+                        <div class="stat-info-mini">
+                            <div class="stat-value-mini" id="todayOrders">0</div>
+                            <div class="stat-label-mini">Đơn hàng</div>
+                            <div class="stat-change-mini" id="todayOrdersChange">--</div>
+                        </div>
+                    </div>
+                    
+                    <div class="today-stat-item">
+                        <div class="stat-icon-mini">📊</div>
+                        <div class="stat-info-mini">
+                            <div class="stat-value-mini" id="todayAvgOrder">0 ₫</div>
+                            <div class="stat-label-mini">TB/Đơn</div>
+                        </div>
+                    </div>
+                    
+                    <div class="today-stat-item">
+                        <div class="stat-icon-mini">⏰</div>
+                        <div class="stat-info-mini">
+                            <div class="stat-value-mini" id="todayPeakHour">--:--</div>
+                            <div class="stat-label-mini">Giờ cao điểm</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Statistics Cards -->
         <div class="stats-grid">
             <div class="stat-card revenue">
                 <div class="stat-header">
                     <div>
-                        <div class="stat-label">Tổng Doanh Thu</div>
+                        <div class="stat-label">Doanh thu tháng</div>
                         <div class="stat-value" id="stat-revenue">125,750,000 ₫</div>
                         <div class="stat-change positive">
                             ↑ <span id="stat-revenue-change">+15.5%</span> so với kỳ trước
@@ -496,6 +802,16 @@
                     <canvas id="hourlyRevenueChart"></canvas>
                 </div>
             </div>
+            
+            <!-- 🆕 Monthly Revenue Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">📅 Doanh thu theo Tháng</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="monthlyRevenueChart"></canvas>
+                </div>
+            </div>
         </div>
         
         <!-- Top Products Table -->
@@ -532,8 +848,119 @@
         
         // Load report data on page load
         window.onload = function() {
+            loadTodayDashboard();  // 🆕 Load today's data first
             loadReportData();
         };
+        
+        // 🆕 Load Today's Dashboard
+        function loadTodayDashboard() {
+            console.log('🌟 Loading TODAY\'s dashboard data...');
+            
+            fetch('${pageContext.request.contextPath}/report/revenue?action=today')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('📦 Today\'s data received:', data);
+                    if (data.success) {
+                        renderTodayDashboard(data);
+                    } else {
+                        console.error('❌ Today API error:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Today dashboard error:', error);
+                });
+        }
+        
+        // 🆕 Render Today's Dashboard
+        function renderTodayDashboard(data) {
+            console.log('🎨 Rendering today\'s dashboard...');
+            
+            // Show dashboard
+            document.getElementById('todayDashboard').style.display = 'block';
+            
+            // Set today's date
+            const today = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('todayDate').textContent = today.toLocaleDateString('vi-VN', options);
+            
+            // Update main revenue value
+            document.getElementById('todayRevenueValue').textContent = formatCurrency(data.todayRevenue);
+            
+            // Update growth indicator
+            const growth = data.revenueGrowth;
+            const badge = document.getElementById('todayComparisonBadge');
+            const icon = document.getElementById('todayGrowthIcon');
+            const value = document.getElementById('todayGrowthValue');
+            
+            badge.className = 'comparison-badge ' + (growth > 0 ? 'positive' : growth < 0 ? 'negative' : 'neutral');
+            icon.textContent = growth > 0 ? '↑' : growth < 0 ? '↓' : '→';
+            value.textContent = Math.abs(growth).toFixed(1) + '%';
+            
+            // Update quick stats
+            document.getElementById('todayOrders').textContent = formatNumber(data.todayOrders);
+            document.getElementById('todayAvgOrder').textContent = formatCurrency(data.avgOrderValue);
+            document.getElementById('todayPeakHour').textContent = data.peakHour;
+            
+            // Order growth
+            const orderGrowth = data.orderGrowth;
+            const orderChangeText = orderGrowth > 0 ? '↑ +' : orderGrowth < 0 ? '↓ ' : '→ ';
+            document.getElementById('todayOrdersChange').textContent = orderChangeText + Math.abs(orderGrowth).toFixed(1) + '% vs hôm qua';
+            
+            // Render sparkline chart
+            renderSparklineChart(data.hourlyTrend);
+            
+            console.log('✅ Today\'s dashboard rendered!');
+        }
+        
+        // 🆕 Render Sparkline Chart
+        let sparklineChart = null;
+        function renderSparklineChart(hourlyTrend) {
+            const ctx = document.getElementById('todaySparklineChart');
+            
+            if (sparklineChart) {
+                sparklineChart.destroy();
+            }
+            
+            sparklineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hourlyTrend.hours,
+                    datasets: [{
+                        data: hourlyTrend.revenues,
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
         
         // Load report data from servlet
         function loadReportData() {
@@ -575,6 +1002,7 @@
             renderRevenueTrendChart(data.trendData);
             renderProductCategoryChart(data.productData);
             renderHourlyRevenueChart(data.hourlyData);
+            renderMonthlyRevenueChart(data.monthlyData);  // 🆕 Monthly chart
             
             // Render top products table
             renderTopProductsTable(data.topProducts);
@@ -733,6 +1161,67 @@
                     }
                 }
             });
+        }
+        
+        // 🆕 Render monthly revenue chart
+        function renderMonthlyRevenueChart(monthlyData) {
+            const ctx = document.getElementById('monthlyRevenueChart');
+            
+            if (charts.monthly) {
+                charts.monthly.destroy();
+            }
+            
+            charts.monthly = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.months,
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: monthlyData.revenues,
+                        backgroundColor: 'rgba(255, 152, 0, 0.8)',
+                        borderColor: 'rgba(255, 152, 0, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Doanh thu: ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value, true);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('✅ Monthly revenue chart rendered with ' + monthlyData.months.length + ' months');
         }
         
         // Render top products table

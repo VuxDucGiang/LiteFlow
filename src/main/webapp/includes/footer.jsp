@@ -104,11 +104,6 @@
       </div>
   </footer>
 
-  <!-- Floating Support Button -->
-  <button class="floating-support">
-    <i class='bx bx-message-dots'></i>
-    <span>Hỗ trợ</span>
-  </button>
 </div>
 
 <!-- LiteFlow UI Enhancement Scripts -->
@@ -236,11 +231,6 @@
     console.log('Language selector clicked');
   });
 
-  // Floating support button
-  document.querySelector('.floating-support')?.addEventListener('click', function() {
-    // Add support functionality here
-    console.log('Support button clicked');
-  });
 
   // Footer Enhancements
   document.addEventListener('DOMContentLoaded', function() {

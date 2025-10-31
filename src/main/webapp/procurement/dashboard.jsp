@@ -260,9 +260,15 @@
             </div>
             
             <div class="action-card" onclick="window.location.href='${pageContext.request.contextPath}/procurement/invoice'">
+                <div class="action-icon">📦</div>
+                <div class="action-title">Hóa đơn Nhập hàng</div>
+                <div class="action-desc">Đối chiếu hóa đơn từ NCC</div>
+            </div>
+            
+            <div class="action-card" onclick="window.location.href='${pageContext.request.contextPath}/sales/invoice'">
                 <div class="action-icon">🧾</div>
-                <div class="action-title">Đối chiếu Hóa đơn</div>
-                <div class="action-desc">So sánh hóa đơn với đơn hàng</div>
+                <div class="action-title">Hoá đơn Bán hàng</div>
+                <div class="action-desc">Quản lý hóa đơn bán cho khách</div>
             </div>
         </div>
 

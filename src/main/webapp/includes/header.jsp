@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/animations.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/ui-components.css">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/chatbot.css">
   
   <!-- Dropdown Fix Script -->
   <script src="${pageContext.request.contextPath}/js/dropdown-fix.js"></script>
@@ -27,6 +28,9 @@
 
   <!-- Send Notification Script -->
   <script src="${pageContext.request.contextPath}/js/send-notification.js"></script>
+  
+  <!-- ChatBot Script -->
+  <script src="${pageContext.request.contextPath}/js/chatbot.js"></script>
   
   <!-- Inline Dropdown Fix -->
   <script>
@@ -258,7 +262,10 @@
             </a>
             <div class="dropdown-menu">
               <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
-                <i class='bx bx-file-blank'></i> Hóa đơn nhập hàng
+                <i class='bx bx-package'></i> Hóa đơn nhập hàng
+              </a>
+              <a href="${pageContext.request.contextPath}/sales/invoice" class="dropdown-item">
+                <i class='bx bx-receipt'></i> Hoá đơn bán hàng
               </a>
             </div>
           </div>

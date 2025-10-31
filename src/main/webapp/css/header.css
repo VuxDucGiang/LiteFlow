@@ -861,64 +861,6 @@ body{
   transform: translateY(-2px);
 }
 
-/* Floating Support Button */
-.floating-support{
-  position: fixed;
-  bottom: var(--space-5);
-  right: var(--space-5);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: white;
-  border: none;
-  border-radius: var(--radius-full);
-  padding: var(--space-3) var(--space-5);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  cursor: pointer;
-  box-shadow: 0 8px 25px rgba(0, 128, 255, 0.3);
-  transition: all var(--transition-base);
-  z-index: var(--z-fixed);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
-  overflow: hidden;
-}
-
-.floating-support::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left var(--transition-base);
-}
-
-.floating-support:hover::before {
-  left: 100%;
-}
-
-.floating-support:hover{
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 12px 35px rgba(0, 128, 255, 0.4);
-}
-
-.floating-support:active {
-  transform: translateY(-1px) scale(1.02);
-}
-
-.floating-support i{
-  font-size: var(--text-lg);
-  transition: transform var(--transition-fast);
-}
-
-.floating-support:hover i {
-  transform: rotate(10deg);
-}
-
 /* Responsive */
 @media (max-width: 1200px){
   .top-header-nav{
@@ -1049,13 +991,6 @@ body{
   .legal-links{
     flex-direction:column;
     gap:12px;
-  }
-
-  .floating-support{
-    bottom:16px;
-    right:16px;
-    padding:10px 16px;
-    font-size:13px;
   }
 }
 

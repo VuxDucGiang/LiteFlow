@@ -74,6 +74,9 @@ public class RevenueReportService {
             // Get top products
             report.put("topProducts", generateTopProducts(startDate, endDate, 10));
             
+            // 🆕 Get monthly revenue (last 12 months)
+            report.put("monthlyData", generateMonthlyRevenue());
+            
             System.out.println("✅ Report generated successfully");
             System.out.println("   Total Revenue: " + formatCurrency(totalRevenue.doubleValue()));
             System.out.println("   Total Orders: " + totalOrders);
@@ -309,6 +312,66 @@ public class RevenueReportService {
     }
     
     /**
+     * 🆕 Generate monthly revenue data (last 12 months)
+     */
+    private JSONObject generateMonthlyRevenue() {
+        JSONObject data = new JSONObject();
+        JSONArray months = new JSONArray();
+        JSONArray revenues = new JSONArray();
+        
+        try {
+            System.out.println("📊 Generating monthly revenue data...");
+            
+            // Get last 12 months data from DAO
+            List<Object[]> monthlyData = reportDAO.getMonthlyRevenue(12);
+            
+            // Create a map for easy lookup
+            Map<String, BigDecimal> dataMap = new HashMap<>();
+            for (Object[] row : monthlyData) {
+                Integer year = (Integer) row[0];
+                Integer month = (Integer) row[1];
+                BigDecimal revenue = (BigDecimal) row[2];
+                
+                String key = String.format("%d-%02d", year, month);
+                dataMap.put(key, revenue);
+                System.out.println("   Month: " + key + " -> Revenue: " + revenue);
+            }
+            
+            // Fill in all 12 months (even if no data)
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusMonths(11).withDayOfMonth(1);
+            
+            LocalDate current = startDate;
+            while (!current.isAfter(endDate)) {
+                String monthKey = String.format("%d-%02d", current.getYear(), current.getMonthValue());
+                String monthLabel = String.format("Tháng %d/%d", current.getMonthValue(), current.getYear());
+                
+                months.put(monthLabel);
+                
+                BigDecimal revenue = dataMap.getOrDefault(monthKey, BigDecimal.ZERO);
+                revenues.put(revenue.doubleValue());
+                
+                current = current.plusMonths(1);
+            }
+            
+            data.put("months", months);
+            data.put("revenues", revenues);
+            
+            System.out.println("✅ Monthly revenue data generated: " + months.length() + " months");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating monthly revenue: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Return empty arrays on error
+            data.put("months", new JSONArray());
+            data.put("revenues", new JSONArray());
+        }
+        
+        return data;
+    }
+    
+    /**
      * Calculate growth rate
      */
     private double calculateGrowthRate(BigDecimal current, BigDecimal previous) {
@@ -328,6 +391,81 @@ public class RevenueReportService {
      */
     private String formatCurrency(double value) {
         return String.format("%,.0f VNĐ", value);
+    }
+    
+    /**
+     * 🆕 Generate Today's Revenue Dashboard Report
+     * Real-time metrics for current day performance
+     */
+    public JSONObject generateTodayReport() {
+        JSONObject todayReport = new JSONObject();
+        
+        try {
+            System.out.println("📊 Generating TODAY's revenue dashboard...");
+            
+            // Get all metrics from DAO
+            Map<String, Object> metrics = reportDAO.getTodayMetrics();
+            
+            // Extract values
+            BigDecimal todayRevenue = (BigDecimal) metrics.get("todayRevenue");
+            BigDecimal yesterdayRevenue = (BigDecimal) metrics.get("yesterdayRevenue");
+            Long todayOrders = (Long) metrics.get("todayOrders");
+            Long yesterdayOrders = (Long) metrics.get("yesterdayOrders");
+            BigDecimal avgOrderValue = (BigDecimal) metrics.get("avgOrderValue");
+            String peakHour = (String) metrics.get("peakHour");
+            @SuppressWarnings("unchecked")
+            List<String> hourlyLabels = (List<String>) metrics.get("hourlyLabels");
+            @SuppressWarnings("unchecked")
+            List<BigDecimal> hourlyRevenues = (List<BigDecimal>) metrics.get("hourlyRevenues");
+            
+            // Calculate growth rates
+            double revenueGrowth = calculateGrowthRate(todayRevenue, yesterdayRevenue);
+            double orderGrowth = yesterdayOrders > 0 ? 
+                ((todayOrders - yesterdayOrders) * 100.0 / yesterdayOrders) : 0;
+            
+            // Build JSON response
+            todayReport.put("success", true);
+            todayReport.put("todayRevenue", todayRevenue.doubleValue());
+            todayReport.put("yesterdayRevenue", yesterdayRevenue.doubleValue());
+            todayReport.put("revenueGrowth", revenueGrowth);
+            todayReport.put("todayOrders", todayOrders);
+            todayReport.put("yesterdayOrders", yesterdayOrders);
+            todayReport.put("orderGrowth", orderGrowth);
+            todayReport.put("avgOrderValue", avgOrderValue.doubleValue());
+            todayReport.put("peakHour", peakHour);
+            
+            // Hourly trend data for mini chart
+            JSONArray hourLabelsArr = new JSONArray();
+            JSONArray hourRevenuesArr = new JSONArray();
+            for (int i = 0; i < hourlyLabels.size(); i++) {
+                hourLabelsArr.put(hourlyLabels.get(i));
+                hourRevenuesArr.put(hourlyRevenues.get(i).doubleValue());
+            }
+            
+            JSONObject hourlyTrend = new JSONObject();
+            hourlyTrend.put("hours", hourLabelsArr);
+            hourlyTrend.put("revenues", hourRevenuesArr);
+            todayReport.put("hourlyTrend", hourlyTrend);
+            
+            // Status indicator
+            String status = "success";
+            if (revenueGrowth < -10) status = "danger";
+            else if (revenueGrowth < 0) status = "warning";
+            else if (revenueGrowth > 10) status = "excellent";
+            todayReport.put("status", status);
+            
+            System.out.println("✅ Today's report: Revenue=" + todayRevenue + 
+                             ", Growth=" + String.format("%.1f%%", revenueGrowth) +
+                             ", Orders=" + todayOrders);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating today's report: " + e.getMessage());
+            e.printStackTrace();
+            todayReport.put("success", false);
+            todayReport.put("error", e.getMessage());
+        }
+        
+        return todayReport;
     }
 }
 
