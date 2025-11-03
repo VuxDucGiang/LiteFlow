@@ -266,9 +266,6 @@
               <i class='bx bx-chevron-down' style="margin-left: 4px; font-size: 14px;"></i>
             </a>
             <div class="dropdown-menu">
-              <a href="${pageContext.request.contextPath}/procurement/invoice" class="dropdown-item">
-                <i class='bx bx-package'></i> Hóa đơn nhập hàng
-              </a>
               <a href="${pageContext.request.contextPath}/sales/invoice" class="dropdown-item">
                 <i class='bx bx-receipt'></i> Hoá đơn bán hàng
               </a>
@@ -301,9 +298,6 @@
               <a href="${pageContext.request.contextPath}/procurement/po" class="dropdown-item">
                 <i class='bx bx-receipt'></i> Đơn đặt hàng
               </a>
-              <a href="${pageContext.request.contextPath}/procurement/gr" class="dropdown-item">
-                <i class='bx bx-package'></i> Nhận hàng
-              </a>
             </div>
           </div>
           
@@ -316,12 +310,6 @@
             <div class="dropdown-menu">
               <a href="${pageContext.request.contextPath}/report/revenue" class="dropdown-item">
                 <i class='bx bx-line-chart'></i> Báo cáo doanh thu
-              </a>
-              <a href="${pageContext.request.contextPath}/report/inventory" class="dropdown-item">
-                <i class='bx bx-package'></i> Báo cáo tồn kho
-              </a>
-              <a href="${pageContext.request.contextPath}/report/procurement" class="dropdown-item">
-                <i class='bx bx-shopping-bag'></i> Báo cáo mua hàng
               </a>
             </div>
           </div>

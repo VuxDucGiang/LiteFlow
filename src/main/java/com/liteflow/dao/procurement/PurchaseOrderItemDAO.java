@@ -4,6 +4,7 @@ import com.liteflow.dao.BaseDAO;
 import com.liteflow.model.procurement.PurchaseOrderItem;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,6 +41,79 @@ public class PurchaseOrderItemDAO extends GenericDAO<PurchaseOrderItem, Integer>
             if (em != null) {
                 em.close();
                 System.out.println("EntityManager closed");
+            }
+        }
+    }
+    
+    /**
+     * Kiểm tra xem có PO item nào gần đây cho productName và size cụ thể không
+     * @param productName Tên sản phẩm
+     * @param size Size của sản phẩm (có thể là "N/A" hoặc empty)
+     * @param days Số ngày gần đây để check (ví dụ: 1 ngày)
+     * @return true nếu có PO item trong khoảng thời gian gần đây với status hợp lệ
+     */
+    public boolean hasRecentItemByProductNameAndSize(String productName, String size, int days) {
+        EntityManager em = null;
+        try {
+            em = emf.createEntityManager();
+            
+            // Tạo itemName format giống với format trong createPOForSupplier
+            String itemName;
+            if (size != null && !size.trim().isEmpty() && !size.equals("N/A")) {
+                itemName = productName + " (Size: " + size + ")";
+            } else {
+                itemName = productName;
+            }
+            
+            // Tính ngày bắt đầu (days ngày trước)
+            LocalDateTime sinceDate = LocalDateTime.now().minusDays(days);
+            
+            System.out.println("🔍 Checking recent PO for item: " + itemName + " (since: " + sinceDate + ")");
+            
+            // Query: Lấy list PO gần đây với status hợp lệ trước
+            String poJpql = "SELECT po.poid FROM PurchaseOrder po " +
+                           "WHERE po.status IN ('PENDING', 'APPROVED', 'RECEIVING', 'COMPLETED') " +
+                           "AND po.createDate >= :sinceDate";
+            
+            TypedQuery<UUID> poQuery = em.createQuery(poJpql, UUID.class);
+            poQuery.setParameter("sinceDate", sinceDate);
+            List<UUID> recentPOIds = poQuery.getResultList();
+            
+            System.out.println("📋 Found " + recentPOIds.size() + " recent PO(s) with valid status");
+            
+            if (recentPOIds.isEmpty()) {
+                return false;
+            }
+            
+            // Query: Check xem có PurchaseOrderItem nào với itemName này trong các PO gần đây không
+            String itemJpql = "SELECT COUNT(poi) FROM PurchaseOrderItem poi " +
+                             "WHERE poi.itemName = :itemName " +
+                             "AND poi.poid IN :poIds";
+            
+            TypedQuery<Long> itemQuery = em.createQuery(itemJpql, Long.class);
+            itemQuery.setParameter("itemName", itemName);
+            itemQuery.setParameter("poIds", recentPOIds);
+            
+            Long count = itemQuery.getSingleResult();
+            
+            boolean hasRecent = count != null && count > 0;
+            
+            if (hasRecent) {
+                System.out.println("✅ Found recent PO item for: " + itemName + " (created within " + days + " day(s))");
+            } else {
+                System.out.println("ℹ️ No recent PO item found for: " + itemName);
+            }
+            
+            return hasRecent;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error checking recent PO item for " + productName + " (Size: " + size + "): " + e.getMessage());
+            e.printStackTrace();
+            // Return false on error để không block việc tạo PO
+            return false;
+        } finally {
+            if (em != null) {
+                em.close();
             }
         }
     }

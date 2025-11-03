@@ -9,6 +9,8 @@ class LiteFlowChatBot {
         this.isTyping = false;
         this.messages = [];
         this.apiEndpoint = this.getContextPath() + '/api/chatbot';
+        this.sessionKey = 'liteflow_chatbot_session';
+        this.historyKey = 'liteflow_chat_history';
         
         this.init();
     }
@@ -21,16 +23,54 @@ class LiteFlowChatBot {
     }
     
     init() {
+        // Check and clear history if new session
+        this.checkAndClearSession();
+        
         // Create chat UI
         this.createChatUI();
         
         // Bind events
         this.bindEvents();
         
-        // Load chat history from localStorage
+        // Load chat history from localStorage (empty on new session)
         this.loadChatHistory();
         
         console.log('🤖 LiteFlow ChatBot initialized');
+    }
+    
+    checkAndClearSession() {
+        try {
+            // Get current session ID from sessionStorage
+            // sessionStorage is automatically cleared when browser tab/window is closed
+            // So if it exists, we're in the same session (same tab/window)
+            const currentSessionId = sessionStorage.getItem(this.sessionKey);
+            
+            if (!currentSessionId) {
+                // No session ID = new session (new tab/window or page reload after close)
+                // Clear chat history from localStorage
+                localStorage.removeItem(this.historyKey);
+                this.messages = [];
+                
+                // Generate and set new session ID
+                const newSessionId = Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem(this.sessionKey, newSessionId);
+                
+                console.log('🧹 Chat history cleared for new session');
+            } else {
+                // Session exists = same tab/window, keep history
+                console.log('📜 Continuing existing chat session');
+            }
+            
+        } catch (e) {
+            console.warn('Failed to check session:', e);
+            // Fallback: clear history if sessionStorage is not available
+            try {
+                localStorage.removeItem(this.historyKey);
+                this.messages = [];
+            } catch (err) {
+                console.warn('Failed to clear history:', err);
+            }
+        }
     }
     
     createChatUI() {
@@ -283,7 +323,7 @@ class LiteFlowChatBot {
     
     saveChatHistory() {
         try {
-            localStorage.setItem('liteflow_chat_history', JSON.stringify(this.messages));
+            localStorage.setItem(this.historyKey, JSON.stringify(this.messages));
         } catch (e) {
             console.warn('Failed to save chat history:', e);
         }
@@ -291,7 +331,15 @@ class LiteFlowChatBot {
     
     loadChatHistory() {
         try {
-            const history = localStorage.getItem('liteflow_chat_history');
+            // Only load history if we're in the same session
+            const currentSessionId = sessionStorage.getItem(this.sessionKey);
+            if (!currentSessionId) {
+                // No session means this is a new session, don't load old history
+                this.messages = [];
+                return;
+            }
+            
+            const history = localStorage.getItem(this.historyKey);
             if (history) {
                 this.messages = JSON.parse(history);
                 

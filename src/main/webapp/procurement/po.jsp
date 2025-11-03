@@ -1109,6 +1109,9 @@
                                         <c:if test="${po.status == 'APPROVED'}">
                                             <button class="btn-info" onclick="receiveGoods('${po.poid}')">Nhận hàng</button>
                                         </c:if>
+                                        <c:if test="${po.status == 'RECEIVING'}">
+                                            <button class="btn-info" onclick="receiveGoods('${po.poid}')">Tiếp tục nhận hàng</button>
+                                        </c:if>
                                         <button class="btn-warning" onclick="viewDetails('${po.poid}')">Chi tiết</button>
                                     </div>
                                 </td>
@@ -1198,6 +1201,22 @@
                 <span class="close" onclick="closeDetailsModal()">&times;</span>
             </div>
             <div class="modal-body" id="detailsContent">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="spinner"></div>
+                    <p>Đang tải...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receive Goods Modal -->
+    <div id="receiveModal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h2>📦 Nhận hàng</h2>
+                <span class="close" onclick="closeReceiveModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="receiveContent">
                 <div style="text-align: center; padding: 40px;">
                     <div class="spinner"></div>
                     <p>Đang tải...</p>
@@ -1364,9 +1383,391 @@
         }
 
         function receiveGoods(poId) {
-            alert('📦 Nhận hàng cho đơn: ' + poId);
-            // TODO: Implement receive goods functionality
+            console.log('=== receiveGoods START ===');
+            console.log('POID:', poId);
+            
+            const modal = document.getElementById('receiveModal');
+            const content = document.getElementById('receiveContent');
+            
+            if (!modal) {
+                console.error('ERROR: receiveModal not found!');
+                alert('Lỗi: Không tìm thấy modal nhận hàng');
+                return;
+            }
+            
+            // Store POID for later use
+            modal.setAttribute('data-poid', poId);
+            
+            console.log('Modal found, showing...');
+            modal.style.display = 'block';
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            
+            // Show loading
+            content.innerHTML = '<div style="text-align:center;padding:40px;"><div style="border:4px solid #f3f4f6;border-top:4px solid #3b82f6;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto;"></div><p style="margin-top:20px;">Đang tải thông tin đơn hàng...</p></div>';
+            
+            // Fetch PO details
+            const contextPath = '${pageContext.request.contextPath}';
+            const url = contextPath + '/procurement/po?action=details&poid=' + poId;
+            console.log('Fetching URL:', url);
+            
+            fetch(url)
+                .then(response => {
+                    console.log('Response received. Status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data parsed successfully:', data);
+                    if (data.error) {
+                        console.error('Server returned error:', data.error);
+                        content.innerHTML = '<div style="color:red;padding:20px;"><strong>❌ Lỗi:</strong> ' + data.error + '</div>';
+                        return;
+                    }
+                    console.log('Rendering receive goods form...');
+                    renderReceiveGoodsForm(data);
+                    console.log('=== receiveGoods END SUCCESS ===');
+                })
+                .catch(error => {
+                    console.error('=== FETCH ERROR ===', error);
+                    content.innerHTML = '<div style="color:red;padding:20px;"><strong>❌ Lỗi kết nối:</strong> ' + error.message + '</div>';
+                });
         }
+        
+        function renderReceiveGoodsForm(po) {
+            console.log('=== renderReceiveGoodsForm START ===');
+            console.log('PO data:', po);
+            console.log('PO status:', po.status);
+            console.log('Received quantities:', po.receivedQuantities);
+            
+            const content = document.getElementById('receiveContent');
+            
+            if (!content) {
+                console.error('ERROR: receiveContent not found!');
+                return;
+            }
+            
+            let itemsHtml = '';
+            let totalOrdered = 0;
+            const receivedQuantities = po.receivedQuantities || {};
+            const isReceiving = po.status === 'RECEIVING';
+            
+            console.log('isReceiving:', isReceiving);
+            console.log('receivedQuantities:', receivedQuantities);
+            
+            if (!po.items || po.items.length === 0) {
+                itemsHtml = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#999;">Không có sản phẩm</td></tr>';
+            } else {
+                po.items.forEach((item, idx) => {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const price = parseFloat(item.unitPrice) || 0;
+                    const itemTotal = qty * price;
+                    totalOrdered += itemTotal;
+                    
+                    // Get already received quantity (tổng từ tất cả các lần nhận trước)
+                    const alreadyReceived = receivedQuantities[item.itemName] || 0;
+                    const remainingQty = Math.max(0, qty - alreadyReceived);
+                    
+                    // Status badge
+                    let statusHtml = '';
+                    if (isReceiving && alreadyReceived > 0) {
+                        if (alreadyReceived >= qty) {
+                            statusHtml = '<span style="color:#10b981;font-size:0.85em;">✓ Đã nhận đủ</span>';
+                        } else {
+                            statusHtml = '<span style="color:#f59e0b;font-size:0.85em;">📦 Đã nhận: ' + alreadyReceived + '/' + qty + '</span>';
+                        }
+                    }
+                    
+                    let cellsHtml = '';
+                    
+                    if (isReceiving) {
+                        // Trạng thái RECEIVING: hiển thị Số lượng đặt, Số lượng đã nhận, Số lượng tiếp tục nhận
+                        const defaultValue = remainingQty > 0 ? remainingQty : 0;
+                        const maxValue = remainingQty * 2; // Allow some over-receipt
+                        
+                        cellsHtml = 
+                        '<td style="text-align:right">' + qty.toLocaleString('vi-VN') + '</td>' +
+                        '<td style="text-align:right;color:#10b981;font-size:0.95em;font-weight:600;">' + 
+                            alreadyReceived.toLocaleString('vi-VN') + 
+                        '</td>' +
+                        '<td style="text-align:center">' +
+                            '<input type="number" ' +
+                            'class="received-qty-input" ' +
+                            'data-item-name="' + (item.itemName || '').replace(/"/g, '&quot;') + '" ' +
+                            'data-ordered-qty="' + qty + '" ' +
+                            'data-already-received="' + alreadyReceived + '" ' +
+                            'min="0" ' +
+                            'max="' + (maxValue > 0 ? maxValue : qty * 2) + '" ' +
+                            'value="' + defaultValue + '" ' +
+                            'placeholder="0" ' +
+                            'style="width:80px;padding:5px;text-align:center;border:1px solid #ddd;border-radius:4px;" ' +
+                            'onchange="validateReceivedQuantity(this)" ' +
+                            (remainingQty <= 0 && alreadyReceived > 0 ? 'disabled title="Đã nhận đủ số lượng"' : 'required') + '>' +
+                        '</td>';
+                    } else {
+                        // Trạng thái APPROVED: hiển thị Số lượng đặt, Số lượng nhận
+                        cellsHtml = 
+                        '<td style="text-align:right">' + qty.toLocaleString('vi-VN') + '</td>' +
+                        '<td style="text-align:center">' +
+                            '<input type="number" ' +
+                            'class="received-qty-input" ' +
+                            'data-item-name="' + (item.itemName || '').replace(/"/g, '&quot;') + '" ' +
+                            'data-ordered-qty="' + qty + '" ' +
+                            'data-already-received="0" ' +
+                            'min="0" ' +
+                            'max="' + (qty * 2) + '" ' +
+                            'value="' + qty + '" ' +
+                            'style="width:80px;padding:5px;text-align:center;border:1px solid #ddd;border-radius:4px;" ' +
+                            'onchange="validateReceivedQuantity(this)" ' +
+                            'required>' +
+                        '</td>';
+                    }
+                    
+                    itemsHtml += '<tr>' +
+                        '<td>' + (idx + 1) + '</td>' +
+                        '<td><strong>' + (item.itemName || 'N/A') + '</strong><br/>' + statusHtml + '</td>' +
+                        cellsHtml +
+                        '<td style="text-align:center">' +
+                            '<select class="quality-status-select" style="padding:5px;border:1px solid #ddd;border-radius:4px;">' +
+                            '<option value="OK" selected>OK</option>' +
+                            '<option value="DEFECTIVE">Lỗi</option>' +
+                            '<option value="DAMAGED">Hư hỏng</option>' +
+                            '<option value="EXPIRED">Hết hạn</option>' +
+                            '</select>' +
+                        '</td>' +
+                        '</tr>';
+                });
+            }
+            
+            const shortPoid = (po.poid || '').length > 8 ? po.poid.substring(0,8).toUpperCase() : (po.poid || 'N/A');
+            
+            content.innerHTML = '<div style="padding: 20px;">' +
+                '<div style="background:#f0f9ff;padding:15px;border-radius:8px;margin-bottom:20px;border-left:4px solid #3b82f6;">' +
+                '<p style="margin:5px 0;"><strong>Mã đơn:</strong> ' + shortPoid + '</p>' +
+                '<p style="margin:5px 0;"><strong>Nhà cung cấp:</strong> ' + (po.supplierName || 'N/A') + '</p>' +
+                '<p style="margin:5px 0;"><strong>Tổng tiền đặt hàng:</strong> <span style="color:#10b981;font-weight:bold">' + (po.totalAmount || 0).toLocaleString('vi-VN') + ' ₫</span></p>' +
+                '</div>' +
+                '<h3 style="margin-bottom:15px;">' + 
+                    (isReceiving ? '📦 Tiếp tục nhận hàng - Danh sách sản phẩm' : '📦 Danh sách sản phẩm nhận hàng') + 
+                '</h3>' +
+                (isReceiving && Object.keys(receivedQuantities).length > 0 && Object.values(receivedQuantities).some(qty => qty > 0) ? 
+                    '<div style="background:#fff3cd;padding:10px;border-radius:6px;margin-bottom:15px;border-left:4px solid #ffc107;"><strong>ℹ️ Lưu ý:</strong> Đơn hàng này đã nhận một phần. Vui lòng nhập số lượng tiếp tục nhận cho từng sản phẩm.</div>' : '') +
+                '<table class="po-table" style="width:100%;">' +
+                '<thead>' +
+                '<tr>' +
+                '<th style="width:50px">#</th>' +
+                '<th>Tên sản phẩm</th>' +
+                '<th style="width:100px">Số lượng đặt</th>' +
+                (isReceiving ? 
+                    '<th style="width:120px">Số lượng đã nhận</th>' +
+                    '<th style="width:120px">Số lượng tiếp tục nhận</th>' :
+                    '<th style="width:120px">Số lượng nhận</th>'
+                ) +
+                '<th style="width:150px">Trạng thái chất lượng</th>' +
+                '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                itemsHtml +
+                '</tbody>' +
+                '</table>' +
+                '<div style="margin-top:20px;">' +
+                '<label for="receiveNotes" style="display:block;margin-bottom:8px;font-weight:bold;">Ghi chú nhận hàng:</label>' +
+                '<textarea id="receiveNotes" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;font-family:inherit;" placeholder="Ghi chú về tình trạng hàng hóa, chất lượng, lý do chênh lệch (nếu có)..."></textarea>' +
+                '</div>' +
+                '<div style="margin-top:20px;text-align:right;">' +
+                '<button type="button" class="btn" onclick="closeReceiveModal()" style="margin-right:10px;">Hủy</button>' +
+                '<button type="button" class="btn btn-success" onclick="submitReceiveGoods()">Xác nhận nhận hàng</button>' +
+                '</div>' +
+                '</div>';
+            
+            console.log('=== renderReceiveGoodsForm END SUCCESS ===');
+        }
+        
+        function validateReceivedQuantity(input) {
+            const orderedQty = parseInt(input.getAttribute('data-ordered-qty')) || 0;
+            const alreadyReceived = parseInt(input.getAttribute('data-already-received')) || 0;
+            const receivedQty = parseInt(input.value) || 0;
+            const remainingQty = Math.max(0, orderedQty - alreadyReceived);
+            const totalReceivedAfter = alreadyReceived + receivedQty;
+            
+            // Reset styles
+            input.style.borderColor = '#ddd';
+            input.style.backgroundColor = '#fff';
+            
+            // Remove existing warning message
+            const existingWarning = input.parentElement.querySelector('.over-receipt-warning');
+            if (existingWarning) {
+                existingWarning.remove();
+            }
+            
+            if (receivedQty < 0) {
+                input.value = 0;
+                return;
+            }
+            
+            // Check if receiving more than ordered quantity
+            if (totalReceivedAfter > orderedQty) {
+                const overAmount = totalReceivedAfter - orderedQty;
+                const overPercent = ((overAmount / orderedQty) * 100).toFixed(1);
+                
+                // Visual warning
+                input.style.borderColor = '#f59e0b';
+                input.style.backgroundColor = '#fffbeb';
+                
+                // Add warning message
+                const warningMsg = document.createElement('div');
+                warningMsg.className = 'over-receipt-warning';
+                warningMsg.style.cssText = 'margin-top:5px;padding:8px;background:#fff3cd;border-left:3px solid #ffc107;border-radius:4px;font-size:0.85em;color:#856404;';
+                warningMsg.innerHTML = '⚠️ <strong>Nhận vượt số lượng đặt:</strong> Đã nhận ' + totalReceivedAfter.toLocaleString('vi-VN') + 
+                                     ' / Đặt ' + orderedQty.toLocaleString('vi-VN') + 
+                                     ' (<span style="color:#dc2626;font-weight:bold">+' + overAmount.toLocaleString('vi-VN') + ' (' + overPercent + '%)</span>)';
+                
+                input.parentElement.appendChild(warningMsg);
+                
+                // If over-receipt is too high (more than 20%), show stronger warning
+                if (overPercent > 20) {
+                    input.style.borderColor = '#ef4444';
+                    input.style.backgroundColor = '#fee2e2';
+                    warningMsg.style.background = '#fee2e2';
+                    warningMsg.style.borderLeftColor = '#ef4444';
+                    warningMsg.style.color = '#991b1b';
+                }
+            } else if (totalReceivedAfter === orderedQty) {
+                // Exactly ordered quantity - green
+                input.style.borderColor = '#10b981';
+                input.style.backgroundColor = '#ecfdf5';
+            } else if (totalReceivedAfter < orderedQty && totalReceivedAfter > 0) {
+                // Partial receipt - blue
+                input.style.borderColor = '#3b82f6';
+                input.style.backgroundColor = '#eff6ff';
+            }
+        }
+        
+        function submitReceiveGoods() {
+            const modal = document.getElementById('receiveModal');
+            const poid = modal.getAttribute('data-poid');
+            
+            if (!poid) {
+                alert('❌ Lỗi: Không tìm thấy mã đơn hàng');
+                return;
+            }
+            
+            // Collect received items
+            const inputs = document.querySelectorAll('.received-qty-input');
+            const items = [];
+            
+            inputs.forEach((input, idx) => {
+                const itemName = input.getAttribute('data-item-name');
+                const orderedQty = parseInt(input.getAttribute('data-ordered-qty')) || 0;
+                const receivedQty = parseInt(input.value) || 0;
+                
+                // Get quality status from corresponding select
+                const qualitySelects = document.querySelectorAll('.quality-status-select');
+                const qualityStatus = qualitySelects[idx] ? qualitySelects[idx].value : 'OK';
+                
+                items.push({
+                    itemName: itemName,
+                    orderedQuantity: orderedQty,
+                    receivedQuantity: receivedQty,
+                    qualityStatus: qualityStatus
+                });
+            });
+            
+            // Validate at least one item has received quantity > 0
+            const hasReceived = items.some(item => item.receivedQuantity > 0);
+            if (!hasReceived) {
+                alert('⚠️ Vui lòng nhập số lượng nhận cho ít nhất 1 sản phẩm');
+                return;
+            }
+            
+            // Check for over-receipt (total received > ordered)
+            let hasOverReceipt = false;
+            let overReceiptItems = [];
+            items.forEach(item => {
+                const orderedQty = item.orderedQuantity;
+                const receivedQty = item.receivedQuantity;
+                
+                // Get already received quantity from input attribute
+                const input = Array.from(inputs).find(inp => inp.getAttribute('data-item-name') === item.itemName);
+                const alreadyReceived = input ? parseInt(input.getAttribute('data-already-received')) || 0 : 0;
+                const totalReceived = alreadyReceived + receivedQty;
+                
+                if (totalReceived > orderedQty) {
+                    hasOverReceipt = true;
+                    const overAmount = totalReceived - orderedQty;
+                    const overPercent = ((overAmount / orderedQty) * 100).toFixed(1);
+                    overReceiptItems.push(item.itemName + ' (+' + overAmount + ', +' + overPercent + '%)');
+                }
+            });
+            
+            // Get notes
+            const notes = document.getElementById('receiveNotes') ? document.getElementById('receiveNotes').value : '';
+            
+            // Confirm with over-receipt warning if needed
+            let confirmMsg = 'Xác nhận nhận hàng cho đơn ' + poid.substring(0, 8).toUpperCase() + '?';
+            if (hasOverReceipt) {
+                confirmMsg = '⚠️ PHÁT HIỆN NHẬN VƯỢT SỐ LƯỢNG ĐẶT:\n\n' +
+                            overReceiptItems.join('\n') +
+                            '\n\nBạn có chắc chắn muốn tiếp tục? Hệ thống sẽ ghi nhận chênh lệch này.';
+            }
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            // Submit
+            const contextPath = '${pageContext.request.contextPath}';
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = contextPath + '/procurement/po';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'receive';
+            
+            const poidInput = document.createElement('input');
+            poidInput.type = 'hidden';
+            poidInput.name = 'poid';
+            poidInput.value = poid;
+            
+            const itemsInput = document.createElement('input');
+            itemsInput.type = 'hidden';
+            itemsInput.name = 'items';
+            itemsInput.value = JSON.stringify(items);
+            
+            const notesInput = document.createElement('input');
+            notesInput.type = 'hidden';
+            notesInput.name = 'notes';
+            notesInput.value = notes;
+            
+            form.appendChild(actionInput);
+            form.appendChild(poidInput);
+            form.appendChild(itemsInput);
+            form.appendChild(notesInput);
+            
+            document.body.appendChild(form);
+            console.log('Submitting receive goods form...');
+            form.submit();
+        }
+        
+        function closeReceiveModal() {
+            const modal = document.getElementById('receiveModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.removeAttribute('data-poid');
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const receiveModal = document.getElementById('receiveModal');
+            if (receiveModal && event.target === receiveModal) {
+                closeReceiveModal();
+            }
+        });
 
         function viewDetails(poId) {
             console.log('=== viewDetails START ===');

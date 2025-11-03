@@ -8,7 +8,95 @@
 window.addRoom = function() {
     const modal = document.getElementById('addRoomModal');
     if (modal) {
+        // Ensure footer exists and has correct buttons for Add mode
+        let footer = modal.querySelector('.modal-footer');
+        if (!footer) {
+            const form = document.getElementById('addRoomForm');
+            if (form) {
+                footer = document.createElement('div');
+                footer.className = 'modal-footer';
+                form.appendChild(footer);
+            }
+        }
+        
+        if (footer) {
+            // Check if buttons need to be reset
+            const submitButton = footer.querySelector('.btn-success');
+            if (!submitButton || submitButton.textContent !== '✅ Thêm phòng') {
+                footer.innerHTML = '';
+                
+                // Add Cancel button
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'btn btn-warning';
+                cancelButton.textContent = '❌ Hủy';
+                cancelButton.onclick = closeAddRoomModal;
+                footer.appendChild(cancelButton);
+                
+                // Add Submit button
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.className = 'btn btn-success';
+                addButton.textContent = '✅ Thêm phòng';
+                addButton.onclick = function(event) {
+                    submitAddRoom(event);
+                };
+                footer.appendChild(addButton);
+                
+                // Force footer to be visible
+                footer.style.display = 'flex';
+                footer.style.visibility = 'visible';
+                footer.style.opacity = '1';
+                footer.style.position = 'relative';
+            }
+        } else {
+            // Footer doesn't exist, create it
+            const form = document.getElementById('addRoomForm');
+            if (form) {
+                footer = document.createElement('div');
+                footer.className = 'modal-footer';
+                
+                // Add Cancel button
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'btn btn-warning';
+                cancelButton.textContent = '❌ Hủy';
+                cancelButton.onclick = closeAddRoomModal;
+                footer.appendChild(cancelButton);
+                
+                // Add Submit button
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.className = 'btn btn-success';
+                addButton.textContent = '✅ Thêm phòng';
+                addButton.onclick = function(event) {
+                    submitAddRoom(event);
+                };
+                footer.appendChild(addButton);
+                
+                // Force footer to be visible
+                footer.style.display = 'flex';
+                footer.style.visibility = 'visible';
+                footer.style.opacity = '1';
+                
+                form.appendChild(footer);
+            }
+        }
+        
+        // Reset modal title
+        const modalTitle = modal.querySelector('.modal-header h2');
+        if (modalTitle) {
+            modalTitle.textContent = 'Thêm phòng mới';
+        }
+        
         modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Focus on first input
+        const nameInput = document.getElementById('roomName');
+        if (nameInput) {
+            setTimeout(() => nameInput.focus(), 100);
+        }
     } else {
         console.error('addRoomModal not found');
     }
@@ -26,6 +114,47 @@ window.closeAddRoomModal = function() {
             modalTitle.textContent = 'Thêm phòng mới';
         }
         
+        // Ensure footer exists and reset buttons
+        let footer = modal.querySelector('.modal-footer');
+        if (!footer) {
+            // Create footer if it doesn't exist
+            const form = document.getElementById('addRoomForm');
+            if (form) {
+                footer = document.createElement('div');
+                footer.className = 'modal-footer';
+                form.appendChild(footer);
+            }
+        }
+        
+        if (footer) {
+            footer.innerHTML = '';
+            
+            // Add Cancel button
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'btn btn-warning';
+            cancelButton.textContent = '❌ Hủy';
+            cancelButton.onclick = closeAddRoomModal;
+            footer.appendChild(cancelButton);
+            
+            // Add Submit button
+            const submitButton = document.createElement('button');
+            submitButton.type = 'button';
+            submitButton.className = 'btn btn-success';
+            submitButton.textContent = '✅ Thêm phòng';
+            submitButton.onclick = function(event) {
+                submitAddRoom(event);
+            };
+            footer.appendChild(submitButton);
+            
+            // Force footer to be visible
+            footer.style.display = 'flex';
+            footer.style.visibility = 'visible';
+            footer.style.opacity = '1';
+            footer.style.position = 'relative';
+        }
+        
+        // Fallback: Update existing button if footer doesn't exist
         const submitButton = modal.querySelector('.btn-success');
         if (submitButton) {
             submitButton.textContent = '✅ Thêm phòng';
@@ -1944,9 +2073,83 @@ function showEditRoomModal(roomId, roomName, roomDescription, tableCount, totalC
     if (tableCountInput) tableCountInput.value = tableCount;
     if (totalCapacityInput) totalCapacityInput.value = totalCapacity;
     
-    // Update submit button
+    // Ensure footer exists and is visible
+    let footer = modal.querySelector('.modal-footer');
+    if (!footer) {
+        // Create footer if it doesn't exist
+        const form = document.getElementById('addRoomForm');
+        if (form) {
+            footer = document.createElement('div');
+            footer.className = 'modal-footer';
+            form.appendChild(footer);
+        }
+    }
+    
+    // Update footer buttons
+    if (footer) {
+        // Clear existing buttons
+        footer.innerHTML = '';
+        
+        // Add Cancel button
+        const cancelButton = document.createElement('button');
+        cancelButton.type = 'button';
+        cancelButton.className = 'btn btn-warning';
+        cancelButton.textContent = '❌ Hủy';
+        cancelButton.onclick = closeAddRoomModal;
+        footer.appendChild(cancelButton);
+        
+        // Add Update button
+        const updateButton = document.createElement('button');
+        updateButton.type = 'button';
+        updateButton.className = 'btn btn-success';
+        updateButton.textContent = '✅ Cập nhật';
+        updateButton.onclick = function(event) {
+            submitEditRoom(event, roomId);
+        };
+        footer.appendChild(updateButton);
+        
+        // Force footer to be visible
+        footer.style.display = 'flex';
+        footer.style.visibility = 'visible';
+        footer.style.opacity = '1';
+        footer.style.position = 'relative';
+    } else {
+        // Footer doesn't exist, create it
+        const form = document.getElementById('addRoomForm');
+        if (form) {
+            footer = document.createElement('div');
+            footer.className = 'modal-footer';
+            
+            // Add Cancel button
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'btn btn-warning';
+            cancelButton.textContent = '❌ Hủy';
+            cancelButton.onclick = closeAddRoomModal;
+            footer.appendChild(cancelButton);
+            
+            // Add Update button
+            const updateButton = document.createElement('button');
+            updateButton.type = 'button';
+            updateButton.className = 'btn btn-success';
+            updateButton.textContent = '✅ Cập nhật';
+            updateButton.onclick = function(event) {
+                submitEditRoom(event, roomId);
+            };
+            footer.appendChild(updateButton);
+            
+            // Force footer to be visible
+            footer.style.display = 'flex';
+            footer.style.visibility = 'visible';
+            footer.style.opacity = '1';
+            
+            form.appendChild(footer);
+        }
+    }
+    
+    // Update submit button (fallback for old code)
     const submitButton = modal.querySelector('.btn-success');
-    if (submitButton) {
+    if (submitButton && submitButton.textContent !== '✅ Cập nhật') {
         submitButton.textContent = '✅ Cập nhật';
         submitButton.onclick = function(event) {
             submitEditRoom(event, roomId);

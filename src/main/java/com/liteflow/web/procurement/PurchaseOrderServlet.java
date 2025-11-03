@@ -3,7 +3,8 @@ package com.liteflow.web.procurement;
 import com.liteflow.model.procurement.PurchaseOrder;
 import com.liteflow.model.procurement.PurchaseOrderItem;
 import com.liteflow.service.procurement.ProcurementService;
-import jakarta.servlet.annotation.WebServlet;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -106,6 +107,20 @@ public class PurchaseOrderServlet extends HttpServlet {
             json.append("\"totalAmount\":").append(po.getTotalAmount() != null ? po.getTotalAmount() : 0).append(",");
             json.append("\"status\":\"").append(po.getStatus() != null ? po.getStatus() : "PENDING").append("\",");
             json.append("\"notes\":\"").append(po.getNotes() != null ? po.getNotes().replace("\"", "\\\"") : "").append("\",");
+            
+            // Get total received quantities (for both RECEIVING and APPROVED status)
+            // This allows us to show received quantities even if status changes
+            Map<String, Integer> receivedQuantities = service.getTotalReceivedQuantities(poid);
+            
+            json.append("\"receivedQuantities\":{");
+            boolean firstReceived = true;
+            for (Map.Entry<String, Integer> entry : receivedQuantities.entrySet()) {
+                if (!firstReceived) json.append(",");
+                json.append("\"").append(entry.getKey().replace("\"", "\\\"")).append("\":").append(entry.getValue());
+                firstReceived = false;
+            }
+            json.append("},");
+            
             json.append("\"items\":[");
             
             for (int i = 0; i < items.size(); i++) {
@@ -314,6 +329,64 @@ public class PurchaseOrderServlet extends HttpServlet {
                     java.net.URLEncoder.encode("Thông tin không hợp lệ: " + e.getMessage(), "UTF-8"));
             } catch (Exception e) {
                 System.err.println("❌ REJECT FAILED: Unexpected error - " + e.getMessage());
+                e.printStackTrace();
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode("Lỗi hệ thống: " + e.getMessage(), "UTF-8"));
+            }
+        }
+
+        if ("receive".equals(action)) {
+            try {
+                String poidParam = req.getParameter("poid");
+                String itemsJson = req.getParameter("items");
+                String notes = req.getParameter("notes");
+                
+                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                System.out.println("PurchaseOrderServlet - RECEIVE action");
+                System.out.println("  POID param: " + poidParam);
+                System.out.println("  Items JSON: " + (itemsJson != null ? itemsJson.substring(0, Math.min(100, itemsJson.length())) : "null"));
+                
+                if (poidParam == null || poidParam.trim().isEmpty()) {
+                    System.err.println("❌ RECEIVE FAILED: Missing POID parameter");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Thiếu thông tin đơn hàng", "UTF-8"));
+                    return;
+                }
+                
+                if (userID == null) {
+                    System.err.println("❌ RECEIVE FAILED: User not logged in");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Bạn chưa đăng nhập", "UTF-8"));
+                    return;
+                }
+                
+                UUID poid = UUID.fromString(poidParam);
+                
+                // Parse items JSON
+                Gson gson = new Gson();
+                java.lang.reflect.Type listType = new TypeToken<java.util.List<java.util.Map<String, Object>>>(){}.getType();
+                java.util.List<java.util.Map<String, Object>> items = gson.fromJson(itemsJson, listType);
+                
+                System.out.println("  Calling receiveGoods() with " + items.size() + " items...");
+                UUID receiptID = service.receiveGoods(poid, userID, items, notes);
+                
+                if (receiptID != null) {
+                    System.out.println("✅ RECEIVE SUCCESS - Receipt ID: " + receiptID);
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?status=received&receipt=" + receiptID);
+                } else {
+                    System.err.println("❌ RECEIVE FAILED - service.receiveGoods() returned null");
+                    resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                        java.net.URLEncoder.encode("Không thể nhận hàng. Vui lòng kiểm tra console logs.", "UTF-8"));
+                }
+                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                
+            } catch (IllegalArgumentException e) {
+                System.err.println("❌ RECEIVE FAILED: Invalid parameters - " + e.getMessage());
+                e.printStackTrace();
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
+                    java.net.URLEncoder.encode("Thông tin không hợp lệ: " + e.getMessage(), "UTF-8"));
+            } catch (Exception e) {
+                System.err.println("❌ RECEIVE FAILED: Unexpected error - " + e.getMessage());
                 e.printStackTrace();
                 resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
                     java.net.URLEncoder.encode("Lỗi hệ thống: " + e.getMessage(), "UTF-8"));

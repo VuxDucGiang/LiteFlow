@@ -106,6 +106,17 @@ public class ProcurementService {
         System.out.println("✅ PurchaseOrder total updated: " + total);
         System.out.println("=== ProcurementService.createPurchaseOrder END - SUCCESS ===");
         
+        // Send Telegram notification for new PO (async) - notify all users with Telegram enabled
+        try {
+            POAlertService poAlertService = new POAlertService();
+            poAlertService.sendPOCreationNotification(po.getPoid(), null); // null = notify all users with Telegram enabled
+            System.out.println("🔔 PO notification check initiated for POID: " + po.getPoid());
+        } catch (Exception e) {
+            // Don't fail PO creation if notification fails
+            System.err.println("⚠️ Warning: PO notification check failed (PO creation still successful): " + e.getMessage());
+            e.printStackTrace();
+        }
+        
         return po.getPoid();
     }
 
@@ -121,6 +132,82 @@ public class ProcurementService {
             });
         }
         return items;
+    }
+    
+    /**
+     * Tính tổng số lượng đã nhận cho mỗi item trong PO từ tất cả các GoodsReceiptItems
+     * @param poid PO ID
+     * @return Map với key là itemName, value là tổng số lượng đã nhận (chỉ tính hàng OK)
+     */
+    public Map<String, Integer> getTotalReceivedQuantities(UUID poid) {
+        Map<String, Integer> receivedMap = new HashMap<>();
+        jakarta.persistence.EntityManager em = null;
+        try {
+            em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+            
+            // First, check if there are any GoodsReceipts for this PO
+            jakarta.persistence.Query receiptsQuery = em.createQuery(
+                "SELECT gr.receiptID FROM com.liteflow.model.procurement.GoodsReceipt gr WHERE gr.poid = :poid");
+            receiptsQuery.setParameter("poid", poid);
+            @SuppressWarnings("unchecked")
+            List<UUID> receiptIDs = receiptsQuery.getResultList();
+            
+            System.out.println("📊 Found " + receiptIDs.size() + " GoodsReceipt(s) for PO " + poid);
+            
+            if (receiptIDs.isEmpty()) {
+                System.out.println("📊 No receipts found for PO " + poid + ", returning empty map");
+                return receivedMap;
+            }
+            
+            // Query tổng số lượng đã nhận cho mỗi POItemID (chỉ tính hàng OK)
+            String jpql = "SELECT gri.poItemID, SUM(gri.receivedQuantity) " +
+                         "FROM com.liteflow.model.procurement.GoodsReceiptItem gri " +
+                         "WHERE gri.receiptID IN :receiptIDs " +
+                         "AND gri.qualityStatus = 'OK' " +
+                         "GROUP BY gri.poItemID";
+            
+            jakarta.persistence.Query query = em.createQuery(jpql);
+            query.setParameter("receiptIDs", receiptIDs);
+            
+            @SuppressWarnings("unchecked")
+            List<Object[]> results = query.getResultList();
+            
+            System.out.println("📊 Query returned " + results.size() + " rows for PO " + poid);
+            
+            // Map POItemID -> tổng số lượng đã nhận
+            Map<Integer, Integer> poItemReceivedMap = new HashMap<>();
+            for (Object[] row : results) {
+                Integer poItemID = (Integer) row[0];
+                Long sumReceived = ((Number) row[1]).longValue();
+                poItemReceivedMap.put(poItemID, sumReceived.intValue());
+                System.out.println("📊 POItemID " + poItemID + " has total received: " + sumReceived);
+            }
+            
+            // Lấy danh sách POItems để map POItemID -> ItemName
+            jakarta.persistence.Query poItemsQuery = em.createQuery(
+                "SELECT poi FROM com.liteflow.model.procurement.PurchaseOrderItem poi WHERE poi.poid = :poid");
+            poItemsQuery.setParameter("poid", poid);
+            @SuppressWarnings("unchecked")
+            List<PurchaseOrderItem> poItems = poItemsQuery.getResultList();
+            
+            for (PurchaseOrderItem poi : poItems) {
+                Integer totalReceived = poItemReceivedMap.getOrDefault(poi.getItemID(), 0);
+                receivedMap.put(poi.getItemName(), totalReceived);
+                System.out.println("📊 Item " + poi.getItemName() + " (POItemID: " + poi.getItemID() + ") has total received: " + totalReceived);
+            }
+            
+            System.out.println("📊 Total received quantities for PO " + poid + ": " + receivedMap);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error calculating received quantities: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
+        
+        return receivedMap;
     }
     
     public List<PurchaseOrder> getPOsPendingApproval() {
@@ -139,7 +226,22 @@ public class ProcurementService {
         po.setApprovedBy(approver);
         po.setApprovedAt(LocalDateTime.now());
         po.setStatus("APPROVED");
-        return poDAO.update(po);
+        boolean updated = poDAO.update(po);
+        
+        // Send Telegram notification for status update (async)
+        if (updated) {
+            try {
+                POAlertService poAlertService = new POAlertService();
+                poAlertService.sendPOStatusUpdateNotification(poid, "APPROVED", approver);
+                System.out.println("🔔 PO approval notification check initiated for POID: " + poid);
+            } catch (Exception e) {
+                // Don't fail approval if notification fails
+                System.err.println("⚠️ Warning: PO approval notification failed (approval still successful): " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        return updated;
     }
 
     public boolean rejectPO(UUID poid, UUID approver, String reason) {
@@ -148,7 +250,22 @@ public class ProcurementService {
         po.setApprovedBy(approver);
         po.setNotes(reason);
         po.setStatus("REJECTED");
-        return poDAO.update(po);
+        boolean updated = poDAO.update(po);
+        
+        // Send Telegram notification for status update (async)
+        if (updated) {
+            try {
+                POAlertService poAlertService = new POAlertService();
+                poAlertService.sendPOStatusUpdateNotification(poid, "REJECTED", approver);
+                System.out.println("🔔 PO rejection notification check initiated for POID: " + poid);
+            } catch (Exception e) {
+                // Don't fail rejection if notification fails
+                System.err.println("⚠️ Warning: PO rejection notification failed (rejection still successful): " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        return updated;
     }
 
     /* ============================================================
@@ -166,6 +283,305 @@ public class ProcurementService {
         po.setStatus("RECEIVING");
         poDAO.update(po);
         return gr.getReceiptID();
+    }
+
+    /**
+     * Nhận hàng với chi tiết từng sản phẩm
+     * @param poid PO ID
+     * @param receivedBy User ID người nhận
+     * @param items List of items với receivedQuantity và qualityStatus
+     * @param notes Ghi chú
+     * @return Receipt ID
+     */
+    public UUID receiveGoods(UUID poid, UUID receivedBy, List<Map<String, Object>> items, String notes) {
+        jakarta.persistence.EntityManager em = null;
+        try {
+            em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+            em.getTransaction().begin();
+            
+            System.out.println("=== receiveGoods START ===");
+            System.out.println("POID: " + poid);
+            System.out.println("ReceivedBy: " + receivedBy);
+            System.out.println("Items count: " + items.size());
+            
+            // Get PO using the same EntityManager to keep it managed
+            PurchaseOrder po = em.find(PurchaseOrder.class, poid);
+            if (po == null) {
+                throw new RuntimeException("Purchase Order not found: " + poid);
+            }
+            System.out.println("✅ Found PO with status: " + po.getStatus());
+            
+            // Get PO items using query with same EM
+            jakarta.persistence.Query poItemsQuery = em.createQuery(
+                "SELECT poi FROM com.liteflow.model.procurement.PurchaseOrderItem poi WHERE poi.poid = :poid");
+            poItemsQuery.setParameter("poid", poid);
+            @SuppressWarnings("unchecked")
+            List<PurchaseOrderItem> poItems = poItemsQuery.getResultList();
+            if (poItems.isEmpty()) {
+                throw new RuntimeException("Purchase Order has no items");
+            }
+            
+            // Initialize notes string for collecting over-receipt warnings
+            StringBuilder receiptNotes = new StringBuilder();
+            if (notes != null && !notes.trim().isEmpty()) {
+                receiptNotes.append(notes);
+            }
+            
+            // Create GoodsReceipt
+            GoodsReceipt gr = new GoodsReceipt();
+            gr.setPoid(poid);
+            gr.setReceivedBy(receivedBy);
+            gr.setNotes(notes); // Set initial notes, will update later if there are over-receipt warnings
+            
+            // CRITICAL: Persist GoodsReceipt FIRST to generate ReceiptID via @PrePersist
+            em.persist(gr);
+            em.flush(); // Force flush to get the generated ReceiptID
+            UUID receiptID = gr.getReceiptID();
+            System.out.println("✅ GoodsReceipt created with ReceiptID: " + receiptID);
+            
+            // Determine status: FULL if all items received fully, otherwise PARTIAL
+            boolean allFull = true;
+            int totalReceived = 0;
+            int totalOrdered = 0;
+            
+            // Create GoodsReceiptItems and update inventory
+            com.liteflow.dao.inventory.InventoryDAO inventoryDAO = new com.liteflow.dao.inventory.InventoryDAO();
+            
+            // Get default inventory (usually ID = 1 or first one)
+            com.liteflow.model.inventory.Inventory defaultInventory = null;
+            try {
+                List<com.liteflow.model.inventory.Inventory> inventories = inventoryDAO.getAll();
+                if (!inventories.isEmpty()) {
+                    defaultInventory = inventories.get(0);
+                    System.out.println("Using default inventory: " + defaultInventory.getInventoryId());
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Warning: Could not get default inventory: " + e.getMessage());
+            }
+            
+            // Get already received quantities if this is a continuing receive
+            Map<String, Integer> alreadyReceivedMap = new HashMap<>();
+            if ("RECEIVING".equals(po.getStatus())) {
+                // Query total received quantities from database
+                String receivedJpql = "SELECT gri.poItemID, SUM(gri.receivedQuantity) " +
+                                     "FROM com.liteflow.model.procurement.GoodsReceiptItem gri " +
+                                     "WHERE gri.receiptID IN " +
+                                     "(SELECT gr.receiptID FROM com.liteflow.model.procurement.GoodsReceipt gr WHERE gr.poid = :poid) " +
+                                     "AND gri.qualityStatus = 'OK' " +
+                                     "GROUP BY gri.poItemID";
+                jakarta.persistence.Query receivedQuery = em.createQuery(receivedJpql);
+                receivedQuery.setParameter("poid", poid);
+                @SuppressWarnings("unchecked")
+                List<Object[]> receivedResults = receivedQuery.getResultList();
+                
+                Map<Integer, Integer> poItemReceivedMap = new HashMap<>();
+                for (Object[] row : receivedResults) {
+                    Integer poItemID = (Integer) row[0];
+                    Long sumReceived = ((Number) row[1]).longValue();
+                    poItemReceivedMap.put(poItemID, sumReceived.intValue());
+                }
+                
+                // Map POItemID -> ItemName
+                for (PurchaseOrderItem poi : poItems) {
+                    Integer alreadyReceivedQty = poItemReceivedMap.getOrDefault(poi.getItemID(), 0);
+                    alreadyReceivedMap.put(poi.getItemName(), alreadyReceivedQty);
+                }
+                
+                System.out.println("📊 Already received quantities: " + alreadyReceivedMap);
+            }
+            
+            for (Map<String, Object> itemData : items) {
+                String itemName = (String) itemData.get("itemName");
+                Integer orderedQty = ((Number) itemData.get("orderedQuantity")).intValue();
+                Integer receivedQty = ((Number) itemData.get("receivedQuantity")).intValue();
+                String qualityStatus = (String) itemData.getOrDefault("qualityStatus", "OK");
+                
+                // Calculate total received (already + new)
+                Integer alreadyReceived = alreadyReceivedMap.getOrDefault(itemName, 0);
+                Integer totalReceivedForItem = alreadyReceived + receivedQty;
+                
+                totalOrdered += orderedQty;
+                totalReceived += totalReceivedForItem;
+                
+                if (totalReceivedForItem < orderedQty) {
+                    allFull = false;
+                }
+                
+                // Find matching POItem
+                PurchaseOrderItem poItem = null;
+                for (PurchaseOrderItem poi : poItems) {
+                    if (poi.getItemName().equals(itemName)) {
+                        poItem = poi;
+                        break;
+                    }
+                }
+                
+                if (poItem == null) {
+                    System.err.println("⚠️ Warning: POItem not found for: " + itemName);
+                    continue;
+                }
+                
+                // Check for over-receipt (received more than ordered)
+                Integer overReceipt = receivedQty > orderedQty ? receivedQty - orderedQty : 0;
+                if (overReceipt > 0) {
+                    double overPercent = (overReceipt.doubleValue() / orderedQty.doubleValue()) * 100.0;
+                    System.out.println("⚠️ OVER-RECEIPT WARNING: " + itemName + 
+                                     " - Ordered: " + orderedQty + 
+                                     ", Received: " + receivedQty + 
+                                     ", Over: +" + overReceipt + " (" + String.format("%.1f", overPercent) + "%)");
+                    
+                    // Log to receipt notes if significant over-receipt (>10%)
+                    if (overPercent > 10) {
+                        if (receiptNotes.length() > 0) {
+                            receiptNotes.append("\n");
+                        }
+                        receiptNotes.append("[OVER-RECEIPT] ").append(itemName)
+                                   .append(": Đặt ").append(orderedQty)
+                                   .append(", Nhận ").append(receivedQty)
+                                   .append(" (+").append(overReceipt)
+                                   .append(", ").append(String.format("%.1f", overPercent)).append("%)");
+                    }
+                }
+                
+                // Create GoodsReceiptItem with the generated ReceiptID
+                GoodsReceiptItem gri = new GoodsReceiptItem();
+                gri.setReceiptID(receiptID); // Use the generated ReceiptID from flush
+                gri.setPoItemID(poItem.getItemID());
+                gri.setProductName(itemName);
+                gri.setOrderedQuantity(orderedQty);
+                gri.setReceivedQuantity(receivedQty);
+                gri.setUnitPrice(poItem.getUnitPrice());
+                gri.setQualityStatus(qualityStatus);
+                
+                // Set discrepancy reason if over-receipt is significant (>10%)
+                if (overReceipt > 0 && (overReceipt.doubleValue() / orderedQty.doubleValue()) > 0.1) {
+                    String reason = "Nhận vượt số lượng đặt: +" + overReceipt + " đơn vị (" + 
+                                   String.format("%.1f", (overReceipt.doubleValue() / orderedQty.doubleValue()) * 100.0) + "%)";
+                    gri.setDiscrepancyReason(reason);
+                    System.out.println("📝 Set discrepancy reason for " + itemName + ": " + reason);
+                }
+                
+                // Calculate defective quantity if quality is not OK
+                if (!"OK".equals(qualityStatus)) {
+                    gri.setDefectiveQuantity(receivedQty);
+                }
+                
+                // Insert GoodsReceiptItem using same EM
+                em.persist(gri);
+                System.out.println("✅ GoodsReceiptItem created for " + itemName + ": " + receivedQty + 
+                                 " (ReceiptID: " + receiptID + ", POItemID: " + poItem.getItemID() + ")");
+                
+                // Update inventory if quality is OK and we have default inventory
+                if ("OK".equals(qualityStatus) && defaultInventory != null && receivedQty > 0) {
+                    try {
+                        // Find product by name using EntityManager query
+                        jakarta.persistence.Query productQuery = em.createQuery(
+                            "SELECT p FROM com.liteflow.model.inventory.Product p WHERE LOWER(p.name) = LOWER(:name) AND (p.isDeleted = false OR p.isDeleted IS NULL)");
+                        productQuery.setParameter("name", itemName);
+                        @SuppressWarnings("unchecked")
+                        List<com.liteflow.model.inventory.Product> products = productQuery.getResultList();
+                        
+                        if (!products.isEmpty()) {
+                            com.liteflow.model.inventory.Product product = products.get(0);
+                            
+                            // Get first variant using query
+                            jakarta.persistence.Query variantQuery = em.createQuery(
+                                "SELECT pv FROM com.liteflow.model.inventory.ProductVariant pv WHERE pv.product.productId = :productId AND (pv.isDeleted = false OR pv.isDeleted IS NULL)");
+                            variantQuery.setParameter("productId", product.getProductId());
+                            variantQuery.setMaxResults(1);
+                            @SuppressWarnings("unchecked")
+                            List<com.liteflow.model.inventory.ProductVariant> variants = variantQuery.getResultList();
+                            
+                            if (!variants.isEmpty()) {
+                                com.liteflow.model.inventory.ProductVariant variant = variants.get(0);
+                                
+                                // Find or create ProductStock using query
+                                jakarta.persistence.Query stockQuery = em.createQuery(
+                                    "SELECT ps FROM com.liteflow.model.inventory.ProductStock ps WHERE ps.productVariant.productVariantId = :variantId AND ps.inventory.inventoryId = :inventoryId");
+                                stockQuery.setParameter("variantId", variant.getProductVariantId());
+                                stockQuery.setParameter("inventoryId", defaultInventory.getInventoryId());
+                                @SuppressWarnings("unchecked")
+                                List<com.liteflow.model.inventory.ProductStock> stocks = stockQuery.getResultList();
+                                
+                                com.liteflow.model.inventory.ProductStock stock;
+                                if (stocks.isEmpty()) {
+                                    // Create new ProductStock
+                                    stock = new com.liteflow.model.inventory.ProductStock();
+                                    stock.setProductVariant(variant);
+                                    stock.setInventory(defaultInventory);
+                                    stock.setAmount(receivedQty);
+                                    em.persist(stock);
+                                    System.out.println("✅ Created new ProductStock for " + itemName + " (+" + receivedQty + ")");
+                                } else {
+                                    // Update existing stock
+                                    stock = stocks.get(0);
+                                    int currentAmount = stock.getAmount() != null ? stock.getAmount() : 0;
+                                    stock.setAmount(currentAmount + receivedQty);
+                                    em.merge(stock);
+                                    System.out.println("✅ Updated ProductStock for " + itemName + ": " + currentAmount + " -> " + (currentAmount + receivedQty));
+                                }
+                                
+                                // Create InventoryLog
+                                com.liteflow.model.inventory.InventoryLog log = new com.liteflow.model.inventory.InventoryLog();
+                                log.setProductVariant(variant);
+                                log.setActionType("Purchase Receipt");
+                                log.setQuantityChanged(receivedQty);
+                                log.setActionDate(java.time.LocalDateTime.now());
+                                log.setStoreLocation(defaultInventory.getStoreLocation() != null ? defaultInventory.getStoreLocation() : "Main Warehouse");
+                                em.persist(log);
+                                
+                            } else {
+                                System.err.println("⚠️ Warning: No variants found for product: " + itemName);
+                            }
+                        } else {
+                            System.err.println("⚠️ Warning: Product not found in inventory: " + itemName);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Warning: Failed to update inventory for " + itemName + ": " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }
+            
+            // Set final notes including over-receipt warnings
+            gr.setNotes(receiptNotes.length() > 0 ? receiptNotes.toString() : notes);
+            
+            // Update receipt status (already persisted, just update status)
+            gr.setStatus(allFull ? "FULL" : "PARTIAL");
+            em.merge(gr);
+            System.out.println("✅ Updated GoodsReceipt status to: " + gr.getStatus());
+            
+            // Update PO status using same EM (po is already managed)
+            String oldStatus = po.getStatus();
+            if (allFull && totalReceived >= totalOrdered) {
+                po.setStatus("COMPLETED");
+            } else {
+                po.setStatus("RECEIVING");
+            }
+            em.merge(po);
+            em.flush(); // Force flush to database
+            System.out.println("✅ Updated PO status from " + oldStatus + " to " + po.getStatus());
+            
+            em.getTransaction().commit();
+            System.out.println("✅ Transaction committed successfully");
+            
+            System.out.println("✅ receiveGoods SUCCESS - Receipt ID: " + gr.getReceiptID());
+            System.out.println("=== receiveGoods END ===");
+            
+            return gr.getReceiptID();
+            
+        } catch (Exception e) {
+            if (em != null && em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            System.err.println("❌ receiveGoods FAILED: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to receive goods: " + e.getMessage(), e);
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
     }
 
     /* ============================================================
@@ -193,7 +609,14 @@ public class ProcurementService {
     public UUID matchInvoice(UUID poid, UUID supplierID, String invoiceNumber, 
                             LocalDateTime invoiceDate, List<InvoiceItemDTO> invoiceItems) {
         PurchaseOrder po = poDAO.findById(poid);
-        if (po == null) return null;
+        if (po == null) {
+            throw new RuntimeException("Purchase Order not found");
+        }
+        
+        // Only allow invoice creation for COMPLETED purchase orders
+        if (!"COMPLETED".equals(po.getStatus())) {
+            throw new RuntimeException("Chỉ có thể tạo hóa đơn cho đơn hàng đã hoàn thành (COMPLETED). Đơn hàng hiện tại có trạng thái: " + po.getStatus());
+        }
         
         // Calculate total from actual invoice items
         double totalAmount = 0;

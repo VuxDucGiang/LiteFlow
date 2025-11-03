@@ -529,6 +529,9 @@ public class CashierAPIServlet extends HttpServlet {
                 }
             }
             
+            // Get userId from session (used for tracking and notifications)
+            UUID userId = (UUID) request.getSession().getAttribute("userId");
+            
             // Process checkout
             EntityManager em = BaseDAO.emf.createEntityManager();
             
@@ -574,8 +577,6 @@ public class CashierAPIServlet extends HttpServlet {
                 // Tạo session mới nếu chưa có
                 if (session == null) {
                     System.out.println("📝 Không tìm thấy session, tạo session mới cho checkout");
-                    
-                    UUID userId = (UUID) request.getSession().getAttribute("userId");
                     
                     session = new com.liteflow.model.inventory.TableSession();
                     
@@ -691,6 +692,43 @@ public class CashierAPIServlet extends HttpServlet {
                 }
                 
                 em.getTransaction().commit();
+                
+                // 6. Check stock alerts và gửi Telegram notifications (async)
+                try {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> orderItemsForAlert = (List<Map<String, Object>>) requestData.get("orderItems");
+                    if (orderItemsForAlert == null || orderItemsForAlert.isEmpty()) {
+                        // Fallback: Get from orders in session
+                        String ordersQuery = "SELECT o FROM Order o WHERE o.session.sessionId = :sessionId";
+                        Query ordersQueryObj = em.createQuery(ordersQuery);
+                        ordersQueryObj.setParameter("sessionId", session.getSessionId());
+                        @SuppressWarnings("unchecked")
+                        List<com.liteflow.model.inventory.Order> ordersForAlert = ordersQueryObj.getResultList();
+                        
+                        if (!ordersForAlert.isEmpty()) {
+                            orderItemsForAlert = new java.util.ArrayList<>();
+                            for (com.liteflow.model.inventory.Order order : ordersForAlert) {
+                                for (com.liteflow.model.inventory.OrderDetail detail : order.getOrderDetails()) {
+                                    Map<String, Object> item = new java.util.HashMap<>();
+                                    item.put("variantId", detail.getProductVariant().getProductVariantId().toString());
+                                    item.put("quantity", detail.getQuantity());
+                                    orderItemsForAlert.add(item);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (orderItemsForAlert != null && !orderItemsForAlert.isEmpty()) {
+                        com.liteflow.service.inventory.StockAlertService stockAlertService = 
+                            new com.liteflow.service.inventory.StockAlertService();
+                        stockAlertService.checkAndSendAlertsAfterPayment(orderItemsForAlert, userId);
+                        System.out.println("🔔 Stock alert check initiated for " + orderItemsForAlert.size() + " items");
+                    }
+                } catch (Exception e) {
+                    // Don't fail payment if alert check fails
+                    System.err.println("⚠️ Warning: Stock alert check failed (payment still successful): " + e.getMessage());
+                    e.printStackTrace();
+                }
                 
                 // Trả về response thành công
                 Map<String, Object> responseData = new HashMap<>();
