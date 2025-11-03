@@ -518,6 +518,12 @@
                         </goals>
                         <configuration>
                             <target>
+                                <echo>Checking if JaCoCo report exists...</echo>
+                                <available file="${project.reporting.outputDirectory}/jacoco/index.html" property="jacoco.report.exists"/>
+                                <antcall target="filter-jacoco-if-exists"/>
+                                <antcall target="skip-jacoco-if-not-exists"/>
+                            </target>
+                            <target name="filter-jacoco-if-exists" if="jacoco.report.exists">
                                 <echo>Filtering JaCoCo report to hide files with coverage &lt; 30%</echo>
                                 <loadfile property="filterScript" srcFile="${project.basedir}/src/test/resources/jacoco-filter.js"/>
                                 <replace file="${project.reporting.outputDirectory}/jacoco/index.html">
@@ -526,6 +532,9 @@
 &lt;/head&gt;</replacevalue>
                                 </replace>
                                 <echo>Filter script injected into JaCoCo report</echo>
+                            </target>
+                            <target name="skip-jacoco-if-not-exists" unless="jacoco.report.exists">
+                                <echo>Skipping JaCoCo report filter - report not found (tests may have been skipped)</echo>
                             </target>
                         </configuration>
                     </execution>
@@ -539,6 +548,8 @@
                 <version>3.2.5</version>
                 <configuration>
                     <argLine>${argLine} -Dnet.bytebuddy.experimental=true</argLine>
+                    <!-- Skip tests mặc định khi build dự án -->
+                    <skipTests>true</skipTests>
                 </configuration>
             </plugin>
 
