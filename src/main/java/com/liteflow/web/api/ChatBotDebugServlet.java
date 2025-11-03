@@ -41,14 +41,40 @@ public class ChatBotDebugServlet extends HttpServlet {
         contextPaths.put("realPath_webinf", getServletContext().getRealPath("/WEB-INF/"));
         debug.put("servletContext", contextPaths);
         
-        // 3. Try to load from different locations
-        String[] possiblePaths = {
-            getServletContext().getRealPath("/"),
-            getServletContext().getRealPath("/WEB-INF/"),
-            System.getProperty("catalina.base") != null ? System.getProperty("catalina.base") + "/webapps/LiteFlow/" : null,
-            System.getProperty("user.dir"),
-            "C:/Users/Administrator/Documents/Liteflow/LiteFlow/"
-        };
+        // 3. Find project root dynamically
+        String projectRoot = findProjectRoot();
+        
+        // 4. Try to load from different locations
+        java.util.List<String> pathList = new java.util.ArrayList<>();
+        
+        // Add servlet context paths
+        String servletRoot = getServletContext().getRealPath("/");
+        if (servletRoot != null) {
+            pathList.add(servletRoot);
+            String webInfPath = getServletContext().getRealPath("/WEB-INF/");
+            if (webInfPath != null) {
+                pathList.add(webInfPath);
+            }
+        }
+        
+        // Add Tomcat webapps path
+        String catalinaBase = System.getProperty("catalina.base");
+        if (catalinaBase != null) {
+            pathList.add(catalinaBase + "/webapps/LiteFlow/");
+        }
+        
+        // Add project root (where pom.xml is located)
+        if (projectRoot != null) {
+            pathList.add(projectRoot);
+        }
+        
+        // Add current working directory as fallback
+        String userDir = System.getProperty("user.dir");
+        if (userDir != null && !pathList.contains(userDir)) {
+            pathList.add(userDir);
+        }
+        
+        String[] possiblePaths = pathList.toArray(new String[0]);
         
         JSONObject envFileChecks = new JSONObject();
         String foundApiKey = null;
@@ -114,6 +140,7 @@ public class ChatBotDebugServlet extends HttpServlet {
         debug.put("systemEnvironment", sysEnv);
         
         debug.put("envFileChecks", envFileChecks);
+        debug.put("projectRoot", projectRoot != null ? projectRoot : "Not found");
         
         // 5. Final result
         JSONObject result = new JSONObject();
@@ -131,7 +158,7 @@ public class ChatBotDebugServlet extends HttpServlet {
         if (foundApiKey == null) {
             recommendations.put("status", "ERROR");
             recommendations.put("message", "No API key found in any location");
-            recommendations.put("action", "Set OPENAI_API_KEY as system environment variable or ensure .env file is in webapp root");
+            recommendations.put("action", "Create .env file in project root (same level as pom.xml) with: OPENAI_API_KEY=sk-your-key-here, or set as system environment variable");
         } else if (!foundApiKey.startsWith("sk-")) {
             recommendations.put("status", "WARNING");
             recommendations.put("message", "API key found but format seems invalid (should start with 'sk-')");
@@ -144,6 +171,40 @@ public class ChatBotDebugServlet extends HttpServlet {
         debug.put("recommendations", recommendations);
         
         response.getWriter().write(debug.toString(2));
+    }
+    
+    /**
+     * Find project root by locating pom.xml file
+     * @return Path to project root, or user.dir if not found
+     */
+    private String findProjectRoot() {
+        String userDir = System.getProperty("user.dir");
+        if (userDir == null) {
+            return null;
+        }
+        
+        // Check current directory first
+        File currentDir = new File(userDir);
+        File pomFile = new File(currentDir, "pom.xml");
+        if (pomFile.exists() && pomFile.isFile()) {
+            return currentDir.getAbsolutePath();
+        }
+        
+        // Walk up directories to find pom.xml (max 5 levels up)
+        File dir = currentDir;
+        int maxLevels = 5;
+        int level = 0;
+        while (dir != null && dir.getParentFile() != null && level < maxLevels) {
+            dir = dir.getParentFile();
+            pomFile = new File(dir, "pom.xml");
+            if (pomFile.exists() && pomFile.isFile()) {
+                return dir.getAbsolutePath();
+            }
+            level++;
+        }
+        
+        // Fallback to user.dir if pom.xml not found
+        return userDir;
     }
 }
 
