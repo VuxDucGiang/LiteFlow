@@ -1014,7 +1014,7 @@ select#roomId option[style*="color: #28a745"]:hover {
     width: 85%;
     max-width: 600px;
     max-height: calc(100vh - 240px); /* Giới hạn chiều cao để không đẩy footer */
-    overflow: hidden; /* Ẩn overflow để kiểm soát scroll */
+    overflow: visible; /* Changed from hidden to visible to allow footer to show */
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     animation: modalSlideIn 0.3s ease-out;
     position: relative;
@@ -1069,6 +1069,7 @@ select#roomId option[style*="color: #28a745"]:hover {
     max-height: calc(100vh - 280px); /* Giới hạn chiều cao để không đẩy footer */
     /* Tự động điều chỉnh kích thước theo nội dung */
     height: auto;
+    flex-shrink: 1; /* Cho phép co lại để nhường chỗ cho footer */
 }
 
 /* Custom scrollbar for modal body */
@@ -1193,6 +1194,36 @@ select#roomId option[style*="color: #28a745"]:hover {
 /* Consistent spacing between form groups in modal */
 .modal-body .form-group:last-child {
     margin-bottom: 0;
+}
+
+/* Form inside modal - ensure footer is always visible */
+.modal-content form,
+#addRoomModal form,
+#addRoomForm {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0;
+    flex: 1;
+    overflow: visible !important;
+}
+
+/* Ensure modal-footer is always visible and at bottom */
+.modal-content form .modal-footer,
+#addRoomModal .modal-footer,
+#addRoomModal form .modal-footer {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    margin-top: auto !important; /* Push footer to bottom */
+    padding: 1rem 1.5rem !important;
+    background-color: #f8f9fa !important;
+    border-top: 1px solid #e2e8f0 !important;
+    border-radius: 0 0 8px 8px !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
+    min-height: 60px !important;
+    justify-content: flex-end !important;
+    gap: 1rem !important;
 }
 
 .section-title {

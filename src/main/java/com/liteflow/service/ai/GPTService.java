@@ -143,11 +143,26 @@ public class GPTService {
         // Detect if user is asking about stock/inventory/demand forecasting
         String lowerMessage = userMessage.toLowerCase();
         
+        // Detect confirmation messages (có, đồng ý, tạo đơn, etc) - cần check riêng để xử lý trong context stock
+        // Trim và remove punctuation để match linh hoạt hơn
+        String trimmedMessage = lowerMessage.trim().replaceAll("[.,!?;:]", "").trim();
+        boolean isConfirmationOnly = (trimmedMessage.equals("có") || 
+                                     trimmedMessage.equals("đồng ý") || 
+                                     trimmedMessage.equals("ok") ||
+                                     trimmedMessage.equals("yes") ||
+                                     trimmedMessage.equals("tạo đơn") ||
+                                     trimmedMessage.equals("đặt hàng") ||
+                                     trimmedMessage.equals("tạo po")) &&
+                                     !lowerMessage.contains("tồn kho") &&
+                                     !lowerMessage.contains("doanh thu") &&
+                                     !lowerMessage.contains("báo cáo");
+        
         // Detect stock queries first - "tồn kho" queries should go to stock handler
         boolean askingAboutStock = lowerMessage.contains("tồn kho") || 
                                    lowerMessage.contains("số lượng còn lại") ||
                                    lowerMessage.contains("còn bao nhiêu") ||
-                                   (lowerMessage.contains("số lượng") && !lowerMessage.contains("doanh"));
+                                   (lowerMessage.contains("số lượng") && !lowerMessage.contains("doanh")) ||
+                                   isConfirmationOnly; // Nếu chỉ là confirmation, route vào stock handler để check context
         
         // Demand forecasting queries - loại bỏ "tồn kho" để tránh conflict
         boolean askingAboutDemand = lowerMessage.contains("nhập hàng") || 
@@ -236,15 +251,24 @@ public class GPTService {
                         if (allLowStockItems.length() > 0) {
                             System.out.println("🚀 User confirmed PO creation in normal chat. Creating PO...");
                             POAutoCreationService poAutoService = new POAutoCreationService();
-                            Map<UUID, UUID> createdPOs = poAutoService.createPOsFromLowStockItems(allLowStockItems, userId);
+                            POAutoCreationService.POCreationResult result = poAutoService.createPOsFromLowStockItems(allLowStockItems, userId);
                             
-                            if (!createdPOs.isEmpty()) {
+                            if (!result.getCreatedPOs().isEmpty()) {
                                 StringBuilder poMessage = new StringBuilder();
-                                poMessage.append("✅ Đã tạo ").append(createdPOs.size()).append(" đơn đặt hàng tự động:\n\n");
-                                for (Map.Entry<UUID, UUID> entry : createdPOs.entrySet()) {
+                                poMessage.append("✅ Đã tạo ").append(result.getCreatedPOs().size()).append(" đơn đặt hàng tự động:\n\n");
+                                for (Map.Entry<UUID, UUID> entry : result.getCreatedPOs().entrySet()) {
                                     poMessage.append("- Đơn hàng ID: ").append(entry.getValue()).append("\n");
                                 }
                                 poMessage.append("\nVui lòng kiểm tra trong module 'Mua sắm' -> 'Đơn đặt hàng' để duyệt đơn hàng.");
+                                
+                                // Thêm note về các items đã skip
+                                if (!result.getSkippedItems().isEmpty()) {
+                                    poMessage.append("\n\n📋 Lưu ý: Các sản phẩm sau đã được đặt hàng trong vòng 1 ngày qua (đã đặt thêm hàng):\n");
+                                    for (String itemName : result.getSkippedItems()) {
+                                        poMessage.append("- ").append(itemName).append("\n");
+                                    }
+                                }
+                                
                                 return poMessage.toString();
                             }
                         }
@@ -282,28 +306,39 @@ public class GPTService {
             }
             
             // Get replenishment suggestions from DemandForecastService
-            JSONObject forecastResult = demandService.generateReplenishmentSuggestions();
+            JSONObject forecastResult = new JSONObject();
+            try {
+                forecastResult = demandService.generateReplenishmentSuggestions();
+            } catch (Exception e) {
+                System.err.println("⚠️ Error getting forecast suggestions: " + e.getMessage());
+                forecastResult.put("success", false);
+                forecastResult.put("error", e.getMessage());
+            }
             
             StringBuilder context = new StringBuilder();
             context.append("**TỔNG QUAN TỒN KHO TỪ DATABASE (ProductStock table):**\n\n");
             context.append("📊 **Thống kê:**\n");
-            context.append("- Tổng số sản phẩm cần nhập: ").append(lowStockResult.getInt("count")).append("\n");
-            context.append("- Sản phẩm NGUY HIỂM (≤").append(CRITICAL_THRESHOLD).append("): ").append(lowStockResult.getInt("criticalCount")).append("\n");
-            context.append("- Sản phẩm CẢNH BÁO (≤").append(WARNING_THRESHOLD).append("): ").append(lowStockResult.getInt("warningCount")).append("\n\n");
+            context.append("- Tổng số sản phẩm cần nhập: ").append(lowStockResult.optInt("count", 0)).append("\n");
+            context.append("- Sản phẩm NGUY HIỂM (≤").append(CRITICAL_THRESHOLD).append("): ").append(lowStockResult.optInt("criticalCount", 0)).append("\n");
+            context.append("- Sản phẩm CẢNH BÁO (≤").append(WARNING_THRESHOLD).append("): ").append(lowStockResult.optInt("warningCount", 0)).append("\n\n");
             
             // Critical items (URGENT)
-            JSONArray criticalItems = lowStockResult.getJSONArray("criticalItems");
-            if (criticalItems.length() > 0) {
+            JSONArray criticalItems = lowStockResult.optJSONArray("criticalItems");
+            if (criticalItems != null && criticalItems.length() > 0) {
                 context.append("🔴 **SẢN PHẨM NGUY HIỂM - CẦN NHẬP NGAY:**\n");
-                for (int i = 0; i < Math.min(10, criticalItems.length()); i++) {
-                    JSONObject item = criticalItems.getJSONObject(i);
-                    context.append(String.format("%d. %s (Size: %s) - Tồn kho: %d - Giá: %s\n",
-                        i + 1,
-                        item.getString("productName"),
-                        item.getString("size"),
-                        item.getInt("stockAmount"),
-                        formatCurrency(item.getDouble("price"))
-                    ));
+                try {
+                    for (int i = 0; i < Math.min(10, criticalItems.length()); i++) {
+                        JSONObject item = criticalItems.getJSONObject(i);
+                        context.append(String.format("%d. %s (Size: %s) - Tồn kho: %d - Giá: %s\n",
+                            i + 1,
+                            item.getString("productName"),
+                            item.getString("size"),
+                            item.getInt("stockAmount"),
+                            formatCurrency(item.getDouble("price"))
+                        ));
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Error processing critical items: " + e.getMessage());
                 }
                 if (criticalItems.length() > 10) {
                     context.append(String.format("... và %d sản phẩm khác\n", criticalItems.length() - 10));
@@ -312,18 +347,22 @@ public class GPTService {
             }
             
             // Warning items (HIGH)
-            JSONArray warningItems = lowStockResult.getJSONArray("warningItems");
-            if (warningItems.length() > 0) {
+            JSONArray warningItems = lowStockResult.optJSONArray("warningItems");
+            if (warningItems != null && warningItems.length() > 0) {
                 context.append("🟡 **SẢN PHẨM CẢNH BÁO - Nên nhập sớm:**\n");
-                for (int i = 0; i < Math.min(10, warningItems.length()); i++) {
-                    JSONObject item = warningItems.getJSONObject(i);
-                    context.append(String.format("%d. %s (Size: %s) - Tồn kho: %d - Giá: %s\n",
-                        i + 1,
-                        item.getString("productName"),
-                        item.getString("size"),
-                        item.getInt("stockAmount"),
-                        formatCurrency(item.getDouble("price"))
-                    ));
+                try {
+                    for (int i = 0; i < Math.min(10, warningItems.length()); i++) {
+                        JSONObject item = warningItems.getJSONObject(i);
+                        context.append(String.format("%d. %s (Size: %s) - Tồn kho: %d - Giá: %s\n",
+                            i + 1,
+                            item.getString("productName"),
+                            item.getString("size"),
+                            item.getInt("stockAmount"),
+                            formatCurrency(item.getDouble("price"))
+                        ));
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Error processing warning items: " + e.getMessage());
                 }
                 if (warningItems.length() > 10) {
                     context.append(String.format("... và %d sản phẩm khác\n", warningItems.length() - 10));
@@ -361,16 +400,17 @@ public class GPTService {
                                      lowerMessage.contains("yes");
             
             // Add replenishment recommendations
-            boolean needsReplenishment = criticalItems.length() > 0 || warningItems.length() > 0;
+            boolean needsReplenishment = (criticalItems != null && criticalItems.length() > 0) || 
+                                         (warningItems != null && warningItems.length() > 0);
             
             // Combine all low stock items for PO creation
             JSONArray allLowStockItems = new JSONArray();
-            if (criticalItems.length() > 0) {
+            if (criticalItems != null && criticalItems.length() > 0) {
                 for (int i = 0; i < criticalItems.length(); i++) {
                     allLowStockItems.put(criticalItems.getJSONObject(i));
                 }
             }
-            if (warningItems.length() > 0) {
+            if (warningItems != null && warningItems.length() > 0) {
                 for (int i = 0; i < warningItems.length(); i++) {
                     allLowStockItems.put(warningItems.getJSONObject(i));
                 }
@@ -381,17 +421,36 @@ public class GPTService {
                 try {
                     System.out.println("🚀 User confirmed PO creation. Creating PO for " + allLowStockItems.length() + " items...");
                     POAutoCreationService poAutoService = new POAutoCreationService();
-                    Map<UUID, UUID> createdPOs = poAutoService.createPOsFromLowStockItems(allLowStockItems, userId);
+                    POAutoCreationService.POCreationResult result = poAutoService.createPOsFromLowStockItems(allLowStockItems, userId);
                     
-                    if (!createdPOs.isEmpty()) {
+                    if (!result.getCreatedPOs().isEmpty()) {
                         StringBuilder poMessage = new StringBuilder();
-                        poMessage.append("✅ Đã tạo ").append(createdPOs.size()).append(" đơn đặt hàng tự động:\n\n");
-                        for (Map.Entry<UUID, UUID> entry : createdPOs.entrySet()) {
+                        poMessage.append("✅ Đã tạo ").append(result.getCreatedPOs().size()).append(" đơn đặt hàng tự động:\n\n");
+                        for (Map.Entry<UUID, UUID> entry : result.getCreatedPOs().entrySet()) {
                             poMessage.append("- Đơn hàng ID: ").append(entry.getValue()).append("\n");
                         }
                         poMessage.append("\nVui lòng kiểm tra trong module 'Mua sắm' -> 'Đơn đặt hàng' để duyệt đơn hàng.\n\n");
+                        
+                        // Thêm note về các items đã skip
+                        if (!result.getSkippedItems().isEmpty()) {
+                            poMessage.append("📋 Lưu ý: Các sản phẩm sau đã được đặt hàng trong vòng 1 ngày qua (đã đặt thêm hàng):\n");
+                            for (String itemName : result.getSkippedItems()) {
+                                poMessage.append("- ").append(itemName).append("\n");
+                            }
+                            poMessage.append("\n");
+                        }
+                        
                         return poMessage.toString();
                     } else {
+                        // Check if all items were skipped
+                        if (!result.getSkippedItems().isEmpty()) {
+                            StringBuilder poMessage = new StringBuilder();
+                            poMessage.append("ℹ️ Tất cả các sản phẩm đã được đặt hàng trong vòng 1 ngày qua (đã đặt thêm hàng):\n\n");
+                            for (String itemName : result.getSkippedItems()) {
+                                poMessage.append("- ").append(itemName).append("\n");
+                            }
+                            return poMessage.toString();
+                        }
                         return "Xin lỗi, không thể tạo đơn đặt hàng. Vui lòng kiểm tra lại thông tin nhà cung cấp hoặc liên hệ quản trị viên.";
                     }
                 } catch (Exception e) {
@@ -409,67 +468,71 @@ public class GPTService {
                 double totalEstimatedValue = 0.0;
                 
                 // Match suggestions with low stock items
-                for (int i = 0; i < criticalItems.length(); i++) {
-                    JSONObject item = criticalItems.getJSONObject(i);
-                    String productName = item.getString("productName");
-                    String size = item.getString("size");
-                    int stock = item.getInt("stockAmount");
-                    
-                    // Find matching suggestion
-                    JSONObject matchingSuggestion = null;
-                    for (int j = 0; j < urgentSuggestions.length(); j++) {
-                        JSONObject suggestion = urgentSuggestions.getJSONObject(j);
-                        if (suggestion.getString("productName").equalsIgnoreCase(productName) &&
-                            suggestion.getString("size").equalsIgnoreCase(size)) {
-                            matchingSuggestion = suggestion;
-                            break;
+                if (criticalItems != null) {
+                    for (int i = 0; i < criticalItems.length(); i++) {
+                        JSONObject item = criticalItems.getJSONObject(i);
+                        String productName = item.getString("productName");
+                        String size = item.getString("size");
+                        int stock = item.getInt("stockAmount");
+                        
+                        // Find matching suggestion
+                        JSONObject matchingSuggestion = null;
+                        for (int j = 0; j < urgentSuggestions.length(); j++) {
+                            JSONObject suggestion = urgentSuggestions.getJSONObject(j);
+                            if (suggestion.getString("productName").equalsIgnoreCase(productName) &&
+                                suggestion.getString("size").equalsIgnoreCase(size)) {
+                                matchingSuggestion = suggestion;
+                                break;
+                            }
                         }
+                        
+                        int suggestedQty;
+                        if (matchingSuggestion != null) {
+                            suggestedQty = matchingSuggestion.getInt("suggestedOrderQty");
+                        } else {
+                            suggestedQty = Math.max(20 - stock, 15); // Ít nhất đưa về 20, tối thiểu nhập 15
+                        }
+                        
+                        totalSuggestedQty += suggestedQty;
+                        totalEstimatedValue += suggestedQty * item.getDouble("price");
                     }
-                    
-                    int suggestedQty;
-                    if (matchingSuggestion != null) {
-                        suggestedQty = matchingSuggestion.getInt("suggestedOrderQty");
-                    } else {
-                        suggestedQty = Math.max(20 - stock, 15); // Ít nhất đưa về 20, tối thiểu nhập 15
-                    }
-                    
-                    totalSuggestedQty += suggestedQty;
-                    totalEstimatedValue += suggestedQty * item.getDouble("price");
                 }
                 
-                for (int i = 0; i < warningItems.length(); i++) {
-                    JSONObject item = warningItems.getJSONObject(i);
-                    String productName = item.getString("productName");
-                    String size = item.getString("size");
-                    int stock = item.getInt("stockAmount");
-                    
-                    // Find matching suggestion
-                    JSONObject matchingSuggestion = null;
-                    for (int j = 0; j < highPrioritySuggestions.length(); j++) {
-                        JSONObject suggestion = highPrioritySuggestions.getJSONObject(j);
-                        if (suggestion.getString("productName").equalsIgnoreCase(productName) &&
-                            suggestion.getString("size").equalsIgnoreCase(size)) {
-                            matchingSuggestion = suggestion;
-                            break;
+                if (warningItems != null) {
+                    for (int i = 0; i < warningItems.length(); i++) {
+                        JSONObject item = warningItems.getJSONObject(i);
+                        String productName = item.getString("productName");
+                        String size = item.getString("size");
+                        int stock = item.getInt("stockAmount");
+                        
+                        // Find matching suggestion
+                        JSONObject matchingSuggestion = null;
+                        for (int j = 0; j < highPrioritySuggestions.length(); j++) {
+                            JSONObject suggestion = highPrioritySuggestions.getJSONObject(j);
+                            if (suggestion.getString("productName").equalsIgnoreCase(productName) &&
+                                suggestion.getString("size").equalsIgnoreCase(size)) {
+                                matchingSuggestion = suggestion;
+                                break;
+                            }
                         }
+                        
+                        int suggestedQty;
+                        if (matchingSuggestion != null) {
+                            suggestedQty = matchingSuggestion.getInt("suggestedOrderQty");
+                        } else {
+                            suggestedQty = Math.max(20 - stock, 15);
+                        }
+                        
+                        totalSuggestedQty += suggestedQty;
+                        totalEstimatedValue += suggestedQty * item.getDouble("price");
                     }
-                    
-                    int suggestedQty;
-                    if (matchingSuggestion != null) {
-                        suggestedQty = matchingSuggestion.getInt("suggestedOrderQty");
-                    } else {
-                        suggestedQty = Math.max(20 - stock, 15);
-                    }
-                    
-                    totalSuggestedQty += suggestedQty;
-                    totalEstimatedValue += suggestedQty * item.getDouble("price");
                 }
                 
                 context.append("**📋 TÓM TẮT:**\n");
                 context.append(String.format("- 🔴 %d sản phẩm NGUY HIỂM (≤%d) - CẦN NHẬP NGAY\n", 
-                    criticalItems.length(), CRITICAL_THRESHOLD));
+                    criticalItems != null ? criticalItems.length() : 0, CRITICAL_THRESHOLD));
                 context.append(String.format("- 🟡 %d sản phẩm CẢNH BÁO (≤%d) - Nên nhập sớm\n", 
-                    warningItems.length(), WARNING_THRESHOLD));
+                    warningItems != null ? warningItems.length() : 0, WARNING_THRESHOLD));
                 if (totalSuggestedQty > 0) {
                     context.append(String.format("- 💰 Tổng số lượng ước tính nên nhập: %d đơn vị\n", totalSuggestedQty));
                     context.append(String.format("- 💵 Giá trị đơn hàng ước tính: %s\n", formatCurrency(totalEstimatedValue)));
@@ -901,6 +964,9 @@ public class GPTService {
      * Format currency helper
      */
     private String formatCurrency(double amount) {
+        if (Double.isNaN(amount) || Double.isInfinite(amount) || amount < 0) {
+            return "0 VNĐ";
+        }
         return String.format("%,.0f VNĐ", amount);
     }
     

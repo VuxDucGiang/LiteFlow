@@ -28,7 +28,7 @@ public class POAlertService {
     // Telegram Bot Token (can be configured via environment variable or default channel)
     private static final String TELEGRAM_BOT_TOKEN = System.getenv("TELEGRAM_BOT_TOKEN") != null 
         ? System.getenv("TELEGRAM_BOT_TOKEN") 
-        : "8462540667:AAGCDTkl1kdibhVffVZSmIbSv-kyMoJkPGI"; // Default from user config
+        : "Your:telegrambotToken"; // Default from user config
     
     private final POAlertNotificationDAO notificationDAO;
     private final PurchaseOrderDAO poDAO;

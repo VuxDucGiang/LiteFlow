@@ -44,7 +44,7 @@ public class DemandForecastDAO {
             
             String jpql = "SELECT pv.productVariantId, p.name, pv.size, " +
                          "SUM(od.quantity), SUM(od.totalPrice), " +
-                         "COUNT(DISTINCT FUNCTION('DATE', o.orderDate)) " +
+                         "COUNT(DISTINCT CAST(o.orderDate AS date)) " +
                          "FROM OrderDetail od " +
                          "JOIN od.productVariant pv " +
                          "JOIN pv.product p " +
