@@ -1,13 +1,13 @@
 package com.liteflow.filter;
 
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-@WebFilter("/*")
+// @WebFilter annotation removed - using web.xml mapping to control filter order
+// This filter is redundant with CharacterEncodingFilter in web.xml, but kept for logging
 public class CommonFilter extends BaseFilter {
 
     @Override

@@ -2,18 +2,17 @@ package com.liteflow.filter;
 
 import com.liteflow.model.auth.User;
 import com.liteflow.security.JwtUtil;
-import com.liteflow.service.EmployeeService;
+import com.liteflow.service.employee.EmployeeService;
 import com.liteflow.service.auth.AuditService;
 import com.liteflow.service.auth.UserService;
 import io.jsonwebtoken.JwtException;
 
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.*;
 
-@WebFilter("/*")
+// @WebFilter annotation removed - using web.xml mapping to control filter order
 public class AuthenticationFilter extends BaseFilter {
 
     private static volatile boolean AUTH_ENABLED = false;

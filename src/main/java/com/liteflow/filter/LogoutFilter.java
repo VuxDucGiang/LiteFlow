@@ -4,12 +4,11 @@ import com.liteflow.model.auth.User;
 import com.liteflow.service.auth.AuditService;
 
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 
 import java.io.IOException;
 
-@WebFilter(urlPatterns = {"/logout"})
+// @WebFilter annotation removed - using web.xml mapping
 public class LogoutFilter extends BaseFilter {
 
     private final AuditService audit = new AuditService();
