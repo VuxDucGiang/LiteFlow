@@ -27,9 +27,9 @@ public class GPTService {
     
     private final OkHttpClient client;
     private final String apiKey;
-    private final DemandForecastService demandService;
-    private final RevenueReportService revenueService;
-    private final ProductInventoryService productInventoryService;
+    private DemandForecastService demandService;
+    private RevenueReportService revenueService;
+    private ProductInventoryService productInventoryService;
     
     public GPTService(String apiKey) {
         this.apiKey = apiKey;
@@ -38,9 +38,19 @@ public class GPTService {
             .writeTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .build();
-        this.demandService = new DemandForecastService();
-        this.revenueService = new RevenueReportService();
-        this.productInventoryService = new ProductInventoryService();
+        try {
+            this.demandService = new DemandForecastService();
+            this.revenueService = new RevenueReportService();
+            this.productInventoryService = new ProductInventoryService();
+            System.out.println("✅ GPTService: All dependency services initialized successfully");
+        } catch (Throwable e) {
+            System.err.println("❌ GPTService: Failed to initialize dependency services: " + e.getMessage());
+            e.printStackTrace();
+            // Set to null to prevent NullPointerException later
+            this.demandService = null;
+            this.revenueService = null;
+            this.productInventoryService = null;
+        }
     }
     
     /**
@@ -139,6 +149,12 @@ public class GPTService {
      */
     public String chatWithIntelligence(String userMessage, UUID userId) throws IOException {
         System.out.println("🧠 Intelligent Chat: Analyzing message...");
+        
+        // If intelligent services are not available, fallback to basic chat
+        if (demandService == null || revenueService == null || productInventoryService == null) {
+            System.out.println("⚠️ Intelligent services not available, falling back to basic chat");
+            return chat(userMessage, null);
+        }
         
         // Detect if user is asking about stock/inventory/demand forecasting
         String lowerMessage = userMessage.toLowerCase();

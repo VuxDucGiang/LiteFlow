@@ -17,7 +17,17 @@ import java.util.*;
  */
 public class RevenueReportDAO {
     
-    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("LiteFlowPU");
+    private static EntityManagerFactory emf;
+    
+    static {
+        try {
+            emf = Persistence.createEntityManagerFactory("LiteFlowPU");
+        } catch (Throwable e) {
+            System.err.println("❌ Failed to create EntityManagerFactory: " + e.getMessage());
+            e.printStackTrace();
+            emf = null;
+        }
+    }
     
     /**
      * Get total revenue for date range
