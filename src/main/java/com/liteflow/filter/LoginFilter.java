@@ -8,13 +8,12 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 
 import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
-@WebFilter(urlPatterns = {"/login"})
+// @WebFilter annotation removed - using web.xml mapping
 public class LoginFilter extends BaseFilter {
 
     private static volatile boolean LOGIN_FILTER_ENABLED = true;
