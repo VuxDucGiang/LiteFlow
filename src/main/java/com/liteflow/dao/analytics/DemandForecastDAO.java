@@ -22,7 +22,7 @@ public class DemandForecastDAO {
     static {
         try {
             emf = Persistence.createEntityManagerFactory("LiteFlowPU");
-        } catch (Exception e) {
+        } catch (Throwable e) {
             System.err.println("❌ Failed to create EntityManagerFactory: " + e.getMessage());
             e.printStackTrace();
             emf = null;
