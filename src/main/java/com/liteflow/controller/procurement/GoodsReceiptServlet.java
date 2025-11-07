@@ -12,7 +12,7 @@ public class GoodsReceiptServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, jakarta.servlet.ServletException {
-        // TODO: Load goods receipts and approved POs
+       
         req.getRequestDispatcher("/procurement/goods-receipt.jsp").forward(req, resp);
     }
 

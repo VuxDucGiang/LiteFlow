@@ -73,7 +73,7 @@ public class SendNotificationServlet extends HttpServlet {
         boolean isAdmin = false;
 
         if (rolesObj instanceof java.util.List) {
-            @SuppressWarnings("unchecked")
+            
             java.util.List<String> roles = (java.util.List<String>) rolesObj;
             isAdmin = roles.contains("Admin") || roles.contains("Manager");
         }

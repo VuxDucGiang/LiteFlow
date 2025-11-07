@@ -21,7 +21,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -61,7 +60,7 @@ public class ReceptionServlet extends HttpServlet {
     private ReservationDAO reservationDAO;
     private RoomDAO roomDAO;
     private TableDAO tableDAO;
-    private ProductDAO productDAO;
+   
     private Gson gson;
 
     @Override
@@ -70,7 +69,7 @@ public class ReceptionServlet extends HttpServlet {
         this.reservationDAO = new ReservationDAO();
         this.roomDAO = new RoomDAO();
         this.tableDAO = new TableDAO();
-        this.productDAO = new ProductDAO();
+    
         this.gson = new GsonBuilder()
                 .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
@@ -920,7 +919,7 @@ public class ReceptionServlet extends HttpServlet {
                        "ORDER BY p.name, pv.size";
             
             Query query = em.createQuery(jpql);
-            @SuppressWarnings("unchecked")
+           
             List<Object[]> results = query.getResultList();
             
             System.out.println("📦 Loading menu items for reception: " + results.size() + " items");

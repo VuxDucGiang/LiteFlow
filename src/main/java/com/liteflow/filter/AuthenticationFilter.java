@@ -170,7 +170,7 @@ public class AuthenticationFilter extends BaseFilter {
                 }
 
                 if (user != null) {
-                    @SuppressWarnings("unchecked")
+           
                     List<String> sRoles = (List<String>) session.getAttribute("UserRoles");
                     roles = (sRoles != null) ? sRoles : userService.getRoleNames(user.getUserID());
                     // Ensure displayName is set in session

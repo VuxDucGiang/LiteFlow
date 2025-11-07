@@ -413,9 +413,9 @@ public class RevenueReportService {
             Long yesterdayOrders = (Long) metrics.get("yesterdayOrders");
             BigDecimal avgOrderValue = (BigDecimal) metrics.get("avgOrderValue");
             String peakHour = (String) metrics.get("peakHour");
-            @SuppressWarnings("unchecked")
+            
             List<String> hourlyLabels = (List<String>) metrics.get("hourlyLabels");
-            @SuppressWarnings("unchecked")
+            
             List<BigDecimal> hourlyRevenues = (List<BigDecimal>) metrics.get("hourlyRevenues");
             
             // Calculate growth rates

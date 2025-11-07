@@ -5,7 +5,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -31,6 +30,7 @@ public class DemandForecastService {
     private static final double SAFETY_STOCK_MULTIPLIER = 1.5;  // Hệ số tồn kho an toàn
     private static final int LOW_STOCK_THRESHOLD = 20;     // Ngưỡng tồn kho thấp
     private static final int CRITICAL_STOCK_THRESHOLD = 5; // Ngưỡng tồn kho nguy hiểm
+    @SuppressWarnings("unused")
     private static final int TOP_PRODUCTS_LIMIT = 20;      // Top sản phẩm theo doanh thu
     
     public DemandForecastService() {
@@ -394,8 +394,11 @@ public class DemandForecastService {
     // ==================== INNER CLASSES ====================
     
     private static class StockInfo {
+        @SuppressWarnings("unused")
         UUID variantId;
+        @SuppressWarnings("unused")
         String productName;
+        @SuppressWarnings("unused")
         String size;
         int amount;
     }

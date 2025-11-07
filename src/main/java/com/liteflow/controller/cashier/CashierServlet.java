@@ -122,7 +122,7 @@ public class CashierServlet extends HttpServlet {
                        "ORDER BY c.name, p.name, pv.size";
             
             Query query = em.createQuery(jpql);
-            @SuppressWarnings("unchecked")
+            
             List<Object[]> results = query.getResultList();
             
             for (Object[] row : results) {
@@ -182,7 +182,7 @@ public class CashierServlet extends HttpServlet {
                        "ORDER BY r.name, t.tableNumber";
             
             Query query = em.createQuery(jpql);
-            @SuppressWarnings("unchecked")
+            
             List<Object[]> results = query.getResultList();
             
             for (Object[] row : results) {
@@ -220,7 +220,7 @@ public class CashierServlet extends HttpServlet {
         try {
             String jpql = "SELECT r.roomId, r.name, r.description FROM Room r ORDER BY r.name";
             Query query = em.createQuery(jpql);
-            @SuppressWarnings("unchecked")
+            
             List<Object[]> results = query.getResultList();
             
             for (Object[] row : results) {
@@ -250,7 +250,7 @@ public class CashierServlet extends HttpServlet {
         try {
             String jpql = "SELECT c.categoryId, c.name, c.description FROM Category c ORDER BY c.name";
             Query query = em.createQuery(jpql);
-            @SuppressWarnings("unchecked")
+            
             List<Object[]> results = query.getResultList();
             
             for (Object[] row : results) {

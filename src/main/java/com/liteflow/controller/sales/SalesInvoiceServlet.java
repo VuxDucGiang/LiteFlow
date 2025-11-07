@@ -260,7 +260,7 @@ public class SalesInvoiceServlet extends HttpServlet {
         
         // Items (if exists)
         if (invoice.containsKey("items")) {
-            @SuppressWarnings("unchecked")
+           
             List<Map<String, Object>> items = (List<Map<String, Object>>) invoice.get("items");
             JSONArray itemsArray = new JSONArray();
             

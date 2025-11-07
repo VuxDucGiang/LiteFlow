@@ -479,7 +479,7 @@ public class RoomTableService {
     }
     
     // Method to get completed table sessions (invoices) - similar to cashier notification
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.TableSession> getCompletedTableSessions(UUID tableId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -506,7 +506,7 @@ public class RoomTableService {
     }
     
     // Method to get table payments with eager loading (DEPRECATED - use getCompletedTableSessions)
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.PaymentTransaction> getTablePayments(UUID tableId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -530,7 +530,7 @@ public class RoomTableService {
     }
     
     // Method to get order details for a session with eager loading
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.OrderDetail> getOrderDetailsForSession(UUID sessionId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -554,7 +554,7 @@ public class RoomTableService {
     }
     
     // Method to get session orders
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.Order> getSessionOrders(UUID sessionId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -575,7 +575,7 @@ public class RoomTableService {
     }
     
     // Method to get order details
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.OrderDetail> getOrderDetails(UUID orderId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -595,7 +595,7 @@ public class RoomTableService {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.TableSession> getTableSessionsByTableId(UUID tableId) {
         EntityManager em = this.emf.createEntityManager();
         try {

@@ -1074,7 +1074,7 @@ public class ProductServlet extends HttpServlet {
                         
                         // Column B: Description (optional)
                         String description = getCellValueAsString(row.getCell(1));
-                        // TODO: Use description when creating product
+                        
                         
                         // Column C: Product Type (must be valid)
                         String productType = getCellValueAsString(row.getCell(2));

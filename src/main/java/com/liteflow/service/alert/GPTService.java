@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class GPTService {
     
     public GPTService() {
         this.gptDAO = new GPTInteractionDAO();
-        // TODO: Load from environment variable or config file
+      
         this.apiKey = System.getenv("OPENAI_API_KEY");
         if (this.apiKey == null || this.apiKey.isEmpty()) {
             System.err.println("⚠️ OPENAI_API_KEY not set. GPT features will be disabled.");
@@ -171,7 +172,7 @@ public class GPTService {
             requestBody.put("messages", messages);
             
             // Make HTTP request
-            URL url = new URL(GPT_API_URL);
+            URL url = URI.create(GPT_API_URL).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");

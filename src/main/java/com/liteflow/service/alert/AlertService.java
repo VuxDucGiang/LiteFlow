@@ -16,6 +16,7 @@ public class AlertService {
     
     private final AlertConfigurationDAO alertConfigDAO;
     private final AlertHistoryDAO alertHistoryDAO;
+    @SuppressWarnings("unused")
     private final UserAlertPreferenceDAO userPrefDAO;
     private final NotificationService notificationService;
     private final GPTService gptService;
@@ -119,13 +120,13 @@ public class AlertService {
         
         // Send to Email
         if (Boolean.TRUE.equals(config.getNotifyEmail())) {
-            // TODO: Implement email delivery based on recipients
+        
             System.out.println("📧 Email notification queued for: " + title);
             alert.setSentToEmail(true);
             anySuccess = true;
         }
         
-        // In-app notification (always enabled for notification bell)
+      
         // 🔥 FIX: Force in-app notification to always be sent
         alert.setSentInApp(true);
         anySuccess = true;

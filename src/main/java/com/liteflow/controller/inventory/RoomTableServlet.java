@@ -1430,7 +1430,7 @@ public class RoomTableServlet extends HttpServlet {
             jsonResponse.append(", \"totalTables\": ").append(checkResult.get("totalTables"));
             jsonResponse.append(", \"errors\": [");
             
-            @SuppressWarnings("unchecked")
+        
             List<String> errors = (List<String>) checkResult.get("errors");
             if (errors != null && !errors.isEmpty()) {
                 for (int i = 0; i < errors.size(); i++) {
