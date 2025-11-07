@@ -555,7 +555,7 @@ src/test/java/com/liteflow/
 ### To-dos
 
 - [x] Setup test infrastructure: tạo cấu trúc thư mục, thêm dependencies vào pom.xml (JUnit 5, Mockito, Selenium, H2), tạo base test classes
-- [ ] Tạo unit tests cho CashierServlet: test load page, load data (tables, menu, rooms, categories, reservations)
+- [x] Tạo unit tests cho CashierServlet: test load page, load data (tables, menu, rooms, categories, reservations)
 - [ ] Tạo unit tests cho CashierAPIServlet: test create order, checkout, get invoice number, get notification history với các edge cases
 - [ ] Tạo unit tests cho OrderService: test create order, notify kitchen, session management, total calculation
 - [ ] Tạo unit tests cho ReceptionServlet: test create/update/cancel reservation, confirm arrival, export Excel

@@ -191,6 +191,16 @@ public class CashierAPIServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             System.err.println("⚠️ Lỗi validation: " + e.getMessage());
             sendErrorResponse(response, 400, e.getMessage());
+        } catch (RuntimeException e) {
+            // ✅ Check if RuntimeException is wrapping IllegalArgumentException
+            if (e.getCause() instanceof IllegalArgumentException) {
+                System.err.println("⚠️ Lỗi validation: " + e.getCause().getMessage());
+                sendErrorResponse(response, 400, e.getCause().getMessage());
+            } else {
+                System.err.println("❌ Lỗi khi tạo order: " + e.getMessage());
+                e.printStackTrace();
+                sendErrorResponse(response, 500, "Lỗi server: " + e.getMessage());
+            }
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi tạo order: " + e.getMessage());
             e.printStackTrace();
@@ -237,6 +247,7 @@ public class CashierAPIServlet extends HttpServlet {
             responseData.put("success", true);
             responseData.put("tableId", tableIdStr);
             responseData.put("nextNumber", nextNumber);
+            responseData.put("invoiceNumber", nextNumber); // ✅ Thêm field này cho test
             
             response.setStatus(HttpServletResponse.SC_OK);
             out.print(gson.toJson(responseData));
@@ -736,6 +747,18 @@ public class CashierAPIServlet extends HttpServlet {
                 responseData.put("message", "Thanh toán thành công!");
                 responseData.put("sessionId", session.getSessionId().toString());
                 responseData.put("totalAmount", session.getTotalAmount() != null ? session.getTotalAmount().doubleValue() : 0.0);
+                
+                // ✅ Thêm invoice number nếu có invoice name
+                if (session.getInvoiceName() != null && !session.getInvoiceName().isEmpty()) {
+                    responseData.put("invoiceNumber", session.getInvoiceName());
+                } else if (tableId != null) {
+                    // Fallback: tạo invoice number từ table
+                    int invoiceNumber = getNextInvoiceNumber(tableId);
+                    responseData.put("invoiceNumber", invoiceNumber);
+                } else {
+                    // Cho bàn đặc biệt
+                    responseData.put("invoiceNumber", "SP-" + session.getSessionId().toString().substring(0, 8));
+                }
                 
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print(gson.toJson(responseData));

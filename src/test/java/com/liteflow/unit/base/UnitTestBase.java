@@ -67,13 +67,19 @@ public abstract class UnitTestBase {
      */
     @AfterEach
     public void tearDown() {
+        // Cleanup database before closing EntityManager
+        if (entityManager != null && entityManager.isOpen()) {
+            cleanupDatabase();
+        }
+        
         if (entityManager != null) {
             if (entityManager.getTransaction().isActive()) {
                 entityManager.getTransaction().rollback();
             }
-            entityManager.close();
+            if (entityManager.isOpen()) {
+                entityManager.close();
+            }
         }
-        cleanupDatabase();
     }
 
     /**
