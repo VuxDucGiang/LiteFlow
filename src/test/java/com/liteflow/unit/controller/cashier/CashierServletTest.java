@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
@@ -54,6 +57,9 @@ public class CashierServletTest extends UnitTestBase {
 
     @Mock
     private ServletContext servletContext;
+    
+    @Mock
+    private ServletConfig servletConfig;
 
     private StringWriter responseWriter;
     private AutoCloseable mocks;
@@ -77,9 +83,14 @@ public class CashierServletTest extends UnitTestBase {
             fail("Failed to set BaseDAO.emf: " + e.getMessage());
         }
 
-        // Initialize servlet
+        // Setup servlet context and config
+        when(servletConfig.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getContextPath()).thenReturn("/LiteFlow");
+        when(request.getServletContext()).thenReturn(servletContext);
+
+        // Initialize servlet with mocked ServletConfig
         try {
-            servlet.init();
+            servlet.init(servletConfig);
         } catch (Exception e) {
             fail("Failed to initialize servlet: " + e.getMessage());
         }
@@ -91,10 +102,6 @@ public class CashierServletTest extends UnitTestBase {
         } catch (Exception e) {
             fail("Failed to setup response writer: " + e.getMessage());
         }
-
-        // Setup servlet context
-        when(request.getServletContext()).thenReturn(servletContext);
-        when(servletContext.getContextPath()).thenReturn("/LiteFlow");
     }
 
     @AfterEach
@@ -402,10 +409,20 @@ public class CashierServletTest extends UnitTestBase {
         when(request.getMethod()).thenReturn("GET");
         when(request.getParameter("action")).thenThrow(new RuntimeException("Test exception"));
 
-        // Act
-        servlet.service(request, response);
-
-        // Assert - should send error response
-        verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), contains("Lỗi server"));
+        // Redirect stderr to suppress exception stack trace in test output
+        PrintStream originalErr = System.err;
+        try {
+            ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+            System.setErr(new PrintStream(errContent));
+            
+            // Act
+            servlet.service(request, response);
+            
+            // Assert - should send error response
+            verify(response).sendError(eq(HttpServletResponse.SC_INTERNAL_SERVER_ERROR), contains("Lỗi server"));
+        } finally {
+            // Restore original stderr
+            System.setErr(originalErr);
+        }
     }
 }
