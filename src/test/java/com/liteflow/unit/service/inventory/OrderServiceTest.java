@@ -185,7 +185,16 @@ public class OrderServiceTest extends UnitTestBase {
         assertNotNull(order);
         assertEquals("Pending", order.getStatus());
         assertEquals("Please hurry", order.getNotes());
-        assertEquals(2, order.getOrderDetails().size());
+        
+        // ✅ Verify order details: 1 item with quantity=2 means 1 OrderDetail, not 2
+        // Fetch order details to trigger lazy loading
+        order.getOrderDetails().size();
+        assertEquals(1, order.getOrderDetails().size());
+        
+        // Verify the detail has quantity 2
+        OrderDetail detail = order.getOrderDetails().get(0);
+        assertEquals(2, detail.getQuantity());
+        assertEquals("No ice", detail.getSpecialInstructions());
         commitTransaction();
     }
 
@@ -362,8 +371,13 @@ public class OrderServiceTest extends UnitTestBase {
         assertNotNull(result);
 
         // Verify table status was updated
+        // ✅ Clear entity manager cache to ensure fresh read from database
+        entityManager.clear();
         beginTransaction();
         Table updatedTable = entityManager.find(Table.class, testTable.getTableId());
+        assertNotNull(updatedTable);
+        // Refresh to get latest state from database
+        entityManager.refresh(updatedTable);
         assertEquals("Occupied", updatedTable.getStatus());
         commitTransaction();
     }
@@ -503,8 +517,13 @@ public class OrderServiceTest extends UnitTestBase {
         assertTrue(result);
 
         // Verify status was updated
+        // ✅ Clear entity manager cache to ensure fresh read from database
+        entityManager.clear();
         beginTransaction();
         Order updatedOrder = entityManager.find(Order.class, orderId);
+        assertNotNull(updatedOrder);
+        // Refresh to get latest state from database
+        entityManager.refresh(updatedOrder);
         assertEquals("Preparing", updatedOrder.getStatus());
         commitTransaction();
     }
