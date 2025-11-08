@@ -34,7 +34,19 @@ public class TableDAO extends GenericDAO<Table, UUID> {
     }
     
     public List<Table> findByRoomId(UUID roomId) {
-        return super.findByAttribute("room", roomId);
+        EntityManager em = emf.createEntityManager();
+        try {
+            return em.createQuery(
+                    "SELECT t FROM Table t WHERE t.room.roomId = :roomId AND (t.isActive = true OR t.isActive IS NULL)",
+                    Table.class)
+                .setParameter("roomId", roomId)
+                .getResultList();
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi findByRoomId: " + e.getMessage());
+            return Collections.emptyList();
+        } finally {
+            em.close();
+        }
     }
     
     public Table findByTableNumber(String tableNumber) {

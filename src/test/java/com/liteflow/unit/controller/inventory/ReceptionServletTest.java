@@ -169,6 +169,7 @@ public class ReceptionServletTest extends UnitTestBase {
                     .withName("Test Room")
                     .withTableCount(10)
                     .build();
+            testRoom.setRoomId(null); // Clear ID to let Hibernate generate it
             entityManager.persist(testRoom);
             entityManager.flush();
 
@@ -224,6 +225,8 @@ public class ReceptionServletTest extends UnitTestBase {
                     .withArrivalTime(LocalDateTime.now().plusHours(2))
                     .build();
             testReservation.setReservationId(null);
+            // Ensure unique reservation code
+            testReservation.setReservationCode("TEST-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
             entityManager.persist(testReservation);
 
             commitTransaction();

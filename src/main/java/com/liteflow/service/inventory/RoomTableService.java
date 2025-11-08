@@ -255,14 +255,50 @@ public class RoomTableService {
     }
     
     public boolean addTable(Table table) {
+        EntityManager em = this.emf.createEntityManager();
+        var tx = em.getTransaction();
         try {
             // Ngày tạo và trạng thái sẽ được tự động thiết lập trong @PrePersist
             // Không cần thiết lập thủ công ở đây
-            return tableDAO.insert(table);
+            
+            // Ensure the room is attached to the current persistence context
+            if (table.getRoom() != null && table.getRoom().getRoomId() != null) {
+                Room room = em.find(Room.class, table.getRoom().getRoomId());
+                if (room != null) {
+                    table.setRoom(room);
+                }
+            }
+            
+            // For new tables, set ID to null to let @PrePersist generate it
+            // This prevents "detached entity passed to persist" errors
+            UUID originalTableId = table.getTableId();
+            if (originalTableId != null) {
+                // Check if table already exists
+                Table existingTable = em.find(Table.class, originalTableId);
+                if (existingTable != null) {
+                    // Table already exists, merge it
+                    tx.begin();
+                    em.merge(table);
+                    tx.commit();
+                    return true;
+                }
+                // Table ID exists but entity doesn't, set ID to null for new table
+                table.setTableId(null);
+            }
+            
+            tx.begin();
+            em.persist(table);
+            tx.commit();
+            return true;
         } catch (Exception e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
             System.err.println("❌ Lỗi khi thêm bàn: " + e.getMessage());
             e.printStackTrace();
             return false;
+        } finally {
+            em.close();
         }
     }
     
@@ -648,7 +684,7 @@ public class RoomTableService {
     public int getCurrentTableCountForRoom(UUID roomId) {
         EntityManager em = this.emf.createEntityManager();
         try {
-            String jpql = "SELECT COUNT(t) FROM Table t WHERE t.room.roomId = :roomId AND t.isActive = true";
+            String jpql = "SELECT COUNT(t) FROM Table t WHERE t.room.roomId = :roomId AND (t.isActive = true OR t.isActive IS NULL)";
             TypedQuery<Long> query = em.createQuery(jpql, Long.class);
             query.setParameter("roomId", roomId);
             Long count = query.getSingleResult();
@@ -667,7 +703,7 @@ public class RoomTableService {
     public int getCurrentTotalCapacityForRoom(UUID roomId) {
         EntityManager em = this.emf.createEntityManager();
         try {
-            String jpql = "SELECT COALESCE(SUM(t.capacity), 0) FROM Table t WHERE t.room.roomId = :roomId AND t.isActive = true";
+            String jpql = "SELECT COALESCE(SUM(t.capacity), 0) FROM Table t WHERE t.room.roomId = :roomId AND (t.isActive = true OR t.isActive IS NULL)";
             TypedQuery<Long> query = em.createQuery(jpql, Long.class);
             query.setParameter("roomId", roomId);
             Long totalCapacity = query.getSingleResult();

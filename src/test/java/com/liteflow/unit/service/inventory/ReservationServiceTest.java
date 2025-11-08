@@ -13,6 +13,7 @@ import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -107,6 +108,7 @@ public class ReservationServiceTest extends UnitTestBase {
                     .withTableCount(10)
                     .withTotalCapacity(40)
                     .build();
+            testRoom.setRoomId(null); // Clear ID to let Hibernate generate it
             entityManager.persist(testRoom);
             entityManager.flush();
 
@@ -145,6 +147,8 @@ public class ReservationServiceTest extends UnitTestBase {
                     .withArrivalTime(LocalDateTime.now().plusHours(2))
                     .build();
             testReservation.setReservationId(null);
+            // Ensure unique reservation code
+            testReservation.setReservationCode("TEST-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
             entityManager.persist(testReservation);
 
             commitTransaction();
