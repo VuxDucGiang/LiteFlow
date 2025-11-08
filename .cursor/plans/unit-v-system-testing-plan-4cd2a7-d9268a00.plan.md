@@ -558,8 +558,8 @@ src/test/java/com/liteflow/
 - [x] Tạo unit tests cho CashierServlet: test load page, load data (tables, menu, rooms, categories, reservations)
 - [x] Tạo unit tests cho CashierAPIServlet: test create order, checkout, get invoice number, get notification history với các edge cases
 - [x] Tạo unit tests cho OrderService: test create order, notify kitchen, session management, total calculation
-- [ ] Tạo unit tests cho ReceptionServlet: test create/update/cancel reservation, confirm arrival, export Excel
-- [ ] Tạo unit tests cho ReservationService: test validation, code generation, table assignment, availability check
+- [x] Tạo unit tests cho ReceptionServlet: test create/update/cancel reservation, confirm arrival, export Excel
+- [x] Tạo unit tests cho ReservationService: test validation, code generation, table assignment, availability check
 - [ ] Tạo unit tests cho RoomTableServlet: test CRUD operations cho rooms và tables, Excel import/export, validation
 - [ ] Tạo unit tests cho RoomTableService: test room/table operations, status updates, capacity limits
 - [ ] Tạo Page Object Model cho Cashier page: CashierPage, TableSection, MenuSection, OrderSection với các methods tương ứng
