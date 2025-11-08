@@ -1,194 +1,290 @@
-# LiteFlow Integration Tests
+# LiteFlow Test Infrastructure
 
-## 📊 OVERVIEW
+## Overview
 
-**Status:** ✅ **435 Tests - 100% Passing**  
-**Framework:** JUnit 5 + Mockito + H2 Database  
-**Execution Time:** ~1:30 minutes  
-**Test Files:** 74 files across 12 modules
+This directory contains the test infrastructure for LiteFlow project, including both **Unit Tests** and **System Tests** (Selenium).
 
----
-
-## 📁 STRUCTURE
+## Directory Structure
 
 ```
 src/test/java/com/liteflow/
-├── controller/          # Servlet integration tests (40 files)
-│   ├── auth/           # Authentication & OAuth (8 tests)
-│   ├── cashier/        # POS & orders (5 tests)
-│   ├── inventory/      # Products & pricing (2 tests)
-│   ├── employee/       # HR & attendance (4 tests)
-│   ├── reservation/    # Bookings & tables (2 tests)
-│   ├── procurement/    # Purchase orders (3 tests)
-│   ├── sales/          # Invoices (2 tests)
-│   ├── schedule/       # Shifts (2 tests)
-│   ├── timesheet/      # Leave requests (2 tests)
-│   ├── alert/          # Notifications (3 tests)
-│   ├── api/            # AI & chatbot (2 tests)
-│   ├── dashboard/      # Admin (2 tests)
-│   └── report/         # Analytics (2 tests)
-├── service/            # Service layer tests (20 files)
-├── dao/                # Data access tests (3 files)
-├── filter/             # Security filters (2 tests)
-├── web/                # Web layer tests (3 files)
-├── job/                # Background jobs (1 test)
-├── listener/           # Event listeners (1 test)
-├── util/               # Utilities (1 test)
-├── helpers/            # Test infrastructure
-│   ├── builders/       # TestDataBuilder
-│   └── mocks/          # ServletTestHelper, MockServiceHelper
-└── TEST_SUMMARY.md     # Detailed test report
+├── unit/                           # Unit tests
+│   ├── base/
+│   │   └── UnitTestBase.java      # Base class for unit tests with H2 setup
+│   ├── controller/
+│   │   ├── cashier/               # Cashier servlet tests
+│   │   └── inventory/             # Inventory servlet tests (Reception, RoomTable)
+│   └── service/
+│       └── inventory/             # Service layer tests
+├── selenium/                       # Selenium system tests
+│   ├── base/
+│   │   ├── BaseTest.java          # Base class for Selenium tests
+│   │   └── TestDataHelper.java   # Test data generation utilities
+│   ├── pages/                     # Page Object Models (POM)
+│   │   ├── cashier/               # Cashier page objects
+│   │   └── roomtable/             # RoomTable page objects
+│   └── tests/                     # Selenium test classes
+└── utils/                          # Shared utilities
+    ├── TestDataBuilder.java       # Builder pattern for test entities
+    └── DatabaseTestHelper.java   # H2 database utilities
 ```
 
----
+## Test Frameworks & Tools
 
-## 🎯 TEST COVERAGE BY MODULE
+### Unit Testing
+- **JUnit 5** - Testing framework
+- **Mockito** - Mocking framework
+- **H2 Database** - In-memory database for testing
+- **JaCoCo** - Code coverage tool
 
-| Module | Files | Status |
-|--------|-------|--------|
-| 🔐 Auth & Authorization | 13 | ✅ |
-| 💰 Cashier/POS | 6 | ✅ |
-| 📦 Inventory | 7 | ✅ |
-| 👥 Employee | 5 | ✅ |
-| 🍽️ Reservation | 2 | ✅ |
-| 🛒 Procurement | 5 | ✅ |
-| 📊 Reports | 3 | ✅ |
-| 💵 Sales | 4 | ✅ |
-| 📅 Schedule | 6 | ✅ |
-| 🔔 Alerts | 5 | ✅ |
-| 🤖 AI/Chatbot | 3 | ✅ |
-| 💼 Admin | 4 | ✅ |
-| 🛡️ Security | 3 | ✅ |
-| 🔧 Utilities | 3 | ✅ |
+### System Testing
+- **Selenium WebDriver 4.x** - Browser automation
+- **WebDriverManager** - Automatic driver management
+- **Page Object Model (POM)** - Design pattern for page objects
+- **JUnit 5 / TestNG** - Test frameworks
 
-**Total:** 435 test cases
+## Getting Started
 
----
+### Prerequisites
 
-## 🚀 RUNNING TESTS
+1. Java 16 or higher
+2. Maven 3.x
+3. Chrome browser (for Selenium tests)
 
+### Running Tests
+
+#### Run all tests
 ```bash
-# All tests (435 tests, ~1:30 min)
 mvn test
-
-# Specific module
-mvn test -Dtest=com.liteflow.controller.auth.*
-mvn test -Dtest=com.liteflow.service.inventory.*
-
-# With coverage report
-mvn clean test jacoco:report
-start target/site/jacoco/index.html
-
-# Parallel execution (faster)
-mvn test -T 4
 ```
 
-### Quick Commands by Module
+#### Run only unit tests
 ```bash
-# Authentication
-mvn test -Dtest=com.liteflow.controller.auth.*,com.liteflow.service.auth.*
-
-# Cashier/POS
-mvn test -Dtest=com.liteflow.controller.cashier.*,com.liteflow.cashier.*
-
-# Inventory
-mvn test -Dtest=com.liteflow.controller.inventory.*,com.liteflow.service.inventory.*
-
-# Employee
-mvn test -Dtest=com.liteflow.controller.employee.*,com.liteflow.service.employee.*
+mvn test -Dtest="com.liteflow.unit.**"
 ```
 
----
+#### Run only Selenium tests
+```bash
+mvn test -Dtest="com.liteflow.selenium.**"
+```
 
-## 🛠️ TEST INFRASTRUCTURE
+#### Run specific test class
+```bash
+mvn test -Dtest=CashierServletTest
+```
 
-### Helper Classes
+#### Generate coverage report
+```bash
+mvn test jacoco:report
+```
+Coverage report will be available at: `target/site/jacoco/index.html`
 
-**`IntegrationTestBase`** - Base class for all tests
-- Provides EntityManager (`em`)
-- Auto transaction rollback
-- H2 database lifecycle
+## Writing Unit Tests
 
-**`TestDataBuilder`** - Entity builders
-- `buildUser()`, `buildRole()`, `buildSession()`
-- `buildEmployee()`, `buildProduct()`, `buildOrder()`
-- Pre-configured test data
+### Example Unit Test
 
-**`ServletTestHelper`** - HTTP mocking
-- `mockPostRequest(json)`, `mockGetRequest()`
-- `mockResponse()`, `getResponseBody()`
+```java
+package com.liteflow.unit.controller.cashier;
 
-**`MockServiceHelper`** - External service mocks
-- OAuth, OTP, Payment services
-- Email, SMS services
+import com.liteflow.unit.base.UnitTestBase;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
-**`OrderTestHelper`** - Order-specific helpers
-- Cashier test utilities
+public class CashierServletTest extends UnitTestBase {
 
----
+    @Test
+    public void testLoadCashierPage() {
+        // Arrange
+        var room = TestDataBuilder.createTestRoom().build();
+        persist(room);
 
-## 📊 KEY FEATURES
+        // Act
+        var result = find(Room.class, room.getRoomId());
 
-### Test Design
-- **Arrange-Act-Assert** pattern
-- **Test Isolation** - Independent tests with auto rollback
-- **Integration Testing** - Full stack with real H2 database
-- **JUnit 5** - Modern testing framework
-- **Mockito** - HTTP & service mocking
+        // Assert
+        assertNotNull(result);
+        assertEquals("Test Room", result.getName());
+    }
+}
+```
 
-### Database
-- **H2 In-Memory** - Fast execution
-- **MSSQLServer Mode** - Matches production
-- **Auto Schema** - Created from JPA entities
-- **Transaction Rollback** - Clean state per test
+### UnitTestBase Features
 
----
+- Automatic H2 database setup/teardown
+- EntityManager lifecycle management
+- Transaction management helpers
+- Test data seeding capabilities
 
-## ⚠️ KNOWN ISSUES
+## Writing Selenium Tests
 
-**Connection Pool Warnings** (Non-critical)
-- Some tests show H2 connection pool exhaustion
-- All tests still pass
-- Recommendation: Increase pool size in `test-persistence.xml`
+### Example Selenium Test
 
-**AlertJob URL Warning** (Non-critical)
-- Missing URL configuration for test environment
-- Tests pass with warning
+```java
+package com.liteflow.selenium.tests;
 
----
+import com.liteflow.selenium.base.BaseTest;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
-## 📊 RESULTS
+public class CashierSystemTest extends BaseTest {
 
-### Latest Test Run
-- **Tests:** 435 ✅
-- **Passed:** 435
-- **Failed:** 0
-- **Errors:** 0
-- **Time:** 1:32 min
-- **Success Rate:** 100%
+    @Test
+    public void testLoadCashierPage() {
+        // Navigate to cashier page
+        navigateTo("/cashier");
 
-### Coverage
-- **JaCoCo Report:** `target/site/jacoco/index.html`
-- **Classes Analyzed:** 58
-- **High Coverage:** CreateOrderServletTest (97%)
+        // Wait for page to load
+        waitForPageLoad();
 
----
+        // Assert
+        assertTrue(getCurrentUrl().contains("/cashier"));
+    }
+}
+```
 
-## 📚 DOCUMENTATION
+### BaseTest Features
 
-- **[RUN_ALL_TESTS.md](../../../RUN_ALL_TESTS.md)** - Quick reference guide
-- **[TEST_SUMMARY.md](com/liteflow/TEST_SUMMARY.md)** - Detailed test report
-- **[Auth Module Guide](com/liteflow/controller/auth/README.md)** - Auth-specific tests
+- WebDriver initialization and cleanup
+- Screenshot capture on failure
+- Wait utilities (implicit and explicit)
+- Navigation helpers
+- JavaScript execution
 
-### External Resources
-- [JUnit 5 Docs](https://junit.org/junit5/docs/current/user-guide/)
-- [Mockito Docs](https://javadoc.io/doc/org.mockito/mockito-core/latest/)
-- [H2 Database](http://www.h2database.com/html/main.html)
-- [JaCoCo Coverage](https://www.jacoco.org/jacoco/trunk/doc/)
+## Test Data Management
 
----
+### TestDataBuilder
 
-**Status:** ✅ **ALL TESTS PASSING**  
-**Last Updated:** November 1, 2025  
-**Build:** SUCCESS
+Provides builder pattern for creating test entities:
 
+```java
+// Create a room with tables
+Room room = TestDataBuilder.createTestRoom()
+    .withName("VIP Room")
+    .withTableCount(5)
+    .withTotalCapacity(20)
+    .build();
+
+// Create a table
+Table table = TestDataBuilder.createTestTable()
+    .withTableNumber("T001")
+    .withRoom(room)
+    .withCapacity(4)
+    .build();
+```
+
+### TestDataHelper (Selenium)
+
+Provides utility methods for generating test data:
+
+```java
+String customerName = TestDataHelper.generateRandomCustomerName();
+String phoneNumber = TestDataHelper.generateRandomPhoneNumber();
+String reservationCode = TestDataHelper.generateReservationCode();
+```
+
+## Database Testing
+
+### DatabaseTestHelper
+
+Provides utilities for database operations:
+
+```java
+// Setup database
+DatabaseTestHelper.setupTestDatabase(entityManager);
+
+// Seed test data
+DatabaseTestHelper.seedTestData(entityManager);
+
+// Cleanup
+DatabaseTestHelper.cleanupDatabase(entityManager);
+
+// Check if empty
+boolean isEmpty = DatabaseTestHelper.isDatabaseEmpty(entityManager);
+```
+
+## Code Coverage Goals
+
+- **Cashier Module**: ≥75%
+- **Reception Module**: ≥70%
+- **RoomTable Module**: ≥75%
+- **Critical Paths**: 100%
+- **Happy Paths**: 100%
+- **Error Scenarios**: ≥80%
+
+## Best Practices
+
+### Unit Tests
+1. Use `@BeforeEach` and `@AfterEach` for setup/cleanup
+2. Follow AAA pattern (Arrange, Act, Assert)
+3. Use descriptive test names (e.g., `testCreateOrder_WithValidData_Success`)
+4. Mock external dependencies with Mockito
+5. Test both happy paths and error scenarios
+
+### Selenium Tests
+1. Use Page Object Model (POM) for maintainability
+2. Use explicit waits instead of Thread.sleep()
+3. Take screenshots on test failures
+4. Keep tests independent and idempotent
+5. Use descriptive element locators
+
+### General
+1. Keep tests fast and focused
+2. Don't test framework code, only application logic
+3. Maintain test data independently
+4. Clean up test data after each test
+5. Document complex test scenarios
+
+## Troubleshooting
+
+### H2 Database Issues
+- Check persistence.xml configuration
+- Verify entity mappings
+- Check H2 dialect compatibility
+
+### Selenium Issues
+- Ensure Chrome browser is installed
+- Check WebDriverManager configuration
+- Verify application is running at `http://localhost:8080/LiteFlow`
+- Check element locators are up-to-date
+
+### Maven Issues
+- Run `mvn clean install` to refresh dependencies
+- Check Java version compatibility
+- Verify Maven settings
+
+## CI/CD Integration
+
+Tests are designed to run in CI/CD pipelines:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Run tests
+  run: mvn clean test
+
+- name: Generate coverage report
+  run: mvn jacoco:report
+
+- name: Upload coverage to Codecov
+  uses: codecov/codecov-action@v3
+```
+
+## Resources
+
+- [JUnit 5 Documentation](https://junit.org/junit5/docs/current/user-guide/)
+- [Mockito Documentation](https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html)
+- [Selenium Documentation](https://www.selenium.dev/documentation/)
+- [H2 Database Documentation](https://www.h2database.com/html/main.html)
+- [JaCoCo Documentation](https://www.jacoco.org/jacoco/trunk/doc/)
+
+## Contributing
+
+When adding new tests:
+1. Follow the existing directory structure
+2. Extend appropriate base classes
+3. Use TestDataBuilder for entity creation
+4. Document complex test scenarios
+5. Maintain code coverage goals
+
+## License
+
+Copyright © 2025 LiteFlow. All rights reserved.

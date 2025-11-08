@@ -38,7 +38,7 @@ public class OrderService {
         String orderNumber = (String) orderInfo.get("orderNumber");
         String tableInfo = (tableId != null) ? "Table ID: " + tableId : "Bàn đặc biệt (Mang về/Giao hàng)";
         
-        // TODO: Trong tương lai có thể thêm logic gửi thông báo real-time đến màn hình bếp
+      
         // Ví dụ: WebSocket, Server-Sent Events, hoặc Polling
         System.out.println("📢 Thông báo đến bếp: Order mới đã được tạo - " + tableInfo + ", OrderNumber: " + orderNumber + ", Invoice: " + invoiceName + (orderNote != null ? ", Note: " + orderNote : ""));
         

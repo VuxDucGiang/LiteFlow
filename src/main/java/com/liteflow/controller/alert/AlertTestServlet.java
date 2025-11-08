@@ -2,14 +2,13 @@ package com.liteflow.controller.alert;
 
 import com.liteflow.service.alert.AlertSchedulerService;
 import com.liteflow.service.alert.AlertService;
-import com.liteflow.service.alert.GPTService;
 import com.liteflow.service.alert.NotificationService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.json.JSONObject;
+
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -25,13 +24,13 @@ public class AlertTestServlet extends HttpServlet {
     private final AlertService alertService;
     private final AlertSchedulerService schedulerService;
     private final NotificationService notificationService;
-    private final GPTService gptService;
+    
     
     public AlertTestServlet() {
         this.alertService = new AlertService();
         this.schedulerService = new AlertSchedulerService();
         this.notificationService = new NotificationService();
-        this.gptService = new GPTService();
+      
     }
     
     @Override

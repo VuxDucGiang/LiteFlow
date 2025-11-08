@@ -54,7 +54,7 @@ public class ScheduleServlet extends HttpServlet {
         String templateNameFilter = req.getParameter("templateName");
 
         // Load UserRoles và UserEmployeeCode từ session hoặc database
-        @SuppressWarnings("unchecked")
+       
         List<String> userRoles = (List<String>) req.getSession().getAttribute("UserRoles");
         
         // Nếu chưa có UserRoles trong session, load từ database

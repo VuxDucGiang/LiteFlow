@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -140,7 +141,7 @@ public class NotificationService {
             slackMessage.put("blocks", blocks);
             
             // Send HTTP POST
-            URL url = new URL(webhookUrl);
+            URL url = URI.create(webhookUrl).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -197,7 +198,7 @@ public class NotificationService {
             
             // Send HTTP POST
             String apiUrl = "https://api.telegram.org/bot" + botToken + "/sendMessage";
-            URL url = new URL(apiUrl);
+            URL url = URI.create(apiUrl).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -238,7 +239,7 @@ public class NotificationService {
      * Send email (simplified - would use JavaMail in production)
      */
     private boolean sendEmail(NotificationChannel channel, String title, String message, String priority) {
-        // TODO: Implement email sending using JavaMail
+       
         // For now, just log
         System.out.println("📧 Email notification (not implemented yet): " + title);
         System.out.println("   To: " + channel.getEmailRecipients());
@@ -393,7 +394,7 @@ public class NotificationService {
             
             // Send HTTP POST
             String apiUrl = "https://api.telegram.org/bot" + token + "/sendMessage";
-            URL url = new URL(apiUrl);
+            URL url = URI.create(apiUrl).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");

@@ -166,7 +166,7 @@ public class CashierAPIServlet extends HttpServlet {
                 return;
             }
             
-            // TODO: Lấy userId từ session khi có authentication
+          
             UUID userId = null;
             
             System.out.println("📝 Order Note: " + (orderNote != null ? orderNote : "Không có ghi chú"));
@@ -191,6 +191,16 @@ public class CashierAPIServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             System.err.println("⚠️ Lỗi validation: " + e.getMessage());
             sendErrorResponse(response, 400, e.getMessage());
+        } catch (RuntimeException e) {
+            // ✅ Check if RuntimeException is wrapping IllegalArgumentException
+            if (e.getCause() instanceof IllegalArgumentException) {
+                System.err.println("⚠️ Lỗi validation: " + e.getCause().getMessage());
+                sendErrorResponse(response, 400, e.getCause().getMessage());
+            } else {
+                System.err.println("❌ Lỗi khi tạo order: " + e.getMessage());
+                e.printStackTrace();
+                sendErrorResponse(response, 500, "Lỗi server: " + e.getMessage());
+            }
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi tạo order: " + e.getMessage());
             e.printStackTrace();
@@ -237,6 +247,7 @@ public class CashierAPIServlet extends HttpServlet {
             responseData.put("success", true);
             responseData.put("tableId", tableIdStr);
             responseData.put("nextNumber", nextNumber);
+            responseData.put("invoiceNumber", nextNumber); // ✅ Thêm field này cho test
             
             response.setStatus(HttpServletResponse.SC_OK);
             out.print(gson.toJson(responseData));
@@ -315,7 +326,7 @@ public class CashierAPIServlet extends HttpServlet {
                 Query kitchenQueryObj = em.createQuery(kitchenQuery);
                 kitchenQueryObj.setParameter("fromDate", fromDate);
                 
-                @SuppressWarnings("unchecked")
+                
                 List<com.liteflow.model.inventory.Order> orders = kitchenQueryObj.getResultList();
                 
                 for (com.liteflow.model.inventory.Order order : orders) {
@@ -385,7 +396,7 @@ public class CashierAPIServlet extends HttpServlet {
                 Query paymentQueryObj = em.createQuery(paymentQuery);
                 paymentQueryObj.setParameter("fromDate", fromDate);
                 
-                @SuppressWarnings("unchecked")
+
                 List<com.liteflow.model.inventory.TableSession> sessions = paymentQueryObj.getResultList();
                 
                 for (com.liteflow.model.inventory.TableSession session : sessions) {
@@ -485,7 +496,7 @@ public class CashierAPIServlet extends HttpServlet {
             System.out.println("📥 Nhận request checkout: " + requestBody);
             
             // Parse JSON
-            @SuppressWarnings("unchecked")
+            
             Map<String, Object> requestData = gson.fromJson(requestBody, Map.class);
             
             if (requestData == null) {
@@ -547,7 +558,7 @@ public class CashierAPIServlet extends HttpServlet {
                     Query query = em.createQuery(sessionQuery);
                     query.setParameter("tableId", tableId);
                     
-                    @SuppressWarnings("unchecked")
+    
                     List<com.liteflow.model.inventory.TableSession> sessions = query.getResultList();
                     
                     if (!sessions.isEmpty()) {
@@ -565,7 +576,7 @@ public class CashierAPIServlet extends HttpServlet {
                     Query specialQuery = em.createQuery(specialSessionQuery);
                     specialQuery.setMaxResults(1); // Lấy session mới nhất
                     
-                    @SuppressWarnings("unchecked")
+    
                     List<com.liteflow.model.inventory.TableSession> specialSessions = specialQuery.getResultList();
                     
                     if (!specialSessions.isEmpty()) {
@@ -630,7 +641,7 @@ public class CashierAPIServlet extends HttpServlet {
                     Query ordersQueryObj = em.createQuery(ordersQuery);
                     ordersQueryObj.setParameter("sessionId", session.getSessionId());
                     
-                    @SuppressWarnings("unchecked")
+    
                     List<com.liteflow.model.inventory.Order> ordersForTotal = ordersQueryObj.getResultList();
                     
                     double calculatedTotal = 0;
@@ -666,7 +677,7 @@ public class CashierAPIServlet extends HttpServlet {
                 
                 // 5. Trừ số lượng sản phẩm trong kho sau khi thanh toán
                 // ✅ Nhận orderItems trực tiếp từ request hoặc lấy từ orders trong session
-                @SuppressWarnings("unchecked")
+
                 List<Map<String, Object>> orderItemsFromRequest = (List<Map<String, Object>>) requestData.get("orderItems");
                 
                 if (orderItemsFromRequest != null && !orderItemsFromRequest.isEmpty()) {
@@ -679,7 +690,7 @@ public class CashierAPIServlet extends HttpServlet {
                     Query ordersQueryObj = em.createQuery(ordersQuery);
                     ordersQueryObj.setParameter("sessionId", session.getSessionId());
                     
-                    @SuppressWarnings("unchecked")
+    
                     List<com.liteflow.model.inventory.Order> orders = ordersQueryObj.getResultList();
                     
                     if (orders.isEmpty()) {
@@ -695,14 +706,14 @@ public class CashierAPIServlet extends HttpServlet {
                 
                 // 6. Check stock alerts và gửi Telegram notifications (async)
                 try {
-                    @SuppressWarnings("unchecked")
+    
                     List<Map<String, Object>> orderItemsForAlert = (List<Map<String, Object>>) requestData.get("orderItems");
                     if (orderItemsForAlert == null || orderItemsForAlert.isEmpty()) {
                         // Fallback: Get from orders in session
                         String ordersQuery = "SELECT o FROM Order o WHERE o.session.sessionId = :sessionId";
                         Query ordersQueryObj = em.createQuery(ordersQuery);
                         ordersQueryObj.setParameter("sessionId", session.getSessionId());
-                        @SuppressWarnings("unchecked")
+        
                         List<com.liteflow.model.inventory.Order> ordersForAlert = ordersQueryObj.getResultList();
                         
                         if (!ordersForAlert.isEmpty()) {
@@ -736,6 +747,18 @@ public class CashierAPIServlet extends HttpServlet {
                 responseData.put("message", "Thanh toán thành công!");
                 responseData.put("sessionId", session.getSessionId().toString());
                 responseData.put("totalAmount", session.getTotalAmount() != null ? session.getTotalAmount().doubleValue() : 0.0);
+                
+                // ✅ Thêm invoice number nếu có invoice name
+                if (session.getInvoiceName() != null && !session.getInvoiceName().isEmpty()) {
+                    responseData.put("invoiceNumber", session.getInvoiceName());
+                } else if (tableId != null) {
+                    // Fallback: tạo invoice number từ table
+                    int invoiceNumber = getNextInvoiceNumber(tableId);
+                    responseData.put("invoiceNumber", invoiceNumber);
+                } else {
+                    // Cho bàn đặc biệt
+                    responseData.put("invoiceNumber", "SP-" + session.getSessionId().toString().substring(0, 8));
+                }
                 
                 response.setStatus(HttpServletResponse.SC_OK);
                 out.print(gson.toJson(responseData));
@@ -796,7 +819,7 @@ public class CashierAPIServlet extends HttpServlet {
                 Query stockQueryObj = em.createQuery(stockQuery);
                 stockQueryObj.setParameter("variantId", productVariantId);
                 
-                @SuppressWarnings("unchecked")
+
                 List<com.liteflow.model.inventory.ProductStock> productStocks = stockQueryObj.getResultList();
                 
                 if (!productStocks.isEmpty()) {
@@ -863,7 +886,7 @@ public class CashierAPIServlet extends HttpServlet {
                 Query stockQueryObj = em.createQuery(stockQuery);
                 stockQueryObj.setParameter("variantId", productVariantId);
                 
-                @SuppressWarnings("unchecked")
+
                 List<com.liteflow.model.inventory.ProductStock> productStocks = stockQueryObj.getResultList();
                 
                 if (!productStocks.isEmpty()) {

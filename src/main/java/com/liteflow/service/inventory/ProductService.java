@@ -54,7 +54,7 @@ public class ProductService {
                            "ORDER BY p.importDate DESC, p.name, pv.size";
                 
                 Query query = em.createQuery(jpql);
-                @SuppressWarnings("unchecked")
+                
                 List<Object[]> results = query.getResultList();
                 
                 for (Object[] row : results) {
@@ -176,7 +176,7 @@ public class ProductService {
                            "ORDER BY p.name, pv.size";
                 
                 Query query = em.createQuery(jpql);
-                @SuppressWarnings("unchecked")
+                
                 List<Object[]> results = query.getResultList();
                 
                 for (Object[] row : results) {
@@ -230,7 +230,7 @@ public class ProductService {
                            "ORDER BY c.name";
                 
                 Query query = em.createQuery(jpql);
-                @SuppressWarnings("unchecked")
+                
                 List<String> result = query.getResultList();
                 
                 System.out.println("Số lượng danh mục từ sản phẩm: " + result.size());

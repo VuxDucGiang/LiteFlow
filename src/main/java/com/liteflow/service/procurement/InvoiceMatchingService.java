@@ -11,6 +11,7 @@ import java.util.*;
  */
 public class InvoiceMatchingService {
 
+    @SuppressWarnings("unused")
     private final PurchaseOrderDAO poDAO = new PurchaseOrderDAO();
     private final PurchaseOrderItemDAO poItemDAO = new PurchaseOrderItemDAO();
     private final GoodsReceiptDAO grDAO = new GoodsReceiptDAO();

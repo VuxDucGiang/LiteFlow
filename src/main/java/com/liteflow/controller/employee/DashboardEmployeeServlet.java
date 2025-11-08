@@ -37,7 +37,7 @@ public class DashboardEmployeeServlet extends HttpServlet {
         }
         
         // Load UserRoles từ session hoặc database
-        @SuppressWarnings("unchecked")
+       
         List<String> userRoles = (List<String>) req.getSession().getAttribute("UserRoles");
         
         if (userRoles == null || userRoles.isEmpty()) {

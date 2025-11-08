@@ -119,7 +119,7 @@ public class DailyReportServlet extends HttpServlet {
                 query.setParameter("startDate", startOfDay);
                 query.setParameter("endDate", endOfDay);
                 
-                @SuppressWarnings("unchecked")
+                
                 List<TableSession> sessions = query.getResultList();
                 
                 // Calculate summary
@@ -211,7 +211,7 @@ public class DailyReportServlet extends HttpServlet {
                 query.setParameter("startDate", startOfDay);
                 query.setParameter("endDate", endOfDay);
                 
-                @SuppressWarnings("unchecked")
+                
                 List<TableSession> sessions = query.getResultList();
                 
                 // ✅ Lazy load collections inside transaction
@@ -279,7 +279,7 @@ public class DailyReportServlet extends HttpServlet {
         response.setHeader("Content-Disposition",
                           "attachment; filename=bao-cao-" + reportDate + ".xlsx");
         
-        // TODO: Implement Excel generation with Apache POI
+        
         sendErrorResponse(response, 501, "Export Excel chưa được implement");
     }
     

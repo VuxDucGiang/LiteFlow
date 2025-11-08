@@ -29,20 +29,6 @@
             <version>${jakartaee.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- JUnit 5 for unit testing -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>5.10.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.10.0</version>
-            <scope>test</scope>
-        </dependency>
-
         <!-- SQL Server JDBC -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
@@ -250,6 +236,8 @@
             <artifactId>poi-scratchpad</artifactId>
             <version>5.2.5</version>
         </dependency>
+
+        <!-- Test Dependencies -->
         <!-- JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -258,43 +246,57 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Mockito -->
+        <!-- Mockito for mocking -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.13.0</version>
+            <version>5.5.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>5.13.0</version>
+            <version>5.5.0</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- AssertJ (optional) -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- H2 Database for testing -->
+        <!-- H2 Database for in-memory testing -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>2.2.224</version>
             <scope>test</scope>
         </dependency>
-        <!-- Reflections for scanning packages -->
-<dependency>
-  <groupId>org.reflections</groupId>
-  <artifactId>reflections</artifactId>
-  <version>0.10.2</version>
-  <scope>test</scope>
-</dependency>
 
+        <!-- Selenium WebDriver -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.15.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-chrome-driver</artifactId>
+            <version>4.15.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- WebDriverManager for automatic driver management -->
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>5.6.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- TestNG (alternative to JUnit for Selenium) -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>7.8.0</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 
@@ -315,13 +317,25 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.4.0</version>
             </plugin>
-            <!-- JaCoCo for coverage -->
+
+            <!-- Maven Surefire Plugin for running tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <skipTests>false</skipTests>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo for code coverage -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.10</version>
                 <executions>
                     <execution>
+                        <id>prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
@@ -332,225 +346,28 @@
                         <goals>
                             <goal>report</goal>
                         </goals>
-                        <configuration>
-                            <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
-                        </configuration>
                     </execution>
-                </executions>
-                <configuration>
-                    <excludes>
-                        <!-- Exclude test classes -->
-                        <exclude>**/*Test.class</exclude>
-                        <exclude>**/*Tests.class</exclude>
-                        
-                        <!-- Exclude specific DAO classes -->
-                        <exclude>**/InvoiceItemDAO.class</exclude>
-                        <exclude>**/GoodsReceiptItemDAO.class</exclude>
-                        <exclude>**/PurchaseOrderDAO.class</exclude>
-                        <exclude>**/GenericDAO.class</exclude>
-                        <exclude>**/PurchaseOrderItemDAO.class</exclude>
-                        <exclude>**/EmployeeShiftDAO.class</exclude>
-                        <exclude>**/EmployeeAttendanceDAO.class</exclude>
-                        <exclude>**/ForgotClockRequestDAO.class</exclude>
-                        <exclude>**/EmployeeShiftTimesheetDAO.class</exclude>
-                        
-                        <!-- Exclude servlet classes -->
-                        <exclude>**/ProductServlet.class</exclude>
-                        <exclude>**/CompensationServlet.class</exclude>
-                        <exclude>**/RoomTableServlet.class</exclude>
-                        <exclude>**/DailyReportServlet.class</exclude>
-                        <exclude>**/LeaveRequestServlet.class</exclude>
-                        <exclude>**/TimesheetServlet.class</exclude>
-                        <exclude>**/SetPriceServlet.class</exclude>
-                        <exclude>**/PersonalScheduleServlet.class</exclude>
-                        <exclude>**/ForgotClockRequestServlet.class</exclude>
-                        <exclude>**/TestServlet.class</exclude>
-                        <exclude>**/ReceptionServlet.class</exclude>
-                        <exclude>**/ReceptionServlet$*.class</exclude>
-                        <exclude>**/VerifyOtpServlet.class</exclude>
-                        <exclude>**/RefreshServlet.class</exclude>
-                        <exclude>**/LoginServlet.class</exclude>
-                        <exclude>**/OAuth2CallbackServlet.class</exclude>
-                        <exclude>**/DebugOtpServlet.class</exclude>
-                        <exclude>**/DebugHashServlet.class</exclude>
-                        <exclude>**/TestRevenueAPIServlet.class</exclude>
-                        <exclude>**/TestJPQLServlet.class</exclude>
-                        <exclude>**/ChatBotServlet.class</exclude>
-                        <exclude>**/ChatBotDebugServlet.class</exclude>
-                        <exclude>**/PurchaseOrderServlet.class</exclude>
-                        <exclude>**/InvoiceServlet.class</exclude>
-                        <exclude>**/InvoiceServlet$*.class</exclude>
-                        <exclude>**/SupplierServlet.class</exclude>
-                        <exclude>**/POItemsServlet.class</exclude>
-                        <exclude>**/ProcurementDashboardServlet.class</exclude>
-                        <exclude>**/AlertServlet.class</exclude>
-                        <exclude>**/AlertTestServlet.class</exclude>
-                        
-                        <!-- Exclude service classes -->
-                        <exclude>**/ExcelService.class</exclude>
-                        <exclude>**/ReservationService.class</exclude>
-                        <exclude>**/AlertSchedulerService.class</exclude>
-                        <exclude>**/GPTService.class</exclude>
-                        <exclude>**/ProcurementService.class</exclude>
-                        <exclude>**/InvoiceMatchingService.class</exclude>
-                        <exclude>**/LeaveRequestService.class</exclude>
-                        <exclude>**/ScheduleService.class</exclude>
-                        <exclude>**/TimesheetService.class</exclude>
-                        <exclude>**/PersonalScheduleService.class</exclude>
-                        <exclude>**/ForgotClockRequestService.class</exclude>
-                        <exclude>**/RoomTableService.class</exclude>
-                        <exclude>**/OtpService.class</exclude>
-                        <exclude>**/AuditService.class</exclude>
-                        <exclude>**/AuthService.class</exclude>
-                        <exclude>**/UserService.class</exclude>
-                        
-                        <!-- Exclude model classes -->
-                        <exclude>**/Category.class</exclude>
-                        <exclude>**/LowStockItem.class</exclude>
-                        <exclude>**/ProductCategory.class</exclude>
-                        <exclude>**/LeaveRequest.class</exclude>
-                        <exclude>**/ForgotClockRequest.class</exclude>
-                        <exclude>**/ShiftPayRule.class</exclude>
-                        
-                        <!-- Exclude payroll model classes -->
-                        <exclude>**/EmployeeCompensation.class</exclude>
-                        <exclude>**/PayrollRun.class</exclude>
-                        <exclude>**/PayPolicy.class</exclude>
-                        <exclude>**/PayPeriod.class</exclude>
-                        
-                        <!-- Exclude inventory model classes -->
-                        <exclude>**/Room.class</exclude>
-                        <exclude>**/OrderDetail.class</exclude>
-                        <exclude>**/Order.class</exclude>
-                        <exclude>**/TableSession.class</exclude>
-                        <exclude>**/Product.class</exclude>
-                        <exclude>**/Reservation.class</exclude>
-                        <exclude>**/PaymentTransaction.class</exclude>
-                        <exclude>**/Inventory.class</exclude>
-                        <exclude>**/ProductVariant.class</exclude>
-                        <exclude>**/ProductStock.class</exclude>
-                        
-                        <!-- Exclude procurement model classes -->
-                        <exclude>**/Supplier.class</exclude>
-                        <exclude>**/SupplierSLA.class</exclude>
-                        <exclude>**/Invoice.class</exclude>
-                        <exclude>**/PurchaseOrder.class</exclude>
-                        <exclude>**/InvoiceItem.class</exclude>
-                        <exclude>**/PurchaseOrderItem.class</exclude>
-                        
-                        <!-- Exclude auth model classes -->
-                        <exclude>**/EmployeeShift.class</exclude>
-                        <exclude>**/UserSession.class</exclude>
-                        <exclude>**/UserRole.class</exclude>
-                        <exclude>**/User.class</exclude>
-                        <exclude>**/ShiftTemplate.class</exclude>
-                        <exclude>**/UserRoleId.class</exclude>
-                        
-                        <!-- Exclude JPA metamodel classes (generated classes with _ suffix) -->
-                        <exclude>**/*_.class</exclude>
-                        <exclude>**/InventoryLog_.class</exclude>
-                        <exclude>**/OrderDetail_.class</exclude>
-                        <exclude>**/ProductStock_.class</exclude>
-                        <exclude>**/Product_.class</exclude>
-                        <exclude>**/Category_.class</exclude>
-                        <exclude>**/Table_.class</exclude>
-                        <exclude>**/ProductVariant_.class</exclude>
-                        <exclude>**/TableSession_.class</exclude>
-                        <exclude>**/ProductCategory_.class</exclude>
-                        <exclude>**/Room_.class</exclude>
-                        <exclude>**/Inventory_.class</exclude>
-                        <exclude>**/UserInteraction_.class</exclude>
-                        <exclude>**/Order_.class</exclude>
-                        <exclude>**/Reservation_.class</exclude>
-                        <exclude>**/ReservationItem_.class</exclude>
-                        <exclude>**/PaymentTransaction_.class</exclude>
-                        
-                        <!-- Exclude DTO classes -->
-                        <exclude>**/ReservationDTO.class</exclude>
-                        <exclude>**/InvoiceItemDTO.class</exclude>
-                        
-                        <!-- Exclude filter classes -->
-                        <exclude>**/AuthenticationFilter.class</exclude>
-                        <exclude>**/BaseFilter.class</exclude>
-                        <exclude>**/LoginFilter.class</exclude>
-                        <exclude>**/LogoutFilter.class</exclude>
-                        
-                        <!-- Exclude util classes -->
-                        <exclude>**/Utils.class</exclude>
-                        <exclude>**/MailUtil.class</exclude>
-                        <exclude>**/MailUtil$*.class</exclude>
-                        <exclude>**/HashGenerator.class</exclude>
-                        
-                        <!-- Exclude job classes -->
-                        <exclude>**/ReservationOverdueJob.class</exclude>
-                        <exclude>**/ProcurementAlertJob.class</exclude>
-                        
-                        <!-- Exclude packages -->
-                        <exclude>**/com/liteflow/dao/notice/**</exclude>
-                        <exclude>**/com/liteflow/model/external/**</exclude>
-                        <exclude>**/com/liteflow/dao/payroll/**</exclude>
-                        <exclude>**/com/liteflow/dao/sales/**</exclude>
-                        <exclude>**/com/liteflow/dao/inventory/**</exclude>
-                        <exclude>**/com/liteflow/dao/alert/**</exclude>
-                        <exclude>**/com/liteflow/security/**</exclude>
-                        <exclude>**/com/liteflow/web/sales/**</exclude>
-                        <exclude>**/com/liteflow/service/ai/**</exclude>
-                        <exclude>**/com/liteflow/model/alert/**</exclude>
-                        <exclude>**/com/liteflow/service/alert/**</exclude>
-                        <exclude>**/com/liteflow/dao/**</exclude>
-                        <exclude>**/com/liteflow/web/auth/**</exclude>
-                        <exclude>**/com/liteflow/service/analytics/**</exclude>
-                        <exclude>**/com/liteflow/dao/analytics/**</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            
-            <!-- Maven Antrun Plugin để inject JavaScript filter vào report -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
                     <execution>
-                        <phase>test</phase>
+                        <id>jacoco-check</id>
                         <goals>
-                            <goal>run</goal>
+                            <goal>check</goal>
                         </goals>
                         <configuration>
-                            <target>
-                                <echo>Checking if JaCoCo report exists...</echo>
-                                <available file="${project.reporting.outputDirectory}/jacoco/index.html" property="jacoco.report.exists"/>
-                                <antcall target="filter-jacoco-if-exists"/>
-                                <antcall target="skip-jacoco-if-not-exists"/>
-                            </target>
-                            <target name="filter-jacoco-if-exists" if="jacoco.report.exists">
-                                <echo>Filtering JaCoCo report to hide files with coverage &lt; 30%</echo>
-                                <loadfile property="filterScript" srcFile="${project.basedir}/src/test/resources/jacoco-filter.js"/>
-                                <replace file="${project.reporting.outputDirectory}/jacoco/index.html">
-                                    <replacetoken>&lt;/head&gt;</replacetoken>
-                                    <replacevalue>&lt;script&gt;${filterScript}&lt;/script&gt;
-&lt;/head&gt;</replacevalue>
-                                </replace>
-                                <echo>Filter script injected into JaCoCo report</echo>
-                            </target>
-                            <target name="skip-jacoco-if-not-exists" unless="jacoco.report.exists">
-                                <echo>Skipping JaCoCo report filter - report not found (tests may have been skipped)</echo>
-                            </target>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            
-            <!-- Surefire Plugin configuration for Java 25 support -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
-                <configuration>
-                    <argLine>${argLine} -Dnet.bytebuddy.experimental=true</argLine>
-                    <!-- Skip tests mặc định khi build dự án -->
-                    <skipTests>true</skipTests>
-                </configuration>
             </plugin>
 
         </plugins>
