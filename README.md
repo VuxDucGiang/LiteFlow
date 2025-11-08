@@ -328,9 +328,9 @@ open target/site/jacoco/index.html
 
 | Member | Student ID | Role | Responsibilities |
 |--------|------------|------|------------------|
-| **[Your Name]** | SE123456 | Project Lead & Backend Developer | System architecture, authentication, core servlets |
-| **[Member 2]** | SE123457 | Frontend Developer | UI/UX design, JSP pages, CSS styling |
-| **[Member 3]** | SE123458 | Database Administrator | Database design, SQL optimization, data migration |
+| **[Vu Duc Giang]** | DE190556 | Project Lead & Backend Developer | System architecture, authentication, core servlets |
+| **[Huynh Quang Huy]** | SE123457 | Frontend Developer | UI/UX design, JSP pages, CSS styling |
+| **[Dang Dong Hoa]** | SE123458 | Database Administrator | Database design, SQL optimization, data migration |
 | **[Member 4]** | SE123459 | QA Engineer | Testing strategy, unit tests, coverage reports |
 | **[Member 5]** | SE123460 | DevOps & Integration | Deployment, CI/CD, documentation |
 
