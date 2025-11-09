@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mvn test:*)",
       "Bash(mvn clean test:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
