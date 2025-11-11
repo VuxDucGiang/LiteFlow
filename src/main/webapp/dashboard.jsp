@@ -57,14 +57,28 @@
       <div class="revenue-header">
         <div class="revenue-title">DOANH SỐ</div>
         <div class="revenue-tabs">
-          <div class="tab">Theo ngày</div>
-          <div class="tab active">Theo giờ</div>
-          <div class="tab">Theo thứ</div>
+          <div class="tab" data-tab="day">Theo ngày</div>
+          <div class="tab active" data-tab="hour">Theo giờ</div>
+          <div class="tab" data-tab="weekday">Theo thứ</div>
         </div>
       </div>
       <div class="revenue-content">
-        <div class="empty-icon">📦</div>
-        <div class="empty-text">Không có dữ liệu</div>
+        <div class="revenue-table-container">
+          <table class="revenue-table" id="revenueTable">
+            <thead>
+              <tr>
+                <th>Thời gian</th>
+                <th>Doanh thu</th>
+                <th>Số đơn</th>
+              </tr>
+            </thead>
+            <tbody id="revenueTableBody">
+              <tr>
+                <td colspan="3" class="loading-text">Đang tải dữ liệu...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -139,6 +153,12 @@
 
 
 <!-- Dashboard Enhancements -->
+<script>
+  // Set context path for JavaScript
+  window.CONTEXT_PATH = '${pageContext.request.contextPath}';
+</script>
 <script src="${pageContext.request.contextPath}/js/dashboard-enhancements.js"></script>
+<!-- Revenue Data Loader -->
+<script src="${pageContext.request.contextPath}/js/dashboard-revenue.js"></script>
 
 <jsp:include page="includes/footer.jsp" />

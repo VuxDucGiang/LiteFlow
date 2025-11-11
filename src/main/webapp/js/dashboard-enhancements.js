@@ -195,6 +195,14 @@ class DashboardEnhancements {
   }
 
   setupTabInteractions() {
+    // Only setup tab interactions for non-revenue tabs
+    // Revenue tabs are handled by DashboardRevenue class
+    const revenueSection = document.querySelector('.revenue-section');
+    if (revenueSection) {
+      // Revenue tabs are handled by dashboard-revenue.js
+      return;
+    }
+    
     const tabs = document.querySelectorAll('.tab');
     
     tabs.forEach(tab => {

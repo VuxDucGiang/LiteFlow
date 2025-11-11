@@ -317,6 +317,47 @@ public class RevenueReportDAO {
     }
     
     /**
+     * Get revenue by weekday (1=Monday, 7=Sunday)
+     * Returns: List of [weekday (1-7), revenue, orderCount]
+     */
+    public List<Object[]> getRevenueByWeekday(LocalDate startDate, LocalDate endDate) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+            
+            // Use native query for DATEPART(WEEKDAY, ...)
+            // In SQL Server, WEEKDAY returns 1=Sunday, 2=Monday, ..., 7=Saturday
+            // We adjust to 1=Monday, 7=Sunday by: ((DATEPART(WEEKDAY, date) + 5) % 7) + 1
+            // This formula: Sunday(1)->7, Monday(2)->1, Tuesday(3)->2, ..., Saturday(7)->6
+            String sql = "SELECT " +
+                        "((DATEPART(WEEKDAY, o.OrderDate) + 5) % 7) + 1 as Weekday, " +
+                        "SUM(o.TotalAmount) as Revenue, " +
+                        "COUNT(o.OrderID) as OrderCount " +
+                        "FROM Orders o " +
+                        "WHERE o.OrderDate BETWEEN :startDate AND :endDate " +
+                        "AND o.PaymentStatus = 'Paid' " +
+                        "GROUP BY ((DATEPART(WEEKDAY, o.OrderDate) + 5) % 7) + 1 " +
+                        "ORDER BY Weekday";
+            
+            @SuppressWarnings("unchecked")
+            List<Object[]> results = em.createNativeQuery(sql)
+                .setParameter("startDate", startDateTime)
+                .setParameter("endDate", endDateTime)
+                .getResultList();
+            
+            return results;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting revenue by weekday: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
      * DEBUG: Get all orders for today (regardless of payment status)
      * Used to debug why revenue might be showing as 0
      */
