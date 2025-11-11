@@ -142,9 +142,19 @@
                 String successParam = request.getParameter("success");
                 String message = request.getParameter("message");
                 
+                // Xử lý trường hợp status = "Unknown" - coi như failed nếu success = false
+                if ("Unknown".equals(status) && "false".equals(successParam)) {
+                    status = "Failed";
+                }
+                
                 boolean isSuccess = "true".equals(successParam) || "Completed".equals(status);
-                boolean isFailed = "false".equals(successParam) || "Failed".equals(status);
+                boolean isFailed = "false".equals(successParam) || "Failed".equals(status) || "Unknown".equals(status);
                 boolean isPending = "Pending".equals(status) || "Processing".equals(status);
+                
+                // Nếu không có message và failed, hiển thị message mặc định
+                if (isFailed && (message == null || message.trim().isEmpty())) {
+                    message = "Giao dịch của bạn không thể được xử lý. Vui lòng thử lại hoặc liên hệ hỗ trợ.";
+                }
             %>
             
             <c:choose>
@@ -171,12 +181,14 @@
                 </c:otherwise>
             </c:choose>
             
-            <c:if test="<%= transactionId != null && !transactionId.isEmpty() %>">
+            <c:if test="<%= (transactionId != null && !transactionId.isEmpty()) || (responseCode != null && !responseCode.isEmpty()) || isFailed %>">
                 <div class="payment-details">
-                    <div class="payment-detail-row">
-                        <span class="payment-detail-label">Mã giao dịch:</span>
-                        <span class="payment-detail-value"><%= transactionId %></span>
-                    </div>
+                    <c:if test="<%= transactionId != null && !transactionId.isEmpty() %>">
+                        <div class="payment-detail-row">
+                            <span class="payment-detail-label">Mã giao dịch:</span>
+                            <span class="payment-detail-value"><%= transactionId %></span>
+                        </div>
+                    </c:if>
                     <c:if test="<%= responseCode != null && !responseCode.isEmpty() %>">
                         <div class="payment-detail-row">
                             <span class="payment-detail-label">Mã phản hồi:</span>
@@ -197,7 +209,7 @@
             </c:if>
             
             <div class="payment-actions">
-                <a href="${pageContext.request.contextPath}/cart/cashier.jsp" class="btn btn-primary">
+                <a href="${pageContext.request.contextPath}/cashier" class="btn btn-primary">
                     <i class='bx bx-home'></i> Quay lại Cashier
                 </a>
                 <c:if test="<%= isFailed %>">
@@ -229,7 +241,7 @@
             
             if (countdown <= 0) {
                 clearInterval(timer);
-                window.location.href = '${pageContext.request.contextPath}/cart/cashier.jsp';
+                window.location.href = '${pageContext.request.contextPath}/cashier';
             }
         }, 1000);
         </c:if>

@@ -246,27 +246,59 @@ public class VNPayPaymentServlet extends HttpServlet {
             // VNPay sends parameters via GET query string
             Map<String, String> params = getAllParameters(request);
             
+            // Get raw query string BEFORE servlet container decoding
+            // This is critical for hash validation - VNPay calculates hash from URL-encoded values
+            String rawQueryString = request.getQueryString();
+            
             System.out.println("═══════════════════════════════════════════════════════");
             System.out.println("📥 VNPay Return Callback");
             System.out.println("═══════════════════════════════════════════════════════");
             System.out.println("📋 Total params received: " + params.size());
             System.out.println("📋 Params: " + params);
+            System.out.println("📋 Raw query string: " + (rawQueryString != null ? rawQueryString.substring(0, Math.min(500, rawQueryString.length())) : "null"));
             System.out.println("═══════════════════════════════════════════════════════");
             
-            // Process return callback (will validate hash internally)
-            Map<String, Object> result = vnpayService.processReturnCallback(params);
+            // Process return callback (will validate hash internally using raw query string)
+            Map<String, Object> result = vnpayService.processReturnCallback(params, rawQueryString);
             
             // Redirect to payment result page
             String transactionId = (String) result.get("transactionId");
             String status = (String) result.get("status");
             String responseCode = (String) result.get("responseCode");
+            String message = (String) result.get("message");
+            Boolean success = (Boolean) result.get("success");
             
             // Build redirect URL
             String redirectUrl = request.getContextPath() + "/payment/payment-result.jsp";
-            redirectUrl += "?transactionId=" + (transactionId != null ? transactionId : "");
-            redirectUrl += "&status=" + (status != null ? status : "Unknown");
-            redirectUrl += "&responseCode=" + (responseCode != null ? responseCode : "");
-            redirectUrl += "&success=" + result.get("success");
+            
+            // Only add transactionId if it exists
+            if (transactionId != null && !transactionId.isEmpty()) {
+                redirectUrl += "?transactionId=" + java.net.URLEncoder.encode(transactionId, "UTF-8");
+            } else {
+                redirectUrl += "?transactionId=";
+            }
+            
+            // Add status
+            if (status != null && !status.isEmpty()) {
+                redirectUrl += "&status=" + java.net.URLEncoder.encode(status, "UTF-8");
+            } else {
+                redirectUrl += "&status=" + (success != null && success ? "Completed" : "Failed");
+            }
+            
+            // Add responseCode if exists
+            if (responseCode != null && !responseCode.isEmpty()) {
+                redirectUrl += "&responseCode=" + java.net.URLEncoder.encode(responseCode, "UTF-8");
+            } else {
+                redirectUrl += "&responseCode=";
+            }
+            
+            // Add success flag
+            redirectUrl += "&success=" + (success != null ? success : false);
+            
+            // Add message if exists (important for error cases)
+            if (message != null && !message.isEmpty()) {
+                redirectUrl += "&message=" + java.net.URLEncoder.encode(message, "UTF-8");
+            }
             
             response.sendRedirect(redirectUrl);
             
@@ -274,9 +306,21 @@ public class VNPayPaymentServlet extends HttpServlet {
             System.err.println("❌ Error processing VNPay return callback: " + e.getMessage());
             e.printStackTrace();
             
-            // Redirect to error page
+            // Redirect to error page with detailed error message
             String redirectUrl = request.getContextPath() + "/payment/payment-result.jsp";
-            redirectUrl += "?success=false&message=Error processing payment";
+            try {
+                String errorMessage = "Lỗi xử lý thanh toán: " + e.getMessage();
+                // Limit error message length to avoid URL too long
+                if (errorMessage.length() > 200) {
+                    errorMessage = errorMessage.substring(0, 200) + "...";
+                }
+                redirectUrl += "?success=false&status=Failed&message=" + 
+                    java.net.URLEncoder.encode(errorMessage, "UTF-8");
+            } catch (Exception ex) {
+                // Fallback if encoding fails
+                redirectUrl += "?success=false&status=Failed&message=" + 
+                    java.net.URLEncoder.encode("Lỗi xử lý thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.", "UTF-8");
+            }
             response.sendRedirect(redirectUrl);
         }
     }
@@ -343,46 +387,78 @@ public class VNPayPaymentServlet extends HttpServlet {
     private Map<String, String> getAllParameters(HttpServletRequest request) {
         Map<String, String> params = new HashMap<>();
         
+        System.out.println("═══════════════════════════════════════════════════════");
+        System.out.println("📥 Collecting Parameters from Request");
+        System.out.println("═══════════════════════════════════════════════════════");
+        System.out.println("📋 Request Method: " + request.getMethod());
+        System.out.println("📋 Query String: " + (request.getQueryString() != null ? request.getQueryString() : "null"));
+        System.out.println("📋 Content Type: " + request.getContentType());
+        
         // Get parameters from request (works for both GET and POST)
+        // Servlet container automatically decodes URL-encoded parameters
         Enumeration<String> paramNames = request.getParameterNames();
+        int paramCount = 0;
         while (paramNames.hasMoreElements()) {
             String paramName = paramNames.nextElement();
             String[] paramValues = request.getParameterValues(paramName);
             
             // If multiple values, take the first one (VNPay typically sends single values)
+            String paramValue = "";
             if (paramValues != null && paramValues.length > 0) {
-                params.put(paramName, paramValues[0]);
+                paramValue = paramValues[0];
+                params.put(paramName, paramValue);
             } else {
                 params.put(paramName, "");
             }
+            
+            paramCount++;
+            // Log important VNPay parameters
+            if (paramName.startsWith("vnp_")) {
+                System.out.println("   ✅ VNPay param: " + paramName + " = " + 
+                    (paramValue.length() > 100 ? paramValue.substring(0, 100) + "..." : paramValue));
+            }
         }
         
-        // Also check query string directly (in case parameters are in URL)
+        System.out.println("📋 Total params from request.getParameterNames(): " + paramCount);
+        
+        // Also check query string directly (in case parameters are in URL but not parsed)
+        // This is a fallback mechanism
         String queryString = request.getQueryString();
         if (queryString != null && !queryString.isEmpty()) {
+            System.out.println("📋 Processing query string: " + queryString.substring(0, Math.min(500, queryString.length())));
             // Parse query string manually to ensure no parameters are missed
             String[] pairs = queryString.split("&");
+            int queryParamCount = 0;
             for (String pair : pairs) {
                 int idx = pair.indexOf("=");
                 if (idx > 0) {
                     String key = pair.substring(0, idx);
                     String value = idx < pair.length() - 1 ? pair.substring(idx + 1) : "";
                     try {
-                        // URL decode the value
+                        // URL decode the value (servlet container should do this, but do it again to be safe)
                         value = java.net.URLDecoder.decode(value, "UTF-8");
                         // Only add if not already in params (request.getParameter takes precedence)
                         if (!params.containsKey(key)) {
                             params.put(key, value);
+                            queryParamCount++;
+                            System.out.println("   ⚠️ Added param from query string: " + key + " = " + 
+                                (value.length() > 100 ? value.substring(0, 100) + "..." : value));
                         }
                     } catch (Exception e) {
                         // If decode fails, use raw value
                         if (!params.containsKey(key)) {
                             params.put(key, value);
+                            queryParamCount++;
+                            System.err.println("   ⚠️ Warning: Could not decode param " + key + ", using raw value");
                         }
                     }
                 }
             }
+            System.out.println("📋 Additional params from query string: " + queryParamCount);
         }
+        
+        System.out.println("📋 Total params collected: " + params.size());
+        System.out.println("═══════════════════════════════════════════════════════");
         
         return params;
     }

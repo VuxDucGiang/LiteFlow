@@ -220,6 +220,138 @@ public class VNPayUtil {
      * @param hashSecret VNPay Hash Secret
      * @return true if hash is valid, false otherwise
      */
+    /**
+     * Validate secure hash from VNPay callback using raw query string.
+     * This method accepts the raw query string to preserve original encoding.
+     * VNPay calculates hash from URL-encoded parameter values in alphabetical order.
+     * 
+     * @param rawQueryString Raw query string from request (before servlet container decoding)
+     * @param hashSecret VNPay Hash Secret
+     * @return true if hash is valid, false otherwise
+     */
+    public static boolean validateSecureHashFromRawQuery(String rawQueryString, String hashSecret) {
+        try {
+            if (rawQueryString == null || rawQueryString.isEmpty()) {
+                System.err.println("❌ Raw query string is null or empty");
+                return false;
+            }
+            
+            // Extract vnp_SecureHash from raw query string
+            // Hash value itself should be URL decoded (it's a hex string, no special chars)
+            String receivedHash = null;
+            Map<String, String> paramsForHash = new TreeMap<>();
+            
+            // Parse raw query string manually to preserve encoding of parameter values
+            // VNPay sends URL-encoded values (e.g., + for spaces) and we need to keep them as-is
+            String[] pairs = rawQueryString.split("&");
+            for (String pair : pairs) {
+                int idx = pair.indexOf("=");
+                if (idx > 0) {
+                    String key = pair.substring(0, idx);
+                    // Value is URL-encoded in query string (e.g., + for space, %20, etc.)
+                    // Keep it as-is for hash calculation, but decode for hash value extraction
+                    String encodedValue = idx < pair.length() - 1 ? pair.substring(idx + 1) : "";
+                    
+                    if ("vnp_SecureHash".equals(key)) {
+                        // Hash value is a hex string, URL decode it (should be no change, but safe)
+                        try {
+                            receivedHash = java.net.URLDecoder.decode(encodedValue, "UTF-8");
+                        } catch (Exception e) {
+                            receivedHash = encodedValue; // Use as-is if decode fails
+                        }
+                        continue; // Skip secure hash from params for hash calculation
+                    }
+                    
+                    if ("vnp_SecureHashType".equals(key)) {
+                        continue; // Skip hash type
+                    }
+                    
+                    // Store parameter with URL-encoded value as-is
+                    // TreeMap will automatically sort by key (alphabetical order)
+                    // VNPay calculates hash from these URL-encoded values in alphabetical order
+                    paramsForHash.put(key, encodedValue);
+                }
+            }
+            
+            if (receivedHash == null || receivedHash.isEmpty()) {
+                System.err.println("❌ vnp_SecureHash is missing or empty");
+                return false;
+            }
+            
+            // Auto-detect hash type from hash length
+            String hashType = "SHA512"; // Default
+            if (receivedHash.length() == 128) {
+                hashType = "SHA512"; // HMAC SHA512
+            } else if (receivedHash.length() == 64) {
+                hashType = "SHA256"; // SHA256
+            }
+            
+            System.out.println("═══════════════════════════════════════════════════════");
+            System.out.println("🔐 VNPay Hash Validation (from raw query string)");
+            System.out.println("═══════════════════════════════════════════════════════");
+            System.out.println("📋 Hash Type: " + hashType);
+            System.out.println("📋 Received Hash: " + receivedHash);
+            System.out.println("📋 Hash Length: " + receivedHash.length() + " chars");
+            System.out.println("📋 Params for hash: " + paramsForHash.size());
+            
+            // Log all parameters for debugging
+            for (Map.Entry<String, String> entry : paramsForHash.entrySet()) {
+                System.out.println("   ✅ Param: " + entry.getKey() + " = " + 
+                    (entry.getValue().length() > 100 ? entry.getValue().substring(0, 100) + "..." : entry.getValue()));
+            }
+            
+            // Build query string for hash calculation
+            // VNPay calculates hash from URL-encoded values in alphabetical order
+            // TreeMap automatically provides alphabetical order by key
+            // Use values exactly as they appear in query string (URL-encoded)
+            StringBuilder hashData = new StringBuilder();
+            for (Map.Entry<String, String> entry : paramsForHash.entrySet()) {
+                if (hashData.length() > 0) {
+                    hashData.append("&");
+                }
+                // Use key and value as they appear in raw query string (URL-encoded)
+                // This matches how VNPay calculates the hash
+                hashData.append(entry.getKey()).append("=").append(entry.getValue());
+            }
+            
+            String hashInput = hashData.toString();
+            System.out.println("───────────────────────────────────────────────────────");
+            System.out.println("🔐 Hash Input (from raw query string, alphabetical order):");
+            System.out.println(hashInput);
+            System.out.println("───────────────────────────────────────────────────────");
+            
+            // Calculate hash using HMAC SHA512
+            String calculatedHash = hmacSHA512(hashSecret, hashInput);
+            
+            System.out.println("🔐 Calculated Hash: " + calculatedHash);
+            System.out.println("🔐 Received Hash:   " + receivedHash);
+            System.out.println("───────────────────────────────────────────────────────");
+            
+            boolean isValid = calculatedHash.equalsIgnoreCase(receivedHash);
+            
+            if (isValid) {
+                System.out.println("✅ Hash validation: SUCCESS");
+            } else {
+                System.err.println("❌ Hash validation: FAILED");
+                System.err.println("   Expected: " + calculatedHash);
+                System.err.println("   Received: " + receivedHash);
+                
+                // Additional debug: try to find what's different
+                if (hashInput.length() < 500) {
+                    System.err.println("   Hash Input String: " + hashInput);
+                }
+            }
+            System.out.println("═══════════════════════════════════════════════════════");
+            
+            return isValid;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error validating VNPay secure hash from raw query: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
     public static boolean validateSecureHash(Map<String, String> params, String hashSecret) {
         try {
             String receivedHash = params.get("vnp_SecureHash");
@@ -283,17 +415,32 @@ public class VNPayUtil {
             System.out.println("───────────────────────────────────────────────────────");
             System.out.println("📋 Params for hash calculation: " + paramsForHash.size());
 
-            // Build query string WITHOUT encoding for hash calculation
-            // VNPay uses raw query string (not URL encoded) for hash validation
-            // IMPORTANT: Must use TreeMap to ensure alphabetical order
+            // Build query string for hash calculation
+            // CRITICAL: VNPay calculates hash from URL-encoded values as they appear in query string
+            // When values contain special characters, they are URL-encoded in the query string
+            // We need to URL-encode the decoded values back to match what VNPay used
             StringBuilder hashData = new StringBuilder();
             for (Map.Entry<String, String> entry : paramsForHash.entrySet()) {
                 if (hashData.length() > 0) {
                     hashData.append("&");
                 }
-                // Use raw values for hash calculation (VNPay requirement)
-                // Format: key=value (no URL encoding)
-                hashData.append(entry.getKey()).append("=").append(entry.getValue());
+                String key = entry.getKey();
+                String value = entry.getValue();
+                
+                // URL encode the value to match VNPay's format
+                // VNPay uses URL encoding for special characters (space becomes +, etc.)
+                try {
+                    String encodedValue = URLEncoder.encode(value, StandardCharsets.UTF_8.toString());
+                    // VNPay uses + for spaces, not %20
+                    encodedValue = encodedValue.replace("%20", "+");
+                    // Also handle other common encodings
+                    encodedValue = encodedValue.replace("*", "%2A"); // Keep * encoded
+                    
+                    hashData.append(key).append("=").append(encodedValue);
+                } catch (Exception e) {
+                    // If encoding fails, use raw value
+                    hashData.append(key).append("=").append(value);
+                }
             }
 
             String hashInput = hashData.toString();

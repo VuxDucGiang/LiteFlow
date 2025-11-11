@@ -217,27 +217,63 @@ public class VNPayService {
      * Process Return URL callback from VNPay.
      * This is called when user is redirected back from VNPay.
      * 
-     * @param params All parameters from VNPay callback
+     * @param params All parameters from VNPay callback (decoded by servlet container)
+     * @param rawQueryString Raw query string from request (before servlet container decoding)
      * @return Map containing transaction status and information
      */
-    public Map<String, Object> processReturnCallback(Map<String, String> params) {
-        // Validate secure hash
-        if (!VNPayUtil.validateSecureHash(params, hashSecret)) {
-            System.err.println("❌ Invalid secure hash in return callback");
+    public Map<String, Object> processReturnCallback(Map<String, String> params, String rawQueryString) {
+        // Check if params is empty or null
+        if (params == null || params.isEmpty()) {
+            System.err.println("❌ No parameters received in return callback");
             Map<String, Object> result = new HashMap<>();
             result.put("success", false);
-            result.put("message", "Invalid secure hash");
+            result.put("status", "Failed");
+            result.put("message", "Không nhận được thông tin từ hệ thống thanh toán. Vui lòng kiểm tra lại hoặc liên hệ hỗ trợ.");
+            return result;
+        }
+        
+        // Validate secure hash using raw query string to preserve encoding
+        // VNPay calculates hash from URL-encoded values in query string
+        boolean hashValid = false;
+        if (rawQueryString != null && !rawQueryString.isEmpty()) {
+            // Use raw query string for hash validation (preserves + signs, etc.)
+            hashValid = VNPayUtil.validateSecureHashFromRawQuery(rawQueryString, hashSecret);
+        } else {
+            // Fallback to params-based validation (may not work correctly for special characters)
+            hashValid = VNPayUtil.validateSecureHash(params, hashSecret);
+        }
+        
+        if (!hashValid) {
+            System.err.println("❌ Invalid secure hash in return callback");
+            System.err.println("❌ Received params: " + params);
+            System.err.println("❌ Raw query string: " + rawQueryString);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("status", "Failed");
+            result.put("message", "Không thể xác thực giao dịch. Mã bảo mật không hợp lệ. Vui lòng thử lại hoặc liên hệ hỗ trợ.");
             return result;
         }
         
         // Parse transaction ID
         String vnpTxnRef = params.get("vnp_TxnRef");
+        if (vnpTxnRef == null || vnpTxnRef.isEmpty()) {
+            System.err.println("❌ Missing transaction reference in callback");
+            System.err.println("❌ Received params: " + params);
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("status", "Failed");
+            result.put("message", "Thiếu thông tin giao dịch. Vui lòng thử lại.");
+            return result;
+        }
+        
         UUID transactionId = VNPayUtil.parseTransactionId(vnpTxnRef);
         if (transactionId == null) {
             System.err.println("❌ Invalid transaction reference: " + vnpTxnRef);
+            System.err.println("❌ Received params: " + params);
             Map<String, Object> result = new HashMap<>();
             result.put("success", false);
-            result.put("message", "Invalid transaction reference");
+            result.put("status", "Failed");
+            result.put("message", "Mã giao dịch không hợp lệ: " + vnpTxnRef);
             return result;
         }
         
@@ -315,7 +351,9 @@ public class VNPayService {
                 System.err.println("❌ Transaction not found: " + transactionId);
                 Map<String, Object> result = new HashMap<>();
                 result.put("success", false);
-                result.put("message", "Transaction not found");
+                result.put("status", "Failed");
+                result.put("transactionId", transactionId.toString());
+                result.put("message", "Không tìm thấy giao dịch với mã: " + transactionId);
                 return result;
             }
             
@@ -335,7 +373,10 @@ public class VNPayService {
                     
                     Map<String, Object> result = new HashMap<>();
                     result.put("success", false);
-                    result.put("message", "Amount mismatch");
+                    result.put("status", "Failed");
+                    result.put("transactionId", transactionId.toString());
+                    result.put("responseCode", responseCode);
+                    result.put("message", "Số tiền thanh toán không khớp. Vui lòng liên hệ hỗ trợ.");
                     return result;
                 }
             }
@@ -413,7 +454,10 @@ public class VNPayService {
             
             Map<String, Object> result = new HashMap<>();
             result.put("success", false);
-            result.put("message", "Error updating payment status: " + e.getMessage());
+            result.put("status", "Failed");
+            result.put("transactionId", transactionId != null ? transactionId.toString() : null);
+            result.put("responseCode", responseCode);
+            result.put("message", "Lỗi khi cập nhật trạng thái thanh toán. Vui lòng liên hệ hỗ trợ.");
             return result;
         } finally {
             em.close();
