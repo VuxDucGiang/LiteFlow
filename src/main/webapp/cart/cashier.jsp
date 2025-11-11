@@ -300,14 +300,15 @@
 
         <!-- Payment Methods -->
         <div class="payment-methods">
-          <button class="payment-btn" data-method="cash">
+          <button class="payment-btn active" data-method="cash">
             <i class='bx bx-money'></i>
             <span>Tiền mặt</span>
           </button>
-          <button class="payment-btn" data-method="card">
+          <!-- ✅ Ẩn nút Thẻ - để sau -->
+          <!-- <button class="payment-btn" data-method="card">
             <i class='bx bx-credit-card'></i>
             <span>Thẻ</span>
-          </button>
+          </button> -->
           <button class="payment-btn" data-method="transfer">
             <i class='bx bx-transfer'></i>
             <span>Chuyển khoản</span>
