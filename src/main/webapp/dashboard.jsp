@@ -12,6 +12,16 @@
   RoomTableService roomTableService = new RoomTableService();
   int occupiedTables = roomTableService.getOccupiedTables();
   java.math.BigDecimal totalActiveAmount = roomTableService.getTotalActiveSessionsAmount();
+  long completedOrdersToday = roomTableService.getCompletedOrdersToday();
+  long completedOrdersYesterday = roomTableService.getCompletedOrdersYesterday();
+  
+  // Calculate growth percentage
+  double growthPercentage = 0.0;
+  if (completedOrdersYesterday > 0) {
+    growthPercentage = ((completedOrdersToday - completedOrdersYesterday) * 100.0) / completedOrdersYesterday;
+  } else if (completedOrdersToday > 0) {
+    growthPercentage = 100.0;
+  }
 %>
 
 <div class="dashboard-content">
@@ -25,10 +35,12 @@
           <div class="icon blue">
             <i class='bx bx-dollar'></i>
           </div>
-          <div class="value">0</div>
+          <div class="value"><%= completedOrdersToday %></div>
           <div class="label">Đơn đã xong</div>
-          <div class="change up">↑ 100%</div>
-          <div style="font-size: 12px; color: #6a7a92; margin-top: 4px;">Hôm qua 0</div>
+          <div class="change <%= growthPercentage >= 0 ? "up" : "down" %>">
+            <%= growthPercentage >= 0 ? "↑" : "↓" %> <%= String.format("%.1f", Math.abs(growthPercentage)) %>%
+          </div>
+          <div style="font-size: 12px; color: #6a7a92; margin-top: 4px;">Hôm qua <%= completedOrdersYesterday %></div>
         </div>
         <div class="sales-card">
           <div class="icon green">
