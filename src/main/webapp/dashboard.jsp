@@ -55,7 +55,7 @@
     <!-- Revenue Section -->
     <div class="revenue-section">
       <div class="revenue-header">
-        <div class="revenue-title">DOANH SỐ HÔM NAY 0</div>
+        <div class="revenue-title">DOANH SỐ</div>
         <div class="revenue-tabs">
           <div class="tab">Theo ngày</div>
           <div class="tab active">Theo giờ</div>
