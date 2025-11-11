@@ -1,12 +1,13 @@
 /**
  * Dashboard Revenue Data Loader
- * Fetches and displays revenue data from API
+ * Fetches and displays revenue data from API using Chart.js
  */
 
 class DashboardRevenue {
   constructor() {
     this.currentTab = 'hour'; // Default to hourly view
     this.revenueData = null;
+    this.chart = null;
     this.init();
   }
 
@@ -66,7 +67,10 @@ class DashboardRevenue {
       
     } catch (error) {
       console.error('❌ Error loading revenue data:', error);
-      this.showError('Không thể tải dữ liệu doanh thu');
+      const container = document.querySelector('.revenue-chart-container');
+      if (container) {
+        container.innerHTML = '<div class="error-text">Không thể tải dữ liệu doanh thu</div>';
+      }
     }
   }
 
@@ -78,137 +82,265 @@ class DashboardRevenue {
   }
 
   renderTable() {
+    const container = document.querySelector('.revenue-chart-container');
+    if (!container) return;
+
+    // Ensure canvas exists
+    let canvas = document.getElementById('revenueChart');
+    if (!canvas) {
+      container.innerHTML = '<canvas id="revenueChart"></canvas>';
+      canvas = document.getElementById('revenueChart');
+    }
+
     if (!this.revenueData) {
+      container.innerHTML = '<div class="loading-text">Đang tải dữ liệu...</div>';
       return;
     }
 
-    const tbody = document.getElementById('revenueTableBody');
-    if (!tbody) return;
+    // Destroy existing chart if exists
+    if (this.chart) {
+      this.chart.destroy();
+      this.chart = null;
+    }
 
-    let rows = [];
+    // Ensure canvas is back in container
+    if (!container.querySelector('#revenueChart')) {
+      container.innerHTML = '<canvas id="revenueChart"></canvas>';
+      canvas = document.getElementById('revenueChart');
+    }
 
     switch (this.currentTab) {
       case 'day':
-        rows = this.renderDailyTable();
+        this.renderDailyChart(canvas);
         break;
       case 'hour':
-        rows = this.renderHourlyTable();
+        this.renderHourlyChart(canvas);
         break;
       case 'weekday':
-        rows = this.renderWeekdayTable();
+        this.renderWeekdayChart(canvas);
         break;
       default:
-        rows = this.renderHourlyTable();
+        this.renderHourlyChart(canvas);
     }
 
-    tbody.innerHTML = rows.join('');
-    
-    // Add animation
-    const tableRows = tbody.querySelectorAll('tr');
-    tableRows.forEach((row, index) => {
-      row.style.animationDelay = `${index * 0.05}s`;
-      row.classList.add('fade-in');
-    });
+    // Show error if chart was not created
+    if (!this.chart) {
+      container.innerHTML = '<div class="error-text">Không có dữ liệu để hiển thị</div>';
+    }
   }
 
-  renderDailyTable() {
+  renderDailyChart(canvas) {
     if (!this.revenueData.trendData) {
-      return ['<tr><td colspan="3" class="empty-text">Không có dữ liệu</td></tr>'];
+      return;
     }
 
     const dates = this.revenueData.trendData.dates || [];
     const revenues = this.revenueData.trendData.revenues || [];
-    const orders = this.revenueData.trendData.orders || [];
 
     if (dates.length === 0) {
-      return ['<tr><td colspan="3" class="empty-text">Không có dữ liệu</td></tr>'];
+      return;
     }
 
     // Show last 7 days
     const startIndex = Math.max(0, dates.length - 7);
-    const rows = [];
+    const chartDates = dates.slice(startIndex);
+    const chartRevenues = revenues.slice(startIndex);
 
-    for (let i = startIndex; i < dates.length; i++) {
-      const date = dates[i];
-      const revenue = revenues[i] || 0;
-      const orderCount = orders[i] || 0;
-
-      rows.push(`
-        <tr>
-          <td>${date}</td>
-          <td class="revenue-amount">${this.formatCurrency(revenue)}</td>
-          <td>${this.formatNumber(orderCount)}</td>
-        </tr>
-      `);
-    }
-
-    return rows;
+    this.chart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: chartDates,
+        datasets: [{
+          label: 'Doanh thu (VNĐ)',
+          data: chartRevenues,
+          borderColor: 'rgba(102, 126, 234, 1)',
+          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                return this.formatCurrency(context.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => {
+                return this.formatCurrency(value, true);
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
   }
 
-  renderHourlyTable() {
+  renderHourlyChart(canvas) {
     if (!this.revenueData.hourlyData) {
-      return ['<tr><td colspan="3" class="empty-text">Không có dữ liệu</td></tr>'];
+      return;
     }
 
     const hours = this.revenueData.hourlyData.hours || [];
     const revenues = this.revenueData.hourlyData.revenues || [];
 
     if (hours.length === 0) {
-      return ['<tr><td colspan="3" class="empty-text">Không có dữ liệu</td></tr>'];
+      return;
     }
 
-    const rows = [];
-
-    for (let i = 0; i < hours.length; i++) {
-      const hour = hours[i];
-      const revenue = revenues[i] || 0;
-
-      rows.push(`
-        <tr>
-          <td>${hour}</td>
-          <td class="revenue-amount">${this.formatCurrency(revenue)}</td>
-          <td>-</td>
-        </tr>
-      `);
-    }
-
-    return rows;
+    this.chart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: hours,
+        datasets: [{
+          label: 'Doanh thu (VNĐ)',
+          data: revenues,
+          backgroundColor: 'rgba(118, 75, 162, 0.8)',
+          borderColor: 'rgba(118, 75, 162, 1)',
+          borderWidth: 2,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                return this.formatCurrency(context.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => {
+                return this.formatCurrency(value, true);
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
   }
 
-  renderWeekdayTable() {
+  renderWeekdayChart(canvas) {
     if (!this.revenueData.weekdayData) {
-      return ['<tr><td colspan="3" class="empty-text">Không có dữ liệu</td></tr>'];
+      return;
     }
 
     const weekdayNames = this.revenueData.weekdayData.weekdayNames || [];
     const revenues = this.revenueData.weekdayData.revenues || [];
-    const orders = this.revenueData.weekdayData.orders || [];
 
     if (weekdayNames.length === 0) {
-      return ['<tr><td colspan="3" class="empty-text">Không có dữ liệu</td></tr>'];
+      return;
     }
 
-    const rows = [];
-
-    for (let i = 0; i < weekdayNames.length; i++) {
-      const weekdayName = weekdayNames[i];
-      const revenue = revenues[i] || 0;
-      const orderCount = orders[i] || 0;
-
-      rows.push(`
-        <tr>
-          <td>${weekdayName}</td>
-          <td class="revenue-amount">${this.formatCurrency(revenue)}</td>
-          <td>${this.formatNumber(orderCount)}</td>
-        </tr>
-      `);
-    }
-
-    return rows;
+    this.chart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: weekdayNames,
+        datasets: [{
+          label: 'Doanh thu (VNĐ)',
+          data: revenues,
+          backgroundColor: 'rgba(255, 152, 0, 0.8)',
+          borderColor: 'rgba(255, 152, 0, 1)',
+          borderWidth: 2,
+          borderRadius: 8,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                return this.formatCurrency(context.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => {
+                return this.formatCurrency(value, true);
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            }
+          }
+        }
+      }
+    });
   }
 
-  formatCurrency(amount) {
+  formatCurrency(amount, short = false) {
     if (amount === 0 || !amount) return '0 ₫';
+    
+    if (short) {
+      // Format ngắn gọn cho trục Y: 1.000.000 -> 1M, 500.000 -> 500K
+      if (amount >= 1000000) {
+        return (amount / 1000000).toFixed(1).replace('.0', '') + 'M ₫';
+      } else if (amount >= 1000) {
+        return (amount / 1000).toFixed(0) + 'K ₫';
+      }
+    }
+    
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
@@ -222,12 +354,6 @@ class DashboardRevenue {
     return new Intl.NumberFormat('vi-VN').format(num);
   }
 
-  showError(message) {
-    const tbody = document.getElementById('revenueTableBody');
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="3" class="error-text">${message}</td></tr>`;
-    }
-  }
 
   refresh() {
     this.loadRevenueData();

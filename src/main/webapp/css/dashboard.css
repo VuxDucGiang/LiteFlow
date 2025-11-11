@@ -225,97 +225,37 @@
 
 .revenue-content {
   padding: 0;
+  position: relative;
 }
 
-.revenue-table-container {
-  overflow-x: auto;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.revenue-table {
+.revenue-chart-container {
+  position: relative;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  height: 400px;
+  padding: 20px;
 }
 
-.revenue-table thead {
-  background: #f8f9fa;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+.revenue-chart-container canvas {
+  max-height: 100%;
 }
 
-.revenue-table th {
-  padding: 12px 16px;
-  text-align: left;
-  font-weight: 600;
-  color: #000;
-  border-bottom: 2px solid #e8eef5;
-  white-space: nowrap;
-}
-
-.revenue-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #333;
-}
-
-.revenue-table tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.revenue-table tbody tr:hover {
-  background-color: rgba(0, 128, 255, 0.05);
-}
-
-.revenue-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.revenue-amount {
-  font-weight: 600;
-  color: #4caf50;
-}
-
-.revenue-table .loading-text,
-.revenue-table .empty-text,
-.revenue-table .error-text {
+.revenue-content .loading-text,
+.revenue-content .empty-text,
+.revenue-content .error-text {
   text-align: center;
   padding: 40px 20px;
   color: #6a7a92;
   font-size: 14px;
 }
 
-.revenue-table .error-text {
+.revenue-content .error-text {
   color: #dc3545;
-}
-
-/* Fade in animation for table rows */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.revenue-table tbody tr.fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-  opacity: 0;
 }
 
 .revenue-content .empty-icon {
   font-size: 48px;
   margin-bottom: 16px;
   opacity: 0.5;
-}
-
-.revenue-content .empty-text {
-  font-size: 16px;
 }
 
 /* Right Section */

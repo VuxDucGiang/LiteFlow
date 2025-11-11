@@ -63,21 +63,8 @@
         </div>
       </div>
       <div class="revenue-content">
-        <div class="revenue-table-container">
-          <table class="revenue-table" id="revenueTable">
-            <thead>
-              <tr>
-                <th>Thời gian</th>
-                <th>Doanh thu</th>
-                <th>Số đơn</th>
-              </tr>
-            </thead>
-            <tbody id="revenueTableBody">
-              <tr>
-                <td colspan="3" class="loading-text">Đang tải dữ liệu...</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="revenue-chart-container">
+          <canvas id="revenueChart"></canvas>
         </div>
       </div>
     </div>
@@ -151,6 +138,9 @@
   </div>
 </div>
 
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <!-- Dashboard Enhancements -->
 <script>
