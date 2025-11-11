@@ -7,6 +7,9 @@ import com.liteflow.model.inventory.Table;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.TypedQuery;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -673,6 +676,66 @@ public class RoomTableService {
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi tính tổng giá trị phiên đang phục vụ: " + e.getMessage());
             return java.math.BigDecimal.ZERO;
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
+     * Get total completed orders (paid) for today
+     */
+    public long getCompletedOrdersToday() {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            LocalDate today = LocalDate.now();
+            LocalDateTime startDateTime = today.atStartOfDay();
+            LocalDateTime endDateTime = today.atTime(LocalTime.MAX);
+            
+            TypedQuery<Long> query = em.createQuery(
+                "SELECT COUNT(o) FROM com.liteflow.model.inventory.Order o " +
+                "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
+                "AND o.paymentStatus = 'Paid'",
+                Long.class
+            );
+            query.setParameter("startDate", startDateTime);
+            query.setParameter("endDate", endDateTime);
+            
+            Long result = query.getSingleResult();
+            return result != null ? result : 0L;
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi lấy số đơn đã xong hôm nay: " + e.getMessage());
+            e.printStackTrace();
+            return 0L;
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
+     * Get total completed orders (paid) for yesterday
+     */
+    public long getCompletedOrdersYesterday() {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            LocalDateTime startDateTime = yesterday.atStartOfDay();
+            LocalDateTime endDateTime = yesterday.atTime(LocalTime.MAX);
+            
+            TypedQuery<Long> query = em.createQuery(
+                "SELECT COUNT(o) FROM com.liteflow.model.inventory.Order o " +
+                "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
+                "AND o.paymentStatus = 'Paid'",
+                Long.class
+            );
+            query.setParameter("startDate", startDateTime);
+            query.setParameter("endDate", endDateTime);
+            
+            Long result = query.getSingleResult();
+            return result != null ? result : 0L;
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi lấy số đơn đã xong hôm qua: " + e.getMessage());
+            e.printStackTrace();
+            return 0L;
         } finally {
             em.close();
         }

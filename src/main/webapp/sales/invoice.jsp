@@ -247,13 +247,21 @@
             
             let html = '';
             invoices.forEach((inv, i) => {
+                // ✅ Chuyển đổi paymentMethod từ lowercase (cash, transfer) sang title case để match với badges
+                const paymentMethodKey = inv.paymentMethod ? 
+                    inv.paymentMethod.charAt(0).toUpperCase() + inv.paymentMethod.slice(1).toLowerCase() : 
+                    'Cash';
+                
                 const badges = {
                     'Cash': '<span style="background: #10b981; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💵 Tiền mặt</span>',
+                    'cash': '<span style="background: #10b981; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💵 Tiền mặt</span>',
                     'Card': '<span style="background: #3b82f6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💳 Thẻ</span>',
+                    'card': '<span style="background: #3b82f6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">💳 Thẻ</span>',
                     'Transfer': '<span style="background: #8b5cf6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🏦 Chuyển khoản</span>',
+                    'transfer': '<span style="background: #8b5cf6; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🏦 Chuyển khoản</span>',
                     'E-Wallet': '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">📱 Ví điện tử</span>'
                 };
-                const paymentBadge = badges[inv.paymentMethod] || '<span style="color: #6b7280;">' + (inv.paymentMethod || 'N/A') + '</span>';
+                const paymentBadge = badges[inv.paymentMethod] || badges[paymentMethodKey] || '<span style="color: #6b7280;">' + (inv.paymentMethod || 'N/A') + '</span>';
                 
                 html += '<tr style="animation: slideIn 0.3s ease ' + (i * 0.05) + 's both;">';
                 html += '<td><strong>' + (inv.orderNumber || 'N/A') + '</strong></td>';
@@ -351,7 +359,21 @@
             html += '        <div><div style="color:#065f46;font-weight:700">Ngày bán</div><div>' + (inv.orderDateFormatted || formatDateTime(inv.orderDate)) + '</div></div>';
             html += '        <div><div style="color:#065f46;font-weight:700">Khách hàng</div><div>' + (inv.customerName || 'Khách lẻ') + (inv.customerPhone ? (' - ' + inv.customerPhone) : '') + '</div></div>';
             html += '        <div><div style="color:#065f46;font-weight:700">Bàn/Phòng</div><div>' + ((inv.roomName || '') + (inv.roomName && inv.tableName ? ' - ' : '') + (inv.tableName || '-')) + '</div></div>';
-            html += '        <div><div style="color:#065f46;font-weight:700">Thanh toán</div><div>' + (inv.paymentMethod || '-') + '</div></div>';
+            // ✅ Hiển thị phương thức thanh toán với text tiếng Việt
+            let paymentMethodText = 'Tiền mặt'; // Default
+            if (inv.paymentMethod) {
+                const pm = inv.paymentMethod.toLowerCase();
+                if (pm === 'cash') {
+                    paymentMethodText = 'Tiền mặt';
+                } else if (pm === 'card') {
+                    paymentMethodText = 'Thẻ';
+                } else if (pm === 'transfer') {
+                    paymentMethodText = 'Chuyển khoản';
+                } else {
+                    paymentMethodText = inv.paymentMethod;
+                }
+            }
+            html += '        <div><div style="color:#065f46;font-weight:700">Thanh toán</div><div>' + paymentMethodText + '</div></div>';
             html += '        <div><div style="color:#065f46;font-weight:700">Nhân viên</div><div>' + (inv.createdByName || '-') + '</div></div>';
             html += '      </div>';
             html += '      <h3 style="margin:8px 0 10px 0;color:#374151">Sản phẩm</h3>';

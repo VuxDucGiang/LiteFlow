@@ -669,11 +669,20 @@ public class CashierAPIServlet extends HttpServlet {
                     }
                 }
                 
-                // 4. Cập nhật tất cả orders thành Served
-                String updateOrdersQuery = "UPDATE Order o SET o.status = 'Served', o.paymentStatus = 'Paid' WHERE o.session.sessionId = :sessionId";
+                // 4. Cập nhật tất cả orders thành Served và lưu paymentMethod
+                String updateOrdersQuery = "UPDATE Order o SET o.status = 'Served', o.paymentStatus = 'Paid'";
+                if (paymentMethod != null && !paymentMethod.isEmpty()) {
+                    // ✅ Cập nhật paymentMethod cho tất cả orders trong session
+                    updateOrdersQuery += ", o.paymentMethod = :paymentMethod";
+                }
+                updateOrdersQuery += " WHERE o.session.sessionId = :sessionId";
                 Query updateQuery = em.createQuery(updateOrdersQuery);
+                if (paymentMethod != null && !paymentMethod.isEmpty()) {
+                    updateQuery.setParameter("paymentMethod", paymentMethod);
+                }
                 updateQuery.setParameter("sessionId", session.getSessionId());
                 updateQuery.executeUpdate();
+                System.out.println("✅ Đã cập nhật paymentMethod '" + paymentMethod + "' cho tất cả orders trong session");
                 
                 // 5. Trừ số lượng sản phẩm trong kho sau khi thanh toán
                 // ✅ Nhận orderItems trực tiếp từ request hoặc lấy từ orders trong session

@@ -191,6 +191,16 @@ public class OrderDAO {
                 existingSession.setInvoiceName(invoiceName);
                 em.merge(existingSession);
             }
+            
+            // ✅ Đảm bảo table status là "Occupied" nếu có session active
+            Table table = existingSession.getTable();
+            if (table != null && !"Occupied".equals(table.getStatus())) {
+                table.setStatus("Occupied");
+                em.merge(table);
+                em.flush();
+                System.out.println("✅ Updated table status to Occupied for existing session");
+            }
+            
             return existingSession;
         }
         

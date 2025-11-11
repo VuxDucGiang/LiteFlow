@@ -53,7 +53,14 @@ public class SalesInvoiceDAO {
                 map.put("orderNumber", order.getOrderNumber());
                 map.put("orderDate", order.getOrderDate());
                 map.put("totalAmount", order.getTotalAmount());
-                map.put("paymentMethod", order.getPaymentMethod());
+                // ✅ Lấy paymentMethod từ Order, nếu không có thì lấy từ Session
+                String paymentMethod = order.getPaymentMethod();
+                if (paymentMethod == null || paymentMethod.isEmpty()) {
+                    if (order.getSession() != null) {
+                        paymentMethod = order.getSession().getPaymentMethod();
+                    }
+                }
+                map.put("paymentMethod", paymentMethod);
                 map.put("paymentStatus", order.getPaymentStatus());
                 map.put("status", order.getStatus());
                 
@@ -128,7 +135,14 @@ public class SalesInvoiceDAO {
                 map.put("orderNumber", order.getOrderNumber());
                 map.put("orderDate", order.getOrderDate());
                 map.put("totalAmount", order.getTotalAmount());
-                map.put("paymentMethod", order.getPaymentMethod());
+                // ✅ Lấy paymentMethod từ Order, nếu không có thì lấy từ Session
+                String paymentMethod = order.getPaymentMethod();
+                if (paymentMethod == null || paymentMethod.isEmpty()) {
+                    if (order.getSession() != null) {
+                        paymentMethod = order.getSession().getPaymentMethod();
+                    }
+                }
+                map.put("paymentMethod", paymentMethod);
                 map.put("paymentStatus", order.getPaymentStatus());
                 map.put("status", order.getStatus());
                 map.put("subTotal", order.getSubTotal());
@@ -200,7 +214,14 @@ public class SalesInvoiceDAO {
             result.put("subTotal", order.getSubTotal());
             result.put("vat", order.getVat());
             result.put("discount", order.getDiscount());
-            result.put("paymentMethod", order.getPaymentMethod());
+            // ✅ Lấy paymentMethod từ Order, nếu không có thì lấy từ Session
+            String paymentMethod = order.getPaymentMethod();
+            if (paymentMethod == null || paymentMethod.isEmpty()) {
+                if (order.getSession() != null) {
+                    paymentMethod = order.getSession().getPaymentMethod();
+                }
+            }
+            result.put("paymentMethod", paymentMethod);
             result.put("paymentStatus", order.getPaymentStatus());
             result.put("status", order.getStatus());
             result.put("notes", order.getNotes());
@@ -302,7 +323,14 @@ public class SalesInvoiceDAO {
                 map.put("orderNumber", order.getOrderNumber());
                 map.put("orderDate", order.getOrderDate());
                 map.put("totalAmount", order.getTotalAmount());
-                map.put("paymentMethod", order.getPaymentMethod());
+                // ✅ Lấy paymentMethod từ Order, nếu không có thì lấy từ Session
+                String paymentMethod = order.getPaymentMethod();
+                if (paymentMethod == null || paymentMethod.isEmpty()) {
+                    if (order.getSession() != null) {
+                        paymentMethod = order.getSession().getPaymentMethod();
+                    }
+                }
+                map.put("paymentMethod", paymentMethod);
                 
                 if (order.getSession() != null) {
                     map.put("customerName", order.getSession().getCustomerName());
