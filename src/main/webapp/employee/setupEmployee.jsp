@@ -5,6 +5,28 @@
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/setup-employee.css">
 
+<style>
+/* Prevent horizontal scroll on setup page */
+body {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+}
+
+html {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+}
+
+.setup-container,
+.setup-main,
+.salary-config-section,
+.salary-table-container-main,
+.salary-table-container-main > div {
+    overflow-x: hidden !important;
+    max-width: 100%;
+}
+</style>
+
 <div class="setup-container">
     <!-- Sidebar -->
     <aside class="setup-sidebar">
@@ -123,11 +145,11 @@
                     </div>
                     <div class="checklist-content">
                         <h3>Thiết lập lương</h3>
-                        <p>Đã thiết lập lương cho <span id="salaryConfigCount">0</span>/<span id="totalEmployeeCount">0</span> nhân viên. <a href="#" onclick="openSalaryModal(); return false;">Xem chi tiết</a></p>
+                        <p>Đã thiết lập lương cho <span id="salaryConfigCount">0</span>/<span id="totalEmployeeCount">0</span> nhân viên. <a href="#salary-section" onclick="scrollToSalarySection(); return false;">Xem danh sách</a></p>
                     </div>
                 </div>
                 <div class="checklist-action">
-                    <a href="#" class="btn-setup" onclick="openSalaryModal(); return false;">Thiết lập</a>
+                    <a href="#salary-section" class="btn-setup" onclick="scrollToSalarySection(); return false;">Thiết lập</a>
                 </div>
             </div>
 
@@ -144,6 +166,59 @@
                 </div>
                 <div class="checklist-action">
                     <a href="#" class="btn-setup">Tạo bảng lương</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Salary Configuration Section -->
+        <div id="salary-section" class="salary-config-section" style="margin-top: 3rem;">
+            <div class="section-header">
+                <h2 style="font-size: 1.5rem; font-weight: 700; color: #333; margin-bottom: 0.5rem;">
+                    <i class='bx bx-dollar' style="color: #0080FF; margin-right: 8px;"></i>
+                    Cấu hình lương nhân viên
+                </h2>
+                <p style="color: #6c757d; font-size: 0.95rem; margin-bottom: 1.5rem;">
+                    Quản lý và điều chỉnh cấu hình lương cho từng nhân viên
+                </p>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="salary-controls" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+                <input type="text" id="salarySearchInput" placeholder="Tìm kiếm theo mã, tên nhân viên..." 
+                       style="flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;"
+                       onkeyup="filterSalaryTable()">
+                <button class="btn-setup" onclick="loadSalaryDataMain()" style="white-space: nowrap;">
+                    <i class='bx bx-refresh'></i> Tải lại
+                </button>
+            </div>
+
+            <!-- Salary Table -->
+            <div class="salary-table-container-main" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="width: 100%; overflow: hidden;">
+                    <table class="salary-table">
+                        <thead>
+                            <tr style="background: #f9fafb;">
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">STT</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Nhân viên</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Loại lương</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Lương chính</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Làm thêm</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Thưởng</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Hoa hồng</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Phụ cấp</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Giảm trừ</th>
+                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salaryTableBodyMain">
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;">
+                                    <i class='bx bx-loader-alt bx-spin' style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                                    Đang tải dữ liệu...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -175,14 +250,14 @@
                 <table class="salary-table">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">STT</th>
-                            <th style="width: 200px;">Nhân viên</th>
-                            <th style="width: 200px;">Lương chính</th>
-                            <th style="width: 120px;">Làm thêm</th>
-                            <th style="width: 120px;">Thưởng</th>
-                            <th style="width: 120px;">Hoa hồng</th>
-                            <th style="width: 120px;">Phụ cấp</th>
-                            <th style="width: 120px;">Giảm trừ</th>
+                            <th>STT</th>
+                            <th>Nhân viên</th>
+                            <th>Lương chính</th>
+                            <th>Làm thêm</th>
+                            <th>Thưởng</th>
+                            <th>Hoa hồng</th>
+                            <th>Phụ cấp</th>
+                            <th>Giảm trừ</th>
                         </tr>
                     </thead>
                     <tbody id="salaryTableBody">
@@ -217,6 +292,74 @@
         <div class="edit-comp-footer">
             <button type="button" class="btn-cancel" onclick="closeEditCompModal()">Hủy</button>
             <button type="button" class="btn-save" onclick="saveCompField()">Lưu</button>
+        </div>
+    </div>
+</div>
+
+<!-- Full Compensation Modal -->
+<div id="fullCompensationModal" class="edit-comp-modal-overlay" style="display: none;">
+    <div class="edit-comp-modal" style="max-width: 700px;">
+        <div class="edit-comp-header">
+            <h3 id="fullEditModalTitle">Cấu hình lương</h3>
+            <button type="button" class="close-btn" onclick="closeFullCompensationModal()">✕</button>
+        </div>
+        <div class="edit-comp-body">
+            <input type="hidden" id="fullEditEmployeeCode">
+            <input type="hidden" id="fullEditCompensationId">
+            
+            <div class="form-group">
+                <label>Loại lương <span style="color: red;">*</span></label>
+                <select id="fullEditCompensationType" class="form-control" onchange="handleFullCompensationTypeChange()">
+                    <option value="">-- Chọn loại --</option>
+                    <option value="Fixed">Lương cứng</option>
+                    <option value="Hybrid">Theo giờ</option>
+                    <option value="PerShift">Theo ca</option>
+                </select>
+            </div>
+            
+            <div id="fullSalaryInputContainer" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;">
+                <div class="form-group" id="fullBaseMonthlySalaryGroup" style="display: none;">
+                    <label>Lương tháng cơ bản</label>
+                    <input type="number" id="fullBaseMonthlySalary" class="form-control" placeholder="VD: 3000000" step="1000">
+                </div>
+                <div class="form-group" id="fullHourlyRateGroup" style="display: none;">
+                    <label>Lương giờ</label>
+                    <input type="number" id="fullHourlyRate" class="form-control" placeholder="VD: 25000" step="1000">
+                </div>
+                <div class="form-group" id="fullPerShiftRateGroup" style="display: none;">
+                    <label>Lương ca</label>
+                    <input type="number" id="fullPerShiftRate" class="form-control" placeholder="VD: 100000" step="1000">
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 16px;">
+                <label>Làm thêm giờ</label>
+                <input type="number" id="fullOvertimeRate" class="form-control" placeholder="VD: 30000 VND/giờ" step="1000">
+            </div>
+            
+            <div class="form-group">
+                <label>Thưởng</label>
+                <input type="number" id="fullBonusAmount" class="form-control" placeholder="VD: 1000000 VND" step="1000">
+            </div>
+            
+            <div class="form-group">
+                <label>Hoa hồng (%)</label>
+                <input type="number" id="fullCommissionRate" class="form-control" placeholder="VD: 5.5" step="0.1">
+            </div>
+            
+            <div class="form-group">
+                <label>Phụ cấp</label>
+                <input type="number" id="fullAllowanceAmount" class="form-control" placeholder="VD: 500000 VND" step="1000">
+            </div>
+            
+            <div class="form-group">
+                <label>Giảm trừ</label>
+                <input type="number" id="fullDeductionAmount" class="form-control" placeholder="VD: 200000 VND" step="1000">
+            </div>
+        </div>
+        <div class="edit-comp-footer">
+            <button type="button" class="btn-cancel" onclick="closeFullCompensationModal()">Hủy</button>
+            <button type="button" class="btn-save" onclick="saveFullCompensation()">Lưu</button>
         </div>
     </div>
 </div>
@@ -531,6 +674,43 @@
 .btn-save:hover {
     background: #1d4ed8;
 }
+
+.compensation-type-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.compensation-type-badge.fixed {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.compensation-type-badge.hybrid {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.compensation-type-badge.pershift {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.btn-edit-salary {
+    transition: all 0.2s;
+}
+
+.btn-edit-salary:hover {
+    background: #1d4ed8 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.salary-row {
+    transition: background-color 0.2s;
+}
 </style>
 
 <script>
@@ -539,7 +719,12 @@ let compensationsData = {};
 
 // Load data when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    loadSalaryData();
+    try {
+        // Only load main table data, skip modal data for now
+        loadSalaryDataMain();
+    } catch (error) {
+        console.error('Error loading salary data:', error);
+    }
 });
 
 function openSalaryModal() {
@@ -720,12 +905,20 @@ function createSalaryRow(stt, employee, compensation) {
 
     // Nhân viên
     const tdEmployee = document.createElement('td');
-    tdEmployee.innerHTML = `
-        <div class="employee-info">
-            <div class="employee-name">${employee.fullName || 'N/A'}</div>
-            <div class="employee-code">${employee.employeeCode || 'N/A'}</div>
-        </div>
-    `;
+    const employeeInfoDiv2 = document.createElement('div');
+    employeeInfoDiv2.className = 'employee-info';
+    
+    const nameDiv2 = document.createElement('div');
+    nameDiv2.className = 'employee-name';
+    nameDiv2.textContent = employee.fullName || 'N/A';
+    
+    const codeDiv2 = document.createElement('div');
+    codeDiv2.className = 'employee-code';
+    codeDiv2.textContent = employee.employeeCode || 'N/A';
+    
+    employeeInfoDiv2.appendChild(nameDiv2);
+    employeeInfoDiv2.appendChild(codeDiv2);
+    tdEmployee.appendChild(employeeInfoDiv2);
     tr.appendChild(tdEmployee);
 
     // Lương chính
@@ -753,7 +946,7 @@ function createSalaryRow(stt, employee, compensation) {
 
 function renderMainSalary(employeeCode, compensation) {
     if (!compensation || !compensation.compensationType) {
-        return `<button class="add-btn" onclick="editMainSalary('${employeeCode}')">+</button>`;
+        return '<button class="add-btn" onclick="editMainSalary(\'' + escapeHtml(employeeCode) + '\')">+</button>';
     }
 
     let amount = '';
@@ -774,12 +967,10 @@ function renderMainSalary(employeeCode, compensation) {
             break;
     }
 
-    return `
-        <div class="salary-type-info">
-            <div class="salary-amount">${amount}</div>
-            <div class="salary-type">${type}</div>
-        </div>
-    `;
+    return '<div class="salary-type-info">' +
+           '<div class="salary-amount">' + escapeHtml(amount) + '</div>' +
+           '<div class="salary-type">' + escapeHtml(type) + '</div>' +
+           '</div>';
 }
 
 function renderCompField(employeeCode, fieldName, value, label, isPercentage = false) {
@@ -909,6 +1100,461 @@ function updateCounts() {
 
     document.getElementById('totalEmployeeCount').textContent = totalCount;
     document.getElementById('salaryConfigCount').textContent = configuredCount;
+}
+
+function scrollToSalarySection() {
+    document.getElementById('salary-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Load salary data for main table
+function loadSalaryDataMain() {
+    try {
+        console.log('=== loadSalaryDataMain called ===');
+        const tbody = document.getElementById('salaryTableBodyMain');
+        if (!tbody) {
+            console.warn('salaryTableBodyMain not found');
+            return;
+        }
+
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;"><i class=\'bx bx-loader-alt bx-spin\' style="font-size: 24px; margin-bottom: 8px; display: block;"></i>Đang tải dữ liệu...</td></tr>';
+
+        const url = '${pageContext.request.contextPath}/compensation?action=getAllWithEmployees';
+        console.log('Fetching from:', url);
+        
+        fetch(url)
+            .then(response => {
+                console.log('Response status:', response.status, response.statusText);
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                }
+                return response.text();
+            })
+            .then(text => {
+                console.log('Response received, length:', text ? text.length : 0);
+                console.log('Response preview:', text ? text.substring(0, 200) : 'empty');
+                try {
+                    if (!text || text.trim() === '') {
+                        throw new Error('Response is empty');
+                    }
+                    const data = JSON.parse(text);
+                    console.log('Parsed data:', data);
+                    console.log('Employees count:', data.employees ? data.employees.length : 0);
+                    console.log('Compensations count:', data.compensations ? data.compensations.length : 0);
+                    
+                    employeesData = data.employees || [];
+                    compensationsData = {};
+
+                    if (data.compensations && Array.isArray(data.compensations)) {
+                        data.compensations.forEach(comp => {
+                            compensationsData[comp.employeeCode] = comp;
+                        });
+                    }
+
+                    console.log('Rendering table with', employeesData.length, 'employees');
+                    renderSalaryTableMain();
+                    updateCounts();
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    console.error('Response text:', text);
+                    throw new Error('Không thể parse JSON response: ' + parseError.message);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error loading salary data:', error);
+                console.error('Error stack:', error.stack);
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: red;"><strong>Lỗi tải dữ liệu:</strong><br>' + escapeHtml(error.message) + '<br><small>Vui lòng mở Console (F12) để xem chi tiết</small></td></tr>';
+                }
+            });
+    } catch (error) {
+        console.error('Error in loadSalaryDataMain:', error);
+    }
+}
+
+function renderSalaryTableMain() {
+    const tbody = document.getElementById('salaryTableBodyMain');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (employeesData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;">Không có nhân viên nào.</td></tr>';
+        return;
+    }
+
+    employeesData.forEach((emp, index) => {
+        const comp = compensationsData[emp.employeeCode] || {};
+        const row = createSalaryRowMain(index + 1, emp, comp);
+        tbody.appendChild(row);
+    });
+}
+
+function createSalaryRowMain(stt, employee, compensation) {
+    const tr = document.createElement('tr');
+    tr.className = 'salary-row';
+    tr.setAttribute('data-employee-code', employee.employeeCode);
+    tr.setAttribute('data-employee-name', employee.fullName || '');
+
+    // STT
+    const tdStt = document.createElement('td');
+    tdStt.textContent = stt;
+    tr.appendChild(tdStt);
+
+    // Nhân viên
+    const tdEmployee = document.createElement('td');
+    const employeeInfoDiv = document.createElement('div');
+    employeeInfoDiv.className = 'employee-info';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'employee-name';
+    nameDiv.textContent = employee.fullName || 'N/A';
+    
+    const codeDiv = document.createElement('div');
+    codeDiv.className = 'employee-code';
+    codeDiv.textContent = employee.employeeCode || 'N/A';
+    
+    employeeInfoDiv.appendChild(nameDiv);
+    employeeInfoDiv.appendChild(codeDiv);
+    tdEmployee.appendChild(employeeInfoDiv);
+    tr.appendChild(tdEmployee);
+
+    // Loại lương
+    const tdType = document.createElement('td');
+    if (compensation.compensationType) {
+        const typeLabels = {
+            'Fixed': 'Lương cứng',
+            'Hybrid': 'Theo giờ',
+            'PerShift': 'Theo ca'
+        };
+        const typeClasses = {
+            'Fixed': 'fixed',
+            'Hybrid': 'hybrid',
+            'PerShift': 'pershift'
+        };
+        const badge = document.createElement('span');
+        badge.className = 'compensation-type-badge ' + typeClasses[compensation.compensationType];
+        badge.textContent = typeLabels[compensation.compensationType] || compensation.compensationType;
+        tdType.appendChild(badge);
+    } else {
+        tdType.innerHTML = '<span style="color: #9ca3af;">Chưa thiết lập</span>';
+    }
+    tr.appendChild(tdType);
+
+    // Lương chính
+    const tdSalary = document.createElement('td');
+    tdSalary.innerHTML = renderMainSalaryMain(employee.employeeCode, compensation);
+    tr.appendChild(tdSalary);
+
+    // Làm thêm
+    tr.appendChild(renderCompFieldMain(employee.employeeCode, 'overtimeRate', compensation.overtimeRate, 'Làm thêm giờ'));
+
+    // Thưởng
+    tr.appendChild(renderCompFieldMain(employee.employeeCode, 'bonusAmount', compensation.bonusAmount, 'Thưởng'));
+
+    // Hoa hồng
+    tr.appendChild(renderCompFieldMain(employee.employeeCode, 'commissionRate', compensation.commissionRate, 'Hoa hồng', true));
+
+    // Phụ cấp
+    tr.appendChild(renderCompFieldMain(employee.employeeCode, 'allowanceAmount', compensation.allowanceAmount, 'Phụ cấp'));
+
+    // Giảm trừ
+    tr.appendChild(renderCompFieldMain(employee.employeeCode, 'deductionAmount', compensation.deductionAmount, 'Giảm trừ'));
+
+    // Thao tác
+    const tdAction = document.createElement('td');
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-edit-salary';
+    editBtn.style.cssText = 'padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;';
+    editBtn.onclick = function() { openEditSalaryModal(employee.employeeCode); };
+    
+    const icon = document.createElement('i');
+    icon.className = 'bx bx-edit';
+    editBtn.appendChild(icon);
+    editBtn.appendChild(document.createTextNode(' Chỉnh sửa'));
+    
+    tdAction.appendChild(editBtn);
+    tr.appendChild(tdAction);
+
+    return tr;
+}
+
+function renderMainSalaryMain(employeeCode, compensation) {
+    if (!compensation || !compensation.compensationType) {
+        return '<button class="add-btn" onclick="openEditSalaryModal(\'' + escapeHtml(employeeCode) + '\')" style="background: none; border: 1px dashed #d1d5db; color: #6b7280; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 18px;">+</button>';
+    }
+
+    let amount = '';
+    let type = '';
+
+    switch(compensation.compensationType) {
+        case 'Fixed':
+            amount = formatCurrency(compensation.baseMonthlySalary) + ' / tháng';
+            type = 'Lương cứng';
+            break;
+        case 'Hybrid':
+            // Theo giờ: chỉ hiển thị hourlyRate, không có baseMonthlySalary
+            amount = formatCurrency(compensation.hourlyRate) + ' / giờ';
+            type = 'Theo giờ';
+            break;
+        case 'PerShift':
+            amount = formatCurrency(compensation.perShiftRate) + ' / ca';
+            type = 'Theo ca';
+            break;
+    }
+
+    return '<div class="salary-type-info">' +
+           '<div class="salary-amount">' + escapeHtml(amount) + '</div>' +
+           '<div class="salary-type">' + escapeHtml(type) + '</div>' +
+           '</div>';
+}
+
+function renderCompFieldMain(employeeCode, fieldName, value, label, isPercentage = false) {
+    const td = document.createElement('td');
+
+    if (!value) {
+        const btn = document.createElement('button');
+        btn.className = 'add-btn';
+        btn.textContent = '+';
+        btn.onclick = () => editCompensationField(employeeCode, fieldName, label, value);
+        btn.style.cssText = 'background: none; border: 1px dashed #d1d5db; color: #6b7280; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 18px;';
+        td.appendChild(btn);
+    } else {
+        const div = document.createElement('div');
+        div.className = 'value-display';
+        div.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+
+        const span = document.createElement('span');
+        span.className = 'value-text';
+        span.textContent = isPercentage ? value + '%' : formatCurrency(value);
+        span.style.cssText = 'font-weight: 500; color: #111827;';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-icon';
+        editBtn.innerHTML = '✎';
+        editBtn.onclick = () => editCompensationField(employeeCode, fieldName, label, value);
+        editBtn.style.cssText = 'background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 4px; font-size: 14px; opacity: 0; transition: all 0.2s;';
+        editBtn.onmouseover = () => editBtn.style.opacity = '1';
+        editBtn.onmouseout = () => editBtn.style.opacity = '0';
+
+        div.appendChild(span);
+        div.appendChild(editBtn);
+        td.appendChild(div);
+    }
+
+    return td;
+}
+
+function openEditSalaryModal(employeeCode) {
+    const employee = employeesData.find(e => e.employeeCode === employeeCode);
+    if (!employee) {
+        alert('Không tìm thấy nhân viên');
+        return;
+    }
+
+    const compensation = compensationsData[employeeCode] || {};
+    
+    // Populate edit compensation modal
+    document.getElementById('editCompEmployeeName').textContent = 'Chỉnh sửa lương - ' + employee.fullName;
+    document.getElementById('editEmployeeCode').value = employeeCode;
+    document.getElementById('editCompensationId').value = compensation.compensationId || '';
+    
+    // Show full compensation form in modal
+    openFullCompensationModal(employeeCode, employee, compensation);
+}
+
+function openFullCompensationModal(employeeCode, employee, compensation) {
+    try {
+        // Get full compensation modal (already exists in HTML)
+        let fullModal = document.getElementById('fullCompensationModal');
+        if (!fullModal) {
+            console.error('fullCompensationModal not found');
+            return;
+        }
+        
+        // Populate form
+        const titleEl = document.getElementById('fullEditModalTitle');
+        if (titleEl) {
+            titleEl.textContent = 'Cấu hình lương - ' + escapeHtml(employee.fullName);
+        }
+        
+        const codeEl = document.getElementById('fullEditEmployeeCode');
+        if (codeEl) codeEl.value = employeeCode;
+        
+        const compIdEl = document.getElementById('fullEditCompensationId');
+        if (compIdEl) compIdEl.value = compensation.compensationId || '';
+        
+        const typeEl = document.getElementById('fullEditCompensationType');
+        if (typeEl) typeEl.value = compensation.compensationType || '';
+        
+        const baseSalaryEl = document.getElementById('fullBaseMonthlySalary');
+        if (baseSalaryEl) baseSalaryEl.value = compensation.baseMonthlySalary || '';
+        
+        const hourlyRateEl = document.getElementById('fullHourlyRate');
+        if (hourlyRateEl) hourlyRateEl.value = compensation.hourlyRate || '';
+        
+        const perShiftRateEl = document.getElementById('fullPerShiftRate');
+        if (perShiftRateEl) perShiftRateEl.value = compensation.perShiftRate || '';
+        
+        const overtimeRateEl = document.getElementById('fullOvertimeRate');
+        if (overtimeRateEl) overtimeRateEl.value = compensation.overtimeRate || '';
+        
+        const bonusAmountEl = document.getElementById('fullBonusAmount');
+        if (bonusAmountEl) bonusAmountEl.value = compensation.bonusAmount || '';
+        
+        const commissionRateEl = document.getElementById('fullCommissionRate');
+        if (commissionRateEl) commissionRateEl.value = compensation.commissionRate || '';
+        
+        const allowanceAmountEl = document.getElementById('fullAllowanceAmount');
+        if (allowanceAmountEl) allowanceAmountEl.value = compensation.allowanceAmount || '';
+        
+        const deductionAmountEl = document.getElementById('fullDeductionAmount');
+        if (deductionAmountEl) deductionAmountEl.value = compensation.deductionAmount || '';
+        
+        handleFullCompensationTypeChange();
+        
+        fullModal.style.display = 'flex';
+    } catch (error) {
+        console.error('Error opening full compensation modal:', error);
+        alert('Có lỗi khi mở form chỉnh sửa lương');
+    }
+}
+
+function handleFullCompensationTypeChange() {
+    const type = document.getElementById('fullEditCompensationType').value;
+    const baseGroup = document.getElementById('fullBaseMonthlySalaryGroup');
+    const hourlyGroup = document.getElementById('fullHourlyRateGroup');
+    const perShiftGroup = document.getElementById('fullPerShiftRateGroup');
+    
+    baseGroup.style.display = 'none';
+    hourlyGroup.style.display = 'none';
+    perShiftGroup.style.display = 'none';
+    
+    if (type === 'Fixed') {
+        baseGroup.style.display = 'block';
+    } else if (type === 'Hybrid') {
+        // Theo giờ: chỉ hiển thị hourlyRate, không có baseMonthlySalary
+        hourlyGroup.style.display = 'block';
+    } else if (type === 'PerShift') {
+        perShiftGroup.style.display = 'block';
+    }
+}
+
+function closeFullCompensationModal() {
+    const modal = document.getElementById('fullCompensationModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup close on outside click for full compensation modal
+    document.addEventListener('click', function(e) {
+        const fullModal = document.getElementById('fullCompensationModal');
+        if (fullModal && fullModal.style.display === 'flex' && e.target === fullModal) {
+            closeFullCompensationModal();
+        }
+    });
+});
+
+function saveFullCompensation() {
+    const employeeCode = document.getElementById('fullEditEmployeeCode').value;
+    const compensationType = document.getElementById('fullEditCompensationType').value;
+    const compensationId = document.getElementById('fullEditCompensationId').value;
+    
+    if (!compensationType) {
+        alert('Vui lòng chọn loại lương');
+        return;
+    }
+    
+    const formData = new URLSearchParams();
+    formData.append('action', compensationId ? 'update' : 'save');
+    formData.append('employeeCode', employeeCode);
+    formData.append('compensationType', compensationType);
+    
+    if (compensationId) {
+        formData.append('compensationId', compensationId);
+    }
+    
+    formData.append('baseMonthlySalary', document.getElementById('fullBaseMonthlySalary').value || '');
+    formData.append('hourlyRate', document.getElementById('fullHourlyRate').value || '');
+    formData.append('perShiftRate', document.getElementById('fullPerShiftRate').value || '');
+    formData.append('overtimeRate', document.getElementById('fullOvertimeRate').value || '');
+    formData.append('bonusAmount', document.getElementById('fullBonusAmount').value || '');
+    formData.append('commissionRate', document.getElementById('fullCommissionRate').value || '');
+    formData.append('allowanceAmount', document.getElementById('fullAllowanceAmount').value || '');
+    formData.append('deductionAmount', document.getElementById('fullDeductionAmount').value || '');
+    
+    console.log('Saving compensation:', {
+        employeeCode: employeeCode,
+        compensationType: compensationType,
+        compensationId: compensationId
+    });
+    
+    fetch('${pageContext.request.contextPath}/compensation', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('Response error:', text);
+                throw new Error('HTTP ' + response.status + ': ' + text);
+            });
+        }
+        return response.text();
+    })
+    .then(text => {
+        console.log('Response text:', text);
+        try {
+            const result = JSON.parse(text);
+            console.log('Parsed result:', result);
+            if (result.success) {
+                closeFullCompensationModal();
+                loadSalaryDataMain();
+                alert('Lưu cấu hình lương thành công!');
+            } else {
+                alert('Lỗi: ' + (result.error || 'Không thể lưu'));
+            }
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.error('Response text:', text);
+            alert('Lỗi: Không thể parse response từ server');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving:', error);
+        alert('Có lỗi xảy ra khi lưu: ' + error.message);
+    });
+}
+
+function filterSalaryTable() {
+    const searchTerm = document.getElementById('salarySearchInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#salaryTableBodyMain tr.salary-row');
+
+    rows.forEach(row => {
+        const employeeCode = row.getAttribute('data-employee-code') || '';
+        const employeeName = row.getAttribute('data-employee-name') || '';
+        
+        if (searchTerm === '' || 
+            employeeCode.toLowerCase().includes(searchTerm) || 
+            employeeName.toLowerCase().includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 </script>
 

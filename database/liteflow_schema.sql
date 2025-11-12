@@ -718,6 +718,7 @@ CREATE TABLE PayrollEntries (
     Currency NVARCHAR(3) NOT NULL DEFAULT 'VND',
     ExchangeRate DECIMAL(18,6) NULL, -- against VND on calculation date (if applicable)
     PaidInCurrency NVARCHAR(3) NOT NULL DEFAULT 'VND',
+    IsPaid BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
 
     CONSTRAINT FK_PayrollEntries_Run FOREIGN KEY (PayrollRunID) REFERENCES PayrollRuns(PayrollRunID) ON DELETE CASCADE,

@@ -185,24 +185,38 @@ public class CompensationServlet extends HttpServlet {
     }
 
     private String buildCompensationJson(EmployeeCompensation comp) {
-        return String.format(
-            "{\"compensationId\":\"%s\",\"employeeCode\":\"%s\",\"employeeName\":\"%s\"," +
-            "\"compensationType\":\"%s\",\"baseMonthlySalary\":%s,\"hourlyRate\":%s," +
-            "\"perShiftRate\":%s,\"overtimeRate\":%s,\"bonusAmount\":%s," +
-            "\"commissionRate\":%s,\"allowanceAmount\":%s,\"deductionAmount\":%s}",
-            comp.getCompensationId(),
-            comp.getEmployee().getEmployeeCode(),
-            comp.getEmployee().getFullName(),
-            comp.getCompensationType() != null ? comp.getCompensationType() : "",
-            formatNumber(comp.getBaseMonthlySalary()),
-            formatNumber(comp.getHourlyRate()),
-            formatNumber(comp.getPerShiftRate()),
-            formatNumber(comp.getOvertimeRate()),
-            formatNumber(comp.getBonusAmount()),
-            formatNumber(comp.getCommissionRate()),
-            formatNumber(comp.getAllowanceAmount()),
-            formatNumber(comp.getDeductionAmount())
-        );
+        try {
+            String employeeCode = "";
+            String employeeName = "";
+            
+            if (comp.getEmployee() != null) {
+                employeeCode = comp.getEmployee().getEmployeeCode() != null ? comp.getEmployee().getEmployeeCode() : "";
+                employeeName = comp.getEmployee().getFullName() != null ? comp.getEmployee().getFullName() : "";
+            }
+            
+            return String.format(
+                "{\"compensationId\":\"%s\",\"employeeCode\":\"%s\",\"employeeName\":\"%s\"," +
+                "\"compensationType\":\"%s\",\"baseMonthlySalary\":%s,\"hourlyRate\":%s," +
+                "\"perShiftRate\":%s,\"overtimeRate\":%s,\"bonusAmount\":%s," +
+                "\"commissionRate\":%s,\"allowanceAmount\":%s,\"deductionAmount\":%s}",
+                comp.getCompensationId() != null ? escapeJson(comp.getCompensationId().toString()) : "",
+                escapeJson(employeeCode),
+                escapeJson(employeeName),
+                comp.getCompensationType() != null ? escapeJson(comp.getCompensationType()) : "",
+                formatNumber(comp.getBaseMonthlySalary()),
+                formatNumber(comp.getHourlyRate()),
+                formatNumber(comp.getPerShiftRate()),
+                formatNumber(comp.getOvertimeRate()),
+                formatNumber(comp.getBonusAmount()),
+                formatNumber(comp.getCommissionRate()),
+                formatNumber(comp.getAllowanceAmount()),
+                formatNumber(comp.getDeductionAmount())
+            );
+        } catch (Exception e) {
+            System.err.println("Error building compensation JSON: " + e.getMessage());
+            e.printStackTrace();
+            return "{}";
+        }
     }
 
     private String formatNumber(BigDecimal value) {
@@ -252,10 +266,13 @@ public class CompensationServlet extends HttpServlet {
             json.append("}");
 
             response.getWriter().write(json.toString());
+            response.getWriter().flush();
         } catch (Exception e) {
             System.err.println("Error in handleGetAllWithEmployees: " + e.getMessage());
             e.printStackTrace();
-            response.getWriter().write("{\"success\": false, \"error\": \"" + e.getMessage() + "\"}");
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().write("{\"success\": false, \"error\": \"" + escapeJson(e.getMessage()) + "\"}");
+            response.getWriter().flush();
         }
     }
 

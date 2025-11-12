@@ -1,0 +1,253 @@
+package com.liteflow.controller.payroll;
+
+import com.liteflow.service.payroll.PayrollService;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Servlet for Payroll management API
+ */
+@WebServlet(name = "PayrollServlet", urlPatterns = {"/api/payroll/*"})
+public class PayrollServlet extends HttpServlet {
+
+    private final PayrollService payrollService;
+
+    public PayrollServlet() {
+        this.payrollService = new PayrollService();
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+
+        String pathInfo = req.getPathInfo();
+        if (pathInfo == null) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().print("{\"error\":\"Missing path\"}");
+            return;
+        }
+
+        try {
+            if (pathInfo.equals("/list") || pathInfo.equals("/")) {
+                // GET /api/payroll/list?month=X&year=Y
+                handleGetPayrollList(req, resp);
+            } else if (pathInfo.startsWith("/employee/")) {
+                // GET /api/payroll/employee/{employeeId}?month=X&year=Y
+                String employeeIdStr = pathInfo.substring(10); // Remove "/employee/"
+                handleGetEmployeePayroll(employeeIdStr, req, resp);
+            } else {
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                resp.getWriter().print("{\"error\":\"Endpoint not found\"}");
+            }
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().print("{\"error\":\"" + e.getMessage() + "\"}");
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        req.setCharacterEncoding("UTF-8");
+
+        String pathInfo = req.getPathInfo();
+        if (pathInfo == null || !pathInfo.equals("/mark-paid")) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().print("{\"error\":\"Invalid endpoint\"}");
+            return;
+        }
+
+        try {
+            // POST /api/payroll/mark-paid
+            handleMarkAsPaid(req, resp);
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().print("{\"error\":\"" + e.getMessage() + "\"}");
+            e.printStackTrace();
+        }
+    }
+
+    private void handleGetPayrollList(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String monthStr = req.getParameter("month");
+        String yearStr = req.getParameter("year");
+
+        LocalDate now = LocalDate.now();
+        int month = now.getMonthValue();
+        int year = now.getYear();
+
+        if (monthStr != null && !monthStr.trim().isEmpty()) {
+            try {
+                month = Integer.parseInt(monthStr.trim());
+                if (month < 1 || month > 12) {
+                    month = now.getMonthValue();
+                }
+            } catch (NumberFormatException e) {
+                month = now.getMonthValue();
+            }
+        }
+
+        if (yearStr != null && !yearStr.trim().isEmpty()) {
+            try {
+                year = Integer.parseInt(yearStr.trim());
+                if (year < 2020 || year > 2030) {
+                    year = now.getYear();
+                }
+            } catch (NumberFormatException e) {
+                year = now.getYear();
+            }
+        }
+
+        List<PayrollService.PayrollEntryDTO> payrollList = payrollService.getPayrollForMonth(month, year);
+
+        JSONObject json = new JSONObject();
+        json.put("success", true);
+        json.put("month", month);
+        json.put("year", year);
+        
+        JSONArray entriesArray = new JSONArray();
+        BigDecimal totalSalary = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        BigDecimal totalRemaining = BigDecimal.ZERO;
+        int paidCount = 0;
+        int unpaidCount = 0;
+
+        for (PayrollService.PayrollEntryDTO dto : payrollList) {
+            JSONObject entryJson = convertDTOToJSON(dto);
+            entriesArray.put(entryJson);
+            
+            totalSalary = totalSalary.add(dto.getTotalSalary());
+            totalPaid = totalPaid.add(dto.getTotalPaid());
+            totalRemaining = totalRemaining.add(dto.getTotalRemaining());
+            
+            if (dto.getIsPaid() != null && dto.getIsPaid()) {
+                paidCount++;
+            } else {
+                unpaidCount++;
+            }
+        }
+
+        json.put("entries", entriesArray);
+        json.put("totalSalary", totalSalary.toPlainString());
+        json.put("totalPaid", totalPaid.toPlainString());
+        json.put("totalRemaining", totalRemaining.toPlainString());
+        json.put("paidCount", paidCount);
+        json.put("unpaidCount", unpaidCount);
+
+        resp.getWriter().print(json.toString());
+    }
+
+    private void handleGetEmployeePayroll(String employeeIdStr, HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        try {
+            UUID employeeId = UUID.fromString(employeeIdStr);
+            
+            String monthStr = req.getParameter("month");
+            String yearStr = req.getParameter("year");
+
+            LocalDate now = LocalDate.now();
+            int month = now.getMonthValue();
+            int year = now.getYear();
+
+            if (monthStr != null && !monthStr.trim().isEmpty()) {
+                try {
+                    month = Integer.parseInt(monthStr.trim());
+                    if (month < 1 || month > 12) {
+                        month = now.getMonthValue();
+                    }
+                } catch (NumberFormatException e) {
+                    month = now.getMonthValue();
+                }
+            }
+
+            if (yearStr != null && !yearStr.trim().isEmpty()) {
+                try {
+                    year = Integer.parseInt(yearStr.trim());
+                    if (year < 2020 || year > 2030) {
+                        year = now.getYear();
+                    }
+                } catch (NumberFormatException e) {
+                    year = now.getYear();
+                }
+            }
+
+            PayrollService.PayrollEntryDTO dto = payrollService.getPayrollForEmployee(employeeId, month, year);
+
+            JSONObject json = new JSONObject();
+            if (dto != null) {
+                json.put("success", true);
+                json.put("data", convertDTOToJSON(dto));
+            } else {
+                json.put("success", false);
+                json.put("error", "Payroll entry not found");
+            }
+            resp.getWriter().print(json.toString());
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().print("{\"error\":\"Invalid employee ID format\"}");
+        }
+    }
+
+    private void handleMarkAsPaid(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String payrollEntryIdStr = req.getParameter("payrollEntryId");
+        
+        if (payrollEntryIdStr == null || payrollEntryIdStr.trim().isEmpty()) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().print("{\"error\":\"Missing payrollEntryId\"}");
+            return;
+        }
+
+        try {
+            UUID payrollEntryId = UUID.fromString(payrollEntryIdStr);
+            boolean success = payrollService.markAsPaid(payrollEntryId);
+
+            JSONObject json = new JSONObject();
+            if (success) {
+                json.put("success", true);
+                json.put("message", "Marked as paid successfully");
+            } else {
+                json.put("success", false);
+                json.put("error", "Failed to mark as paid");
+            }
+            resp.getWriter().print(json.toString());
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().print("{\"error\":\"Invalid payroll entry ID format\"}");
+        }
+    }
+
+    private JSONObject convertDTOToJSON(PayrollService.PayrollEntryDTO dto) {
+        JSONObject json = new JSONObject();
+        json.put("payrollEntryId", dto.getPayrollEntryId().toString());
+        json.put("employeeId", dto.getEmployeeId().toString());
+        json.put("employeeCode", dto.getEmployeeCode());
+        json.put("employeeName", dto.getEmployeeName());
+        json.put("compensationType", dto.getCompensationType());
+        json.put("totalSalary", dto.getTotalSalary().toPlainString());
+        json.put("allowances", dto.getAllowances().toPlainString());
+        json.put("bonuses", dto.getBonuses().toPlainString());
+        json.put("deductions", dto.getDeductions().toPlainString());
+        json.put("totalPaid", dto.getTotalPaid().toPlainString());
+        json.put("totalRemaining", dto.getTotalRemaining().toPlainString());
+        json.put("isPaid", dto.getIsPaid());
+        return json;
+    }
+}
+

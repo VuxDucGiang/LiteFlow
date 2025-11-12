@@ -8,6 +8,24 @@
 
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/employee.css">
         <style>
+            /* Prevent horizontal scroll */
+            body {
+                overflow-x: hidden !important;
+                max-width: 100vw;
+            }
+            
+            html {
+                overflow-x: hidden !important;
+                max-width: 100vw;
+            }
+            
+            .content,
+            .main-layout,
+            .main-content,
+            .employee-table {
+                overflow-x: hidden !important;
+                max-width: 100%;
+            }
             /* Minimal modal styles scoped to this page */
             .employee-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
             .employee-modal { background: #fff; width: 95%; max-width: 1100px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
@@ -334,10 +352,10 @@
                                         <option value="PerShift">Theo ca</option>
                                     </select>
 
-                                    <div id="salaryInputContainer">
-                                        <input type="number" id="baseMonthlySalary" name="baseMonthlySalary" class="value" placeholder="Nhập số tiền (VD: 3000000)" step="1000" style="display: none;">
-                                        <input type="number" id="hourlyRate" name="hourlyRate" class="value" placeholder="Nhập số tiền (VD: 25000)" step="1000" style="display: none;">
-                                        <input type="number" id="perShiftRate" name="perShiftRate" class="value" placeholder="Nhập số tiền (VD: 100000)" step="1000" style="display: none;">
+                                    <div id="salaryInputContainer" style="display: flex; flex-direction: column; gap: 8px;">
+                                        <input type="number" id="baseMonthlySalary" name="baseMonthlySalary" class="value" placeholder="Nhập lương tháng (VD: 3000000)" step="1000" style="display: none;">
+                                        <input type="number" id="hourlyRate" name="hourlyRate" class="value" placeholder="Nhập lương giờ (VD: 25000)" step="1000" style="display: none;">
+                                        <input type="number" id="perShiftRate" name="perShiftRate" class="value" placeholder="Nhập lương ca (VD: 100000)" step="1000" style="display: none;">
                                     </div>
                                 </div>
                             </div>
@@ -728,6 +746,8 @@
                     baseMonthlySalary.style.display = 'block';
                     baseMonthlySalary.placeholder = 'Nhập lương tháng (VD: 3000000)';
                 } else if (type === 'Hybrid') {
+                    baseMonthlySalary.style.display = 'block';
+                    baseMonthlySalary.placeholder = 'Nhập lương tháng cơ bản (VD: 2000000)';
                     hourlyRate.style.display = 'block';
                     hourlyRate.placeholder = 'Nhập lương giờ (VD: 25000)';
                 } else if (type === 'PerShift') {

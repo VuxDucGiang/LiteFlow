@@ -73,6 +73,13 @@ public class CompensationService {
     }
 
     /**
+     * Lấy compensation đang active của nhân viên theo employeeId
+     */
+    public EmployeeCompensation getActiveCompensationByEmployeeId(UUID employeeId) {
+        return compensationDAO.getActiveCompensation(employeeId);
+    }
+
+    /**
      * Lấy tất cả active compensations (để hiển thị bảng)
      */
     public List<EmployeeCompensation> getAllActiveCompensations() {
@@ -88,6 +95,13 @@ public class CompensationService {
             return List.of();
         }
         return compensationDAO.getCompensationHistory(employee.getEmployeeID());
+    }
+
+    /**
+     * Lấy compensation history của nhân viên theo employeeId
+     */
+    public List<EmployeeCompensation> getCompensationHistoryByEmployeeId(UUID employeeId) {
+        return compensationDAO.getCompensationHistory(employeeId);
     }
 
     /**

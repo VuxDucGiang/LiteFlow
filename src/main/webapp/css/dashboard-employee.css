@@ -10,6 +10,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
+  grid-auto-rows: min-content;
 }
 
 .widget {
@@ -825,6 +826,15 @@
   .widget.large {
     grid-column: span 2;
   }
+  
+  .widget-title-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .month-year-selector {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 768px) {
@@ -852,6 +862,40 @@
   .widget {
     padding: 20px;
   }
+  
+  .widget-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .widget-title-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .btn-view-details,
+  .btn-view-full,
+  .btn-view-history {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .btn-view-details span,
+  .btn-view-full span,
+  .btn-view-history span {
+    display: none;
+  }
+  
+  .calendar-nav {
+    flex-wrap: wrap;
+  }
+  
+  .btn-nav-month {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
 }
 
 /* Personal Schedule Styles */
@@ -868,6 +912,153 @@
   margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: none;
+}
+
+.widget-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+/* View Details/Full Buttons */
+.btn-view-details,
+.btn-view-full,
+.btn-view-history {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-view-details:hover,
+.btn-view-full:hover,
+.btn-view-history:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-view-details i,
+.btn-view-full i,
+.btn-view-history i {
+  font-size: 16px;
+}
+
+/* Month/Year Selector */
+.month-year-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-select,
+.year-select {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.month-select {
+  min-width: 100px;
+}
+
+.year-select {
+  width: 70px;
+}
+
+.month-select:hover,
+.year-select:hover {
+  border-color: #3b82f6;
+}
+
+.month-select:focus,
+.year-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Calendar Navigation */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-nav-month {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-nav-month:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.btn-nav-month:active {
+  transform: scale(0.95);
+}
+
+/* Clickable Calendar Day */
+.calendar-day.clickable-day {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-day.clickable-day:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  transform: scale(1.05);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* Attendance View History */
+.attendance-view-history {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-view-history {
+  width: 100%;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.btn-view-history:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .btn-add-schedule {
