@@ -147,6 +147,11 @@
                 Quản lý bảng lương và thanh toán cho nhân viên
             </p>
         </div>
+        <button id="btnGeneratePayroll" class="btn btn-primary" onclick="generatePayroll()" 
+                style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600;">
+            <i class='bx bx-plus-circle'></i>
+            Tạo bảng lương tháng này
+        </button>
     </div>
 
     <!-- Month/Year Selector -->
@@ -313,36 +318,81 @@
 
         tbody.innerHTML = entries.map(entry => {
             const isPaid = entry.isPaid === true;
-            return `
-                <tr>
-                    <td>${escapeHtml(entry.employeeCode)}</td>
-                    <td>${escapeHtml(entry.employeeName)}</td>
-                    <td>
-                        <span class="compensation-type-badge ${getCompensationTypeClass(entry.compensationType)}">
-                            ${getCompensationTypeLabel(entry.compensationType)}
-                        </span>
-                    </td>
-                    <td class="currency">${formatCurrency(entry.totalSalary)}</td>
-                    <td class="currency">${formatCurrency(entry.allowances)}</td>
-                    <td class="currency">${formatCurrency(entry.bonuses)}</td>
-                    <td class="currency">${formatCurrency(entry.deductions)}</td>
-                    <td class="currency">${formatCurrency(entry.totalPaid)}</td>
-                    <td class="currency">${formatCurrency(entry.totalRemaining)}</td>
-                    <td>
-                        ${isPaid 
-                            ? '<span class="paid-badge">Đã thanh toán</span>' 
-                            : '<span class="unpaid-badge">Chưa thanh toán</span>'}
-                    </td>
-                    <td>
-                        <button class="btn-mark-paid" 
-                                onclick="markAsPaid('${entry.payrollEntryId}')"
-                                ${isPaid ? 'disabled' : ''}>
-                            ${isPaid ? 'Đã thanh toán' : 'Đánh dấu đã thanh toán'}
-                        </button>
-                    </td>
-                </tr>
-            `;
+            const employeeCode = escapeHtml(entry.employeeCode || '');
+            const employeeName = escapeHtml(entry.employeeName || '');
+            const compensationTypeClass = getCompensationTypeClass(entry.compensationType);
+            const compensationTypeLabel = getCompensationTypeLabel(entry.compensationType);
+            const payrollEntryId = entry.payrollEntryId || '';
+            return '<tr>' +
+                '<td>' + employeeCode + '</td>' +
+                '<td>' + employeeName + '</td>' +
+                '<td>' +
+                    '<span class="compensation-type-badge ' + compensationTypeClass + '">' +
+                        compensationTypeLabel +
+                    '</span>' +
+                '</td>' +
+                '<td class="currency">' + formatCurrency(entry.totalSalary) + '</td>' +
+                '<td class="currency">' + formatCurrency(entry.allowances) + '</td>' +
+                '<td class="currency">' + formatCurrency(entry.bonuses) + '</td>' +
+                '<td class="currency">' + formatCurrency(entry.deductions) + '</td>' +
+                '<td class="currency">' + formatCurrency(entry.totalPaid) + '</td>' +
+                '<td class="currency">' + formatCurrency(entry.totalRemaining) + '</td>' +
+                '<td>' +
+                    (isPaid 
+                        ? '<span class="paid-badge">Đã thanh toán</span>' 
+                        : '<span class="unpaid-badge">Chưa thanh toán</span>') +
+                '</td>' +
+                '<td>' +
+                    '<button class="btn-mark-paid" ' +
+                            'onclick="markAsPaid(\'' + payrollEntryId + '\')" ' +
+                            (isPaid ? 'disabled' : '') + '>' +
+                        (isPaid ? 'Đã thanh toán' : 'Đánh dấu đã thanh toán') +
+                    '</button>' +
+                '</td>' +
+            '</tr>';
         }).join('');
+    }
+
+    async function generatePayroll() {
+        const month = document.getElementById('monthSelect').value;
+        const year = document.getElementById('yearSelect').value;
+        
+        if (!confirm('Bạn có chắc chắn muốn tạo bảng lương cho tháng ' + month + '/' + year + '?\n\nHệ thống sẽ tạo bảng lương cho tất cả nhân viên đang hoạt động trong tháng này.')) {
+            return;
+        }
+
+        const btn = document.getElementById('btnGeneratePayroll');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Đang tạo...';
+
+        try {
+            const response = await fetch(CONTEXT_PATH + '/api/payroll/generate?month=' + month + '&year=' + year, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                if (result.createdCount > 0) {
+                    alert('Đã tạo bảng lương thành công!\n\nĐã tạo bảng lương cho ' + result.createdCount + ' nhân viên.');
+                } else {
+                    alert('Thông báo:\n\n' + (result.message || 'Không có nhân viên nào cần tạo bảng lương mới. Có thể tất cả nhân viên đã có bảng lương cho tháng này.'));
+                }
+                loadPayroll(); // Reload data
+            } else {
+                alert('Có lỗi xảy ra: ' + (result.error || 'Không thể tạo bảng lương'));
+            }
+        } catch (error) {
+            console.error('Error generating payroll:', error);
+            alert('Có lỗi xảy ra khi tạo bảng lương');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 
     async function markAsPaid(payrollEntryId) {

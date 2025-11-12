@@ -11,7 +11,9 @@ import com.liteflow.model.payroll.PayrollRun;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Service for managing payroll entries and payments
@@ -222,6 +224,203 @@ public class PayrollService {
      */
     public boolean markAsPaid(UUID payrollEntryId) {
         return payrollEntryDAO.markAsPaid(payrollEntryId);
+    }
+
+    /**
+     * Generate payroll entries for all active employees in a specific month
+     * Returns the number of entries created
+     */
+    public int generatePayrollForMonth(int month, int year) {
+        int createdCount = 0;
+        int skippedCount = 0;
+        int errorCount = 0;
+        
+        System.out.println("=== Starting payroll generation for month " + month + "/" + year + " ===");
+        
+        // Get all active employees
+        List<Employee> employees = employeeDAO.getActiveEmployees();
+        System.out.println("Found " + employees.size() + " active employees");
+        
+        // If no active employees found, try getting all employees and filter manually
+        if (employees.isEmpty()) {
+            System.out.println("No active employees found with getActiveEmployees(). Trying to get all employees...");
+            List<Employee> allEmployees = employeeDAO.getAll();
+            System.out.println("Total employees in database: " + allEmployees.size());
+            
+            // Filter for active employees manually (in case of encoding issues)
+            employees = new ArrayList<>();
+            for (Employee emp : allEmployees) {
+                String status = emp.getEmploymentStatus();
+                System.out.println("  Employee: " + emp.getEmployeeCode() + " - Status: " + status);
+                if (status != null && (status.contains("làm") || status.contains("lam") || 
+                    status.equalsIgnoreCase("Đang làm") || status.equalsIgnoreCase("Dang lam") ||
+                    status.equalsIgnoreCase("Active") || status.equalsIgnoreCase("ACTIVE"))) {
+                    employees.add(emp);
+                    System.out.println("    -> Added as active");
+                }
+            }
+            System.out.println("After manual filtering: " + employees.size() + " active employees");
+        }
+        
+        if (employees.isEmpty()) {
+            System.out.println("No active employees found. Nothing to generate.");
+            return 0;
+        }
+        
+        // Get or create pay period
+        PayPeriod payPeriod = getOrCreatePayPeriod(month, year);
+        System.out.println("PayPeriod: " + payPeriod.getPayPeriodId() + " - " + payPeriod.getName());
+        
+        // Get or create payroll run
+        PayrollRun payrollRun = getOrCreatePayrollRun(payPeriod);
+        System.out.println("PayrollRun: " + payrollRun.getPayrollRunId());
+        
+        for (Employee employee : employees) {
+            try {
+                System.out.println("Processing employee: " + employee.getEmployeeCode() + " - " + employee.getFullName());
+                
+                // Check if payroll entry already exists
+                PayrollEntry existingEntry = payrollEntryDAO.findByEmployeeAndMonthYear(
+                    employee.getEmployeeID(), month, year);
+                
+                if (existingEntry != null) {
+                    System.out.println("  -> Payroll entry already exists, skipping");
+                    skippedCount++;
+                    continue;
+                }
+                
+                // Create new payroll entry
+                System.out.println("  -> Creating new payroll entry...");
+                PayrollEntry entry = createPayrollEntryForRun(
+                    employee.getEmployeeID(), month, year, payrollRun);
+                if (entry != null) {
+                    System.out.println("  -> Successfully created payroll entry: " + entry.getPayrollEntryId());
+                    createdCount++;
+                } else {
+                    System.out.println("  -> Failed to create payroll entry (returned null)");
+                    errorCount++;
+                }
+            } catch (Exception e) {
+                System.err.println("Error generating payroll for employee " + 
+                    employee.getEmployeeCode() + ": " + e.getMessage());
+                e.printStackTrace();
+                errorCount++;
+            }
+        }
+        
+        System.out.println("=== Payroll generation completed ===");
+        System.out.println("Total employees: " + employees.size());
+        System.out.println("Created: " + createdCount + ", Skipped: " + skippedCount + ", Errors: " + errorCount);
+        
+        // If no entries were created but there are employees, log warning
+        if (createdCount == 0 && employees.size() > 0) {
+            System.out.println("WARNING: No entries created. Possible reasons:");
+            System.out.println("  - All employees already have payroll entries for this month");
+            System.out.println("  - Errors occurred during creation (check logs above)");
+        }
+        
+        return createdCount;
+    }
+
+    /**
+     * Create payroll entry for a specific employee and payroll run
+     */
+    private PayrollEntry createPayrollEntryForRun(UUID employeeId, int month, int year, PayrollRun payrollRun) {
+        try {
+            System.out.println("    -> Calculating salary for employee: " + employeeId);
+            
+            // Calculate salary
+            PayrollCalculationService.MonthlySalaryResult salaryResult = 
+                calculationService.calculateMonthlySalary(employeeId, month, year);
+            
+            System.out.println("    -> Salary calculated: Total=" + salaryResult.getTotalSalary() + 
+                ", Allowances=" + salaryResult.getAllowances() + 
+                ", Bonuses=" + salaryResult.getBonuses() + 
+                ", Deductions=" + salaryResult.getDeductions());
+            
+            Employee employee = employeeDAO.findById(employeeId);
+            if (employee == null) {
+                System.err.println("    -> Employee not found: " + employeeId);
+                return null;
+            }
+
+            // Create payroll entry
+            PayrollEntry entry = new PayrollEntry();
+            entry.setPayrollRun(payrollRun);
+            entry.setEmployee(employee);
+            
+            // Get compensation type from active compensation
+            com.liteflow.dao.payroll.EmployeeCompensationDAO compDAO = 
+                new com.liteflow.dao.payroll.EmployeeCompensationDAO();
+            com.liteflow.model.payroll.EmployeeCompensation compensation = 
+                compDAO.getActiveCompensation(employeeId);
+            
+            if (compensation != null) {
+                System.out.println("    -> Found compensation: Type=" + compensation.getCompensationType());
+                entry.setCompensationType(compensation.getCompensationType());
+                entry.setBaseSalary(compensation.getBaseMonthlySalary());
+                entry.setHourlyRate(compensation.getHourlyRate());
+                entry.setPerShiftRate(compensation.getPerShiftRate());
+                entry.setAllowances(compensation.getAllowanceAmount() != null ? 
+                    compensation.getAllowanceAmount() : BigDecimal.ZERO);
+                entry.setBonuses(compensation.getBonusAmount() != null ? 
+                    compensation.getBonusAmount() : BigDecimal.ZERO);
+                entry.setDeductions(compensation.getDeductionAmount() != null ? 
+                    compensation.getDeductionAmount() : BigDecimal.ZERO);
+            } else {
+                System.out.println("    -> WARNING: No compensation found for employee. Creating entry with zero salary.");
+                entry.setCompensationType("Fixed");
+                entry.setBaseSalary(BigDecimal.ZERO);
+                entry.setHourlyRate(null);
+                entry.setPerShiftRate(null);
+                entry.setAllowances(BigDecimal.ZERO);
+                entry.setBonuses(BigDecimal.ZERO);
+                entry.setDeductions(BigDecimal.ZERO);
+            }
+            
+            // Set hours/shifts worked
+            if ("Hybrid".equals(entry.getCompensationType())) {
+                BigDecimal hours = calculationService.getTotalHoursWorked(employeeId, month, year);
+                entry.setHoursWorked(hours);
+                System.out.println("    -> Hours worked: " + hours);
+            } else if ("PerShift".equals(entry.getCompensationType())) {
+                int shifts = calculationService.getShiftsWorked(employeeId, month, year);
+                entry.setShiftsWorked(shifts);
+                System.out.println("    -> Shifts worked: " + shifts);
+            }
+            
+            // Set overtime and holiday hours to zero if null
+            if (entry.getOvertimeHours() == null) {
+                entry.setOvertimeHours(BigDecimal.ZERO);
+            }
+            if (entry.getHolidayHours() == null) {
+                entry.setHolidayHours(BigDecimal.ZERO);
+            }
+            
+            entry.setGrossPay(salaryResult.getTotalSalary());
+            entry.setNetPay(salaryResult.getTotalSalary().subtract(salaryResult.getDeductions()));
+            entry.setIsPaid(false);
+            
+            // Set currency fields (required)
+            if (entry.getCurrency() == null) {
+                entry.setCurrency("VND");
+            }
+            if (entry.getPaidInCurrency() == null) {
+                entry.setPaidInCurrency("VND");
+            }
+            
+            System.out.println("    -> Inserting payroll entry...");
+            System.out.println("    -> Entry details: GrossPay=" + entry.getGrossPay() + 
+                ", NetPay=" + entry.getNetPay() + ", CompensationType=" + entry.getCompensationType());
+            payrollEntryDAO.insert(entry);
+            System.out.println("    -> Payroll entry inserted successfully: " + entry.getPayrollEntryId());
+            
+            return entry;
+        } catch (Exception e) {
+            System.err.println("Error creating payroll entry for employee " + employeeId + ": " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**

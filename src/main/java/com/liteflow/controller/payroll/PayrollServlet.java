@@ -37,6 +37,7 @@ public class PayrollServlet extends HttpServlet {
         if (pathInfo == null) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().print("{\"error\":\"Missing path\"}");
+            resp.getWriter().flush();
             return;
         }
 
@@ -48,13 +49,18 @@ public class PayrollServlet extends HttpServlet {
                 // GET /api/payroll/employee/{employeeId}?month=X&year=Y
                 String employeeIdStr = pathInfo.substring(10); // Remove "/employee/"
                 handleGetEmployeePayroll(employeeIdStr, req, resp);
+            } else if (pathInfo.equals("/generate")) {
+                // GET /api/payroll/generate?month=X&year=Y
+                handleGeneratePayroll(req, resp);
             } else {
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 resp.getWriter().print("{\"error\":\"Endpoint not found\"}");
+                resp.getWriter().flush();
             }
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().print("{\"error\":\"" + e.getMessage() + "\"}");
+            resp.getWriter().flush();
             e.printStackTrace();
         }
     }
@@ -67,18 +73,29 @@ public class PayrollServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
 
         String pathInfo = req.getPathInfo();
-        if (pathInfo == null || !pathInfo.equals("/mark-paid")) {
+        if (pathInfo == null) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().print("{\"error\":\"Invalid endpoint\"}");
+            resp.getWriter().flush();
             return;
         }
 
         try {
-            // POST /api/payroll/mark-paid
-            handleMarkAsPaid(req, resp);
+            if (pathInfo.equals("/mark-paid")) {
+                // POST /api/payroll/mark-paid
+                handleMarkAsPaid(req, resp);
+            } else if (pathInfo.equals("/generate")) {
+                // POST /api/payroll/generate?month=X&year=Y
+                handleGeneratePayroll(req, resp);
+            } else {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.getWriter().print("{\"error\":\"Invalid endpoint\"}");
+                resp.getWriter().flush();
+            }
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().print("{\"error\":\"" + e.getMessage() + "\"}");
+            resp.getWriter().flush();
             e.printStackTrace();
         }
     }
@@ -151,6 +168,7 @@ public class PayrollServlet extends HttpServlet {
         json.put("unpaidCount", unpaidCount);
 
         resp.getWriter().print(json.toString());
+        resp.getWriter().flush();
     }
 
     private void handleGetEmployeePayroll(String employeeIdStr, HttpServletRequest req, HttpServletResponse resp)
@@ -198,9 +216,11 @@ public class PayrollServlet extends HttpServlet {
                 json.put("error", "Payroll entry not found");
             }
             resp.getWriter().print(json.toString());
+            resp.getWriter().flush();
         } catch (IllegalArgumentException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().print("{\"error\":\"Invalid employee ID format\"}");
+            resp.getWriter().flush();
         }
     }
 
@@ -211,6 +231,7 @@ public class PayrollServlet extends HttpServlet {
         if (payrollEntryIdStr == null || payrollEntryIdStr.trim().isEmpty()) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().print("{\"error\":\"Missing payrollEntryId\"}");
+            resp.getWriter().flush();
             return;
         }
 
@@ -227,9 +248,73 @@ public class PayrollServlet extends HttpServlet {
                 json.put("error", "Failed to mark as paid");
             }
             resp.getWriter().print(json.toString());
+            resp.getWriter().flush();
         } catch (IllegalArgumentException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().print("{\"error\":\"Invalid payroll entry ID format\"}");
+            resp.getWriter().flush();
+        }
+    }
+
+    private void handleGeneratePayroll(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String monthStr = req.getParameter("month");
+        String yearStr = req.getParameter("year");
+
+        LocalDate now = LocalDate.now();
+        int month = now.getMonthValue();
+        int year = now.getYear();
+
+        if (monthStr != null && !monthStr.trim().isEmpty()) {
+            try {
+                month = Integer.parseInt(monthStr.trim());
+                if (month < 1 || month > 12) {
+                    month = now.getMonthValue();
+                }
+            } catch (NumberFormatException e) {
+                month = now.getMonthValue();
+            }
+        }
+
+        if (yearStr != null && !yearStr.trim().isEmpty()) {
+            try {
+                year = Integer.parseInt(yearStr.trim());
+                if (year < 2020 || year > 2030) {
+                    year = now.getYear();
+                }
+            } catch (NumberFormatException e) {
+                year = now.getYear();
+            }
+        }
+
+        try {
+            int createdCount = payrollService.generatePayrollForMonth(month, year);
+            
+            JSONObject json = new JSONObject();
+            
+            if (createdCount > 0) {
+                json.put("success", true);
+                json.put("message", "Đã tạo bảng lương cho " + createdCount + " nhân viên");
+            } else {
+                json.put("success", true);
+                json.put("message", "Không có nhân viên nào cần tạo bảng lương mới. Có thể tất cả nhân viên đã có bảng lương cho tháng này.");
+                json.put("warning", true);
+            }
+            
+            json.put("createdCount", createdCount);
+            json.put("month", month);
+            json.put("year", year);
+            
+            resp.getWriter().print(json.toString());
+            resp.getWriter().flush();
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            JSONObject json = new JSONObject();
+            json.put("success", false);
+            json.put("error", "Lỗi khi tạo bảng lương: " + e.getMessage());
+            resp.getWriter().print(json.toString());
+            resp.getWriter().flush();
+            e.printStackTrace();
         }
     }
 

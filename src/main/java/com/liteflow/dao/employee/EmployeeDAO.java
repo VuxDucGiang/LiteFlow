@@ -3,6 +3,7 @@ package com.liteflow.dao.employee;
 import com.liteflow.dao.GenericDAO;
 import com.liteflow.model.auth.Employee;
 import jakarta.persistence.EntityManager;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -97,10 +98,32 @@ public class EmployeeDAO extends GenericDAO<Employee, UUID> {
     public List<Employee> getActiveEmployees() {
         EntityManager em = emf.createEntityManager();
         try {
-            String jpql = "SELECT e FROM Employee e WHERE e.employmentStatus = 'Đang làm' ORDER BY e.fullName";
-            return em.createQuery(jpql, Employee.class).getResultList();
+            // Use parameter to avoid encoding issues
+            String jpql = "SELECT e FROM Employee e WHERE e.employmentStatus = :status ORDER BY e.fullName";
+            List<Employee> result = em.createQuery(jpql, Employee.class)
+                    .setParameter("status", "Đang làm")
+                    .getResultList();
+            
+            // If no results, try alternative approach - get all and filter
+            if (result.isEmpty()) {
+                System.out.println("No employees found with status 'Đang làm'. Trying alternative query...");
+                String jpql2 = "SELECT e FROM Employee e WHERE e.terminationDate IS NULL ORDER BY e.fullName";
+                List<Employee> allEmployees = em.createQuery(jpql2, Employee.class).getResultList();
+                
+                // Filter manually
+                result = new ArrayList<>();
+                for (Employee emp : allEmployees) {
+                    String status = emp.getEmploymentStatus();
+                    if (status != null && !status.contains("nghỉ") && !status.contains("nghi")) {
+                        result.add(emp);
+                    }
+                }
+            }
+            
+            return result;
         } catch (Exception e) {
             System.err.println("❌ Error getting active employees: " + e.getMessage());
+            e.printStackTrace();
             return Collections.emptyList();
         } finally {
             em.close();
