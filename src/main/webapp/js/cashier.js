@@ -1768,6 +1768,11 @@ function setupEventListeners() {
       }
       
       if (selectedTable) {
+        // ✅ Lưu bàn cũ TRƯỚC KHI cập nhật để kiểm tra orders
+        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+        const previousTable = currentInvoice?.table;
+        const previousTableId = previousTable?.id;
+        
         // Display table info with room name
         let tableInfo = selectedTable.name;
         if (selectedTable.room) {
@@ -1780,7 +1785,6 @@ function setupEventListeners() {
         document.getElementById('selectedTableInfo').textContent = tableInfo;
         
         // Lưu bàn vào invoice hiện tại
-        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
         if (currentInvoice) {
           // ✅ Gán bàn vào invoice
           currentInvoice.table = selectedTable;
@@ -1812,13 +1816,42 @@ function setupEventListeners() {
           await loadTableOrders(tableId);
         } else {
           // Bàn trống hoặc ô đặc biệt - xóa orders cũ (nếu có)
-          // NHƯNG giữ lại orders nếu đang trong invoice memory (chưa notify)
-          const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+          // NHƯNG giữ lại orders nếu đang trong invoice memory VÀ chưa notify (chưa gửi bếp)
+          // VÀ orders phải thuộc về bàn hiện tại (không phải từ bàn Occupied khác)
+          
+          // ✅ Kiểm tra xem orders trong invoice có phải là orders chưa notify không
+          // Orders chưa notify = orders có quantity > notifiedQuantity (chưa gửi bếp)
+          // Orders đã notify = orders có quantity === notifiedQuantity (đã gửi bếp, từ database)
+          let hasUnnotifiedOrders = false;
           if (currentInvoice && currentInvoice.orders && currentInvoice.orders.length > 0) {
-            // Có orders trong invoice memory - giữ lại
-            orderItems = [...currentInvoice.orders];
-            renderOrderItems();
-            updateBill();
+            // Kiểm tra xem có món nào chưa notify không
+            hasUnnotifiedOrders = currentInvoice.orders.some(item => {
+              const notifiedQty = item.notifiedQuantity || 0;
+              const currentQty = item.quantity || 0;
+              return currentQty > notifiedQty; // Có món chưa notify
+            });
+            
+            // ✅ Kiểm tra: orders phải thuộc về bàn hiện tại (hoặc bàn trống/đặc biệt)
+            // Nếu bàn cũ là Occupied và khác bàn mới, thì orders đó là từ database của bàn cũ → cần xóa
+            const isOrdersFromPreviousOccupiedTable = previousTableId && 
+              previousTableId !== tableId && 
+              previousTableId !== 'takeaway' && 
+              previousTableId !== 'delivery' &&
+              tables.find(t => t.id === previousTableId)?.status === 'Occupied';
+            
+            if (hasUnnotifiedOrders && !isOrdersFromPreviousOccupiedTable) {
+              // Có orders chưa notify VÀ không phải từ bàn Occupied khác - giữ lại
+              console.log('✅ Keeping unnotified orders from invoice memory');
+              orderItems = [...currentInvoice.orders];
+              renderOrderItems();
+              updateBill();
+            } else {
+              // Không có orders chưa notify HOẶC orders từ bàn Occupied khác - xóa
+              console.log('🗑️ Clearing orders (unnotified:', hasUnnotifiedOrders, ', from previous occupied table:', isOrdersFromPreviousOccupiedTable, ')');
+              orderItems = [];
+              renderOrderItems();
+              updateBill();
+            }
           } else {
             // Không có orders - xóa
             orderItems = [];
