@@ -22,8 +22,6 @@ public class ProductServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        System.out.println("=== DEBUG: ProductServlet service method called ===");
-        System.out.println("HTTP Method: " + request.getMethod());
         super.service(request, response);
     }
 
@@ -55,23 +53,6 @@ public class ProductServlet extends HttpServlet {
             // Lấy danh sách đơn vị tính từ sản phẩm hiện có
             List<String> units = productService.getAllUnits();
             
-            // Debug logging
-            System.out.println("=== DEBUG: ProductServlet ===");
-            System.out.println("Số lượng sản phẩm lấy được: " + (productList != null ? productList.size() : "null"));
-            System.out.println("Số lượng danh mục từ sản phẩm: " + (categories != null ? categories.size() : "null"));
-            System.out.println("Số lượng đơn vị tính: " + (units != null ? units.size() : "null"));
-            if (productList != null && !productList.isEmpty()) {
-                System.out.println("Sản phẩm đầu tiên: " + productList.get(0).getProductName());
-            }
-            if (categories != null && !categories.isEmpty()) {
-                System.out.println("Danh mục đầu tiên: " + categories.get(0));
-                System.out.println("Tất cả danh mục:");
-                for (int i = 0; i < categories.size(); i++) {
-                    String cat = categories.get(i);
-                    System.out.println("  [" + i + "] = '" + cat + "' (length: " + cat.length() + ")");
-                }
-            }
-
             // Gửi sang JSP
             request.setAttribute("products", productList);
             request.setAttribute("categories", categories);
@@ -101,22 +82,14 @@ public class ProductServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        System.out.println("=== DEBUG: ProductServlet POST method called ===");
-        System.out.println("Request method: " + request.getMethod());
-        System.out.println("Request URI: " + request.getRequestURI());
-        System.out.println("Request URL: " + request.getRequestURL());
-        
         // Set encoding for form data
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
         
         try {
             String action = request.getParameter("action");
-            System.out.println("=== DEBUG: ProductServlet POST ===");
-            System.out.println("Action: " + action);
 
             if ("test".equals(action)) {
-                System.out.println("=== TEST POST REQUEST RECEIVED ===");
                 response.getWriter().println("POST request received successfully!");
                 return;
             }
@@ -124,8 +97,6 @@ public class ProductServlet extends HttpServlet {
             if ("addCategory".equals(action)) {
                 // Thêm category mới
                 String categoryName = request.getParameter("categoryName");
-                System.out.println("=== DEBUG: Adding new category ===");
-                System.out.println("Category name: " + categoryName);
                 
                 if (categoryName == null || categoryName.trim().isEmpty()) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -147,7 +118,6 @@ public class ProductServlet extends HttpServlet {
                     com.liteflow.model.inventory.Category category = productDAO.addCategoryIfNotExists(categoryName.trim());
                     
                     if (category != null) {
-                        System.out.println("✅ Category created: " + category.getCategoryId());
                         response.setStatus(HttpServletResponse.SC_OK);
                         response.setContentType("application/json");
                         response.getWriter().write("{\"status\":\"success\",\"message\":\"Category added successfully\"}");
@@ -203,26 +173,6 @@ public class ProductServlet extends HttpServlet {
                     session.setAttribute("error", "Vui lòng chọn đơn vị tính");
                     response.sendRedirect(request.getContextPath() + "/products");
                     return;
-                }
-
-                System.out.println("=== DEBUG: Form Data Received ===");
-                System.out.println("Tên sản phẩm: " + name);
-                System.out.println("Mô tả: " + description);
-                System.out.println("URL hình ảnh: " + imageUrl);
-                System.out.println("Loại hàng: " + productType);
-                System.out.println("Danh mục: " + category);
-                System.out.println("Giá bán: " + priceStr);
-                System.out.println("Số lượng: " + stockStr);
-                System.out.println("Sizes: " + java.util.Arrays.toString(sizes));
-                System.out.println("Custom size: " + customSize);
-                
-                // Debug all parameters
-                java.util.Enumeration<String> paramNames = request.getParameterNames();
-                System.out.println("=== All Parameters ===");
-                while (paramNames.hasMoreElements()) {
-                    String paramName = paramNames.nextElement();
-                    String[] paramValues = request.getParameterValues(paramName);
-                    System.out.println(paramName + ": " + java.util.Arrays.toString(paramValues));
                 }
 
                 // Validation
@@ -323,10 +273,8 @@ public class ProductServlet extends HttpServlet {
                 // Set image URL: priority: uploaded file > URL input
                 if (savedImagePath != null && !savedImagePath.isEmpty()) {
                     newProduct.setImageUrl(savedImagePath);
-                    System.out.println("Using uploaded file: " + savedImagePath);
                 } else if (imageUrl != null && !imageUrl.trim().isEmpty()) {
                     newProduct.setImageUrl(imageUrl.trim());
-                    System.out.println("Using URL input: " + imageUrl.trim());
                 } else {
                     newProduct.setImageUrl(null);
                 }
@@ -394,7 +342,6 @@ public class ProductServlet extends HttpServlet {
                         // Set success message in session and redirect to avoid resubmit
                         HttpSession session = request.getSession();
                         session.setAttribute("success", "Thêm sản phẩm thành công!");
-                        System.out.println("✅ Thêm sản phẩm thành công: " + name);
                         
                         // Redirect to avoid resubmit on F5
                         response.sendRedirect(request.getContextPath() + "/products");
@@ -410,7 +357,6 @@ public class ProductServlet extends HttpServlet {
                 } else {
                     HttpSession session = request.getSession();
                     session.setAttribute("error", "Có lỗi xảy ra khi thêm sản phẩm");
-                    System.out.println("❌ Lỗi khi thêm sản phẩm: " + name);
                     response.sendRedirect(request.getContextPath() + "/products");
                         return;
                 }
@@ -424,8 +370,6 @@ public class ProductServlet extends HttpServlet {
                 String priceStr = request.getParameter("price");
                 String stockStr = request.getParameter("stock");
                 String size = request.getParameter("size");
-                System.out.println("=== DEBUG: UPDATE params ===");
-                System.out.println("productId=" + productIdStr + ", name=" + name + ", price=" + priceStr + ", stock=" + stockStr + ", size=" + size);
 
                 try {
                     java.util.UUID productId = java.util.UUID.fromString(productIdStr);
@@ -438,7 +382,6 @@ public class ProductServlet extends HttpServlet {
                         doGet(request, response);
                         return;
                     }
-                    System.out.println("Found product: " + product.getProductId() + ", current name=" + product.getName());
                     
                     // Duplicate name check removed - allow duplicate product names
                     if (name != null && !name.trim().isEmpty()) {
@@ -495,7 +438,6 @@ public class ProductServlet extends HttpServlet {
                             deleteImageFile(oldImagePath, request);
                         }
                         product.setImageUrl(savedImagePath);
-                        System.out.println("Updated with uploaded file: " + savedImagePath);
                     } else if (imageUrl != null && !imageUrl.trim().isEmpty()) {
                         // Delete old image if exists and is not external URL
                         String oldImagePath = product.getImageUrl();
@@ -503,21 +445,17 @@ public class ProductServlet extends HttpServlet {
                             deleteImageFile(oldImagePath, request);
                         }
                         product.setImageUrl(imageUrl.trim());
-                        System.out.println("Updated with URL input: " + imageUrl.trim());
                     }
                     boolean productUpdated = productDAO.update(product);
-                    System.out.println("Product updated: " + productUpdated);
 
                     // Update price and stock for the selected size
                     com.liteflow.dao.inventory.ProductVariantDAO variantDAO = new com.liteflow.dao.inventory.ProductVariantDAO();
                     com.liteflow.model.inventory.ProductVariant variant = variantDAO.findByProductAndSize(productId, size);
                     if (variant != null) {
-                        System.out.println("Found variant: " + variant.getProductVariantId() + ", size=" + variant.getSize() + ", current price=" + variant.getPrice());
                         if (priceStr != null && !priceStr.isBlank()) {
                             try {
                                 double price = Double.parseDouble(priceStr.trim());
                                 variant.setPrice(java.math.BigDecimal.valueOf(price));
-                                System.out.println("Updating variant selling price to: " + price);
                             } catch (NumberFormatException ignored) {}
                         }
 
@@ -533,20 +471,15 @@ public class ProductServlet extends HttpServlet {
                                             .getResultList();
                                     if (!stocks.isEmpty()) {
                                         var ps = stocks.get(0);
-                                        System.out.println("Found stock row for variant: current amount=" + ps.getAmount());
                                         ps.setAmount(stock);
-                                        boolean stockUpdated = stockDAO.update(ps);
-                                        System.out.println("Stock updated: " + stockUpdated + ", new amount=" + stock);
+                                        stockDAO.update(ps);
                                     }
                                 } finally {
                                     em.close();
                                 }
                             } catch (NumberFormatException ignored) {}
                         }
-                        boolean variantUpdated = variantDAO.update(variant);
-                        System.out.println("Variant updated: " + variantUpdated);
-                    } else {
-                        System.out.println("Variant not found for productId=" + productId + ", size=" + size);
+                        variantDAO.update(variant);
                     }
 
                     HttpSession session = request.getSession();
@@ -564,10 +497,7 @@ public class ProductServlet extends HttpServlet {
             if ("delete".equals(action)) {
                 String productIdStr = request.getParameter("productId");
                 String size = request.getParameter("size");
-                System.out.println("=== DEBUG: DELETE ===");
-                System.out.println("productId=" + productIdStr);
-                System.out.println("size=" + size);
-                
+
                 try {
                     java.util.UUID productId = java.util.UUID.fromString(productIdStr);
                     
@@ -583,15 +513,13 @@ public class ProductServlet extends HttpServlet {
                         ).setParameter("productId", productId)
                          .setParameter("size", size)
                          .getResultList();
-                        
+
                         if (!variant.isEmpty()) {
                             variant.get(0).setIsDeleted(true);
                             em.merge(variant.get(0));
-                            System.out.println("✅ Variant soft deleted: " + productId + " size: " + size);
                         }
-                        
+
                         em.getTransaction().commit();
-                        System.out.println("✅ Variant deleted successfully");
                         
                     } catch (Exception e) {
                         if (em.getTransaction().isActive()) {
@@ -661,11 +589,9 @@ public class ProductServlet extends HttpServlet {
     /**
      * Export Products to Excel
      */
-    private void exportExcel(HttpServletRequest request, HttpServletResponse response) 
+    private void exportExcel(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            System.out.println("=== DEBUG: Export Products to Excel ===");
-            
             // Get all products
             List<ProductDisplayDTO> products = productService.getAllProductsWithPriceAndStock();
             
@@ -731,9 +657,7 @@ public class ProductServlet extends HttpServlet {
             java.io.OutputStream out = response.getOutputStream();
             out.write(excelData);
             out.flush();
-            
-            System.out.println("✅ Excel export completed successfully");
-            
+
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi export Excel: " + e.getMessage());
             e.printStackTrace();
@@ -745,14 +669,11 @@ public class ProductServlet extends HttpServlet {
     /**
      * Download Excel Template
      */
-    private void downloadTemplate(HttpServletRequest request, HttpServletResponse response) 
+    private void downloadTemplate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            System.out.println("=== DEBUG: Download Product Template ===");
-            
             String templateType = request.getParameter("templateType");
-            System.out.println("Template type: " + templateType);
-            
+
             // Create template Excel file
             org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
             
@@ -876,8 +797,6 @@ public class ProductServlet extends HttpServlet {
             out.write(templateData);
             out.flush();
             
-            System.out.println("✅ Template download completed successfully");
-            
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi download template: " + e.getMessage());
             e.printStackTrace();
@@ -891,8 +810,6 @@ public class ProductServlet extends HttpServlet {
     private void checkExcel(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         try {
-            System.out.println("=== DEBUG: Check Excel ===");
-            
             Part filePart = request.getPart("excelFile");
             if (filePart == null || filePart.getSize() == 0) {
                 response.getWriter().write("{\"success\": false, \"message\": \"Không có file được upload\"}");
@@ -901,9 +818,6 @@ public class ProductServlet extends HttpServlet {
             
             boolean skipDuplicates = "true".equals(request.getParameter("skipDuplicates"));
             boolean validateData = "true".equals(request.getParameter("validateData"));
-            
-            System.out.println("Skip duplicates: " + skipDuplicates);
-            System.out.println("Validate data: " + validateData);
             
             // Read Excel file
             try (java.io.InputStream inputStream = filePart.getInputStream()) {
@@ -1026,8 +940,6 @@ public class ProductServlet extends HttpServlet {
     private void importExcel(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         try {
-            System.out.println("=== DEBUG: Import Excel ===");
-            
             Part filePart = request.getPart("file");
             if (filePart == null) {
                 response.getWriter().write("{\"success\": false, \"message\": \"Không tìm thấy file\"}");
@@ -1035,12 +947,9 @@ public class ProductServlet extends HttpServlet {
             }
             
             String fileName = filePart.getSubmittedFileName();
-            System.out.println("File name: " + fileName);
             
             boolean skipDuplicates = "true".equals(request.getParameter("skipDuplicates"));
             boolean validateData = "true".equals(request.getParameter("validateData"));
-            
-            System.out.println("Options - skipDuplicates: " + skipDuplicates + ", validateData: " + validateData);
             
             // Read Excel file
             try (java.io.InputStream inputStream = filePart.getInputStream()) {
@@ -1174,8 +1083,6 @@ public class ProductServlet extends HttpServlet {
                         boolean productSaved = productDAO.insert(product);
                         
                         if (productSaved) {
-                            System.out.println("✅ Product saved: " + productName);
-                            
                             // Create ProductVariant and Stock
                             createProductVariantAndStock(product, size, price, stock);
                             
@@ -1235,12 +1142,6 @@ public class ProductServlet extends HttpServlet {
     
     private void createProductVariantAndStock(com.liteflow.model.inventory.Product product, String size, double price, int stock) {
         try {
-            System.out.println("=== DEBUG: Creating ProductVariant and Stock ===");
-            System.out.println("Product ID: " + product.getProductId());
-            System.out.println("Size: " + size);
-            System.out.println("Price: " + price);
-            System.out.println("Stock: " + stock);
-            
             // Tạo ProductVariant
             com.liteflow.model.inventory.ProductVariant variant = new com.liteflow.model.inventory.ProductVariant();
             variant.setProduct(product);
@@ -1249,38 +1150,26 @@ public class ProductServlet extends HttpServlet {
             variant.setOriginalPrice(java.math.BigDecimal.valueOf(price));
             variant.setIsDeleted(false);
             
-            System.out.println("ProductVariant created: " + variant.getSize() + " - " + variant.getPrice());
-            
             // Lưu ProductVariant
             com.liteflow.dao.inventory.ProductVariantDAO variantDAO = new com.liteflow.dao.inventory.ProductVariantDAO();
             boolean variantSuccess = variantDAO.insert(variant);
-            
-            System.out.println("ProductVariant insert result: " + variantSuccess);
             
             if (variantSuccess) {
                 // Tạo Inventory mặc định (nếu chưa có)
                 com.liteflow.model.inventory.Inventory defaultInventory = getOrCreateDefaultInventory();
                 
                 if (defaultInventory != null) {
-                    System.out.println("Default inventory found/created: " + defaultInventory.getInventoryId());
-                    
                     // Tạo ProductStock
                     com.liteflow.model.inventory.ProductStock productStock = new com.liteflow.model.inventory.ProductStock();
                     productStock.setProductVariant(variant);
                     productStock.setInventory(defaultInventory);
                     productStock.setAmount(stock);
                     
-                    System.out.println("ProductStock created with amount: " + productStock.getAmount());
-                    
                     // Lưu ProductStock
                     com.liteflow.dao.inventory.ProductStockDAO stockDAO = new com.liteflow.dao.inventory.ProductStockDAO();
                     boolean stockSuccess = stockDAO.insert(productStock);
                     
-                    System.out.println("ProductStock insert result: " + stockSuccess);
-                    
-                    if (stockSuccess) {
-                        System.out.println("✅ Tạo ProductVariant và ProductStock thành công cho size: " + size);
-                    } else {
+                    if (!stockSuccess) {
                         System.err.println("❌ Lỗi khi tạo ProductStock cho size: " + size);
                     }
                 } else {
@@ -1297,28 +1186,19 @@ public class ProductServlet extends HttpServlet {
     
     private com.liteflow.model.inventory.Inventory getOrCreateDefaultInventory() {
         try {
-            System.out.println("=== DEBUG: Getting/Creating Default Inventory ===");
             com.liteflow.dao.inventory.InventoryDAO inventoryDAO = new com.liteflow.dao.inventory.InventoryDAO();
             
             // Tìm inventory mặc định
             com.liteflow.model.inventory.Inventory defaultInventory = inventoryDAO.findByField("storeLocation", "Kho chính");
             
-            System.out.println("Found existing inventory: " + (defaultInventory != null));
-            
             if (defaultInventory == null) {
                 // Tạo inventory mặc định nếu chưa có
-                System.out.println("Creating new default inventory...");
                 defaultInventory = new com.liteflow.model.inventory.Inventory();
                 defaultInventory.setStoreLocation("Kho chính");
                 boolean insertResult = inventoryDAO.insert(defaultInventory);
-                System.out.println("Inventory insert result: " + insertResult);
-                if (insertResult) {
-                    System.out.println("✅ Tạo inventory mặc định thành công");
-                } else {
+                if (!insertResult) {
                     System.err.println("❌ Lỗi khi tạo inventory mặc định");
                 }
-            } else {
-                System.out.println("✅ Sử dụng inventory mặc định có sẵn");
             }
             
             return defaultInventory;
@@ -1331,10 +1211,6 @@ public class ProductServlet extends HttpServlet {
     
     private void createProductCategory(com.liteflow.model.inventory.Product product, String categoryName) {
         try {
-            System.out.println("=== DEBUG: Creating ProductCategory ===");
-            System.out.println("Product: " + product.getProductId() + " (" + product.getName() + ")");
-            System.out.println("Category name: " + categoryName);
-            
             // Tìm hoặc tạo category
             com.liteflow.dao.inventory.ProductDAO productDAO = new com.liteflow.dao.inventory.ProductDAO();
             com.liteflow.model.inventory.Category category = productDAO.addCategoryIfNotExists(categoryName);
@@ -1344,8 +1220,6 @@ public class ProductServlet extends HttpServlet {
                 return;
             }
             
-            System.out.println("Using category: " + category.getCategoryId());
-            
             // Tạo ProductCategory
             com.liteflow.model.inventory.ProductCategory productCategory = new com.liteflow.model.inventory.ProductCategory();
             productCategory.setProduct(product);
@@ -1353,9 +1227,7 @@ public class ProductServlet extends HttpServlet {
             productCategory.setProductCategoryId(java.util.UUID.randomUUID());
             
             // Lưu vào database
-            if (productDAO.addProductCategory(productCategory)) {
-                System.out.println("✅ ProductCategory created: " + productCategory.getProductCategoryId());
-            } else {
+            if (!productDAO.addProductCategory(productCategory)) {
                 System.err.println("❌ Failed to create ProductCategory");
             }
         } catch (Exception e) {
@@ -1371,20 +1243,17 @@ public class ProductServlet extends HttpServlet {
             
             // Check if file was uploaded
             if (filePart == null || filePart.getSize() == 0) {
-                System.out.println("No image file uploaded");
                 return null;
             }
             
             String fileName = filePart.getSubmittedFileName();
             if (fileName == null || fileName.isEmpty()) {
-                System.out.println("No file name in upload");
                 return null;
             }
             
             // Validate file type
             String contentType = filePart.getContentType();
             if (contentType == null || !contentType.startsWith("image/")) {
-                System.out.println("Invalid file type: " + contentType);
                 return null;
             }
             
@@ -1418,7 +1287,6 @@ public class ProductServlet extends HttpServlet {
             // Save file to source directory (permanent)
             String srcFilePath = srcUploadsDir + File.separator + uniqueFileName;
             filePart.write(srcFilePath);
-            System.out.println("✅ Image saved to source: " + srcFilePath);
             
             // Copy to target directory (for immediate runtime use)
             String targetFilePath = targetUploadsDir + File.separator + uniqueFileName;
@@ -1429,7 +1297,6 @@ public class ProductServlet extends HttpServlet {
                 while ((length = input.read(buffer)) > 0) {
                     output.write(buffer, 0, length);
                 }
-                System.out.println("✅ Image copied to target: " + targetFilePath);
             }
             
             // Return relative path for database
