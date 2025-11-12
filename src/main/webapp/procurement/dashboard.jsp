@@ -1,6 +1,8 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ page import="java.time.LocalDateTime" %>
+<%@ page import="java.time.temporal.ChronoUnit" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -192,13 +194,28 @@
         </div>
 
         <!-- Alerts -->
-        <div class="alert alert-warning">
-            <strong>⚠️ Cảnh báo:</strong> Có 2 đơn hàng sắp đến hạn giao và 1 đơn hàng đã trễ hạn.
-        </div>
+        <c:if test="${showWarningAlert}">
+            <div class="alert alert-warning">
+                <strong>⚠️ Cảnh báo:</strong> 
+                <c:choose>
+                    <c:when test="${nearDeadlineCount > 0 && overdueCount > 0}">
+                        Có ${nearDeadlineCount} đơn hàng sắp đến hạn giao và ${overdueCount} đơn hàng đã trễ hạn.
+                    </c:when>
+                    <c:when test="${nearDeadlineCount > 0}">
+                        Có ${nearDeadlineCount} đơn hàng sắp đến hạn giao.
+                    </c:when>
+                    <c:when test="${overdueCount > 0}">
+                        Có ${overdueCount} đơn hàng đã trễ hạn.
+                    </c:when>
+                </c:choose>
+            </div>
+        </c:if>
 
-        <div class="alert alert-info">
-            <strong>ℹ️ Thông tin:</strong> Có 3 hóa đơn chờ đối chiếu từ nhà cung cấp.
-        </div>
+        <c:if test="${showInfoAlert}">
+            <div class="alert alert-info">
+                <strong>ℹ️ Thông tin:</strong> Có ${unmatchedInvoices} hóa đơn chờ đối chiếu từ nhà cung cấp.
+            </div>
+        </c:if>
 
         <!-- Statistics -->
         <div class="stats-grid">
@@ -207,8 +224,8 @@
                     <div class="stat-title">Tổng Nhà cung cấp</div>
                     <div class="stat-icon">🏢</div>
                 </div>
-                <div class="stat-value">5</div>
-                <div class="stat-change">+2 tháng này</div>
+                <div class="stat-value">${stats.totalSuppliers != null ? stats.totalSuppliers : 0}</div>
+                <div class="stat-change">Nhà cung cấp đang hoạt động</div>
             </div>
             
             <div class="stat-card warning">
@@ -216,7 +233,7 @@
                     <div class="stat-title">Đơn hàng chờ duyệt</div>
                     <div class="stat-icon">⏳</div>
                 </div>
-                <div class="stat-value">3</div>
+                <div class="stat-value">${stats.pendingPOs != null ? stats.pendingPOs : 0}</div>
                 <div class="stat-change">Cần xử lý ngay</div>
             </div>
             
@@ -225,7 +242,7 @@
                     <div class="stat-title">Đơn hàng đang giao</div>
                     <div class="stat-icon">🚚</div>
                 </div>
-                <div class="stat-value">4</div>
+                <div class="stat-value">${stats.inDeliveryPOs != null ? stats.inDeliveryPOs : 0}</div>
                 <div class="stat-change">Theo dõi tiến độ</div>
             </div>
             
@@ -234,7 +251,7 @@
                     <div class="stat-title">Đơn hàng trễ hạn</div>
                     <div class="stat-icon">⚠️</div>
                 </div>
-                <div class="stat-value">1</div>
+                <div class="stat-value">${stats.overduePOs != null ? stats.overduePOs : 0}</div>
                 <div class="stat-change negative">Cần liên hệ NCC</div>
             </div>
         </div>
@@ -270,45 +287,32 @@
         <div class="recent-activities">
             <div class="section-title">Hoạt động gần đây</div>
             
-            <div class="activity-item">
-                <div class="activity-icon">📋</div>
-                <div class="activity-content">
-                    <div class="activity-text">Đơn hàng PO-12345678 đã được duyệt bởi Manager</div>
-                    <div class="activity-time">2 giờ trước</div>
-                </div>
-            </div>
-            
-            <div class="activity-item">
-                <div class="activity-icon">📦</div>
-                <div class="activity-content">
-                    <div class="activity-text">Đã nhận hàng từ Công ty Cà phê Trung Nguyên</div>
-                    <div class="activity-time">4 giờ trước</div>
-                </div>
-            </div>
-            
-            <div class="activity-item">
-                <div class="activity-icon">🧾</div>
-                <div class="activity-content">
-                    <div class="activity-text">Hóa đơn INV-87654321 đã được đối chiếu thành công</div>
-                    <div class="activity-time">1 ngày trước</div>
-                </div>
-            </div>
-            
-            <div class="activity-item">
-                <div class="activity-icon">🏢</div>
-                <div class="activity-content">
-                    <div class="activity-text">Thêm nhà cung cấp mới: Nguyên liệu pha chế ABC</div>
-                    <div class="activity-time">2 ngày trước</div>
-                </div>
-            </div>
-            
-            <div class="activity-item">
-                <div class="activity-icon">⚠️</div>
-                <div class="activity-content">
-                    <div class="activity-text">Cảnh báo: Đơn hàng PO-11111111 trễ hạn 3 ngày</div>
-                    <div class="activity-time">3 ngày trước</div>
-                </div>
-            </div>
+            <c:choose>
+                <c:when test="${not empty recentActivities && recentActivities.size() > 0}">
+                    <c:forEach var="activity" items="${recentActivities}">
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <c:choose>
+                                    <c:when test="${activity.type == 'PO_CREATED' || activity.type == 'PO_APPROVED' || activity.type == 'PO_REJECTED' || activity.type == 'PO_UPDATED'}">📋</c:when>
+                                    <c:when test="${activity.type == 'GR_RECEIVED'}">📦</c:when>
+                                    <c:when test="${activity.type == 'INVOICE_MATCHED'}">🧾</c:when>
+                                    <c:when test="${activity.type == 'SUPPLIER_ADDED'}">🏢</c:when>
+                                    <c:otherwise>📌</c:otherwise>
+                                </c:choose>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-text">${activity.description}</div>
+                                <div class="activity-time">${activity.formattedTime}</div>
+                            </div>
+                        </div>
+                    </c:forEach>
+                </c:when>
+                <c:otherwise>
+                    <div style="padding: 40px 20px; text-align: center; color: #6c757d;">
+                        <p>Chưa có hoạt động nào gần đây.</p>
+                    </div>
+                </c:otherwise>
+            </c:choose>
         </div>
     </div>
 
