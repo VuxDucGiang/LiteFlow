@@ -20,10 +20,8 @@ public class ProductService {
     }
 
     public List<Product> getAllProducts() {
-        System.out.println("=== DEBUG: ProductService.getAllProducts() ===");
         try {
             List<Product> products = productDAO.findAll();
-            System.out.println("Số lượng sản phẩm từ DAO: " + (products != null ? products.size() : "null"));
             return products;
         } catch (Exception e) {
             System.err.println("❌ Lỗi trong ProductService.getAllProducts(): " + e.getMessage());
@@ -33,7 +31,6 @@ public class ProductService {
     }
 
     public List<ProductDisplayDTO> getAllProductsWithPriceAndStock() {
-        System.out.println("=== DEBUG: ProductService.getAllProductsWithPriceAndStock() ===");
         try {
             EntityManager em = BaseDAO.emf.createEntityManager();
             List<ProductDisplayDTO> result = new ArrayList<>();
@@ -83,7 +80,6 @@ public class ProductService {
                     result.add(dto);
                 }
                 
-                System.out.println("Số lượng sản phẩm với giá và tồn kho: " + result.size());
                 return result;
                 
             } finally {
@@ -101,7 +97,6 @@ public class ProductService {
     }
     
     public boolean isProductNameExists(String productName) {
-        System.out.println("=== DEBUG: Checking if product name exists: " + productName);
         try {
             EntityManager em = BaseDAO.emf.createEntityManager();
             try {
@@ -110,7 +105,6 @@ public class ProductService {
                 query.setParameter("name", productName.trim());
                 Long count = (Long) query.getSingleResult();
                 boolean exists = count > 0;
-                System.out.println("Product name '" + productName + "' exists: " + exists);
                 return exists;
             } finally {
                 em.close();
@@ -123,7 +117,6 @@ public class ProductService {
     }
     
     public boolean isProductNameExistsExcludingId(String productName, UUID excludeId) {
-        System.out.println("=== DEBUG: Checking if product name exists (excluding ID: " + excludeId + "): " + productName);
         try {
             EntityManager em = BaseDAO.emf.createEntityManager();
             try {
@@ -133,7 +126,6 @@ public class ProductService {
                 query.setParameter("excludeId", excludeId);
                 Long count = (Long) query.getSingleResult();
                 boolean exists = count > 0;
-                System.out.println("Product name '" + productName + "' exists (excluding ID): " + exists);
                 return exists;
             } finally {
                 em.close();
@@ -158,7 +150,6 @@ public class ProductService {
     }
     
     public List<ProductPriceDTO> getAllProductsWithPriceInfo() {
-        System.out.println("=== DEBUG: ProductService.getAllProductsWithPriceInfo() ===");
         try {
             EntityManager em = BaseDAO.emf.createEntityManager();
             List<ProductPriceDTO> result = new ArrayList<>();
@@ -204,7 +195,6 @@ public class ProductService {
                     result.add(dto);
                 }
                 
-                System.out.println("Số lượng sản phẩm với thông tin giá: " + result.size());
                 return result;
                 
             } finally {
@@ -218,7 +208,6 @@ public class ProductService {
     }
     
     public List<String> getDistinctCategoriesFromProducts() {
-        System.out.println("=== DEBUG: ProductService.getDistinctCategoriesFromProducts() ===");
         try {
             EntityManager em = BaseDAO.emf.createEntityManager();
             
@@ -233,13 +222,6 @@ public class ProductService {
                 
                 List<String> result = query.getResultList();
                 
-                System.out.println("Số lượng danh mục từ sản phẩm: " + result.size());
-                if (!result.isEmpty()) {
-                    System.out.println("Các danh mục tìm thấy:");
-                    for (String category : result) {
-                        System.out.println("  - " + category);
-                    }
-                }
                 return result;
                 
             } finally {
@@ -253,16 +235,8 @@ public class ProductService {
     }
     
     public List<String> getAllUnits() {
-        System.out.println("=== DEBUG: ProductService.getAllUnits() ===");
         try {
             List<String> result = productDAO.getAllUnits();
-            System.out.println("Số lượng đơn vị tính: " + (result != null ? result.size() : "null"));
-            if (result != null && !result.isEmpty()) {
-                System.out.println("Các đơn vị tính tìm thấy:");
-                for (String unit : result) {
-                    System.out.println("  - " + unit);
-                }
-            }
             return result != null ? result : new ArrayList<>();
         } catch (Exception e) {
             System.err.println("❌ Lỗi trong ProductService.getAllUnits(): " + e.getMessage());
