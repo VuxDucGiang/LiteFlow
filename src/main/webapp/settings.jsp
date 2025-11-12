@@ -1,5 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -66,8 +67,14 @@
         </div>
         
         <nav class="sidebar-nav">
+            <!-- User Info - visible to all logged-in users -->
+            <a href="#user-info" class="sidebar-item active" data-section="user-info">
+                <i class='bx bx-user'></i>
+                <span class="sidebar-item-text">Thông tin người dùng</span>
+            </a>
+            
             <c:if test="${canAccessAI}">
-                <a href="#ai-agent" class="sidebar-item active" data-section="ai-agent">
+                <a href="#ai-agent" class="sidebar-item" data-section="ai-agent">
                     <i class='bx bx-brain'></i>
                     <span class="sidebar-item-text">AI Agent</span>
                 </a>
@@ -90,9 +97,134 @@
     <!-- Main Content -->
     <main class="settings-main-content">
         <div class="settings-content-wrapper">
+            <!-- User Info Section - visible to all logged-in users -->
+            <section id="user-info-section" class="settings-section active">
+                <div class="section-header">
+                    <h1>
+                        <i class='bx bx-user'></i>
+                        Thông tin người dùng
+                    </h1>
+                    <p class="section-description">Xem thông tin tài khoản của bạn</p>
+                </div>
+
+                <c:choose>
+                    <c:when test="${not empty currentUser}">
+                        <div class="user-info-container">
+                            <div class="user-info-card">
+                                <div class="user-info-avatar">
+                                    <i class='bx bx-user-circle'></i>
+                                </div>
+                                
+                                <div class="user-info-details">
+                                    <div class="info-row">
+                                        <div class="info-label">
+                                            <i class='bx bx-user'></i>
+                                            <span>Họ và tên</span>
+                                        </div>
+                                        <div class="info-value">
+                                            ${not empty currentUser.displayName ? currentUser.displayName : 'Chưa cập nhật'}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="info-row">
+                                        <div class="info-label">
+                                            <i class='bx bx-envelope'></i>
+                                            <span>Email</span>
+                                        </div>
+                                        <div class="info-value">
+                                            ${currentUser.email}
+                                        </div>
+                                    </div>
+                                    
+                                    <c:if test="${not empty currentUser.phone}">
+                                        <div class="info-row">
+                                            <div class="info-label">
+                                                <i class='bx bx-phone'></i>
+                                                <span>Số điện thoại</span>
+                                            </div>
+                                            <div class="info-value">
+                                                ${currentUser.phone}
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                    
+                                    <div class="info-row">
+                                        <div class="info-label">
+                                            <i class='bx bx-shield-quarter'></i>
+                                            <span>Vai trò</span>
+                                        </div>
+                                        <div class="info-value">
+                                            <c:choose>
+                                                <c:when test="${not empty userRoles}">
+                                                    <c:forEach var="role" items="${userRoles}" varStatus="status">
+                                                        <span class="role-badge">${role}</span>
+                                                        <c:if test="${!status.last}">, </c:if>
+                                                    </c:forEach>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="text-muted">Chưa có vai trò</span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </div>
+                                    </div>
+                                    
+                                    <c:if test="${not empty currentUser.createdAt}">
+                                        <div class="info-row">
+                                            <div class="info-label">
+                                                <i class='bx bx-calendar'></i>
+                                                <span>Ngày tạo tài khoản</span>
+                                            </div>
+                                            <div class="info-value">
+                                                <fmt:formatDate value="${currentUser.createdAt}" pattern="dd/MM/yyyy HH:mm" />
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                    
+                                    <c:if test="${not empty currentUser.updatedAt}">
+                                        <div class="info-row">
+                                            <div class="info-label">
+                                                <i class='bx bx-time-five'></i>
+                                                <span>Cập nhật lần cuối</span>
+                                            </div>
+                                            <div class="info-value">
+                                                <fmt:formatDate value="${currentUser.updatedAt}" pattern="dd/MM/yyyy HH:mm" />
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                    
+                                    <div class="info-row">
+                                        <div class="info-label">
+                                            <i class='bx bx-check-circle'></i>
+                                            <span>Trạng thái</span>
+                                        </div>
+                                        <div class="info-value">
+                                            <c:choose>
+                                                <c:when test="${currentUser.isActive}">
+                                                    <span class="status-badge status-active">Đang hoạt động</span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <span class="status-badge status-inactive">Đã khóa</span>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="settings-empty">
+                            <i class='bx bx-info-circle'></i>
+                            <h3>Không thể tải thông tin người dùng</h3>
+                            <p>Vui lòng thử lại sau hoặc liên hệ quản trị viên nếu vấn đề vẫn tiếp tục.</p>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
+            </section>
+            
             <!-- AI Agent Section -->
             <c:if test="${canAccessAI}">
-                <section id="ai-agent-section" class="settings-section active">
+                <section id="ai-agent-section" class="settings-section">
                     <div class="ai-config-container">
                         <div class="config-header">
                             <h1><i class='bx bx-cog'></i> LiteFlow Agent Configure</h1>

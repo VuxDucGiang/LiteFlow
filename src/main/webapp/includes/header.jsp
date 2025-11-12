@@ -182,9 +182,6 @@
           <c:if test="${!isEmployee}">
             <div id="notification-bell-container"></div>
           </c:if>
-          <a href="${pageContext.request.contextPath}/settings" class="header-icon" title="Cài đặt" target="_blank">
-            <i class='bx bx-cog'></i>
-          </a>
           <div class="nav-item dropdown" style="margin: 0;">
             <a href="#" class="nav-link dropdown-toggle" aria-expanded="false" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #374151 !important;">
               <i class='bx bx-user' style="color: #374151;"></i>
@@ -209,6 +206,9 @@
               </div>
             </a>
             <div class="dropdown-menu" style="right: 0; left: auto;">
+              <a href="${pageContext.request.contextPath}/settings" class="dropdown-item" target="_blank">
+                <i class='bx bx-cog'></i> Cài đặt
+              </a>
               <a href="${pageContext.request.contextPath}/logout" class="dropdown-item">
                 <i class='bx bx-log-out'></i> Đăng xuất
               </a>

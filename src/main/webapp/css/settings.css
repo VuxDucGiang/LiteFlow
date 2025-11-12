@@ -288,8 +288,126 @@
 .section-description {
     font-size: var(--text-base);
     color: var(--gray-600);
-    line-height: 1.6;
-    max-width: 600px;
+    margin-top: var(--space-2);
+}
+
+/* User Info Section Styles */
+.user-info-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.user-info-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--space-8);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--gray-200);
+}
+
+.user-info-avatar {
+    text-align: center;
+    margin-bottom: var(--space-6);
+}
+
+.user-info-avatar i {
+    font-size: 80px;
+    color: var(--color-primary);
+    opacity: 0.8;
+}
+
+.user-info-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.info-row {
+    display: flex;
+    align-items: flex-start;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--gray-100);
+    transition: background-color 0.2s ease;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-row:hover {
+    background-color: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.info-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 200px;
+    font-weight: var(--font-semibold);
+    color: var(--gray-700);
+}
+
+.info-label i {
+    font-size: var(--text-lg);
+    color: var(--color-primary);
+    width: 24px;
+    text-align: center;
+}
+
+.info-value {
+    flex: 1;
+    color: var(--gray-900);
+    word-break: break-word;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    margin-right: var(--space-2);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+}
+
+.status-badge.status-active {
+    background: #10b981;
+    color: white;
+}
+
+.status-badge.status-inactive {
+    background: var(--gray-400);
+    color: white;
+}
+
+.text-muted {
+    color: var(--gray-500);
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .info-row {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+    
+    .info-label {
+        min-width: auto;
+    }
+    
+    .user-info-card {
+        padding: var(--space-5);
+    }
 }
 
 /* Settings Grid */
