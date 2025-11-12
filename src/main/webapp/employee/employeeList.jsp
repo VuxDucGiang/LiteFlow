@@ -7,11 +7,36 @@
 </jsp:include>
 
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/employee.css">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/design-system.css">
         <style>
+            /* Design System Colors */
+            :root {
+                --primary-500: #0080FF;
+                --primary-600: #0066cc;
+                --primary-50: #f2f7ff;
+                --secondary-500: #00c6ff;
+                --secondary-50: #f0f9ff;
+                --color-primary: #0080FF;
+                --color-secondary: #00c6ff;
+                --color-accent: #7d2ae8;
+                --success-500: #4caf50;
+                --warning-500: #ff9800;
+                --danger-500: #dc3545;
+                --info-500: #2196f3;
+                --gray-50: #f9fafb;
+                --gray-200: #e5e7eb;
+                --gray-800: #1f2937;
+            }
+            
+            * {
+                box-sizing: border-box;
+            }
+            
             /* Prevent horizontal scroll */
             body {
                 overflow-x: hidden !important;
                 max-width: 100vw;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             }
             
             html {
@@ -25,29 +50,119 @@
             .employee-table {
                 overflow-x: hidden !important;
                 max-width: 100%;
+                width: 100%;
+                box-sizing: border-box;
             }
+            /* Statistics Cards - Updated Colors */
+            .stat-card {
+                border-left: 4px solid var(--color-primary) !important;
+                border: 2px solid var(--color-primary);
+            }
+            
+            .stat-number {
+                color: var(--color-primary) !important;
+            }
+            
+            /* Buttons - Updated Colors */
+            .btn-primary {
+                background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%) !important;
+                border: none !important;
+                box-shadow: 0 4px 15px rgba(0, 128, 255, 0.4) !important;
+            }
+            
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 128, 255, 0.6) !important;
+                background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-500) 100%) !important;
+            }
+            
+            .btn-success {
+                background: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%) !important;
+                border: none !important;
+                box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4) !important;
+            }
+            
+            .btn-success:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6) !important;
+            }
+            
+            /* Table - Updated Colors */
+            .table thead {
+                background: linear-gradient(135deg, var(--primary-50, #f2f7ff) 0%, var(--secondary-50, #f0f9ff) 100%) !important;
+            }
+            
+            .table th {
+                border-bottom: 2px solid var(--color-primary) !important;
+                color: var(--gray-800, #1f2937) !important;
+            }
+            
+            .table {
+                border: 1px solid var(--color-primary) !important;
+            }
+            
+            .employee-row:hover {
+                background: rgba(0, 128, 255, 0.05) !important;
+            }
+            
+            /* Sidebar - Updated Colors */
+            .sidebar {
+                border: 2px solid var(--color-primary) !important;
+            }
+            
+            .filter-title {
+                color: var(--color-primary) !important;
+            }
+            
+            /* Status badges */
+            .status {
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 0.85em;
+                font-weight: 600;
+            }
+            
+            .status-đang-làm,
+            .status-đang-làm-việc {
+                background: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%);
+                color: white;
+            }
+            
+            .status-đã-nghỉ,
+            .status-nghỉ-việc {
+                background: linear-gradient(135deg, var(--danger-500) 0%, #c82333 100%);
+                color: white;
+            }
+            
+            .status-tạm-nghỉ,
+            .status-nghỉ-phép {
+                background: linear-gradient(135deg, var(--warning-500) 0%, #f57c00 100%);
+                color: white;
+            }
+            
             /* Minimal modal styles scoped to this page */
             .employee-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
-            .employee-modal { background: #fff; width: 95%; max-width: 1100px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
-            .employee-modal__header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #eee; }
-            .employee-modal__title { font-size: 18px; font-weight: 600; margin: 0; }
-            .employee-modal__close { background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 6px 10px; border-radius: 6px; }
-            .employee-modal__close:hover { background: #f3f4f6; }
+            .employee-modal { background: #fff; width: 95%; max-width: 1100px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; border: 2px solid var(--color-primary); }
+            .employee-modal__header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 2px solid var(--color-primary); background: linear-gradient(135deg, var(--primary-50, #f2f7ff) 0%, var(--secondary-50, #f0f9ff) 100%); }
+            .employee-modal__title { font-size: 18px; font-weight: 600; margin: 0; color: var(--color-primary); }
+            .employee-modal__close { background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 6px 10px; border-radius: 6px; color: var(--gray-800); }
+            .employee-modal__close:hover { background: rgba(0, 128, 255, 0.1); }
             .employee-modal__body { padding: 20px; max-height: 70vh; overflow: auto; }
             .employee-modal__grid { display: grid; grid-template-columns: 160px 1fr; gap: 20px; }
-            .employee-modal__avatar { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; }
+            .employee-modal__avatar { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary); }
             .employee-modal__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
             .employee-field { display: flex; flex-direction: column; gap: 6px; }
             .employee-field label { font-size: 12px; color: #6b7280; }
-            .employee-field .value { font-size: 14px; color: #111827; background: #f9fafb; padding: 10px 12px; border-radius: 8px; border: 1px solid #f3f4f6; }
+            .employee-field .value { font-size: 14px; color: #111827; background: #f9fafb; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--gray-200); }
+            .employee-field .value:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1); }
             @media (max-width: 680px) { .employee-modal__grid { grid-template-columns: 1fr; } .employee-modal__fields { grid-template-columns: 1fr; } }
             .employee-row { cursor: pointer; }
-            .employee-row:hover { background: #f9fafb; }
+            .employee-row:hover { background: rgba(0, 128, 255, 0.05) !important; }
             /* Tabs */
-            .employee-tab-nav { display: flex; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 16px; }
+            .employee-tab-nav { display: flex; gap: 8px; border-bottom: 2px solid var(--color-primary); padding-bottom: 8px; margin-bottom: 16px; }
             .employee-tab-btn { background: transparent; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #374151; }
-            .employee-tab-btn:hover { background: #f3f4f6; }
-            .employee-tab-btn.active { background: #eef2ff; color: #1f2937; font-weight: 600; }
+            .employee-tab-btn:hover { background: rgba(0, 128, 255, 0.1); }
+            .employee-tab-btn.active { background: linear-gradient(135deg, var(--primary-50, #f2f7ff) 0%, var(--secondary-50, #f0f9ff) 100%); color: var(--color-primary); font-weight: 600; }
             .employee-tab-content { display: none; }
             .employee-tab-content.active { display: block; }
             /* Salary configuration styles */
@@ -55,6 +170,26 @@
             .salary-field-group { display: flex; flex-direction: column; gap: 6px; }
             .salary-field-group label { font-size: 13px; font-weight: 500; color: #374151; }
             .salary-field-group small { margin-top: -2px; }
+            
+            /* Search input focus */
+            .search-input:focus {
+                outline: none;
+                border-color: var(--color-primary);
+                box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
+            }
+            
+            /* Filter checkbox */
+            .filter-option input[type="checkbox"]:checked + .checkmark {
+                background: var(--color-primary);
+                border-color: var(--color-primary);
+            }
+            
+            /* Toolbar */
+            .toolbar {
+                border-bottom: 2px solid var(--color-primary);
+                padding-bottom: 1rem;
+                margin-bottom: 1rem;
+            }
         </style>
 
 <div class="content">

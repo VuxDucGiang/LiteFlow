@@ -1,5 +1,9 @@
 # Test Infrastructure Setup Summary
 
+mvn test "-Dtest=com.liteflow.unit.**"
+
+mvn test "-Dtest=com.liteflow.selenium.**"
+
 ## ✅ Completed Tasks
 
 ### 1. Test Directory Structure Created

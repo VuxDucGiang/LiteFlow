@@ -8,15 +8,32 @@
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="${pageContext.request.contextPath}/css/design-system.css">
 
 <style>
         /* Design System */
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --success-gradient: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-            --warning-gradient: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            --danger-gradient: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            --info-gradient: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+            --primary-500: #0080FF;
+            --primary-600: #0066cc;
+            --primary-50: #f2f7ff;
+            --secondary-500: #00c6ff;
+            --secondary-50: #f0f9ff;
+            --color-primary: #0080FF;
+            --color-secondary: #00c6ff;
+            --color-accent: #7d2ae8;
+            --success-500: #4caf50;
+            --warning-500: #ff9800;
+            --danger-500: #dc3545;
+            --info-500: #2196f3;
+            --gray-50: #f9fafb;
+            --gray-200: #e5e7eb;
+            --gray-800: #1f2937;
+            
+            --primary-gradient: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+            --success-gradient: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%);
+            --warning-gradient: linear-gradient(135deg, var(--warning-500) 0%, #f57c00 100%);
+            --danger-gradient: linear-gradient(135deg, var(--danger-500) 0%, #c82333 100%);
+            --info-gradient: linear-gradient(135deg, var(--info-500) 0%, #1976d2 100%);
             
             --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
             --card-hover-shadow: 0 15px 40px rgba(0,0,0,0.15);
@@ -26,36 +43,57 @@
             --border-color: #e5e7eb;
         }
         
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
         /* Override body styling for report page */
         .content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: white;
             min-height: calc(100vh - 120px);
             padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .container {
             max-width: 1600px;
             margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 20px;
         }
         
         /* Header */
         .page-header {
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+            background: white;
             padding: 30px;
             border-radius: 20px;
             margin-bottom: 30px;
             box-shadow: var(--card-shadow);
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid var(--color-primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .page-header h1 {
             font-size: 2.5em;
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -89,7 +127,8 @@
         
         .date-range-picker input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
         }
         
         /* Statistics Cards */
@@ -101,11 +140,11 @@
         }
         
         .stat-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+            background: white;
             padding: 25px;
             border-radius: 15px;
             box-shadow: var(--card-shadow);
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid var(--color-primary);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -126,19 +165,19 @@
         }
         
         .stat-card.revenue::before {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
         }
         
         .stat-card.orders::before {
-            background: var(--success-gradient);
+            background: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%);
         }
         
         .stat-card.avg::before {
-            background: var(--info-gradient);
+            background: linear-gradient(135deg, var(--info-500) 0%, #1976d2 100%);
         }
         
         .stat-card.growth::before {
-            background: var(--warning-gradient);
+            background: linear-gradient(135deg, var(--warning-500) 0%, #f57c00 100%);
         }
         
         .stat-header {
@@ -165,7 +204,7 @@
         .stat-value {
             font-size: 2.2em;
             font-weight: bold;
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -180,11 +219,11 @@
         }
         
         .stat-change.positive {
-            color: #4caf50;
+            color: var(--success-500);
         }
         
         .stat-change.negative {
-            color: #dc3545;
+            color: var(--danger-500);
         }
         
         /* Charts */
@@ -196,11 +235,11 @@
         }
         
         .chart-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+            background: white;
             padding: 25px;
             border-radius: 15px;
             box-shadow: var(--card-shadow);
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid var(--color-primary);
         }
         
         .chart-card.full-width {
@@ -229,12 +268,14 @@
         
         /* Table */
         .table-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+            background: white;
             padding: 25px;
             border-radius: 15px;
             box-shadow: var(--card-shadow);
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid var(--color-primary);
             margin-bottom: 30px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .table-header {
@@ -243,7 +284,7 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
-            border-bottom: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--color-primary);
         }
         
         .table-title {
@@ -252,38 +293,66 @@
             color: var(--text-primary);
         }
         
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+        }
+        
         table {
             width: 100%;
+            min-width: 1000px;
             border-collapse: collapse;
+            table-layout: fixed;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid var(--color-primary);
         }
         
         thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, var(--primary-50, #f2f7ff) 0%, var(--secondary-50, #f0f9ff) 100%);
         }
         
         th {
-            padding: 15px;
+            padding: 18px 20px;
             text-align: left;
             font-weight: 600;
             text-transform: uppercase;
             font-size: 0.85em;
             letter-spacing: 0.5px;
+            color: var(--gray-800, #1f2937);
+            border-bottom: 2px solid var(--color-primary);
+            white-space: nowrap;
         }
         
+        th:nth-child(1) { width: 10%; } /* Xếp hạng */
+        th:nth-child(2) { width: 30%; } /* Sản phẩm */
+        th:nth-child(3) { width: 15%; } /* Số lượng */
+        th:nth-child(4) { width: 15%; } /* Đơn giá */
+        th:nth-child(5) { width: 15%; } /* Doanh thu */
+        th:nth-child(6) { width: 15%; } /* % Tổng DT */
+        
         tbody tr {
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--gray-200, #e5e7eb);
             transition: all 0.3s ease;
         }
         
         tbody tr:hover {
-            background: rgba(102, 126, 234, 0.05);
+            background: rgba(0, 128, 255, 0.05);
             transform: scale(1.01);
         }
         
         td {
-            padding: 15px;
+            padding: 18px 20px;
             color: var(--text-primary);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        td:nth-child(2) {
+            white-space: normal;
+            max-width: 0;
         }
         
         .rank-badge {
@@ -319,17 +388,18 @@
         }
         
         .btn-primary {
-            background: var(--primary-gradient);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+            box-shadow: 0 4px 15px rgba(0, 128, 255, 0.4);
         }
         
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            box-shadow: 0 6px 20px rgba(0, 128, 255, 0.6);
+            background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-500) 100%);
         }
         
         .btn-success {
-            background: var(--success-gradient);
+            background: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%);
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
         }
         
@@ -361,14 +431,16 @@
         
         /* 🆕 TODAY'S DASHBOARD STYLES */
         .today-dashboard {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: white;
             border-radius: 20px;
             padding: 30px;
             margin-bottom: 30px;
-            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
-            border: 3px solid rgba(255,255,255,0.2);
+            box-shadow: var(--card-shadow);
+            border: 3px solid var(--color-primary);
             position: relative;
             overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .today-dashboard::before {
@@ -403,11 +475,10 @@
         }
         
         .today-title h2 {
-            color: white;
+            color: var(--color-primary);
             font-size: 2em;
             margin: 0;
             font-weight: 700;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
         
         .pulse-indicator {
@@ -436,7 +507,7 @@
         }
         
         .today-date {
-            color: rgba(255,255,255,0.9);
+            color: var(--text-secondary);
             font-size: 1.1em;
             font-weight: 500;
         }
@@ -450,10 +521,11 @@
         }
         
         .today-main-card {
-            background: rgba(255,255,255,0.95);
+            background: white;
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border: 2px solid var(--color-primary);
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -475,7 +547,7 @@
         .today-value {
             font-size: 3.5em;
             font-weight: 800;
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -539,10 +611,11 @@
         }
         
         .today-stat-item {
-            background: rgba(255,255,255,0.95);
+            background: white;
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 2px solid var(--color-primary);
             display: flex;
             align-items: center;
             gap: 15px;
@@ -561,7 +634,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.1) 0%, rgba(0, 198, 255, 0.1) 100%);
             border-radius: 12px;
         }
         
@@ -627,6 +700,30 @@
             
             .today-value {
                 font-size: 2.5em;
+            }
+            
+            table {
+                min-width: 800px;
+            }
+            
+            th, td {
+                padding: 12px 15px;
+                font-size: 0.85em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            table {
+                min-width: 700px;
+            }
+            
+            th, td {
+                padding: 10px 12px;
+                font-size: 0.8em;
+            }
+            
+            .page-header h1 {
+                font-size: 1.8em;
             }
         }
 </style>
@@ -819,26 +916,28 @@
             <div class="table-header">
                 <div class="table-title">🏆 Top 10 Sản phẩm Bán chạy</div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Xếp hạng</th>
-                        <th>Sản phẩm</th>
-                        <th>Số lượng</th>
-                        <th>Đơn giá</th>
-                        <th>Doanh thu</th>
-                        <th>% Tổng DT</th>
-                    </tr>
-                </thead>
-                <tbody id="topProductsTable">
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 40px;">
-                            <div class="loading-spinner"></div>
-                            <p>Đang tải dữ liệu...</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Xếp hạng</th>
+                            <th>Sản phẩm</th>
+                            <th>Số lượng</th>
+                            <th>Đơn giá</th>
+                            <th>Doanh thu</th>
+                            <th>% Tổng DT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topProductsTable">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px;">
+                                <div class="loading-spinner"></div>
+                                <p>Đang tải dữ liệu...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 </div>
 
@@ -927,8 +1026,8 @@
                     labels: hourlyTrend.hours,
                     datasets: [{
                         data: hourlyTrend.revenues,
-                        borderColor: 'rgba(102, 126, 234, 1)',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderColor: 'rgba(0, 128, 255, 1)',
+                        backgroundColor: 'rgba(0, 128, 255, 0.1)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.4,
@@ -1035,8 +1134,8 @@
                     datasets: [{
                         label: 'Doanh thu (VNĐ)',
                         data: trendData.revenues,
-                        borderColor: 'rgba(102, 126, 234, 1)',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderColor: 'rgba(0, 128, 255, 1)',
+                        backgroundColor: 'rgba(0, 128, 255, 0.1)',
                         borderWidth: 3,
                         fill: true,
                         tension: 0.4,
@@ -1129,8 +1228,8 @@
                     datasets: [{
                         label: 'Doanh thu (VNĐ)',
                         data: hourlyData.revenues,
-                        backgroundColor: 'rgba(118, 75, 162, 0.8)',
-                        borderColor: 'rgba(118, 75, 162, 1)',
+                        backgroundColor: 'rgba(0, 198, 255, 0.8)',
+                        borderColor: 'rgba(0, 198, 255, 1)',
                         borderWidth: 2
                     }]
                 },
