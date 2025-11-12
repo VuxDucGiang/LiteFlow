@@ -72,9 +72,35 @@ public class DashboardEmployeeServlet extends HttpServlet {
         }
         
         // Lấy thông tin nhân viên hiện tại và load attendance data
+        // Get month and year from request parameters, default to current month/year
+        String monthParam = req.getParameter("month");
+        String yearParam = req.getParameter("year");
+        
         LocalDate now = LocalDate.now();
         int year = now.getYear();
         int month = now.getMonthValue();
+        
+        if (monthParam != null && !monthParam.trim().isEmpty()) {
+            try {
+                month = Integer.parseInt(monthParam.trim());
+                if (month < 1 || month > 12) {
+                    month = now.getMonthValue();
+                }
+            } catch (NumberFormatException e) {
+                month = now.getMonthValue();
+            }
+        }
+        
+        if (yearParam != null && !yearParam.trim().isEmpty()) {
+            try {
+                year = Integer.parseInt(yearParam.trim());
+                if (year < 2020 || year > 2030) {
+                    year = now.getYear();
+                }
+            } catch (NumberFormatException e) {
+                year = now.getYear();
+            }
+        }
         
         // CHỈ LẤY ATTENDANCE CỦA EMPLOYEE HIỆN TẠI
         List<EmployeeAttendance> attendanceList = attendanceDAO.findByEmployeeAndMonth(

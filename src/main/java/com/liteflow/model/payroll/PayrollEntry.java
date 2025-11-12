@@ -71,6 +71,9 @@ public class PayrollEntry implements Serializable {
     @Column(name = "PaidInCurrency", length = 3, nullable = false)
     private String paidInCurrency = "VND";
 
+    @Column(name = "IsPaid", nullable = false)
+    private Boolean isPaid = false;
+
     @Column(name = "CreatedAt", updatable = false)
     private LocalDateTime createdAt;
 
@@ -236,6 +239,14 @@ public class PayrollEntry implements Serializable {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Boolean getIsPaid() {
+        return isPaid;
+    }
+
+    public void setIsPaid(Boolean isPaid) {
+        this.isPaid = isPaid;
     }
 }
 
