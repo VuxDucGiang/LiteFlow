@@ -1,3 +1,5 @@
+package com.liteflow.util;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import javax.crypto.Mac;
