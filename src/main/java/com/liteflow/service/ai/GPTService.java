@@ -21,22 +21,36 @@ import java.util.concurrent.TimeUnit;
 public class GPTService {
     
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String DEFAULT_MODEL = "gpt-3.5-turbo";
-    private static final int MAX_TOKENS = 1000; // Increased for detailed revenue analysis
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    
+    // Default values (fallback if config not found)
+    private static final String DEFAULT_MODEL = "gpt-3.5-turbo";
+    private static final int DEFAULT_MAX_TOKENS = 1000;
+    private static final double DEFAULT_TEMPERATURE = 0.7;
+    private static final int DEFAULT_CONNECT_TIMEOUT = 30;
+    private static final int DEFAULT_WRITE_TIMEOUT = 30;
+    private static final int DEFAULT_READ_TIMEOUT = 60;
     
     private final OkHttpClient client;
     private final String apiKey;
     private DemandForecastService demandService;
     private RevenueReportService revenueService;
     private ProductInventoryService productInventoryService;
+    private final AIAgentConfigService configService;
     
     public GPTService(String apiKey) {
         this.apiKey = apiKey;
+        this.configService = new AIAgentConfigService();
+        
+        // Build client with configurable timeouts
+        int connectTimeout = configService.getIntConfig("gpt.connect_timeout", DEFAULT_CONNECT_TIMEOUT);
+        int writeTimeout = configService.getIntConfig("gpt.write_timeout", DEFAULT_WRITE_TIMEOUT);
+        int readTimeout = configService.getIntConfig("gpt.read_timeout", DEFAULT_READ_TIMEOUT);
+        
         this.client = new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(connectTimeout, TimeUnit.SECONDS)
+            .writeTimeout(writeTimeout, TimeUnit.SECONDS)
+            .readTimeout(readTimeout, TimeUnit.SECONDS)
             .build();
         try {
             this.demandService = new DemandForecastService();
@@ -54,6 +68,34 @@ public class GPTService {
     }
     
     /**
+     * Get GPT model from config or default
+     */
+    private String getModel() {
+        return configService.getStringConfig("gpt.model", DEFAULT_MODEL);
+    }
+    
+    /**
+     * Get max tokens from config or default
+     */
+    private int getMaxTokens() {
+        return configService.getIntConfig("gpt.max_tokens", DEFAULT_MAX_TOKENS);
+    }
+    
+    /**
+     * Get temperature from config or default
+     */
+    private double getTemperature() {
+        return configService.getDecimalConfig("gpt.temperature", DEFAULT_TEMPERATURE);
+    }
+    
+    /**
+     * Check if GPT features are enabled
+     */
+    public boolean isGPTFeaturesEnabled() {
+        return configService.getBooleanConfig("gpt.enable_features", true);
+    }
+    
+    /**
      * Send a message to GPT and get response
      * @param userMessage User's message
      * @param systemPrompt Optional system prompt (null for default)
@@ -66,11 +108,16 @@ public class GPTService {
         
         System.out.println("🤖 GPT Request: " + userMessage);
         
+        // Check if GPT features are enabled
+        if (!isGPTFeaturesEnabled()) {
+            throw new IllegalStateException("GPT features are disabled in configuration");
+        }
+        
         // Build request JSON
         JSONObject requestBody = new JSONObject();
-        requestBody.put("model", DEFAULT_MODEL);
-        requestBody.put("max_tokens", MAX_TOKENS);
-        requestBody.put("temperature", 0.7);
+        requestBody.put("model", getModel());
+        requestBody.put("max_tokens", getMaxTokens());
+        requestBody.put("temperature", getTemperature());
         
         // Build messages array
         JSONArray messages = new JSONArray();
@@ -244,6 +291,9 @@ public class GPTService {
                 // User might be confirming PO creation from previous stock query
                 // Try to get low stock items and create PO
                 try {
+                    if (productInventoryService == null) {
+                        return "Xin lỗi, dịch vụ kiểm tra tồn kho hiện không khả dụng. Vui lòng thử lại sau.";
+                    }
                     final int CRITICAL_THRESHOLD = 10;
                     final int WARNING_THRESHOLD = 20;
                     JSONObject lowStockResult = productInventoryService.getAllLowStockProducts(CRITICAL_THRESHOLD, WARNING_THRESHOLD);
@@ -309,6 +359,9 @@ public class GPTService {
         System.out.println("📦 Handling Stock Query - Query from ProductStock table...");
         
         try {
+            if (productInventoryService == null) {
+                return "Xin lỗi, dịch vụ kiểm tra tồn kho hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Thresholds
             final int CRITICAL_THRESHOLD = 10;
             final int WARNING_THRESHOLD = 20;
@@ -324,7 +377,11 @@ public class GPTService {
             // Get replenishment suggestions from DemandForecastService
             JSONObject forecastResult = new JSONObject();
             try {
-                forecastResult = demandService.generateReplenishmentSuggestions();
+                if (demandService != null) {
+                    forecastResult = demandService.generateReplenishmentSuggestions();
+                } else {
+                    forecastResult = new JSONObject().put("success", false).put("error", "Dịch vụ dự báo nhu cầu không khả dụng");
+                }
             } catch (Exception e) {
                 System.err.println("⚠️ Error getting forecast suggestions: " + e.getMessage());
                 forecastResult.put("success", false);
@@ -599,6 +656,9 @@ public class GPTService {
         System.out.println("📊 Handling Demand Forecast Query...");
         
         try {
+            if (demandService == null) {
+                return "Xin lỗi, dịch vụ dự báo nhu cầu hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Get real demand forecast data
             JSONObject forecast = demandService.generateReplenishmentSuggestions();
             
@@ -692,6 +752,9 @@ public class GPTService {
             
             System.out.println("📅 Revenue query date range: " + startDate + " to " + endDate);
             
+            if (revenueService == null) {
+                return "Xin lỗi, dịch vụ báo cáo doanh thu hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Get revenue report data
             JSONObject report = revenueService.generateReport(startDate, endDate);
             
@@ -824,6 +887,9 @@ public class GPTService {
             
             System.out.println("📅 Category revenue query date range: " + startDate + " to " + endDate);
             
+            if (revenueService == null) {
+                return "Xin lỗi, dịch vụ báo cáo doanh thu hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Get revenue report data
             JSONObject report = revenueService.generateReport(startDate, endDate);
             
@@ -993,6 +1059,9 @@ public class GPTService {
         System.out.println("⚠️ Handling Stock Alert Query...");
         
         try {
+            if (demandService == null) {
+                return "Xin lỗi, dịch vụ cảnh báo tồn kho hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             JSONObject alerts = demandService.getStockAlerts();
             
             if (!alerts.getBoolean("success")) {

@@ -910,4 +910,215 @@ public class ProcurementService {
                               !inv.getInvoiceDate().isAfter(endDate))
                 .collect(java.util.stream.Collectors.toList());
     }
+    
+    /* ============================================================
+       9. DASHBOARD STATISTICS & ACTIVITIES
+    ============================================================ */
+    
+    /**
+     * Activity DTO for dashboard
+     */
+    public static class ActivityDTO {
+        private String type;
+        private String description;
+        private LocalDateTime timestamp;
+        private String entityId;
+        private String formattedTime; // Formatted time string for display
+        
+        public ActivityDTO(String type, String description, LocalDateTime timestamp, String entityId) {
+            this.type = type;
+            this.description = description;
+            this.timestamp = timestamp;
+            this.entityId = entityId;
+            // Format timestamp for display
+            if (timestamp != null) {
+                java.time.format.DateTimeFormatter formatter = 
+                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                this.formattedTime = timestamp.format(formatter);
+            } else {
+                this.formattedTime = "Không xác định";
+            }
+        }
+        
+        public String getType() { return type; }
+        public String getDescription() { return description; }
+        public LocalDateTime getTimestamp() { return timestamp; }
+        public String getEntityId() { return entityId; }
+        public String getFormattedTime() { return formattedTime; }
+    }
+    
+    /**
+     * Get dashboard statistics
+     * @return Map with statistics keys
+     */
+    public Map<String, Object> getDashboardStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Total suppliers (active only)
+        long totalSuppliers = supplierDAO.getAll().stream()
+                .filter(s -> s.getIsActive() != null && s.getIsActive())
+                .count();
+        stats.put("totalSuppliers", (int) totalSuppliers);
+        
+        // Pending POs
+        int pendingPOs = poDAO.countPending();
+        stats.put("pendingPOs", pendingPOs);
+        
+        // In delivery POs (APPROVED or RECEIVING)
+        jakarta.persistence.EntityManager em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+        try {
+            String jpql = "SELECT COUNT(po) FROM PurchaseOrder po " +
+                         "WHERE po.status IN ('APPROVED', 'RECEIVING')";
+            Long count = em.createQuery(jpql, Long.class).getSingleResult();
+            stats.put("inDeliveryPOs", count != null ? count.intValue() : 0);
+        } finally {
+            em.close();
+        }
+        
+        // Overdue POs
+        List<PurchaseOrder> overduePOs = getOverduePOs();
+        stats.put("overduePOs", overduePOs.size());
+        
+        // Near deadline POs (within 3 days)
+        List<PurchaseOrder> nearDeadlinePOs = getPOsNearDeadline(3);
+        stats.put("nearDeadlinePOs", nearDeadlinePOs.size());
+        
+        // Unmatched invoices
+        List<Invoice> unmatchedInvoices = getUnmatchedInvoices();
+        stats.put("unmatchedInvoices", unmatchedInvoices.size());
+        
+        return stats;
+    }
+    
+    /**
+     * Get recent activities for dashboard
+     * @param limit Maximum number of activities to return
+     * @return List of ActivityDTO sorted by timestamp (newest first)
+     */
+    public List<ActivityDTO> getRecentActivities(int limit) {
+        List<ActivityDTO> activities = new ArrayList<>();
+        
+        // Get recent POs
+        List<PurchaseOrder> recentPOs = poDAO.getAll().stream()
+                .sorted((a, b) -> {
+                    if (a.getCreateDate() == null && b.getCreateDate() == null) return 0;
+                    if (a.getCreateDate() == null) return 1;
+                    if (b.getCreateDate() == null) return -1;
+                    return b.getCreateDate().compareTo(a.getCreateDate());
+                })
+                .limit(10)
+                .collect(java.util.stream.Collectors.toList());
+        
+        for (PurchaseOrder po : recentPOs) {
+            String status = po.getStatus();
+            String description;
+            String type;
+            
+            if ("PENDING".equals(status)) {
+                type = "PO_CREATED";
+                description = "Đơn hàng " + formatPOID(po.getPoid()) + " đã được tạo";
+            } else if ("APPROVED".equals(status)) {
+                type = "PO_APPROVED";
+                description = "Đơn hàng " + formatPOID(po.getPoid()) + " đã được duyệt";
+            } else if ("REJECTED".equals(status)) {
+                type = "PO_REJECTED";
+                description = "Đơn hàng " + formatPOID(po.getPoid()) + " đã bị từ chối";
+            } else {
+                type = "PO_UPDATED";
+                description = "Đơn hàng " + formatPOID(po.getPoid()) + " đã được cập nhật";
+            }
+            
+            activities.add(new ActivityDTO(type, description, 
+                    po.getCreateDate() != null ? po.getCreateDate() : LocalDateTime.now(),
+                    po.getPoid().toString()));
+        }
+        
+        // Get recent Goods Receipts
+        List<GoodsReceipt> recentGRs = grDAO.getAll().stream()
+                .sorted((a, b) -> {
+                    if (a.getReceiveDate() == null && b.getReceiveDate() == null) return 0;
+                    if (a.getReceiveDate() == null) return 1;
+                    if (b.getReceiveDate() == null) return -1;
+                    return b.getReceiveDate().compareTo(a.getReceiveDate());
+                })
+                .limit(10)
+                .collect(java.util.stream.Collectors.toList());
+        
+        for (GoodsReceipt gr : recentGRs) {
+            String status = gr.getStatus();
+            String description = "Đã nhận hàng từ đơn hàng " + formatPOID(gr.getPoid()) + 
+                               ("FULL".equals(status) ? " (đầy đủ)" : " (một phần)");
+            activities.add(new ActivityDTO("GR_RECEIVED", description,
+                    gr.getReceiveDate() != null ? gr.getReceiveDate() : LocalDateTime.now(),
+                    gr.getReceiptID().toString()));
+        }
+        
+        // Get recent Invoices
+        List<Invoice> recentInvoices = invDAO.getAll().stream()
+                .sorted((a, b) -> {
+                    if (a.getInvoiceDate() == null && b.getInvoiceDate() == null) return 0;
+                    if (a.getInvoiceDate() == null) return 1;
+                    if (b.getInvoiceDate() == null) return -1;
+                    return b.getInvoiceDate().compareTo(a.getInvoiceDate());
+                })
+                .limit(10)
+                .collect(java.util.stream.Collectors.toList());
+        
+        for (Invoice inv : recentInvoices) {
+            String matchStatus = inv.getMatchStatus();
+            String description;
+            if ("MATCHED".equals(matchStatus)) {
+                description = "Hóa đơn " + formatInvoiceID(inv.getInvoiceID()) + " đã được đối chiếu thành công";
+            } else if ("MISMATCHED".equals(matchStatus)) {
+                description = "Hóa đơn " + formatInvoiceID(inv.getInvoiceID()) + " có sự không khớp";
+            } else {
+                description = "Hóa đơn " + formatInvoiceID(inv.getInvoiceID()) + " chờ đối chiếu";
+            }
+            activities.add(new ActivityDTO("INVOICE_MATCHED", description,
+                    inv.getInvoiceDate() != null ? inv.getInvoiceDate() : LocalDateTime.now(),
+                    inv.getInvoiceID().toString()));
+        }
+        
+        // Get recent Suppliers
+        List<Supplier> recentSuppliers = supplierDAO.getAll().stream()
+                .sorted((a, b) -> {
+                    if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
+                    if (a.getCreatedAt() == null) return 1;
+                    if (b.getCreatedAt() == null) return -1;
+                    return b.getCreatedAt().compareTo(a.getCreatedAt());
+                })
+                .limit(5)
+                .collect(java.util.stream.Collectors.toList());
+        
+        for (Supplier supplier : recentSuppliers) {
+            activities.add(new ActivityDTO("SUPPLIER_ADDED", 
+                    "Thêm nhà cung cấp mới: " + supplier.getName(),
+                    supplier.getCreatedAt() != null ? supplier.getCreatedAt() : LocalDateTime.now(),
+                    supplier.getSupplierID().toString()));
+        }
+        
+        // Sort all activities by timestamp (newest first) and limit
+        return activities.stream()
+                .sorted((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()))
+                .limit(limit)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * Format PO ID for display (last 8 characters)
+     */
+    private String formatPOID(UUID poid) {
+        if (poid == null) return "N/A";
+        String str = poid.toString().replace("-", "");
+        return "PO-" + str.substring(Math.max(0, str.length() - 8));
+    }
+    
+    /**
+     * Format Invoice ID for display (last 8 characters)
+     */
+    private String formatInvoiceID(UUID invoiceID) {
+        if (invoiceID == null) return "N/A";
+        String str = invoiceID.toString().replace("-", "");
+        return "INV-" + str.substring(Math.max(0, str.length() - 8));
+    }
 }

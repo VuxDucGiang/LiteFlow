@@ -7,6 +7,7 @@ import com.liteflow.model.alert.UserAlertPreference;
 import com.liteflow.model.inventory.ProductVariant;
 import com.liteflow.model.inventory.StockAlertNotification;
 import com.liteflow.service.alert.NotificationService;
+import com.liteflow.service.ai.AIAgentConfigService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
@@ -22,25 +23,50 @@ public class StockAlertService {
     
     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("LiteFlowPU");
     
-    // Alert thresholds
-    private static final int WARNING_THRESHOLD = 20;  // <20: Cảnh báo
-    private static final int CRITICAL_THRESHOLD = 10; // <10: Nguy hiểm
-    
-    // Telegram Bot Token (can be configured via environment variable or default channel)
-    private static final String TELEGRAM_BOT_TOKEN = System.getenv("TELEGRAM_BOT_TOKEN") != null 
-        ? System.getenv("TELEGRAM_BOT_TOKEN") 
-        : "8462540667:AAGCDTkl1kdibhVffVZSmIbSv-kyMoJkPGI"; // Default from user config
+    // Default thresholds (fallback if config not found)
+    private static final int DEFAULT_WARNING_THRESHOLD = 20;
+    private static final int DEFAULT_CRITICAL_THRESHOLD = 10;
     
     private final StockAlertNotificationDAO notificationDAO;
     private final ProductStockDAO productStockDAO;
     private final UserAlertPreferenceDAO userAlertPreferenceDAO;
     private final NotificationService notificationService;
+    private final AIAgentConfigService configService;
     
     public StockAlertService() {
         this.notificationDAO = new StockAlertNotificationDAO();
         this.productStockDAO = new ProductStockDAO();
         this.userAlertPreferenceDAO = new UserAlertPreferenceDAO();
         this.notificationService = new NotificationService();
+        this.configService = new AIAgentConfigService();
+    }
+    
+    /**
+     * Get warning threshold from config or default
+     */
+    private int getWarningThreshold() {
+        return configService.getIntConfig("stock.warning_threshold", DEFAULT_WARNING_THRESHOLD);
+    }
+    
+    /**
+     * Get critical threshold from config or default
+     */
+    private int getCriticalThreshold() {
+        return configService.getIntConfig("stock.critical_threshold", DEFAULT_CRITICAL_THRESHOLD);
+    }
+    
+    /**
+     * Check if stock alerts are enabled
+     */
+    private boolean isStockAlertsEnabled() {
+        return configService.getBooleanConfig("stock.enable_alerts", true);
+    }
+    
+    /**
+     * Check if Telegram notifications are enabled globally
+     */
+    private boolean isTelegramNotificationsEnabled() {
+        return configService.getBooleanConfig("notification.enable_telegram", true);
     }
     
     /**
@@ -52,6 +78,12 @@ public class StockAlertService {
     public void checkAndSendAlertsAfterPayment(List<Map<String, Object>> orderItems, UUID userId) {
         if (orderItems == null || orderItems.isEmpty()) {
             System.out.println("⚠️ No order items to check stock alerts");
+            return;
+        }
+        
+        // Check if stock alerts are enabled
+        if (!isStockAlertsEnabled()) {
+            System.out.println("ℹ️ Stock alerts are disabled in configuration");
             return;
         }
         
@@ -114,23 +146,27 @@ public class StockAlertService {
             String productName = variant.getProduct().getName();
             String size = variant.getSize();
             
+            // Get thresholds from config
+            int criticalThreshold = getCriticalThreshold();
+            int warningThreshold = getWarningThreshold();
+            
             // Determine which thresholds need alerts
-            if (currentStock <= CRITICAL_THRESHOLD && currentStock > 0) {
-                // Critical alert (<10)
-                sendAlertIfNeeded(em, variantId, productName, size, currentStock, CRITICAL_THRESHOLD, targetUserId);
+            if (currentStock <= criticalThreshold && currentStock > 0) {
+                // Critical alert
+                sendAlertIfNeeded(em, variantId, productName, size, currentStock, criticalThreshold, targetUserId);
             }
             
-            if (currentStock <= WARNING_THRESHOLD && currentStock > CRITICAL_THRESHOLD) {
-                // Warning alert (10 < stock <= 20)
-                sendAlertIfNeeded(em, variantId, productName, size, currentStock, WARNING_THRESHOLD, targetUserId);
+            if (currentStock <= warningThreshold && currentStock > criticalThreshold) {
+                // Warning alert
+                sendAlertIfNeeded(em, variantId, productName, size, currentStock, warningThreshold, targetUserId);
             }
             
             // Reset notification state if stock increased above threshold
-            if (currentStock > WARNING_THRESHOLD) {
-                notificationDAO.resetNotificationState(variantId, WARNING_THRESHOLD);
+            if (currentStock > warningThreshold) {
+                notificationDAO.resetNotificationState(variantId, warningThreshold);
             }
-            if (currentStock > CRITICAL_THRESHOLD) {
-                notificationDAO.resetNotificationState(variantId, CRITICAL_THRESHOLD);
+            if (currentStock > criticalThreshold) {
+                notificationDAO.resetNotificationState(variantId, criticalThreshold);
             }
             
         } catch (Exception e) {
@@ -144,6 +180,12 @@ public class StockAlertService {
      */
     private void sendAlertIfNeeded(EntityManager em, UUID variantId, String productName, String size, 
                                    int currentStock, int threshold, UUID targetUserId) {
+        
+        // Check if Telegram notifications are enabled globally
+        if (!isTelegramNotificationsEnabled()) {
+            System.out.println("ℹ️ Telegram notifications are disabled globally (notification.enable_telegram = false). Skipping Telegram notification.");
+            return;
+        }
         
         // Get list of users to notify
         List<UUID> userIdsToNotify = getUsersToNotify(targetUserId);
@@ -183,7 +225,8 @@ public class StockAlertService {
                 String message;
                 String priority;
                 
-                if (threshold == CRITICAL_THRESHOLD) {
+                int criticalThreshold = getCriticalThreshold();
+                if (threshold == criticalThreshold) {
                     title = "NGUY HIỂM TỒN KHO";
                     message = String.format(
                         "Sản phẩm <b>%s</b> (Size: <b>%s</b>) chỉ còn <b>%d</b> đơn vị trong kho.\n\n" +
@@ -202,7 +245,14 @@ public class StockAlertService {
                 }
                 
                 // Send Telegram message
-                boolean sent = notificationService.sendTelegramToUser(chatId, title, message, priority, TELEGRAM_BOT_TOKEN);
+                // Note: Telegram token is handled by NotificationService from .env or database
+                System.out.println("🔍 [StockAlert] Attempting to send Telegram notification to Chat ID: " + chatId);
+                System.out.println("🔍 [StockAlert] Title: " + title);
+                System.out.println("🔍 [StockAlert] Message length: " + (message != null ? message.length() : 0) + " characters");
+                System.out.println("🔍 [StockAlert] Priority: " + priority);
+                System.out.println("🔍 [StockAlert] Bot token: Will be retrieved by NotificationService (passing null)");
+                boolean sent = notificationService.sendTelegramToUser(chatId, title, message, priority, null);
+                System.out.println("🔍 [StockAlert] Send result: " + (sent ? "SUCCESS" : "FAILED"));
                 
                 if (sent) {
                     // Mark notification as sent (use separate EntityManager for transaction)

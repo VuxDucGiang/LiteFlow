@@ -1,6 +1,7 @@
 package com.liteflow.service.analytics;
 
 import com.liteflow.dao.analytics.DemandForecastDAO;
+import com.liteflow.service.ai.AIAgentConfigService;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -23,18 +24,47 @@ import java.util.*;
 public class DemandForecastService {
     
     private final DemandForecastDAO forecastDAO;
+    private final AIAgentConfigService configService;
     
-    // Configuration constants
-    private static final int DEFAULT_ANALYSIS_DAYS = 30;  // Phân tích 30 ngày gần nhất
-    private static final int DEFAULT_LEAD_TIME_DAYS = 3;   // Thời gian giao hàng mặc định
-    private static final double SAFETY_STOCK_MULTIPLIER = 1.5;  // Hệ số tồn kho an toàn
-    private static final int LOW_STOCK_THRESHOLD = 20;     // Ngưỡng tồn kho thấp
-    private static final int CRITICAL_STOCK_THRESHOLD = 5; // Ngưỡng tồn kho nguy hiểm
-    @SuppressWarnings("unused")
-    private static final int TOP_PRODUCTS_LIMIT = 20;      // Top sản phẩm theo doanh thu
+    // Default configuration constants (fallback if config not found)
+    private static final int DEFAULT_ANALYSIS_DAYS = 30;
+    private static final int DEFAULT_LEAD_TIME_DAYS = 3;
+    private static final double SAFETY_STOCK_MULTIPLIER = 1.5;
+    private static final int DEFAULT_LOW_STOCK_THRESHOLD = 20;
+    private static final int DEFAULT_CRITICAL_STOCK_THRESHOLD = 5;
+    private static final int TOP_PRODUCTS_LIMIT = 20;
     
     public DemandForecastService() {
         this.forecastDAO = new DemandForecastDAO();
+        this.configService = new AIAgentConfigService();
+    }
+    
+    /**
+     * Get low stock threshold from config or default
+     */
+    private int getLowStockThreshold() {
+        return configService.getIntConfig("forecast.low_stock_threshold", DEFAULT_LOW_STOCK_THRESHOLD);
+    }
+    
+    /**
+     * Get critical stock threshold from config or default
+     */
+    private int getCriticalStockThreshold() {
+        return configService.getIntConfig("forecast.critical_stock_threshold", DEFAULT_CRITICAL_STOCK_THRESHOLD);
+    }
+    
+    /**
+     * Get forecast days ahead from config or default
+     */
+    private int getForecastDaysAhead() {
+        return configService.getIntConfig("forecast.days_ahead", 7);
+    }
+    
+    /**
+     * Check if demand forecast is enabled
+     */
+    private boolean isDemandForecastEnabled() {
+        return configService.getBooleanConfig("forecast.enable_forecast", true);
     }
     
     /**
@@ -147,7 +177,7 @@ public class DemandForecastService {
         result.put("success", true);
         
         try {
-            List<Object[]> lowStock = forecastDAO.getLowStockProducts(LOW_STOCK_THRESHOLD);
+            List<Object[]> lowStock = forecastDAO.getLowStockProducts(getLowStockThreshold());
             
             JSONArray critical = new JSONArray();
             JSONArray warning = new JSONArray();
@@ -166,7 +196,7 @@ public class DemandForecastService {
                 alert.put("currentStock", stock);
                 alert.put("price", price.doubleValue());
                 
-                if (stock <= CRITICAL_STOCK_THRESHOLD) {
+                if (stock <= getCriticalStockThreshold()) {
                     alert.put("level", "CRITICAL");
                     critical.put(alert);
                 } else {
@@ -197,8 +227,8 @@ public class DemandForecastService {
         params.put("analysisDays", DEFAULT_ANALYSIS_DAYS);
         params.put("leadTimeDays", DEFAULT_LEAD_TIME_DAYS);
         params.put("safetyStockMultiplier", SAFETY_STOCK_MULTIPLIER);
-        params.put("lowStockThreshold", LOW_STOCK_THRESHOLD);
-        params.put("criticalStockThreshold", CRITICAL_STOCK_THRESHOLD);
+        params.put("lowStockThreshold", getLowStockThreshold());
+        params.put("criticalStockThreshold", getCriticalStockThreshold());
         return params;
     }
     
@@ -290,7 +320,7 @@ public class DemandForecastService {
     }
     
     private String determineUrgency(int currentStock, int reorderPoint, String risk) {
-        if (currentStock <= CRITICAL_STOCK_THRESHOLD || risk.equals("HIGH")) {
+        if (currentStock <= getCriticalStockThreshold() || risk.equals("HIGH")) {
             return "URGENT";
         } else if (currentStock <= reorderPoint || risk.equals("MEDIUM")) {
             return "HIGH";
@@ -303,7 +333,7 @@ public class DemandForecastService {
     
     private boolean shouldSuggestReplenishment(int currentStock, int reorderPoint, double dailySalesRate) {
         // Suggest if stock is below reorder point OR if sales rate > 0 and stock is low
-        return currentStock <= reorderPoint || (dailySalesRate > 0 && currentStock <= LOW_STOCK_THRESHOLD);
+        return currentStock <= reorderPoint || (dailySalesRate > 0 && currentStock <= getLowStockThreshold());
     }
     
     private int calculateDaysUntilStockout(int currentStock, double dailySalesRate) {

@@ -91,19 +91,19 @@ class NotificationBell {
             
             .bell-button {
                 position: relative;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0080FF 0%, #0066cc 100%);
                 border: none;
                 border-radius: 50%;
                 width: 45px;
                 height: 45px;
                 cursor: pointer;
                 transition: all 0.3s ease;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                box-shadow: 0 4px 15px rgba(0, 128, 255, 0.3);
             }
             
             .bell-button:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+                box-shadow: 0 6px 20px rgba(0, 128, 255, 0.5);
             }
             
             .bell-icon {
@@ -152,7 +152,7 @@ class NotificationBell {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0080FF 0%, #0066cc 100%);
                 color: white;
             }
             
@@ -195,8 +195,8 @@ class NotificationBell {
             }
             
             .notification-item.unread {
-                background: linear-gradient(90deg, rgba(102,126,234,0.05) 0%, rgba(255,255,255,1) 100%);
-                border-left: 4px solid #667eea;
+                background: linear-gradient(90deg, rgba(0, 128, 255, 0.05) 0%, rgba(255,255,255,1) 100%);
+                border-left: 4px solid #0080FF;
             }
             
             .notification-item .priority-badge {
@@ -244,7 +244,7 @@ class NotificationBell {
             }
             
             .view-all-link {
-                color: #667eea;
+                color: #0080FF;
                 text-decoration: none;
                 font-weight: 600;
                 font-size: 0.9em;
@@ -266,7 +266,7 @@ class NotificationBell {
                 width: 30px;
                 height: 30px;
                 border: 3px solid #f0f0f0;
-                border-top-color: #667eea;
+                border-top-color: #0080FF;
                 border-radius: 50%;
                 animation: spin 1s linear infinite;
                 margin-bottom: 10px;
@@ -278,9 +278,9 @@ class NotificationBell {
             
             /* Mark as read button hover effect */
             .notification-item button:hover {
-                background: #764ba2 !important;
+                background: #0066cc !important;
                 transform: scale(1.1);
-                box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+                box-shadow: 0 2px 8px rgba(0, 128, 255, 0.4);
             }
         `;
         
@@ -370,7 +370,7 @@ class NotificationBell {
                         <div class="message">${this.escapeHtml(alert.message)}</div>
                         <div class="time">${timeAgo}</div>
                     </div>
-                    ${!alert.isRead && alert.alertType !== 'PO_PENDING' && alert.alertType !== 'PO_OVERDUE' ? `<button onclick="event.stopPropagation(); notificationBell.markAsRead('${alert.historyID}')" title="Đánh dấu đã đọc" style="background: #667eea; color: white; border: none; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.9em; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">✓</button>` : ''}
+                    ${!alert.isRead && alert.alertType !== 'PO_PENDING' && alert.alertType !== 'PO_OVERDUE' ? `<button onclick="event.stopPropagation(); notificationBell.markAsRead('${alert.historyID}')" title="Đánh dấu đã đọc" style="background: #0080FF; color: white; border: none; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.9em; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;">✓</button>` : ''}
                 </div>
             `;
             
