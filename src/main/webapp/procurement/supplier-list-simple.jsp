@@ -8,13 +8,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Nhà cung cấp</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/design-system.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="${pageContext.request.contextPath}/js/dropdown-simple.js"></script>
     
     <style>
+        :root {
+            --primary-500: #0080FF;
+            --primary-600: #0066cc;
+            --secondary-500: #00c6ff;
+            --color-primary: #0080FF;
+            --color-secondary: #00c6ff;
+            --color-accent: #7d2ae8;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100vw;
+        }
+        
+        body {
+            background: var(--gray-50, #f9fafb);
+            margin: 0;
+            padding: 0;
+        }
+        
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .page-header {
@@ -22,16 +51,47 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            width: 100%;
+            box-sizing: border-box;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
         .page-title {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
-            color: #1f2937;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .page-title .icon {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.3);
+            -webkit-text-fill-color: initial;
+            -webkit-background-clip: initial;
+            background-clip: initial;
         }
         
         .btn-primary {
-            background: #3b82f6;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: white;
             padding: 12px 24px;
             border: none;
@@ -42,64 +102,122 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            box-shadow: 0 2px 6px rgba(0, 128, 255, 0.3);
+            transition: all 0.2s;
         }
         
         .btn-primary:hover {
-            background: #2563eb;
+            background: linear-gradient(135deg, var(--primary-600), var(--secondary-500));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.4);
+        }
+        
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
         }
         
         .supplier-table {
             width: 100%;
+            min-width: 1200px;
             border-collapse: collapse;
             background: white;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid var(--color-primary);
+            position: relative;
+            table-layout: fixed;
+        }
+        
+        .supplier-table::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-500), var(--secondary-500));
         }
         
         .supplier-table th {
-            background: #f8fafc;
-            padding: 16px;
+            background: linear-gradient(135deg, var(--primary-50, #f2f7ff) 0%, var(--secondary-50, #f0f9ff) 100%);
+            padding: 16px 20px;
             text-align: left;
             font-weight: 600;
-            color: #374151;
-            border-bottom: 1px solid #e5e7eb;
+            color: var(--gray-800, #1f2937);
+            border-bottom: 2px solid var(--color-primary);
+            white-space: nowrap;
         }
         
+        .supplier-table th:nth-child(1) { width: 18%; } /* Tên nhà cung cấp */
+        .supplier-table th:nth-child(2) { width: 12%; } /* Người liên hệ */
+        .supplier-table th:nth-child(3) { width: 18%; } /* Email */
+        .supplier-table th:nth-child(4) { width: 12%; } /* Số điện thoại */
+        .supplier-table th:nth-child(5) { width: 10%; } /* Đánh giá */
+        .supplier-table th:nth-child(6) { width: 12%; } /* Tỷ lệ đúng hẹn */
+        .supplier-table th:nth-child(7) { width: 10%; } /* Trạng thái */
+        .supplier-table th:nth-child(8) { width: 8%; }  /* Thao tác */
+        
         .supplier-table td {
-            padding: 16px;
-            border-bottom: 1px solid #f3f4f6;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200, #e5e7eb);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .supplier-table td:nth-child(1),
+        .supplier-table td:nth-child(3) {
+            white-space: normal;
+            max-width: 0;
         }
         
         .supplier-table tr:hover {
-            background: #f9fafb;
+            background: rgba(0, 128, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+        
+        @media (min-width: 1024px) {
+            .supplier-table tr:hover {
+                transform: translateX(2px);
+            }
         }
         
         .btn-edit, .btn-details {
             padding: 8px 16px;
             border: none;
-            border-radius: 6px;
-            font-weight: 500;
+            border-radius: 8px;
+            font-weight: 600;
             cursor: pointer;
             margin-right: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+            white-space: nowrap;
         }
         
         .btn-edit {
-            background: #10b981;
+            background: linear-gradient(135deg, var(--success-500, #22c55e), var(--success-600, #16a34a));
             color: white;
         }
         
         .btn-edit:hover {
-            background: #059669;
+            background: linear-gradient(135deg, var(--success-600, #16a34a), var(--success-700, #15803d));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
         }
         
         .btn-details {
-            background: #6366f1;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: white;
         }
         
         .btn-details:hover {
-            background: #4f46e5;
+            background: linear-gradient(135deg, var(--primary-600), var(--secondary-500));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.3);
         }
         
         .status-badge {
@@ -107,28 +225,37 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
         }
         
         .status-active {
-            background: #dcfce7;
-            color: #166534;
+            background: linear-gradient(135deg, var(--success-500, #22c55e), var(--success-600, #16a34a));
+            color: white;
         }
         
         .status-inactive {
-            background: #fee2e2;
-            color: #991b1b;
+            background: linear-gradient(135deg, var(--error-500, #ef4444), var(--error-600, #dc2626));
+            color: white;
         }
         
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #6b7280;
+            color: var(--gray-600, #6b7280);
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid var(--color-primary);
         }
         
         .empty-state i {
             font-size: 48px;
             margin-bottom: 16px;
-            color: #d1d5db;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
     </style>
 </head>
@@ -139,7 +266,10 @@
 
     <div class="container">
         <div class="page-header">
-            <h1 class="page-title">Quản lý Nhà cung cấp</h1>
+            <h1 class="page-title">
+                <span class="icon">🏢</span>
+                Quản lý Nhà cung cấp
+            </h1>
             <button class="btn-primary" onclick="openAddModal()">
                 <i class='bx bx-plus'></i>
                 Thêm nhà cung cấp
@@ -148,6 +278,7 @@
 
         <c:choose>
             <c:when test="${suppliers != null && suppliers.size() > 0}">
+                <div class="table-wrapper">
                 <table class="supplier-table">
                     <thead>
                         <tr>
@@ -209,6 +340,7 @@
                         </c:forEach>
                     </tbody>
                 </table>
+                </div>
             </c:when>
             <c:otherwise>
                 <div class="empty-state">
@@ -447,14 +579,17 @@
 
         .modal-content {
             background: white;
-            border-radius: 12px;
+            border-radius: 16px;
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
             z-index: 1000000 !important;
             overflow-y: auto;
+            overflow-x: hidden;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             margin-top: 12vh;
+            border: 1px solid var(--color-primary);
+            box-sizing: border-box;
         }
 
         .modal-header {
@@ -462,26 +597,51 @@
             justify-content: space-between;
             align-items: center;
             padding: 20px 24px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--gray-200, #e5e7eb);
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            color: white;
+            position: relative;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .modal-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-500), var(--secondary-500));
         }
 
         .modal-header h2 {
             margin: 0;
             font-size: 20px;
-            font-weight: 600;
-            color: #1f2937;
+            font-weight: 800;
+            color: white;
+            margin-top: 4px;
+        }
+        
+        .modal-header .close {
+            color: white;
+            margin-top: 4px;
+        }
+        
+        .modal-header .close:hover {
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .close {
             font-size: 24px;
             font-weight: bold;
-            color: #6b7280;
+            color: var(--gray-600, #6b7280);
             cursor: pointer;
             line-height: 1;
         }
 
         .close:hover {
-            color: #374151;
+            color: var(--gray-800, #374151);
         }
 
         .modal-body {
@@ -524,11 +684,16 @@
             transition: border-color 0.2s;
         }
 
+        .form-group input,
+        .form-group textarea {
+            border-color: var(--color-primary);
+        }
+
         .form-group input:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
         }
 
         .btn {
@@ -540,22 +705,27 @@
             transition: all 0.2s;
         }
 
-        .btn-primary {
-            background: #3b82f6;
+        .modal .btn-primary {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: white;
+            box-shadow: 0 2px 6px rgba(0, 128, 255, 0.3);
         }
 
-        .btn-primary:hover {
-            background: #2563eb;
+        .modal .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-600), var(--secondary-500));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.4);
         }
 
-        .btn-secondary {
-            background: #6b7280;
+        .modal .btn-secondary {
+            background: var(--gray-500, #6b7280);
             color: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-secondary:hover {
-            background: #4b5563;
+        .modal .btn-secondary:hover {
+            background: var(--gray-600, #4b5563);
+            transform: translateY(-2px);
         }
 
         .loading {
@@ -590,9 +760,9 @@
             margin: 0 0 16px 0;
             font-size: 18px;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--gray-800, #1f2937);
             padding-bottom: 8px;
-            border-bottom: 2px solid #3b82f6;
+            border-bottom: 2px solid var(--color-primary);
         }
 
         .detail-grid {
@@ -633,25 +803,6 @@
             font-style: italic;
         }
 
-        /* Status badges */
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-active {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status-inactive {
-            background: #fee2e2;
-            color: #991b1b;
-        }
 
         /* Rating stars */
         .rating-stars {
@@ -681,6 +832,30 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .page-header {
+                padding: 20px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .page-title {
+                font-size: 24px;
+            }
+            
+            .supplier-table {
+                min-width: 900px;
+            }
+            
+            .supplier-table th,
+            .supplier-table td {
+                padding: 12px 12px;
+                font-size: 13px;
+            }
+            
             .detail-grid {
                 grid-template-columns: 1fr;
             }
@@ -694,6 +869,28 @@
             .modal-content {
                 margin-top: 15vh;
                 max-height: 75vh;
+                width: 95%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .page-title {
+                font-size: 20px;
+            }
+            
+            .supplier-table {
+                min-width: 800px;
+            }
+            
+            .supplier-table th,
+            .supplier-table td {
+                padding: 10px 10px;
+                font-size: 12px;
+            }
+            
+            .btn-edit, .btn-details {
+                padding: 6px 12px;
+                font-size: 12px;
             }
         }
     </style>
@@ -1027,4 +1224,5 @@
         });
     </script>
 </body>
+</html>
 </html>

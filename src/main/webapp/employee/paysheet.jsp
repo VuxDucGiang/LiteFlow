@@ -7,7 +7,46 @@
 </jsp:include>
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/employee.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/css/design-system.css">
 <style>
+    /* Design System Colors */
+    :root {
+        --primary-500: #0080FF;
+        --primary-600: #0066cc;
+        --primary-50: #f2f7ff;
+        --secondary-500: #00c6ff;
+        --secondary-50: #f0f9ff;
+        --color-primary: #0080FF;
+        --color-secondary: #00c6ff;
+        --color-accent: #7d2ae8;
+        --success-500: #4caf50;
+        --warning-500: #ff9800;
+        --danger-500: #dc3545;
+        --info-500: #2196f3;
+        --gray-50: #f9fafb;
+        --gray-200: #e5e7eb;
+        --gray-800: #1f2937;
+    }
+    
+    * {
+        box-sizing: border-box;
+    }
+    
+    html, body {
+        overflow-x: hidden;
+        width: 100%;
+        max-width: 100vw;
+    }
+    
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .content {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
     .paysheet-controls {
         display: flex;
         align-items: center;
@@ -17,6 +56,9 @@
         padding: 16px;
         border-radius: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 2px solid var(--color-primary);
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .month-year-selector {
@@ -28,9 +70,16 @@
     .month-year-selector select,
     .month-year-selector input {
         padding: 8px 12px;
-        border: 1px solid #d1d5db;
+        border: 1px solid var(--gray-200);
         border-radius: 6px;
         font-size: 14px;
+    }
+    
+    .month-year-selector select:focus,
+    .month-year-selector input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
     }
     
     .paysheet-table {
@@ -38,100 +87,203 @@
         border-radius: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         overflow: hidden;
+        border: 2px solid var(--color-primary);
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        width: 100%;
     }
     
     .paysheet-table table {
         width: 100%;
+        min-width: 1200px;
         border-collapse: collapse;
+        table-layout: fixed;
     }
     
     .paysheet-table thead {
-        background: #f9fafb;
+        background: linear-gradient(135deg, var(--primary-50, #f2f7ff) 0%, var(--secondary-50, #f0f9ff) 100%);
     }
     
     .paysheet-table th {
-        padding: 12px 16px;
+        padding: 18px 20px;
         text-align: left;
         font-weight: 600;
-        color: #374151;
-        border-bottom: 2px solid #e5e7eb;
+        color: var(--gray-800, #1f2937);
+        border-bottom: 2px solid var(--color-primary);
+        white-space: nowrap;
     }
     
+    .paysheet-table th:nth-child(1) { width: 8%; }  /* Mã NV */
+    .paysheet-table th:nth-child(2) { width: 12%; } /* Họ tên */
+    .paysheet-table th:nth-child(3) { width: 10%; } /* Loại lương */
+    .paysheet-table th:nth-child(4) { width: 12%; } /* Tổng lương */
+    .paysheet-table th:nth-child(5) { width: 10%; } /* Phụ cấp */
+    .paysheet-table th:nth-child(6) { width: 10%; } /* Thưởng */
+    .paysheet-table th:nth-child(7) { width: 10%; } /* Giảm trừ */
+    .paysheet-table th:nth-child(8) { width: 12%; } /* Đã thanh toán */
+    .paysheet-table th:nth-child(9) { width: 12%; } /* Chưa nhận */
+    .paysheet-table th:nth-child(10) { width: 10%; } /* Trạng thái */
+    .paysheet-table th:nth-child(11) { width: 14%; } /* Thao tác */
+    
     .paysheet-table td {
-        padding: 12px 16px;
-        border-bottom: 1px solid #e5e7eb;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--gray-200);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .paysheet-table td:nth-child(2) {
+        white-space: normal;
+        max-width: 0;
     }
     
     .paysheet-table tbody tr:hover {
-        background: #f9fafb;
+        background: rgba(0, 128, 255, 0.05);
+    }
+    
+    /* Statistics Cards - Updated Colors */
+    .stat-card {
+        border-left: 4px solid var(--color-primary) !important;
+        border: 2px solid var(--color-primary) !important;
+    }
+    
+    .stat-number {
+        color: var(--color-primary) !important;
+    }
+    
+    /* Buttons - Updated Colors */
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%) !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(0, 128, 255, 0.4) !important;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 128, 255, 0.6) !important;
+        background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-500) 100%) !important;
+    }
+    
+    .btn {
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .btn:not(.btn-primary):hover {
+        background: rgba(0, 128, 255, 0.1) !important;
+        border-color: var(--primary-600) !important;
     }
     
     .compensation-type-badge {
         display: inline-block;
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: 4px 12px;
+        border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
     }
     
     .compensation-type-badge.fixed {
-        background: #dbeafe;
-        color: #1e40af;
+        background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+        color: white;
     }
     
     .compensation-type-badge.hybrid {
-        background: #d1fae5;
-        color: #065f46;
+        background: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%);
+        color: white;
     }
     
     .compensation-type-badge.pershift {
-        background: #fef3c7;
-        color: #92400e;
+        background: linear-gradient(135deg, var(--warning-500) 0%, #f57c00 100%);
+        color: white;
     }
     
     .paid-badge {
         display: inline-block;
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: 4px 12px;
+        border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
-        background: #d1fae5;
-        color: #065f46;
+        background: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%);
+        color: white;
     }
     
     .unpaid-badge {
         display: inline-block;
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: 4px 12px;
+        border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
-        background: #fee2e2;
-        color: #991b1b;
+        background: linear-gradient(135deg, var(--danger-500) 0%, #c82333 100%);
+        color: white;
     }
     
     .btn-mark-paid {
-        padding: 6px 12px;
-        background: #10b981;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, var(--success-500) 0%, #388e3c 100%);
         color: white;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
         font-size: 13px;
         font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
     }
     
     .btn-mark-paid:hover {
-        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
     }
     
     .btn-mark-paid:disabled {
         background: #9ca3af;
         cursor: not-allowed;
+        box-shadow: none;
     }
     
     .currency {
         font-weight: 600;
-        color: #111827;
+        color: var(--gray-800);
+    }
+    
+    /* Page Header */
+    h1 {
+        background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .paysheet-table table {
+            min-width: 1000px;
+        }
+        
+        .paysheet-table th,
+        .paysheet-table td {
+            padding: 12px 15px;
+            font-size: 0.85em;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .paysheet-table table {
+            min-width: 900px;
+        }
+        
+        .paysheet-table th,
+        .paysheet-table td {
+            padding: 10px 12px;
+            font-size: 0.8em;
+        }
     }
 </style>
 
@@ -149,7 +301,7 @@
         </div>
             <div style="display: flex; gap: 12px;">
                 <button id="btnRecalculatePayroll" class="btn" onclick="recalculatePayroll()" 
-                        style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db;">
+                        style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; background: white; color: var(--color-primary); border: 2px solid var(--color-primary); border-radius: 8px; transition: all 0.3s ease;">
                     <i class='bx bx-refresh'></i>
                     Cập nhật lại bảng lương
                 </button>
@@ -208,32 +360,34 @@
 
     <!-- Payroll Table -->
     <div class="paysheet-table" id="payrollTableContainer" style="display: none;">
-        <table>
-            <thead>
-                <tr>
-                    <th>Mã NV</th>
-                    <th>Họ tên</th>
-                    <th>Loại lương</th>
-                    <th>Tổng lương</th>
-                    <th>Phụ cấp</th>
-                    <th>Thưởng</th>
-                    <th>Giảm trừ</th>
-                    <th>Đã thanh toán</th>
-                    <th>Chưa nhận</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
-                </tr>
-            </thead>
-            <tbody id="payrollTableBody">
-                <!-- Data will be loaded here -->
-            </tbody>
-        </table>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>Loại lương</th>
+                        <th>Tổng lương</th>
+                        <th>Phụ cấp</th>
+                        <th>Thưởng</th>
+                        <th>Giảm trừ</th>
+                        <th>Đã thanh toán</th>
+                        <th>Chưa nhận</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="payrollTableBody">
+                    <!-- Data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Empty State -->
-    <div id="emptyState" style="background: white; border-radius: 12px; padding: 48px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <i class='bx bx-money' style="font-size: 64px; color: #d1d5db; margin-bottom: 16px;"></i>
-        <h3 style="font-size: 20px; font-weight: 600; margin: 0 0 8px 0; color: #374151;">
+    <div id="emptyState" style="background: white; border-radius: 12px; padding: 48px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 2px solid var(--color-primary);">
+        <i class='bx bx-money' style="font-size: 64px; color: var(--color-primary); margin-bottom: 16px;"></i>
+        <h3 style="font-size: 20px; font-weight: 600; margin: 0 0 8px 0; color: var(--gray-800);">
             Đang tải dữ liệu...
         </h3>
     </div>
