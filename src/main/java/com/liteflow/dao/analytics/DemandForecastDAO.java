@@ -5,7 +5,6 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import jakarta.persistence.TypedQuery;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -22,7 +21,7 @@ public class DemandForecastDAO {
     static {
         try {
             emf = Persistence.createEntityManagerFactory("LiteFlowPU");
-        } catch (Exception e) {
+        } catch (Throwable e) {
             System.err.println("❌ Failed to create EntityManagerFactory: " + e.getMessage());
             e.printStackTrace();
             emf = null;

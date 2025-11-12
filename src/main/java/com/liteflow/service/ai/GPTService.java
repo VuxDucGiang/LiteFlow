@@ -33,9 +33,9 @@ public class GPTService {
     
     private final OkHttpClient client;
     private final String apiKey;
-    private final DemandForecastService demandService;
-    private final RevenueReportService revenueService;
-    private final ProductInventoryService productInventoryService;
+    private DemandForecastService demandService;
+    private RevenueReportService revenueService;
+    private ProductInventoryService productInventoryService;
     private final AIAgentConfigService configService;
     
     public GPTService(String apiKey) {
@@ -52,9 +52,19 @@ public class GPTService {
             .writeTimeout(writeTimeout, TimeUnit.SECONDS)
             .readTimeout(readTimeout, TimeUnit.SECONDS)
             .build();
-        this.demandService = new DemandForecastService();
-        this.revenueService = new RevenueReportService();
-        this.productInventoryService = new ProductInventoryService();
+        try {
+            this.demandService = new DemandForecastService();
+            this.revenueService = new RevenueReportService();
+            this.productInventoryService = new ProductInventoryService();
+            System.out.println("✅ GPTService: All dependency services initialized successfully");
+        } catch (Throwable e) {
+            System.err.println("❌ GPTService: Failed to initialize dependency services: " + e.getMessage());
+            e.printStackTrace();
+            // Set to null to prevent NullPointerException later
+            this.demandService = null;
+            this.revenueService = null;
+            this.productInventoryService = null;
+        }
     }
     
     /**
@@ -187,6 +197,12 @@ public class GPTService {
     public String chatWithIntelligence(String userMessage, UUID userId) throws IOException {
         System.out.println("🧠 Intelligent Chat: Analyzing message...");
         
+        // If intelligent services are not available, fallback to basic chat
+        if (demandService == null || revenueService == null || productInventoryService == null) {
+            System.out.println("⚠️ Intelligent services not available, falling back to basic chat");
+            return chat(userMessage, null);
+        }
+        
         // Detect if user is asking about stock/inventory/demand forecasting
         String lowerMessage = userMessage.toLowerCase();
         
@@ -275,6 +291,9 @@ public class GPTService {
                 // User might be confirming PO creation from previous stock query
                 // Try to get low stock items and create PO
                 try {
+                    if (productInventoryService == null) {
+                        return "Xin lỗi, dịch vụ kiểm tra tồn kho hiện không khả dụng. Vui lòng thử lại sau.";
+                    }
                     final int CRITICAL_THRESHOLD = 10;
                     final int WARNING_THRESHOLD = 20;
                     JSONObject lowStockResult = productInventoryService.getAllLowStockProducts(CRITICAL_THRESHOLD, WARNING_THRESHOLD);
@@ -340,6 +359,9 @@ public class GPTService {
         System.out.println("📦 Handling Stock Query - Query from ProductStock table...");
         
         try {
+            if (productInventoryService == null) {
+                return "Xin lỗi, dịch vụ kiểm tra tồn kho hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Thresholds
             final int CRITICAL_THRESHOLD = 10;
             final int WARNING_THRESHOLD = 20;
@@ -355,7 +377,11 @@ public class GPTService {
             // Get replenishment suggestions from DemandForecastService
             JSONObject forecastResult = new JSONObject();
             try {
-                forecastResult = demandService.generateReplenishmentSuggestions();
+                if (demandService != null) {
+                    forecastResult = demandService.generateReplenishmentSuggestions();
+                } else {
+                    forecastResult = new JSONObject().put("success", false).put("error", "Dịch vụ dự báo nhu cầu không khả dụng");
+                }
             } catch (Exception e) {
                 System.err.println("⚠️ Error getting forecast suggestions: " + e.getMessage());
                 forecastResult.put("success", false);
@@ -630,6 +656,9 @@ public class GPTService {
         System.out.println("📊 Handling Demand Forecast Query...");
         
         try {
+            if (demandService == null) {
+                return "Xin lỗi, dịch vụ dự báo nhu cầu hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Get real demand forecast data
             JSONObject forecast = demandService.generateReplenishmentSuggestions();
             
@@ -723,6 +752,9 @@ public class GPTService {
             
             System.out.println("📅 Revenue query date range: " + startDate + " to " + endDate);
             
+            if (revenueService == null) {
+                return "Xin lỗi, dịch vụ báo cáo doanh thu hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Get revenue report data
             JSONObject report = revenueService.generateReport(startDate, endDate);
             
@@ -855,6 +887,9 @@ public class GPTService {
             
             System.out.println("📅 Category revenue query date range: " + startDate + " to " + endDate);
             
+            if (revenueService == null) {
+                return "Xin lỗi, dịch vụ báo cáo doanh thu hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             // Get revenue report data
             JSONObject report = revenueService.generateReport(startDate, endDate);
             
@@ -1024,6 +1059,9 @@ public class GPTService {
         System.out.println("⚠️ Handling Stock Alert Query...");
         
         try {
+            if (demandService == null) {
+                return "Xin lỗi, dịch vụ cảnh báo tồn kho hiện không khả dụng. Vui lòng thử lại sau.";
+            }
             JSONObject alerts = demandService.getStockAlerts();
             
             if (!alerts.getBoolean("success")) {

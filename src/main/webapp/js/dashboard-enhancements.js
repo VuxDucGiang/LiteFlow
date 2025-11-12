@@ -55,44 +55,8 @@ class DashboardEnhancements {
       // Add hover effects
       card.classList.add('interactive');
       
-      // Animate numbers on load
-      this.animateNumbers(card);
+      // Removed: animateNumbers - display actual values from database
     });
-  }
-
-  animateNumbers(card) {
-    const valueElement = card.querySelector('.value');
-    if (!valueElement) return;
-    
-    const finalValue = parseInt(valueElement.textContent) || 0;
-    if (finalValue === 0) return;
-    
-    // Reset to 0
-    valueElement.textContent = '0';
-    
-    // Animate to final value
-    this.animateValue(valueElement, 0, finalValue, 1000);
-  }
-
-  animateValue(element, start, end, duration) {
-    const startTime = performance.now();
-    
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function
-      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-      const currentValue = Math.floor(start + (end - start) * easeOutCubic);
-      
-      element.textContent = currentValue.toLocaleString('vi-VN');
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    
-    requestAnimationFrame(animate);
   }
 
   animateRevenueSection() {
@@ -195,6 +159,14 @@ class DashboardEnhancements {
   }
 
   setupTabInteractions() {
+    // Only setup tab interactions for non-revenue tabs
+    // Revenue tabs are handled by DashboardRevenue class
+    const revenueSection = document.querySelector('.revenue-section');
+    if (revenueSection) {
+      // Revenue tabs are handled by dashboard-revenue.js
+      return;
+    }
+    
     const tabs = document.querySelectorAll('.tab');
     
     tabs.forEach(tab => {
@@ -328,26 +300,8 @@ class DashboardEnhancements {
   }
 
   setupMetrics() {
-    // Setup real-time metrics updates
-    this.startMetricsUpdates();
-  }
-
-  startMetricsUpdates() {
-    setInterval(() => {
-      this.updateMetrics();
-    }, 30000); // Update every 30 seconds
-  }
-
-  updateMetrics() {
-    // Simulate metrics update
-    const salesCards = document.querySelectorAll('.sales-card .value');
-    
-    salesCards.forEach(card => {
-      const currentValue = parseInt(card.textContent.replace(/,/g, '')) || 0;
-      const newValue = currentValue + Math.floor(Math.random() * 5);
-      
-      this.animateValue(card, currentValue, newValue, 500);
-    });
+    // Removed: Auto-update metrics - display actual values from database only
+    // No automatic value increases
   }
 
   // ===== PERFORMANCE OPTIMIZATIONS =====
@@ -434,7 +388,8 @@ class DashboardEnhancements {
     
     setTimeout(() => {
       document.body.classList.remove('animate-pulse');
-      this.updateMetrics();
+      // Removed: updateMetrics - no automatic value increases
+      // Values should be refreshed from server if needed
     }, 1000);
   }
 
@@ -515,7 +470,8 @@ class DashboardEnhancements {
 
   // ===== PUBLIC API =====
   refresh() {
-    this.updateMetrics();
+    // Removed: updateMetrics - no automatic value increases
+    // Only refresh visual animations if needed
     this.animateSalesCards();
   }
 

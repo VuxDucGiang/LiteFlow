@@ -139,21 +139,28 @@ function renderTables() {
   console.log('Current room filter:', currentRoomFilter);
   console.log('Current capacity filter:', currentCapacityFilter);
   
-  // ✅ Filter by status - dựa trên invoices, KHÔNG dựa vào database status
+  // ✅ Filter by status - dựa trên database status HOẶC invoices
   if (currentFilter !== 'all') {
     console.log('🔍 Filtering by status:', currentFilter);
     filteredTables = filteredTables.filter(table => {
+      // Kiểm tra database status
+      const dbStatus = (table.status || '').toLowerCase();
+      const isOccupiedInDB = dbStatus === 'occupied';
+      
       // Kiểm tra bàn có trong invoice nào không
       const isTableInUse = invoices.some(inv => inv.table && inv.table.id === table.id);
       
-      console.log('Table:', table.name, 'In use:', isTableInUse, 'Filter:', currentFilter);
+      // Bàn có khách nếu có trong database HOẶC trong invoice
+      const isOccupied = isOccupiedInDB || isTableInUse;
+      
+      console.log('Table:', table.name, 'DB Status:', dbStatus, 'In invoice:', isTableInUse, 'Occupied:', isOccupied, 'Filter:', currentFilter);
       
       if (currentFilter === 'available') {
-        // Trống: bàn KHÔNG có trong invoice nào
-        return !isTableInUse;
+        // Trống: bàn KHÔNG có trong database (status != Occupied) VÀ KHÔNG có trong invoice nào
+        return !isOccupied;
       } else if (currentFilter === 'occupied') {
-        // Có khách: bàn CÓ trong invoice
-        return isTableInUse;
+        // Có khách: bàn CÓ trong database (status = Occupied) HOẶC CÓ trong invoice
+        return isOccupied;
       }
       return false;
     });
@@ -310,15 +317,18 @@ function renderTableItem(table) {
     `;
   }
   
-  // ✅ Quyết định trạng thái dựa trên invoices (không dựa vào database status)
+  // ✅ Quyết định trạng thái dựa trên database status HOẶC invoices
+  // - Nếu bàn có status "Occupied" trong database → "Đang có khách" (occupied)
   // - Nếu bàn có trong invoice → "Đang sử dụng" (occupied)
   // - Nếu không → "Trống" (available)
   let statusText, statusClass;
-  if (isSelected) {
-    statusText = 'Đang sử dụng';
-    statusClass = 'occupied'; // ✅ Đổi từ 'in-use' → 'occupied' để match với filter
+  const dbStatus = (table.status || '').toLowerCase();
+  const isOccupiedInDB = dbStatus === 'occupied';
+  
+  if (isOccupiedInDB || isSelected) {
+    statusText = isOccupiedInDB ? 'Đang có khách' : 'Đang sử dụng';
+    statusClass = 'occupied';
   } else {
-    // ✅ Luôn hiển thị "Trống" nếu chưa được chọn trong invoice nào
     statusText = 'Trống';
     statusClass = 'available';
   }
@@ -344,9 +354,12 @@ function renderTableItem(table) {
   const tableReservation = getReservationForTable(table.id);
   const reservationStatusHtml = tableReservation ? renderReservationStatus(tableReservation) : '';
   
+  // ✅ Sử dụng database status cho data-status attribute
+  const dataStatus = isOccupiedInDB ? 'occupied' : statusClass;
+  
   return `
     <div class="table-item ${statusClass} ${isSelected ? 'selected' : ''}" 
-         data-table-id="${table.id}" data-status="${statusClass}"
+         data-table-id="${table.id}" data-status="${dataStatus}"
          title="${isSelected && !isSelectedCurrent ? 'Bàn đang được sử dụng: ' + tableInUse.name : ''}">
       <div class="table-icon">
         <i class='bx bx-table'></i>
@@ -1180,10 +1193,10 @@ async function loadTableOrders(tableId) {
     const result = await response.json();
     
     if (result.success) {
-      console.log('Loaded orders:', result.orders);
+      console.log('Loaded orders from database:', result.orders);
       
       // Convert orders từ database sang format orderItems
-      orderItems = result.orders.map(item => {
+      const dbOrderItems = result.orders.map(item => {
         // Display name with size
         const itemName = item.name || 'Món ăn';
         const itemSize = item.size;
@@ -1196,7 +1209,7 @@ async function loadTableOrders(tableId) {
           name: displayName,
           price: parseFloat(item.price || 0),
           quantity: qty,
-          notified: true, // Đã được gửi bếp
+          notified: true, // Đã được gửi bếp (từ database)
           notifiedQuantity: qty, // Số lượng đã gửi = số lượng hiện tại (từ DB)
           status: item.status, // Pending, Preparing, Ready, etc.
           note: item.note || '' // Ghi chú từ DB
@@ -1204,9 +1217,9 @@ async function loadTableOrders(tableId) {
       });
       
       // Merge items có cùng variantId (group by variant)
-      const mergedItems = [];
-      orderItems.forEach(item => {
-        const existing = mergedItems.find(i => i.variantId === item.variantId);
+      const mergedDbItems = [];
+      dbOrderItems.forEach(item => {
+        const existing = mergedDbItems.find(i => i.variantId === item.variantId);
         if (existing) {
           existing.quantity += item.quantity;
           existing.notifiedQuantity += item.notifiedQuantity;
@@ -1215,28 +1228,114 @@ async function loadTableOrders(tableId) {
             existing.note = existing.note ? existing.note + '; ' + item.note : item.note;
           }
         } else {
-          mergedItems.push(item);
+          mergedDbItems.push(item);
         }
       });
-      orderItems = mergedItems;
+      
+      // ✅ Merge với orders chưa notify trong invoice memory (nếu có)
+      const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+      const memoryOrders = currentInvoice?.orders || [];
+      
+      // Tìm các món chưa notify trong memory
+      const unnotifiedItems = memoryOrders.filter(item => {
+        const notifiedQty = item.notifiedQuantity || 0;
+        const currentQty = item.quantity || 0;
+        return currentQty > notifiedQty; // Có món chưa notify
+      });
+      
+      // Merge: Start với DB orders, sau đó merge với memory orders (chưa notify)
+      orderItems = [...mergedDbItems];
+      
+      unnotifiedItems.forEach(memoryItem => {
+        const notifiedQty = memoryItem.notifiedQuantity || 0;
+        const currentQty = memoryItem.quantity || 0;
+        const newQty = currentQty - notifiedQty; // Số lượng chưa notify
+        
+        if (newQty > 0) {
+          // Tìm xem đã có variant này trong DB orders chưa
+          const existing = orderItems.find(i => i.variantId === memoryItem.variantId);
+          if (existing) {
+            // Đã có trong DB - chỉ cập nhật số lượng và notifiedQuantity
+            // Giữ số lượng từ DB, nhưng có thể thêm số lượng mới chưa notify
+            // (Thực ra không cần merge vì DB là source of truth)
+          } else {
+            // Chưa có trong DB - thêm món chưa notify vào
+            orderItems.push({
+              ...memoryItem,
+              quantity: newQty, // Chỉ giữ số lượng chưa notify
+              notified: false,
+              notifiedQuantity: 0
+            });
+          }
+        }
+      });
+      
+      // ✅ Reload stock từ database để đảm bảo có thông tin stock đầy đủ
+      // (Quan trọng để tránh hiển thị "hết hàng" sai và không thể thanh toán)
+      try {
+        await reloadMenuStock();
+      } catch (error) {
+        console.warn('⚠️ Could not reload stock after loading orders:', error);
+        // Không block nếu reload stock thất bại
+      }
       
       renderOrderItems();
       updateBill();
       syncCurrentInvoice(); // ✅ Lưu vào invoice
       
-      console.log('Orders loaded successfully:', orderItems.length, 'items');
+      console.log('Orders loaded successfully:', orderItems.length, 'items (DB:', mergedDbItems.length, ', Memory:', unnotifiedItems.length, ')');
+      return true;
     } else {
       console.error('Error loading orders:', result.message);
       // Không hiện alert nếu bàn chưa có orders
       orderItems = [];
       renderOrderItems();
       updateBill();
+      return false;
     }
   } catch (error) {
     console.error('Error loading table orders:', error);
     orderItems = [];
     renderOrderItems();
     updateBill();
+    return false;
+  }
+}
+
+// Reload tables from server to get latest status
+async function reloadTablesFromServer() {
+  try {
+    console.log('🔄 Reloading tables from server...');
+    const response = await fetch(contextPath + '/cashier?action=getTables');
+    const result = await response.json();
+    
+    if (result.success && result.tables) {
+      // Update tables array
+      window.tables = result.tables;
+      tables = result.tables;
+      
+      // Update selectedTable status if exists
+      if (selectedTable && selectedTable.id && !selectedTable.isTakeaway && !selectedTable.isDelivery) {
+        const updatedTable = tables.find(t => t.id === selectedTable.id);
+        if (updatedTable) {
+          selectedTable.status = updatedTable.status;
+          console.log('✅ Updated selectedTable status:', selectedTable.status);
+        }
+      }
+      
+      // Re-render tables
+      renderTables();
+      updateFilterCounts();
+      
+      console.log('✅ Tables reloaded successfully:', tables.length, 'tables');
+      return true;
+    } else {
+      console.error('❌ Error reloading tables:', result.message);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error reloading tables from server:', error);
+    return false;
   }
 }
 
@@ -1332,22 +1431,33 @@ async function notifyKitchen() {
         'Đã gửi thông báo đến bếp!'
       );
       
-      // ✅ Phát âm thanh thông báo
+      // ✅ Phát âm âm thanh thông báo
       playNotificationSound('notify');
       
       // ✅ Làm mới lịch sử thông báo từ database
       refreshNotificationHistory();
       
-      // Cập nhật notifiedQuantity cho các món vừa gửi
+      // ✅ Cập nhật notifiedQuantity cho các món vừa gửi (giữ nguyên orders trong memory)
       itemsToNotify.forEach(item => {
         item.originalItem.notified = true;
         item.originalItem.notifiedQuantity = item.originalItem.quantity;
       });
       
-      // Render lại để hiển thị TẤT CẢ món
+      // ✅ Render lại để hiển thị TẤT CẢ món (đã notify)
       renderOrderItems();
       updateBill();
       syncCurrentInvoice(); // ✅ Lưu vào invoice
+      
+      // ✅ RELOAD TABLES từ database để cập nhật trạng thái bàn (KHÔNG reload orders)
+      await reloadTablesFromServer();
+      
+      // ✅ KHÔNG reload orders từ database ngay sau khi notify vì:
+      // 1. Orders đã được lưu vào DB, nhưng có thể chưa có đầy đủ thông tin (như stock)
+      // 2. Reload sẽ làm mất thông tin stock, dẫn đến hiển thị "hết hàng" và không thể thanh toán
+      // 3. Orders sẽ được reload tự động khi:
+      //    - Chọn lại bàn (nếu bàn có status Occupied)
+      //    - Switch invoice (nếu invoice có bàn với status Occupied)
+      //    - F5 và chọn lại bàn
       
       console.log('Order created successfully:', result.orderId);
       console.log('All items after notify:', orderItems);
@@ -1390,15 +1500,29 @@ function setupTabSystem() {
 function updateFilterCounts() {
   const allTables = window.tables || tables || [];
   
-  // ✅ Đếm dựa trên invoices, KHÔNG dựa vào database status
+  // ✅ Đếm dựa trên database status HOẶC invoices
   const availableTables = allTables.filter(t => {
-    // Bàn trống = bàn KHÔNG có trong invoice nào
-    return !invoices.some(inv => inv.table && inv.table.id === t.id);
+    // Kiểm tra database status
+    const dbStatus = (t.status || '').toLowerCase();
+    const isOccupiedInDB = dbStatus === 'occupied';
+    
+    // Kiểm tra bàn có trong invoice nào không
+    const isTableInUse = invoices.some(inv => inv.table && inv.table.id === t.id);
+    
+    // Bàn trống = bàn KHÔNG có status Occupied trong database VÀ KHÔNG có trong invoice nào
+    return !isOccupiedInDB && !isTableInUse;
   });
   
   const occupiedTables = allTables.filter(t => {
-    // Bàn có khách = bàn CÓ trong invoice
-    return invoices.some(inv => inv.table && inv.table.id === t.id);
+    // Kiểm tra database status
+    const dbStatus = (t.status || '').toLowerCase();
+    const isOccupiedInDB = dbStatus === 'occupied';
+    
+    // Kiểm tra bàn có trong invoice nào không
+    const isTableInUse = invoices.some(inv => inv.table && inv.table.id === t.id);
+    
+    // Bàn có khách = bàn CÓ status Occupied trong database HOẶC CÓ trong invoice
+    return isOccupiedInDB || isTableInUse;
   });
   
   // Update status dropdown options
@@ -1593,13 +1717,20 @@ function setupEventListeners() {
       const tableId = tableItem.dataset.tableId;
       const tableStatus = tableItem.dataset.status;
       
-      // Kiểm tra xem bàn này đã được chọn trong hóa đơn khác chưa
+      // ✅ Kiểm tra xem bàn này đã được chọn trong hóa đơn khác chưa
+      // NHƯNG cho phép chọn nếu bàn có status Occupied trong database (đã được thông báo)
       const tableInOtherInvoice = invoices.find(inv => 
         inv.id !== currentInvoiceId && inv.table && inv.table.id === tableId
       );
       
-      if (tableInOtherInvoice) {
-        // ✅ Hiển thị notification thay vì alert
+      // Reload tables để kiểm tra database status
+      await reloadTablesFromServer();
+      const tableFromDB = tables.find(t => t.id === tableId);
+      const isOccupiedInDB = tableFromDB && tableFromDB.status === 'Occupied';
+      
+      if (tableInOtherInvoice && !isOccupiedInDB) {
+        // Bàn đang được sử dụng trong invoice khác VÀ chưa được thông báo (chưa có trong database)
+        // → Không cho chọn
         window.notificationManager?.show(
           `Bàn này đang được sử dụng trong "${tableInOtherInvoice.name}"`,
           'warning',
@@ -1607,6 +1738,8 @@ function setupEventListeners() {
         );
         return; // Ngăn chặn chọn bàn
       }
+      
+      // ✅ Nếu bàn có status Occupied trong database, cho phép chọn (có thể xem orders đã được thông báo)
       
       // ✅ Tìm bàn trong database HOẶC tạo object cho ô đặc biệt
       selectedTable = (window.tables || tables || []).find(t => t.id === tableId);
@@ -1635,6 +1768,11 @@ function setupEventListeners() {
       }
       
       if (selectedTable) {
+        // ✅ Lưu bàn cũ TRƯỚC KHI cập nhật để kiểm tra orders
+        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+        const previousTable = currentInvoice?.table;
+        const previousTableId = previousTable?.id;
+        
         // Display table info with room name
         let tableInfo = selectedTable.name;
         if (selectedTable.room) {
@@ -1647,7 +1785,6 @@ function setupEventListeners() {
         document.getElementById('selectedTableInfo').textContent = tableInfo;
         
         // Lưu bàn vào invoice hiện tại
-        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
         if (currentInvoice) {
           // ✅ Gán bàn vào invoice
           currentInvoice.table = selectedTable;
@@ -1660,18 +1797,72 @@ function setupEventListeners() {
           console.log('📝 Updated invoice name:', newInvoiceName);
         }
         
+        // ✅ Kiểm tra database status và load orders nếu bàn có session active
+        // (Tables đã được reload ở trên khi kiểm tra tableInOtherInvoice)
+        // Lấy lại selectedTable với status mới nhất từ database
+        const updatedTable = tables.find(t => t.id === tableId);
+        if (updatedTable) {
+          selectedTable.status = updatedTable.status;
+        }
+        
         // Load orders nếu bàn đang có khách (chỉ với bàn thường)
-        if (tableStatus === 'occupied' && !selectedTable.isTakeaway && !selectedTable.isDelivery) {
-          loadTableOrders(tableId);
+        // Kiểm tra database status
+        const isOccupied = (updatedTable && updatedTable.status === 'Occupied') && 
+                           !selectedTable.isTakeaway && !selectedTable.isDelivery;
+        
+        if (isOccupied) {
+          // Bàn đang có khách - load orders từ database
+          console.log('🔄 Table is occupied, loading orders from database...');
+          await loadTableOrders(tableId);
         } else {
-          // Bàn trống hoặc ô đặc biệt - xóa orders cũ
-          orderItems = [];
-          renderOrderItems();
+          // Bàn trống hoặc ô đặc biệt - xóa orders cũ (nếu có)
+          // NHƯNG giữ lại orders nếu đang trong invoice memory VÀ chưa notify (chưa gửi bếp)
+          // VÀ orders phải thuộc về bàn hiện tại (không phải từ bàn Occupied khác)
+          
+          // ✅ Kiểm tra xem orders trong invoice có phải là orders chưa notify không
+          // Orders chưa notify = orders có quantity > notifiedQuantity (chưa gửi bếp)
+          // Orders đã notify = orders có quantity === notifiedQuantity (đã gửi bếp, từ database)
+          let hasUnnotifiedOrders = false;
+          if (currentInvoice && currentInvoice.orders && currentInvoice.orders.length > 0) {
+            // Kiểm tra xem có món nào chưa notify không
+            hasUnnotifiedOrders = currentInvoice.orders.some(item => {
+              const notifiedQty = item.notifiedQuantity || 0;
+              const currentQty = item.quantity || 0;
+              return currentQty > notifiedQty; // Có món chưa notify
+            });
+            
+            // ✅ Kiểm tra: orders phải thuộc về bàn hiện tại (hoặc bàn trống/đặc biệt)
+            // Nếu bàn cũ là Occupied và khác bàn mới, thì orders đó là từ database của bàn cũ → cần xóa
+            const isOrdersFromPreviousOccupiedTable = previousTableId && 
+              previousTableId !== tableId && 
+              previousTableId !== 'takeaway' && 
+              previousTableId !== 'delivery' &&
+              tables.find(t => t.id === previousTableId)?.status === 'Occupied';
+            
+            if (hasUnnotifiedOrders && !isOrdersFromPreviousOccupiedTable) {
+              // Có orders chưa notify VÀ không phải từ bàn Occupied khác - giữ lại
+              console.log('✅ Keeping unnotified orders from invoice memory');
+              orderItems = [...currentInvoice.orders];
+              renderOrderItems();
+              updateBill();
+            } else {
+              // Không có orders chưa notify HOẶC orders từ bàn Occupied khác - xóa
+              console.log('🗑️ Clearing orders (unnotified:', hasUnnotifiedOrders, ', from previous occupied table:', isOrdersFromPreviousOccupiedTable, ')');
+              orderItems = [];
+              renderOrderItems();
+              updateBill();
+            }
+          } else {
+            // Không có orders - xóa
+            orderItems = [];
+            renderOrderItems();
+            updateBill();
+          }
+          syncCurrentInvoice();
         }
         
         renderTables();
         updateFilterCounts(); // ✅ Cập nhật số lượng filter sau khi chọn bàn
-        updateBill();
         
         // ✅ Tự động chuyển sang tab Thực đơn nếu setting bật
         if (autoSwitchToMenu) {
@@ -1780,6 +1971,130 @@ function setupEventListeners() {
       renderOrderItems(); // Re-render để hiển thị stock mới
       updateBill(); // Cập nhật lại button state
       return;
+    }
+    
+    // ✅ Xử lý thanh toán VNPay (cả VNPay và Transfer đều sử dụng VNPay)
+    // VNPay hỗ trợ chuyển khoản ngân hàng, nên cả hai phương thức đều dùng VNPay
+    if (paymentMethod === 'vnpay' || paymentMethod === 'transfer') {
+      console.log('🔄 Processing VNPay payment for method:', paymentMethod);
+      try {
+        const paymentMethodName = paymentMethod === 'transfer' ? 'Chuyển khoản qua VNPay' : 'VNPay';
+        window.notificationManager?.show(
+          `Đang tạo đơn hàng và thanh toán ${paymentMethodName}...`,
+          'info',
+          paymentMethodName
+        );
+        
+        // Tạo orders trước để có session và orders
+        const orderItemsToSend = orderItems.map(item => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          note: item.note || ''
+        }));
+        
+        // Lấy invoice name
+        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+        const invoiceName = currentInvoice?.name || 'Hóa đơn';
+        
+        // Tạo orders trước
+        const createOrderResponse = await fetch(contextPath + '/api/cashier/order/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tableId: selectedTable.id,
+            items: orderItemsToSend,
+            invoiceName: invoiceName
+          })
+        });
+        
+        const createOrderResult = await createOrderResponse.json();
+        
+        if (!createOrderResult.success) {
+          console.error('❌ Create order failed:', createOrderResult);
+          window.notificationManager?.show(
+            createOrderResult.message || 'Không thể tạo đơn hàng',
+            'error',
+            'Lỗi'
+          );
+          return;
+        }
+        
+        console.log('✅ Order created successfully:', createOrderResult);
+        
+        // Sau khi tạo orders thành công, tạo payment URL VNPay
+        // Sử dụng sessionId từ create order response nếu có, nếu không thì dùng tableId
+        const vnpayRequest = {
+          amount: finalTotal,
+          orderInfo: `Thanh toan don hang - ${invoiceName} - Ban ${selectedTable.name || selectedTable.id}`
+        };
+        
+        // Ưu tiên sử dụng sessionId từ create order response
+        if (createOrderResult.sessionId) {
+          vnpayRequest.sessionId = createOrderResult.sessionId;
+          console.log('✅ Using sessionId from create order:', createOrderResult.sessionId);
+        } else {
+          // Fallback: sử dụng tableId (VNPayService sẽ tìm hoặc tạo session)
+          vnpayRequest.tableId = selectedTable.id;
+          console.log('⚠️ No sessionId from create order, using tableId:', selectedTable.id);
+        }
+        
+        console.log('📤 Sending VNPay request:', vnpayRequest);
+        
+        const vnpayResponse = await fetch(contextPath + '/api/payment/vnpay/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(vnpayRequest)
+        });
+        
+        console.log('📥 VNPay response status:', vnpayResponse.status);
+        
+        if (!vnpayResponse.ok) {
+          const errorText = await vnpayResponse.text();
+          console.error('❌ VNPay API error:', errorText);
+          window.notificationManager?.show(
+            'Lỗi kết nối đến VNPay. Vui lòng thử lại.',
+            'error',
+            'Lỗi VNPay'
+          );
+          return;
+        }
+        
+        const vnpayResult = await vnpayResponse.json();
+        console.log('📥 VNPay result:', vnpayResult);
+        
+        if (vnpayResult.success && vnpayResult.paymentUrl) {
+          // Lưu transactionId vào sessionStorage (optional, for tracking)
+          if (vnpayResult.transactionId) {
+            sessionStorage.setItem('vnpayTransactionId', vnpayResult.transactionId);
+          }
+          
+          console.log('✅ Redirecting to VNPay:', vnpayResult.paymentUrl);
+          
+          // Redirect đến VNPay
+          window.location.href = vnpayResult.paymentUrl;
+        } else {
+          console.error('❌ VNPay payment creation failed:', vnpayResult);
+          window.notificationManager?.show(
+            vnpayResult.message || 'Không thể tạo thanh toán VNPay',
+            'error',
+            'Lỗi VNPay'
+          );
+        }
+      } catch (error) {
+        console.error('❌ Error creating VNPay payment:', error);
+        console.error('Error stack:', error.stack);
+        window.notificationManager?.show(
+          'Không thể tạo thanh toán VNPay. Vui lòng thử lại. Lỗi: ' + error.message,
+          'error',
+          'Lỗi kết nối'
+        );
+      }
+      return; // Exit early for VNPay
     }
     
     // ✅ Gửi orderItems trực tiếp để backend trừ stock (giống cơ chế kitchen)
@@ -2591,7 +2906,7 @@ function addNewInvoice() {
   console.log('➕ Created new invoice:', newId);
 }
 
-function switchInvoice(invoiceId) {
+async function switchInvoice(invoiceId) {
   currentInvoiceId = invoiceId;
   
   // ✅ Re-render tabs to update active state
@@ -2600,8 +2915,31 @@ function switchInvoice(invoiceId) {
   // Load invoice data
   const invoice = invoices.find(inv => inv.id === invoiceId);
   if (invoice) {
-    orderItems = invoice.orders || [];
     selectedTable = invoice.table;
+    
+    // ✅ Nếu invoice có table và table có status Occupied trong database, load orders từ database
+    if (selectedTable && selectedTable.id && !selectedTable.isTakeaway && !selectedTable.isDelivery) {
+      // Reload tables để có status mới nhất
+      await reloadTablesFromServer();
+      
+      // Kiểm tra database status
+      const updatedTable = tables.find(t => t.id === selectedTable.id);
+      if (updatedTable && updatedTable.status === 'Occupied') {
+        // Bàn có session active trong database - load orders từ database
+        console.log('🔄 Invoice has occupied table, loading orders from database...');
+        await loadTableOrders(selectedTable.id);
+      } else {
+        // Bàn không có session active - load từ invoice memory
+        orderItems = invoice.orders || [];
+        renderOrderItems();
+        updateBill();
+      }
+    } else {
+      // Không có table hoặc là bàn đặc biệt - load từ invoice memory
+      orderItems = invoice.orders || [];
+      renderOrderItems();
+      updateBill();
+    }
     
     // ✅ Restore discount
     currentDiscount = invoice.discount || null;

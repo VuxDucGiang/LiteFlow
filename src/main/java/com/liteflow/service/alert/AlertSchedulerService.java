@@ -8,9 +8,6 @@ import com.liteflow.service.report.RevenueReportService;
 import com.liteflow.service.inventory.ReservationService;
 import org.json.JSONObject;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -172,6 +169,7 @@ public class AlertSchedulerService {
      * Trigger daily summary with REAL data from RevenueReportService
      * 🔥 UPDATED: Use RevenueReportService for 100% consistency with /report/revenue page
      */
+    @SuppressWarnings("unused")
     private void triggerDailySummary() {
         System.out.println("📊 Generating daily summary using RevenueReportService...");
         
@@ -264,8 +262,9 @@ public class AlertSchedulerService {
     /**
      * Check inventory levels (placeholder)
      */
+    @SuppressWarnings("unused")
     private void checkInventoryAlerts() {
-        // TODO: Implement when inventory service is ready
+      
         System.out.println("⚠️ Inventory alerts not implemented yet");
     }
     

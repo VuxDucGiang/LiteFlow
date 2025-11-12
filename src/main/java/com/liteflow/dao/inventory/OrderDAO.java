@@ -54,13 +54,31 @@ public class OrderDAO {
                 
                 UUID variantId = UUID.fromString(variantIdStr);
                 Integer quantity = ((Number) item.get("quantity")).intValue();
-                BigDecimal unitPrice = new BigDecimal(item.get("unitPrice").toString());
+                
+                // ✅ Validate quantity
+                if (quantity == null || quantity <= 0) {
+                    throw new IllegalArgumentException("Số lượng phải lớn hơn 0");
+                }
+                
                 String note = (String) item.get("note"); // Ghi chú từ cashier
                 
                 // Lấy ProductVariant
                 ProductVariant variant = em.find(ProductVariant.class, variantId);
                 if (variant == null) {
                     throw new RuntimeException("Không tìm thấy sản phẩm variant: " + variantId);
+                }
+                
+                // ✅ Lấy unitPrice từ variant hoặc từ request (nếu có)
+                BigDecimal unitPrice;
+                if (item.get("unitPrice") != null) {
+                    // Nếu có unitPrice trong request, dùng nó
+                    unitPrice = new BigDecimal(item.get("unitPrice").toString());
+                } else {
+                    // Nếu không có, lấy từ ProductVariant
+                    unitPrice = variant.getPrice();
+                    if (unitPrice == null) {
+                        throw new RuntimeException("Sản phẩm variant không có giá: " + variantId);
+                    }
                 }
                 
                 OrderDetail detail = new OrderDetail();
@@ -112,10 +130,11 @@ public class OrderDAO {
             
             System.out.println("✅ Đã tạo order: " + orderNumber + " với " + orderDetails.size() + " món");
             
-            // ✅ Trả về cả orderId và orderNumber
+            // ✅ Trả về cả orderId, orderNumber và sessionId
             Map<String, Object> result = new HashMap<>();
             result.put("orderId", order.getOrderId());
             result.put("orderNumber", orderNumber);
+            result.put("sessionId", session.getSessionId());
             return result;
             
         } catch (Exception e) {
@@ -173,6 +192,16 @@ public class OrderDAO {
                 existingSession.setInvoiceName(invoiceName);
                 em.merge(existingSession);
             }
+            
+            // ✅ Đảm bảo table status là "Occupied" nếu có session active
+            Table table = existingSession.getTable();
+            if (table != null && !"Occupied".equals(table.getStatus())) {
+                table.setStatus("Occupied");
+                em.merge(table);
+                em.flush();
+                System.out.println("✅ Updated table status to Occupied for existing session");
+            }
+            
             return existingSession;
         }
         
@@ -201,9 +230,10 @@ public class OrderDAO {
         
         em.persist(session);
         
-        // Update table status
+        // ✅ Update table status to Occupied
         table.setStatus("Occupied");
         em.merge(table);
+        em.flush(); // ✅ Flush để đảm bảo table status được persist
         
         return session;
     }
@@ -394,11 +424,14 @@ public class OrderDAO {
             order.setStatus(status);
             
             // Cập nhật trạng thái của tất cả order details
+            // ✅ Fetch order details để tránh LazyInitializationException
+            order.getOrderDetails().size(); // Trigger lazy loading
             for (OrderDetail detail : order.getOrderDetails()) {
                 detail.setStatus(status);
             }
             
             em.merge(order);
+            em.flush(); // ✅ Flush để đảm bảo changes được persist
             em.getTransaction().commit();
             
             System.out.println("✅ Đã cập nhật trạng thái order " + order.getOrderNumber() + " thành " + status);

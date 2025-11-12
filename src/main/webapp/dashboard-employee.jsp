@@ -45,9 +45,15 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
     <div class="widget personal-schedule">
       <div class="widget-title-row">
         <h2 class="widget-title">LỊCH CÁ NHÂN</h2>
-        <button class="btn-add-schedule" id="btnAddSchedule" type="button">
-          <i class='bx bx-plus'></i> Thêm mới
-        </button>
+        <div class="widget-title-actions">
+          <a href="${pageContext.request.contextPath}/schedule" class="btn-view-full" title="Xem lịch làm việc đầy đủ">
+            <i class='bx bx-calendar'></i>
+            <span>Xem đầy đủ</span>
+          </a>
+          <button class="btn-add-schedule" id="btnAddSchedule" type="button">
+            <i class='bx bx-plus'></i> Thêm mới
+          </button>
+        </div>
       </div>
       <div class="schedule-list" id="personalScheduleList">
         <!-- Dữ liệu sẽ được load từ API -->
@@ -55,7 +61,32 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
     </div>
 
     <div class="widget salary-summary">
-      <h2 class="widget-title" id="salaryMonthTitle">TIỀN CÔNG THÁNG <span id="currentMonthName"></span></h2>
+      <div class="widget-title-row">
+        <h2 class="widget-title" id="salaryMonthTitle">TIỀN CÔNG THÁNG <span id="currentMonthName"></span></h2>
+        <div class="widget-title-actions">
+          <div class="month-year-selector">
+            <select id="salaryMonthSelect" class="month-select" onchange="changeSalaryMonth()">
+              <option value="1">Tháng 1</option>
+              <option value="2">Tháng 2</option>
+              <option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option>
+              <option value="5">Tháng 5</option>
+              <option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option>
+              <option value="8">Tháng 8</option>
+              <option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option>
+              <option value="11">Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+            <input type="number" id="salaryYearSelect" class="year-select" min="2020" max="2030" onchange="changeSalaryMonth()" />
+          </div>
+          <a href="${pageContext.request.contextPath}/employee/paysheet.jsp" class="btn-view-details" title="Xem chi tiết bảng lương">
+            <i class='bx bx-detail'></i>
+            <span>Xem chi tiết</span>
+          </a>
+        </div>
+      </div>
       <div class="salary-stats">
         <div class="salary-item">
           <div class="salary-label">Tổng lương</div>
@@ -117,6 +148,12 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
           <span>Xin nghỉ phép</span>
         </button>
       </div>
+      <div class="attendance-view-history">
+        <a href="${pageContext.request.contextPath}/attendance" class="btn-view-history">
+          <i class='bx bx-history'></i>
+          <span>Xem lịch sử chấm công</span>
+        </a>
+      </div>
     </div>
 
     <div class="widget notice-board">
@@ -165,7 +202,26 @@ String[] monthNames = {"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5
 
     <!-- Bottom Row -->
     <div class="widget timesheet-calendar large">
-      <h2 class="widget-title">LỊCH CHẤM CÔNG - KỲ CÔNG <%= monthNames[currentMonth - 1] %> <%= currentYear %></h2>
+      <div class="widget-title-row">
+        <h2 class="widget-title">LỊCH CHẤM CÔNG - KỲ CÔNG <%= monthNames[currentMonth - 1] %> <%= currentYear %></h2>
+        <div class="widget-title-actions">
+          <div class="calendar-nav">
+            <button class="btn-nav-month" onclick="changeCalendarMonth(-1)" title="Tháng trước">
+              <i class='bx bx-chevron-left'></i>
+            </button>
+            <button class="btn-nav-month" onclick="changeCalendarMonth(1)" title="Tháng sau">
+              <i class='bx bx-chevron-right'></i>
+            </button>
+            <button class="btn-nav-month" onclick="resetCalendarMonth()" title="Tháng hiện tại">
+              <i class='bx bx-calendar'></i>
+            </button>
+          </div>
+          <a href="${pageContext.request.contextPath}/attendance" class="btn-view-full" title="Xem bảng chấm công đầy đủ">
+            <i class='bx bx-time'></i>
+            <span>Xem đầy đủ</span>
+          </a>
+        </div>
+      </div>
       <div class="timesheet-legend">
         <div class="legend-dot green"></div><span>Đúng giờ</span>
         <div class="legend-dot purple"></div><span>Vi phạm (muộn/sớm)</span>
@@ -228,7 +284,12 @@ for (int day = 1; day <= daysInMonth; day++) {
     
     String todayClass = isToday ? " today" : "";
 %>
-          <div class="calendar-day<%= todayClass %>">
+          <div class="calendar-day<%= todayClass %> clickable-day" 
+               data-day="<%= day %>" 
+               data-month="<%= currentMonth %>" 
+               data-year="<%= currentYear %>"
+               onclick="viewDayDetails(<%= day %>, <%= currentMonth %>, <%= currentYear %>)"
+               title="Click để xem chi tiết ngày <%= day %>/<%= currentMonth %>/<%= currentYear %>">
             <span><%= day %></span>
             <div class="status-dot <%= statusDot %>"></div>
           </div>
@@ -404,11 +465,11 @@ function formatCurrency(amount) {
 }
 
 // Load salary summary for current month
-async function loadSalarySummary() {
+async function loadSalarySummary(month, year) {
   try {
     const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
+    if (!month) month = now.getMonth() + 1;
+    if (!year) year = now.getFullYear();
     
     // Set month name in title
     const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
@@ -417,6 +478,12 @@ async function loadSalarySummary() {
     if (monthNameEl) {
       monthNameEl.textContent = monthNames[month - 1];
     }
+    
+    // Update selectors
+    const monthSelect = document.getElementById('salaryMonthSelect');
+    const yearSelect = document.getElementById('salaryYearSelect');
+    if (monthSelect) monthSelect.value = month;
+    if (yearSelect) yearSelect.value = year;
     
     // Call API to get salary summary
     const response = await fetch(CONTEXT_PATH + '/api/employee/salary-summary?month=' + month + '&year=' + year);
@@ -443,6 +510,13 @@ async function loadSalarySummary() {
     document.getElementById('totalPaid').textContent = '0 ₫';
     document.getElementById('totalRemaining').textContent = '0 ₫';
   }
+}
+
+// Change salary month/year
+function changeSalaryMonth() {
+  const month = parseInt(document.getElementById('salaryMonthSelect').value);
+  const year = parseInt(document.getElementById('salaryYearSelect').value);
+  loadSalarySummary(month, year);
 }
 
 // ==============================
@@ -632,6 +706,49 @@ function setupModalCloseOnOutsideClick() {
   }
 }
 
+// View day details in calendar
+function viewDayDetails(day, month, year) {
+  // Calculate week start for the selected day
+  const selectedDate = new Date(year, month - 1, day);
+  const dayOfWeek = selectedDate.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday = 0
+  const weekStart = new Date(selectedDate);
+  weekStart.setDate(selectedDate.getDate() + mondayOffset);
+  
+  // Format date as YYYY-MM-DD
+  const weekStartStr = weekStart.getFullYear() + '-' + 
+    String(weekStart.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(weekStart.getDate()).padStart(2, '0');
+  
+  // Redirect to attendance page with the week
+  window.location.href = CONTEXT_PATH + '/attendance?weekStart=' + weekStartStr;
+}
+
+// Change calendar month
+function changeCalendarMonth(direction) {
+  const currentMonth = <%= currentMonth %>;
+  const currentYear = <%= currentYear %>;
+  
+  let newMonth = currentMonth + direction;
+  let newYear = currentYear;
+  
+  if (newMonth < 1) {
+    newMonth = 12;
+    newYear--;
+  } else if (newMonth > 12) {
+    newMonth = 1;
+    newYear++;
+  }
+  
+  // Reload page with new month/year
+  window.location.href = CONTEXT_PATH + '/dashboard-employee?month=' + newMonth + '&year=' + newYear;
+}
+
+// Reset calendar to current month
+function resetCalendarMonth() {
+  window.location.href = CONTEXT_PATH + '/dashboard-employee';
+}
+
 // Load schedules when page loads
 document.addEventListener('DOMContentLoaded', function() {
   console.log('DOMContentLoaded - Setting up schedule functions');
@@ -648,6 +765,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Add button event listener attached');
   } else {
     console.error('btnAddSchedule button not found!');
+  }
+  
+  // Initialize salary year selector
+  const yearSelect = document.getElementById('salaryYearSelect');
+  if (yearSelect) {
+    const now = new Date();
+    yearSelect.value = now.getFullYear();
   }
   
   loadPersonalSchedules();

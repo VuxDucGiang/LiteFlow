@@ -33,7 +33,7 @@ public class OrderDataUtil {
      * Parse JSON request data
      * Returns null if requestBody is null or invalid JSON
      */
-    @SuppressWarnings("unchecked")
+    
     public static Map<String, Object> parseRequestData(String requestBody) {
         // ✅ Kiểm tra null trước khi parse
         if (requestBody == null || requestBody.trim().isEmpty()) {
@@ -75,7 +75,7 @@ public class OrderDataUtil {
     /**
      * Validate items array
      */
-    @SuppressWarnings("unchecked")
+    
     public static String validateItems(Map<String, Object> requestData) {
         // ✅ Kiểm tra null cho requestData
         if (requestData == null) {
@@ -110,7 +110,7 @@ public class OrderDataUtil {
     /**
      * Extract table ID from request data
      */
-    @SuppressWarnings("unchecked")
+    
     public static String extractTableId(Map<String, Object> requestData) {
         // ✅ Kiểm tra null trước khi gọi get()
         if (requestData == null) {
@@ -128,7 +128,7 @@ public class OrderDataUtil {
             return null;
         }
         
-        @SuppressWarnings("unchecked")
+        
         List<Map<String, Object>> items = (List<Map<String, Object>>) requestData.get("items");
         return items;
     }

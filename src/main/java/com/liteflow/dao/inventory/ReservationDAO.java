@@ -415,7 +415,7 @@ public class ReservationDAO extends GenericDAO<Reservation, UUID> {
                 return 1;
             }
             
-            // Extract sequence number from code (format: DDMMYYYY-XXX)
+           
             String lastCode = results.get(0);
             String[] parts = lastCode.split("-");
             if (parts.length == 2) {

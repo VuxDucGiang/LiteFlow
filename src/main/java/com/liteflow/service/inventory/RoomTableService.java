@@ -7,6 +7,9 @@ import com.liteflow.model.inventory.Table;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.TypedQuery;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -255,14 +258,50 @@ public class RoomTableService {
     }
     
     public boolean addTable(Table table) {
+        EntityManager em = this.emf.createEntityManager();
+        var tx = em.getTransaction();
         try {
             // Ngày tạo và trạng thái sẽ được tự động thiết lập trong @PrePersist
             // Không cần thiết lập thủ công ở đây
-            return tableDAO.insert(table);
+            
+            // Ensure the room is attached to the current persistence context
+            if (table.getRoom() != null && table.getRoom().getRoomId() != null) {
+                Room room = em.find(Room.class, table.getRoom().getRoomId());
+                if (room != null) {
+                    table.setRoom(room);
+                }
+            }
+            
+            // For new tables, set ID to null to let @PrePersist generate it
+            // This prevents "detached entity passed to persist" errors
+            UUID originalTableId = table.getTableId();
+            if (originalTableId != null) {
+                // Check if table already exists
+                Table existingTable = em.find(Table.class, originalTableId);
+                if (existingTable != null) {
+                    // Table already exists, merge it
+                    tx.begin();
+                    em.merge(table);
+                    tx.commit();
+                    return true;
+                }
+                // Table ID exists but entity doesn't, set ID to null for new table
+                table.setTableId(null);
+            }
+            
+            tx.begin();
+            em.persist(table);
+            tx.commit();
+            return true;
         } catch (Exception e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
             System.err.println("❌ Lỗi khi thêm bàn: " + e.getMessage());
             e.printStackTrace();
             return false;
+        } finally {
+            em.close();
         }
     }
     
@@ -479,7 +518,7 @@ public class RoomTableService {
     }
     
     // Method to get completed table sessions (invoices) - similar to cashier notification
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.TableSession> getCompletedTableSessions(UUID tableId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -506,7 +545,7 @@ public class RoomTableService {
     }
     
     // Method to get table payments with eager loading (DEPRECATED - use getCompletedTableSessions)
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.PaymentTransaction> getTablePayments(UUID tableId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -530,7 +569,7 @@ public class RoomTableService {
     }
     
     // Method to get order details for a session with eager loading
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.OrderDetail> getOrderDetailsForSession(UUID sessionId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -554,7 +593,7 @@ public class RoomTableService {
     }
     
     // Method to get session orders
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.Order> getSessionOrders(UUID sessionId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -575,7 +614,7 @@ public class RoomTableService {
     }
     
     // Method to get order details
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.OrderDetail> getOrderDetails(UUID orderId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -595,7 +634,7 @@ public class RoomTableService {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    
     public java.util.List<com.liteflow.model.inventory.TableSession> getTableSessionsByTableId(UUID tableId) {
         EntityManager em = this.emf.createEntityManager();
         try {
@@ -643,12 +682,72 @@ public class RoomTableService {
     }
     
     /**
+     * Get total completed orders (paid) for today
+     */
+    public long getCompletedOrdersToday() {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            LocalDate today = LocalDate.now();
+            LocalDateTime startDateTime = today.atStartOfDay();
+            LocalDateTime endDateTime = today.atTime(LocalTime.MAX);
+            
+            TypedQuery<Long> query = em.createQuery(
+                "SELECT COUNT(o) FROM com.liteflow.model.inventory.Order o " +
+                "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
+                "AND o.paymentStatus = 'Paid'",
+                Long.class
+            );
+            query.setParameter("startDate", startDateTime);
+            query.setParameter("endDate", endDateTime);
+            
+            Long result = query.getSingleResult();
+            return result != null ? result : 0L;
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi lấy số đơn đã xong hôm nay: " + e.getMessage());
+            e.printStackTrace();
+            return 0L;
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
+     * Get total completed orders (paid) for yesterday
+     */
+    public long getCompletedOrdersYesterday() {
+        EntityManager em = this.emf.createEntityManager();
+        try {
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            LocalDateTime startDateTime = yesterday.atStartOfDay();
+            LocalDateTime endDateTime = yesterday.atTime(LocalTime.MAX);
+            
+            TypedQuery<Long> query = em.createQuery(
+                "SELECT COUNT(o) FROM com.liteflow.model.inventory.Order o " +
+                "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
+                "AND o.paymentStatus = 'Paid'",
+                Long.class
+            );
+            query.setParameter("startDate", startDateTime);
+            query.setParameter("endDate", endDateTime);
+            
+            Long result = query.getSingleResult();
+            return result != null ? result : 0L;
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi lấy số đơn đã xong hôm qua: " + e.getMessage());
+            e.printStackTrace();
+            return 0L;
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
      * Get current table count for a specific room
      */
     public int getCurrentTableCountForRoom(UUID roomId) {
         EntityManager em = this.emf.createEntityManager();
         try {
-            String jpql = "SELECT COUNT(t) FROM Table t WHERE t.room.roomId = :roomId AND t.isActive = true";
+            String jpql = "SELECT COUNT(t) FROM Table t WHERE t.room.roomId = :roomId AND (t.isActive = true OR t.isActive IS NULL)";
             TypedQuery<Long> query = em.createQuery(jpql, Long.class);
             query.setParameter("roomId", roomId);
             Long count = query.getSingleResult();
@@ -667,7 +766,7 @@ public class RoomTableService {
     public int getCurrentTotalCapacityForRoom(UUID roomId) {
         EntityManager em = this.emf.createEntityManager();
         try {
-            String jpql = "SELECT COALESCE(SUM(t.capacity), 0) FROM Table t WHERE t.room.roomId = :roomId AND t.isActive = true";
+            String jpql = "SELECT COALESCE(SUM(t.capacity), 0) FROM Table t WHERE t.room.roomId = :roomId AND (t.isActive = true OR t.isActive IS NULL)";
             TypedQuery<Long> query = em.createQuery(jpql, Long.class);
             query.setParameter("roomId", roomId);
             Long totalCapacity = query.getSingleResult();

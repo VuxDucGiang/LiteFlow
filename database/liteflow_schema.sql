@@ -388,9 +388,11 @@ CREATE TABLE PaymentTransactions (
     SessionID UNIQUEIDENTIFIER NOT NULL,
     OrderID UNIQUEIDENTIFIER NULL,  -- NULL nếu thanh toán toàn bộ phiên
     Amount DECIMAL(10,2) NOT NULL,
-    PaymentMethod NVARCHAR(50) NOT NULL CHECK (PaymentMethod IN ('Cash', 'Card', 'Transfer', 'Wallet')),
-    PaymentStatus NVARCHAR(50) DEFAULT 'Completed' CHECK (PaymentStatus IN ('Pending', 'Completed', 'Failed', 'Refunded')),
+    PaymentMethod NVARCHAR(50) NOT NULL CHECK (PaymentMethod IN ('Cash', 'Card', 'Transfer', 'Wallet', 'VNPay')),
+    PaymentStatus NVARCHAR(50) DEFAULT 'Completed' CHECK (PaymentStatus IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled')),
     TransactionReference NVARCHAR(200) NULL,  -- Mã giao dịch từ hệ thống thanh toán
+    VNPayTransactionNo NVARCHAR(50) NULL,  -- Mã giao dịch từ VNPay
+    VNPayResponseCode NVARCHAR(10) NULL,  -- Mã phản hồi từ VNPay
     Notes NVARCHAR(500) NULL,
     ProcessedBy UNIQUEIDENTIFIER NULL,  -- Nhân viên xử lý thanh toán
     ProcessedAt DATETIME2 DEFAULT SYSDATETIME(),
@@ -716,6 +718,7 @@ CREATE TABLE PayrollEntries (
     Currency NVARCHAR(3) NOT NULL DEFAULT 'VND',
     ExchangeRate DECIMAL(18,6) NULL, -- against VND on calculation date (if applicable)
     PaidInCurrency NVARCHAR(3) NOT NULL DEFAULT 'VND',
+    IsPaid BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
 
     CONSTRAINT FK_PayrollEntries_Run FOREIGN KEY (PayrollRunID) REFERENCES PayrollRuns(PayrollRunID) ON DELETE CASCADE,

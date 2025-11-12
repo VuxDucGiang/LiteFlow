@@ -12,6 +12,16 @@
   RoomTableService roomTableService = new RoomTableService();
   int occupiedTables = roomTableService.getOccupiedTables();
   java.math.BigDecimal totalActiveAmount = roomTableService.getTotalActiveSessionsAmount();
+  long completedOrdersToday = roomTableService.getCompletedOrdersToday();
+  long completedOrdersYesterday = roomTableService.getCompletedOrdersYesterday();
+  
+  // Calculate growth percentage
+  double growthPercentage = 0.0;
+  if (completedOrdersYesterday > 0) {
+    growthPercentage = ((completedOrdersToday - completedOrdersYesterday) * 100.0) / completedOrdersYesterday;
+  } else if (completedOrdersToday > 0) {
+    growthPercentage = 100.0;
+  }
 %>
 
 <div class="dashboard-content">
@@ -25,10 +35,12 @@
           <div class="icon blue">
             <i class='bx bx-dollar'></i>
           </div>
-          <div class="value">0</div>
+          <div class="value"><%= completedOrdersToday %></div>
           <div class="label">Đơn đã xong</div>
-          <div class="change up">↑ 100%</div>
-          <div style="font-size: 12px; color: #6a7a92; margin-top: 4px;">Hôm qua 0</div>
+          <div class="change <%= growthPercentage >= 0 ? "up" : "down" %>">
+            <%= growthPercentage >= 0 ? "↑" : "↓" %> <%= String.format("%.1f", Math.abs(growthPercentage)) %>%
+          </div>
+          <div style="font-size: 12px; color: #6a7a92; margin-top: 4px;">Hôm qua <%= completedOrdersYesterday %></div>
         </div>
         <div class="sales-card">
           <div class="icon green">
@@ -55,16 +67,17 @@
     <!-- Revenue Section -->
     <div class="revenue-section">
       <div class="revenue-header">
-        <div class="revenue-title">DOANH SỐ HÔM NAY 0</div>
+        <div class="revenue-title">DOANH SỐ</div>
         <div class="revenue-tabs">
-          <div class="tab">Theo ngày</div>
-          <div class="tab active">Theo giờ</div>
-          <div class="tab">Theo thứ</div>
+          <div class="tab" data-tab="day">Theo ngày</div>
+          <div class="tab active" data-tab="hour">Theo giờ</div>
+          <div class="tab" data-tab="weekday">Theo thứ</div>
         </div>
       </div>
       <div class="revenue-content">
-        <div class="empty-icon">📦</div>
-        <div class="empty-text">Không có dữ liệu</div>
+        <div class="revenue-chart-container">
+          <canvas id="revenueChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -138,7 +151,16 @@
 </div>
 
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 <!-- Dashboard Enhancements -->
+<script>
+  // Set context path for JavaScript
+  window.CONTEXT_PATH = '${pageContext.request.contextPath}';
+</script>
 <script src="${pageContext.request.contextPath}/js/dashboard-enhancements.js"></script>
+<!-- Revenue Data Loader -->
+<script src="${pageContext.request.contextPath}/js/dashboard-revenue.js"></script>
 
 <jsp:include page="includes/footer.jsp" />

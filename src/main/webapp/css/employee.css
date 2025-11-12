@@ -1,8 +1,23 @@
 /* Employee List Styles */
+/* Prevent horizontal scroll */
+body {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+}
+
+html {
+    overflow-x: hidden !important;
+    max-width: 100vw;
+}
+
 .content {
     padding: 2rem;
     background: #f8f9fa;
     min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 /* Statistics Cards */
@@ -41,6 +56,11 @@
     grid-template-columns: 300px 1fr;
     gap: 2rem;
     align-items: start;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 /* Sidebar */
@@ -144,6 +164,11 @@
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 /* Toolbar */
@@ -222,14 +247,47 @@
 
 /* Employee Table */
 .employee-table {
-    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
+    box-sizing: border-box;
 }
 
 .table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
+    table-layout: fixed;
+    margin: 0;
+    padding: 0;
 }
+
+/* Column width distribution for employee table */
+.table th:nth-child(1),
+.table td:nth-child(1) { 
+    width: 12%; 
+} /* Mã NV */
+
+.table th:nth-child(2),
+.table td:nth-child(2) { 
+    width: 28%; 
+} /* Họ tên */
+
+.table th:nth-child(3),
+.table td:nth-child(3) { 
+    width: 20%; 
+} /* CCCD/CMND */
+
+.table th:nth-child(4),
+.table td:nth-child(4) { 
+    width: 18%; 
+} /* Số điện thoại */
+
+.table th:nth-child(5),
+.table td:nth-child(5) { 
+    width: 22%; 
+} /* Trạng thái */
 
 .table th {
     background: #f8f9fa;
@@ -241,6 +299,9 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .table th.sortable {
@@ -274,6 +335,12 @@
     padding: 1rem;
     border-bottom: 1px solid #e9ecef;
     vertical-align: middle;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;
 }
 
 .table tbody tr:hover {
@@ -445,11 +512,24 @@
     
     .table {
         font-size: 0.8rem;
+        table-layout: fixed;
     }
     
     .table th,
     .table td {
         padding: 0.75rem 0.5rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .employee-table {
+        overflow-x: hidden;
+    }
+    
+    .content,
+    .main-layout,
+    .main-content {
+        overflow-x: hidden !important;
     }
     
     .action-buttons {

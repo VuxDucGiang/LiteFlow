@@ -6,7 +6,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -425,8 +424,11 @@ public class DemandForecastService {
     // ==================== INNER CLASSES ====================
     
     private static class StockInfo {
+        @SuppressWarnings("unused")
         UUID variantId;
+        @SuppressWarnings("unused")
         String productName;
+        @SuppressWarnings("unused")
         String size;
         int amount;
     }

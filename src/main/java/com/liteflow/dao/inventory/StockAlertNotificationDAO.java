@@ -109,7 +109,7 @@ public class StockAlertNotificationDAO extends GenericDAO<StockAlertNotification
             Query query = em.createQuery(jpql);
             query.setParameter("userId", userId);
             
-            @SuppressWarnings("unchecked")
+           
             List<StockAlertNotification> results = query.getResultList();
             return results;
             

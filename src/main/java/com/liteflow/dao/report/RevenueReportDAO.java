@@ -17,7 +17,17 @@ import java.util.*;
  */
 public class RevenueReportDAO {
     
-    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("LiteFlowPU");
+    private static EntityManagerFactory emf;
+    
+    static {
+        try {
+            emf = Persistence.createEntityManagerFactory("LiteFlowPU");
+        } catch (Throwable e) {
+            System.err.println("❌ Failed to create EntityManagerFactory: " + e.getMessage());
+            e.printStackTrace();
+            emf = null;
+        }
+    }
     
     /**
      * Get total revenue for date range
@@ -155,9 +165,6 @@ public class RevenueReportDAO {
             LocalDateTime startDateTime = startDate.atStartOfDay();
             LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
             
-            System.out.println("📊 getTopProducts DAO - Start date: " + startDateTime);
-            System.out.println("📊 getTopProducts DAO - End date: " + endDateTime);
-            
             // FIX: Use p.productId (camelCase) and p.name (entity field names)
             String jpql = "SELECT p.productId, p.name, " +
                          "SUM(od.quantity), SUM(od.totalPrice) " +
@@ -170,25 +177,12 @@ public class RevenueReportDAO {
                          "GROUP BY p.productId, p.name " +
                          "ORDER BY SUM(od.totalPrice) DESC";
             
-            System.out.println("📊 JPQL Query: " + jpql);
-            
             TypedQuery<Object[]> query = em.createQuery(jpql, Object[].class);
             query.setParameter("startDate", startDateTime);
             query.setParameter("endDate", endDateTime);
             query.setMaxResults(limit);
             
             List<Object[]> results = query.getResultList();
-            System.out.println("📊 DAO Query returned " + results.size() + " results");
-            
-            if (results.isEmpty()) {
-                System.out.println("⚠️ WARNING: Query returned 0 results!");
-                System.out.println("   Check if:");
-                System.out.println("   1. Orders exist in date range: " + startDate + " to " + endDate);
-                System.out.println("   2. PaymentStatus = 'Paid'");
-                System.out.println("   3. OrderDetails linked properly");
-            } else {
-                System.out.println("✅ Sample result: " + java.util.Arrays.toString(results.get(0)));
-            }
             
             return results;
             
@@ -323,6 +317,47 @@ public class RevenueReportDAO {
     }
     
     /**
+     * Get revenue by weekday (1=Monday, 7=Sunday)
+     * Returns: List of [weekday (1-7), revenue, orderCount]
+     */
+    public List<Object[]> getRevenueByWeekday(LocalDate startDate, LocalDate endDate) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+            
+            // Use native query for DATEPART(WEEKDAY, ...)
+            // In SQL Server, WEEKDAY returns 1=Sunday, 2=Monday, ..., 7=Saturday
+            // We adjust to 1=Monday, 7=Sunday by: ((DATEPART(WEEKDAY, date) + 5) % 7) + 1
+            // This formula: Sunday(1)->7, Monday(2)->1, Tuesday(3)->2, ..., Saturday(7)->6
+            String sql = "SELECT " +
+                        "((DATEPART(WEEKDAY, o.OrderDate) + 5) % 7) + 1 as Weekday, " +
+                        "SUM(o.TotalAmount) as Revenue, " +
+                        "COUNT(o.OrderID) as OrderCount " +
+                        "FROM Orders o " +
+                        "WHERE o.OrderDate BETWEEN :startDate AND :endDate " +
+                        "AND o.PaymentStatus = 'Paid' " +
+                        "GROUP BY ((DATEPART(WEEKDAY, o.OrderDate) + 5) % 7) + 1 " +
+                        "ORDER BY Weekday";
+            
+            @SuppressWarnings("unchecked")
+            List<Object[]> results = em.createNativeQuery(sql)
+                .setParameter("startDate", startDateTime)
+                .setParameter("endDate", endDateTime)
+                .getResultList();
+            
+            return results;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting revenue by weekday: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
      * DEBUG: Get all orders for today (regardless of payment status)
      * Used to debug why revenue might be showing as 0
      */
@@ -348,31 +383,11 @@ public class RevenueReportDAO {
                 .setParameter("endDate", endDateTime)
                 .getSingleResult();
             
-            // Count by payment status
-            String statusJpql = "SELECT o.paymentStatus, COUNT(o), SUM(o.totalAmount) FROM Order o " +
-                               "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
-                               "GROUP BY o.paymentStatus";
-            @SuppressWarnings("unchecked")
-            List<Object[]> statusResults = em.createQuery(statusJpql)
-                .setParameter("startDate", startDateTime)
-                .setParameter("endDate", endDateTime)
-                .getResultList();
-            
             Map<String, Object> debug = new HashMap<>();
             debug.put("totalOrders", totalOrders);
             debug.put("totalRevenue", totalRevenue);
             debug.put("startDateTime", startDateTime);
             debug.put("endDateTime", endDateTime);
-            
-            System.out.println("   🔍 DEBUG - All orders today: " + totalOrders);
-            System.out.println("   🔍 DEBUG - All revenue today: " + totalRevenue);
-            System.out.println("   🔍 DEBUG - Breakdown by payment status:");
-            for (Object[] row : statusResults) {
-                String status = (String) row[0];
-                Long count = (Long) row[1];
-                BigDecimal revenue = (BigDecimal) row[2];
-                System.out.println("      - " + status + ": " + count + " orders, " + revenue + " VND");
-            }
             
             return debug;
             
@@ -399,8 +414,6 @@ public class RevenueReportDAO {
             LocalDateTime startDateTime = startDate.atStartOfDay();
             LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
             
-            System.out.println("📊 Getting monthly revenue from " + startDate + " to " + endDate);
-            
             // JPQL: Group by YEAR and MONTH
             String jpql = "SELECT YEAR(o.orderDate), MONTH(o.orderDate), " +
                          "COALESCE(SUM(o.totalAmount), 0) " +
@@ -415,7 +428,6 @@ public class RevenueReportDAO {
             query.setParameter("endDate", endDateTime);
             
             List<Object[]> results = query.getResultList();
-            System.out.println("📊 Monthly revenue query returned " + results.size() + " months");
             
             return results;
             
@@ -443,8 +455,6 @@ public class RevenueReportDAO {
             LocalDateTime todayEnd = today.atTime(LocalTime.MAX);
             LocalDateTime yesterdayStart = yesterday.atStartOfDay();
             LocalDateTime yesterdayEnd = yesterday.atTime(LocalTime.MAX);
-            
-            System.out.println("📊 Getting today's metrics for: " + today);
             
             // 1. Today's revenue
             String revenueJpql = "SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o " +
@@ -480,8 +490,9 @@ public class RevenueReportDAO {
             
             // 5. Today's average order value
             long orderCount = todayOrders != null ? todayOrders : 0L;
+            BigDecimal safeTodayRevenue = todayRevenue != null ? todayRevenue : BigDecimal.ZERO;
             BigDecimal avgOrderValue = orderCount > 0 ? 
-                todayRevenue.divide(BigDecimal.valueOf(orderCount), 0, java.math.RoundingMode.HALF_UP) : 
+                safeTodayRevenue.divide(BigDecimal.valueOf(orderCount), 0, java.math.RoundingMode.HALF_UP) : 
                 BigDecimal.ZERO;
             metrics.put("avgOrderValue", avgOrderValue);
             

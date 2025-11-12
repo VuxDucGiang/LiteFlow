@@ -68,6 +68,9 @@ public class RevenueReportService {
             // Get hourly data (use today or last day of range)
             report.put("hourlyData", generateHourlyData(endDate));
             
+            // Get weekday data
+            report.put("weekdayData", generateWeekdayData(startDate, endDate));
+            
             // Get category data
             report.put("productData", generateCategoryData(startDate, endDate));
             
@@ -170,7 +173,7 @@ public class RevenueReportService {
             
             // Fill in all hours (6-22)
             for (int hour = 6; hour <= 22; hour++) {
-                hours.put(hour + "h");
+                hours.put(String.format("%02d:00", hour));
                 revenues.put(revenueMap.getOrDefault(hour, 0.0));
             }
             
@@ -181,6 +184,59 @@ public class RevenueReportService {
         
         data.put("hours", hours);
         data.put("revenues", revenues);
+        
+        return data;
+    }
+    
+    /**
+     * Generate weekday revenue data (1=Monday, 7=Sunday)
+     */
+    private JSONObject generateWeekdayData(LocalDate startDate, LocalDate endDate) {
+        JSONObject data = new JSONObject();
+        JSONArray weekdays = new JSONArray();
+        JSONArray weekdayNames = new JSONArray();
+        JSONArray revenues = new JSONArray();
+        JSONArray orders = new JSONArray();
+        
+        try {
+            List<Object[]> weekdayData = reportDAO.getRevenueByWeekday(startDate, endDate);
+            
+            // Create map for easy lookup
+            Map<Integer, Object[]> dataMap = new HashMap<>();
+            for (Object[] row : weekdayData) {
+                Integer weekday = ((Number) row[0]).intValue();
+                dataMap.put(weekday, row);
+            }
+            
+            // Day names in Vietnamese
+            String[] dayNames = {"Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"};
+            
+            // Fill in all weekdays (1-7)
+            for (int weekday = 1; weekday <= 7; weekday++) {
+                weekdays.put(weekday);
+                weekdayNames.put(dayNames[weekday - 1]);
+                
+                if (dataMap.containsKey(weekday)) {
+                    Object[] row = dataMap.get(weekday);
+                    BigDecimal revenue = (BigDecimal) row[1];
+                    Long orderCount = ((Number) row[2]).longValue();
+                    revenues.put(revenue.doubleValue());
+                    orders.put(orderCount);
+                } else {
+                    revenues.put(0.0);
+                    orders.put(0);
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error generating weekday data: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        data.put("weekdays", weekdays);
+        data.put("weekdayNames", weekdayNames);
+        data.put("revenues", revenues);
+        data.put("orders", orders);
         
         return data;
     }
@@ -413,9 +469,9 @@ public class RevenueReportService {
             Long yesterdayOrders = (Long) metrics.get("yesterdayOrders");
             BigDecimal avgOrderValue = (BigDecimal) metrics.get("avgOrderValue");
             String peakHour = (String) metrics.get("peakHour");
-            @SuppressWarnings("unchecked")
+            
             List<String> hourlyLabels = (List<String>) metrics.get("hourlyLabels");
-            @SuppressWarnings("unchecked")
+            
             List<BigDecimal> hourlyRevenues = (List<BigDecimal>) metrics.get("hourlyRevenues");
             
             // Calculate growth rates
