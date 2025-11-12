@@ -175,6 +175,7 @@ public class CashierAPIServlet extends HttpServlet {
             Map<String, Object> orderInfo = orderService.createOrderAndNotifyKitchen(tableId, items, userId, invoiceName, orderNote);
             String orderNumber = (String) orderInfo.get("orderNumber");
             UUID orderId = (UUID) orderInfo.get("orderId");
+            UUID sessionId = (UUID) orderInfo.get("sessionId");
             
             // Trả về response thành công
             Map<String, Object> responseData = new HashMap<>();
@@ -182,6 +183,9 @@ public class CashierAPIServlet extends HttpServlet {
             responseData.put("message", "Đã gửi thông báo đến bếp thành công!");
             responseData.put("orderId", orderNumber); // ✅ Trả về orderNumber dễ đọc hơn UUID
             responseData.put("orderIdUUID", orderId.toString()); // Giữ UUID cho reference
+            if (sessionId != null) {
+                responseData.put("sessionId", sessionId.toString()); // ✅ Trả về sessionId
+            }
             
             response.setStatus(HttpServletResponse.SC_CREATED);
             out.print(gson.toJson(responseData));

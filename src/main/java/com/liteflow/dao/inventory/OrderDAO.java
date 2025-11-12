@@ -130,10 +130,11 @@ public class OrderDAO {
             
             System.out.println("✅ Đã tạo order: " + orderNumber + " với " + orderDetails.size() + " món");
             
-            // ✅ Trả về cả orderId và orderNumber
+            // ✅ Trả về cả orderId, orderNumber và sessionId
             Map<String, Object> result = new HashMap<>();
             result.put("orderId", order.getOrderId());
             result.put("orderNumber", orderNumber);
+            result.put("sessionId", session.getSessionId());
             return result;
             
         } catch (Exception e) {

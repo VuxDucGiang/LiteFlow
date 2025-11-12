@@ -313,6 +313,10 @@
             <i class='bx bx-transfer'></i>
             <span>Chuyển khoản</span>
           </button>
+          <button class="payment-btn" data-method="vnpay">
+            <i class='bx bx-credit-card'></i>
+            <span>VNPay</span>
+          </button>
         </div>
 
         <!-- Action Buttons -->

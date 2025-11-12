@@ -38,6 +38,12 @@ public class PaymentTransaction implements Serializable {
     @Column(name = "TransactionReference", length = 200)
     private String transactionReference;
 
+    @Column(name = "VNPayTransactionNo", length = 50, nullable = true)
+    private String vnpayTransactionNo;
+
+    @Column(name = "VNPayResponseCode", length = 10, nullable = true)
+    private String vnpayResponseCode;
+
     @Column(name = "Notes", length = 500)
     private String notes;
 
@@ -89,6 +95,18 @@ public class PaymentTransaction implements Serializable {
 
     public boolean isWalletPayment() {
         return "Wallet".equals(paymentMethod);
+    }
+
+    public boolean isVNPayPayment() {
+        return "VNPay".equals(paymentMethod);
+    }
+
+    public boolean isProcessing() {
+        return "Processing".equals(paymentStatus);
+    }
+
+    public boolean isCancelled() {
+        return "Cancelled".equals(paymentStatus);
     }
 
     // Getters & Setters
@@ -146,6 +164,22 @@ public class PaymentTransaction implements Serializable {
 
     public void setTransactionReference(String transactionReference) {
         this.transactionReference = transactionReference;
+    }
+
+    public String getVnpayTransactionNo() {
+        return vnpayTransactionNo;
+    }
+
+    public void setVnpayTransactionNo(String vnpayTransactionNo) {
+        this.vnpayTransactionNo = vnpayTransactionNo;
+    }
+
+    public String getVnpayResponseCode() {
+        return vnpayResponseCode;
+    }
+
+    public void setVnpayResponseCode(String vnpayResponseCode) {
+        this.vnpayResponseCode = vnpayResponseCode;
     }
 
     public String getNotes() {

@@ -1768,6 +1768,11 @@ function setupEventListeners() {
       }
       
       if (selectedTable) {
+        // ✅ Lưu bàn cũ TRƯỚC KHI cập nhật để kiểm tra orders
+        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+        const previousTable = currentInvoice?.table;
+        const previousTableId = previousTable?.id;
+        
         // Display table info with room name
         let tableInfo = selectedTable.name;
         if (selectedTable.room) {
@@ -1780,7 +1785,6 @@ function setupEventListeners() {
         document.getElementById('selectedTableInfo').textContent = tableInfo;
         
         // Lưu bàn vào invoice hiện tại
-        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
         if (currentInvoice) {
           // ✅ Gán bàn vào invoice
           currentInvoice.table = selectedTable;
@@ -1812,13 +1816,42 @@ function setupEventListeners() {
           await loadTableOrders(tableId);
         } else {
           // Bàn trống hoặc ô đặc biệt - xóa orders cũ (nếu có)
-          // NHƯNG giữ lại orders nếu đang trong invoice memory (chưa notify)
-          const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+          // NHƯNG giữ lại orders nếu đang trong invoice memory VÀ chưa notify (chưa gửi bếp)
+          // VÀ orders phải thuộc về bàn hiện tại (không phải từ bàn Occupied khác)
+          
+          // ✅ Kiểm tra xem orders trong invoice có phải là orders chưa notify không
+          // Orders chưa notify = orders có quantity > notifiedQuantity (chưa gửi bếp)
+          // Orders đã notify = orders có quantity === notifiedQuantity (đã gửi bếp, từ database)
+          let hasUnnotifiedOrders = false;
           if (currentInvoice && currentInvoice.orders && currentInvoice.orders.length > 0) {
-            // Có orders trong invoice memory - giữ lại
-            orderItems = [...currentInvoice.orders];
-            renderOrderItems();
-            updateBill();
+            // Kiểm tra xem có món nào chưa notify không
+            hasUnnotifiedOrders = currentInvoice.orders.some(item => {
+              const notifiedQty = item.notifiedQuantity || 0;
+              const currentQty = item.quantity || 0;
+              return currentQty > notifiedQty; // Có món chưa notify
+            });
+            
+            // ✅ Kiểm tra: orders phải thuộc về bàn hiện tại (hoặc bàn trống/đặc biệt)
+            // Nếu bàn cũ là Occupied và khác bàn mới, thì orders đó là từ database của bàn cũ → cần xóa
+            const isOrdersFromPreviousOccupiedTable = previousTableId && 
+              previousTableId !== tableId && 
+              previousTableId !== 'takeaway' && 
+              previousTableId !== 'delivery' &&
+              tables.find(t => t.id === previousTableId)?.status === 'Occupied';
+            
+            if (hasUnnotifiedOrders && !isOrdersFromPreviousOccupiedTable) {
+              // Có orders chưa notify VÀ không phải từ bàn Occupied khác - giữ lại
+              console.log('✅ Keeping unnotified orders from invoice memory');
+              orderItems = [...currentInvoice.orders];
+              renderOrderItems();
+              updateBill();
+            } else {
+              // Không có orders chưa notify HOẶC orders từ bàn Occupied khác - xóa
+              console.log('🗑️ Clearing orders (unnotified:', hasUnnotifiedOrders, ', from previous occupied table:', isOrdersFromPreviousOccupiedTable, ')');
+              orderItems = [];
+              renderOrderItems();
+              updateBill();
+            }
           } else {
             // Không có orders - xóa
             orderItems = [];
@@ -1938,6 +1971,130 @@ function setupEventListeners() {
       renderOrderItems(); // Re-render để hiển thị stock mới
       updateBill(); // Cập nhật lại button state
       return;
+    }
+    
+    // ✅ Xử lý thanh toán VNPay (cả VNPay và Transfer đều sử dụng VNPay)
+    // VNPay hỗ trợ chuyển khoản ngân hàng, nên cả hai phương thức đều dùng VNPay
+    if (paymentMethod === 'vnpay' || paymentMethod === 'transfer') {
+      console.log('🔄 Processing VNPay payment for method:', paymentMethod);
+      try {
+        const paymentMethodName = paymentMethod === 'transfer' ? 'Chuyển khoản qua VNPay' : 'VNPay';
+        window.notificationManager?.show(
+          `Đang tạo đơn hàng và thanh toán ${paymentMethodName}...`,
+          'info',
+          paymentMethodName
+        );
+        
+        // Tạo orders trước để có session và orders
+        const orderItemsToSend = orderItems.map(item => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          note: item.note || ''
+        }));
+        
+        // Lấy invoice name
+        const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+        const invoiceName = currentInvoice?.name || 'Hóa đơn';
+        
+        // Tạo orders trước
+        const createOrderResponse = await fetch(contextPath + '/api/cashier/order/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tableId: selectedTable.id,
+            items: orderItemsToSend,
+            invoiceName: invoiceName
+          })
+        });
+        
+        const createOrderResult = await createOrderResponse.json();
+        
+        if (!createOrderResult.success) {
+          console.error('❌ Create order failed:', createOrderResult);
+          window.notificationManager?.show(
+            createOrderResult.message || 'Không thể tạo đơn hàng',
+            'error',
+            'Lỗi'
+          );
+          return;
+        }
+        
+        console.log('✅ Order created successfully:', createOrderResult);
+        
+        // Sau khi tạo orders thành công, tạo payment URL VNPay
+        // Sử dụng sessionId từ create order response nếu có, nếu không thì dùng tableId
+        const vnpayRequest = {
+          amount: finalTotal,
+          orderInfo: `Thanh toan don hang - ${invoiceName} - Ban ${selectedTable.name || selectedTable.id}`
+        };
+        
+        // Ưu tiên sử dụng sessionId từ create order response
+        if (createOrderResult.sessionId) {
+          vnpayRequest.sessionId = createOrderResult.sessionId;
+          console.log('✅ Using sessionId from create order:', createOrderResult.sessionId);
+        } else {
+          // Fallback: sử dụng tableId (VNPayService sẽ tìm hoặc tạo session)
+          vnpayRequest.tableId = selectedTable.id;
+          console.log('⚠️ No sessionId from create order, using tableId:', selectedTable.id);
+        }
+        
+        console.log('📤 Sending VNPay request:', vnpayRequest);
+        
+        const vnpayResponse = await fetch(contextPath + '/api/payment/vnpay/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(vnpayRequest)
+        });
+        
+        console.log('📥 VNPay response status:', vnpayResponse.status);
+        
+        if (!vnpayResponse.ok) {
+          const errorText = await vnpayResponse.text();
+          console.error('❌ VNPay API error:', errorText);
+          window.notificationManager?.show(
+            'Lỗi kết nối đến VNPay. Vui lòng thử lại.',
+            'error',
+            'Lỗi VNPay'
+          );
+          return;
+        }
+        
+        const vnpayResult = await vnpayResponse.json();
+        console.log('📥 VNPay result:', vnpayResult);
+        
+        if (vnpayResult.success && vnpayResult.paymentUrl) {
+          // Lưu transactionId vào sessionStorage (optional, for tracking)
+          if (vnpayResult.transactionId) {
+            sessionStorage.setItem('vnpayTransactionId', vnpayResult.transactionId);
+          }
+          
+          console.log('✅ Redirecting to VNPay:', vnpayResult.paymentUrl);
+          
+          // Redirect đến VNPay
+          window.location.href = vnpayResult.paymentUrl;
+        } else {
+          console.error('❌ VNPay payment creation failed:', vnpayResult);
+          window.notificationManager?.show(
+            vnpayResult.message || 'Không thể tạo thanh toán VNPay',
+            'error',
+            'Lỗi VNPay'
+          );
+        }
+      } catch (error) {
+        console.error('❌ Error creating VNPay payment:', error);
+        console.error('Error stack:', error.stack);
+        window.notificationManager?.show(
+          'Không thể tạo thanh toán VNPay. Vui lòng thử lại. Lỗi: ' + error.message,
+          'error',
+          'Lỗi kết nối'
+        );
+      }
+      return; // Exit early for VNPay
     }
     
     // ✅ Gửi orderItems trực tiếp để backend trừ stock (giống cơ chế kitchen)
