@@ -147,11 +147,18 @@
                 Quản lý bảng lương và thanh toán cho nhân viên
             </p>
         </div>
-        <button id="btnGeneratePayroll" class="btn btn-primary" onclick="generatePayroll()" 
-                style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600;">
-            <i class='bx bx-plus-circle'></i>
-            Tạo bảng lương tháng này
-        </button>
+            <div style="display: flex; gap: 12px;">
+                <button id="btnRecalculatePayroll" class="btn" onclick="recalculatePayroll()" 
+                        style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db;">
+                    <i class='bx bx-refresh'></i>
+                    Cập nhật lại bảng lương
+                </button>
+                <button id="btnGeneratePayroll" class="btn btn-primary" onclick="generatePayroll()" 
+                        style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600;">
+                    <i class='bx bx-plus-circle'></i>
+                    Tạo bảng lương tháng này
+                </button>
+            </div>
     </div>
 
     <!-- Month/Year Selector -->
@@ -389,11 +396,71 @@
         } catch (error) {
             console.error('Error generating payroll:', error);
             alert('Có lỗi xảy ra khi tạo bảng lương');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
-    }
+
+        async function recalculatePayroll() {
+            const month = document.getElementById('monthSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            
+            if (!confirm('Bạn có chắc chắn muốn cập nhật lại bảng lương cho tháng ' + month + '/' + year + '?\n\nHệ thống sẽ tính lại lương dựa trên dữ liệu chấm công mới nhất.')) {
+                return;
+            }
+
+            const btn = document.getElementById('btnRecalculatePayroll');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Đang cập nhật...';
+
+            try {
+                const url = CONTEXT_PATH + '/api/payroll/recalculate?month=' + month + '&year=' + year;
+                console.log('Recalculating payroll - URL:', url);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                console.log('Recalculate response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Recalculate error response:', errorText);
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        alert('Có lỗi xảy ra: ' + (errorJson.error || 'Không thể cập nhật bảng lương'));
+                    } catch (e) {
+                        alert('Có lỗi xảy ra: ' + errorText);
+                    }
+                    return;
+                }
+
+                const result = await response.json();
+                console.log('Recalculate result:', result);
+                
+                if (result.success) {
+                    if (result.recalculatedCount !== undefined) {
+                        alert('Đã cập nhật lại bảng lương thành công!\n\nĐã cập nhật cho ' + result.recalculatedCount + ' nhân viên.');
+                    } else {
+                        alert('Đã cập nhật lại bảng lương thành công!');
+                    }
+                    loadPayroll(); // Reload data
+                } else {
+                    alert('Có lỗi xảy ra: ' + (result.error || 'Không thể cập nhật bảng lương'));
+                }
+            } catch (error) {
+                console.error('Error recalculating payroll:', error);
+                alert('Có lỗi xảy ra khi cập nhật bảng lương');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
 
     async function markAsPaid(payrollEntryId) {
         if (!confirm('Bạn có chắc chắn muốn đánh dấu đã thanh toán lương cho nhân viên này?')) {

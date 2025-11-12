@@ -2,14 +2,11 @@ package com.liteflow.service.payroll;
 
 import com.liteflow.dao.payroll.EmployeeCompensationDAO;
 import com.liteflow.dao.timesheet.EmployeeAttendanceDAO;
-import com.liteflow.dao.timesheet.EmployeeShiftTimesheetDAO;
 import com.liteflow.model.payroll.EmployeeCompensation;
 import com.liteflow.model.timesheet.EmployeeAttendance;
-import com.liteflow.model.timesheet.EmployeeShiftTimesheet;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,12 +16,10 @@ import java.util.UUID;
 public class PayrollCalculationService {
 
     private final EmployeeCompensationDAO compensationDAO;
-    private final EmployeeShiftTimesheetDAO timesheetDAO;
     private final EmployeeAttendanceDAO attendanceDAO;
 
     public PayrollCalculationService() {
         this.compensationDAO = new EmployeeCompensationDAO();
-        this.timesheetDAO = new EmployeeShiftTimesheetDAO();
         this.attendanceDAO = new EmployeeAttendanceDAO();
     }
 
@@ -99,20 +94,31 @@ public class PayrollCalculationService {
     }
 
     /**
-     * Get total hours worked in a month from EmployeeShiftTimesheet
+     * Get total hours worked in a month from EmployeeAttendance
+     * Tính từ CheckInTime và CheckOutTime trong EmployeeAttendance
      */
     public BigDecimal getTotalHoursWorked(UUID employeeId, int month, int year) {
-        LocalDate startDate = LocalDate.of(year, month, 1);
-        LocalDate endDate = LocalDate.of(year, month, startDate.lengthOfMonth());
-        
-        List<EmployeeShiftTimesheet> timesheets = timesheetDAO.findByWorkDateRange(startDate, endDate);
+        List<EmployeeAttendance> attendanceList = attendanceDAO.findByEmployeeAndMonth(employeeId, year, month);
         
         BigDecimal totalHours = BigDecimal.ZERO;
-        for (EmployeeShiftTimesheet timesheet : timesheets) {
-            if (timesheet.getEmployee().getEmployeeID().equals(employeeId)) {
-                if (timesheet.getHoursWorked() != null) {
-                    totalHours = totalHours.add(timesheet.getHoursWorked());
-                }
+        for (EmployeeAttendance attendance : attendanceList) {
+            // Chỉ tính cho các ngày có status "Work" và có cả CheckInTime và CheckOutTime
+            if ("Work".equals(attendance.getStatus()) && 
+                attendance.getCheckInTime() != null && 
+                attendance.getCheckOutTime() != null) {
+                
+                // Tính số giờ làm việc từ CheckInTime đến CheckOutTime
+                java.time.Duration duration = java.time.Duration.between(
+                    attendance.getCheckInTime(), 
+                    attendance.getCheckOutTime()
+                );
+                
+                long totalMinutes = duration.toMinutes();
+                // Chuyển đổi từ phút sang giờ (làm tròn 2 chữ số)
+                BigDecimal hours = BigDecimal.valueOf(totalMinutes)
+                    .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+                
+                totalHours = totalHours.add(hours);
             }
         }
         

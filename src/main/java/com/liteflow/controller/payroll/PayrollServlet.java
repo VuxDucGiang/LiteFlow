@@ -73,28 +73,83 @@ public class PayrollServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
 
         String pathInfo = req.getPathInfo();
-        if (pathInfo == null) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            resp.getWriter().print("{\"error\":\"Invalid endpoint\"}");
-            resp.getWriter().flush();
-            return;
+        String requestURI = req.getRequestURI();
+        String servletPath = req.getServletPath();
+        
+        // Normalize pathInfo - remove leading/trailing slashes and query strings
+        if (pathInfo != null) {
+            pathInfo = pathInfo.trim();
+            // Remove query string if present
+            int queryIndex = pathInfo.indexOf('?');
+            if (queryIndex > 0) {
+                pathInfo = pathInfo.substring(0, queryIndex);
+            }
+        }
+        
+        // Debug logging
+        System.out.println("PayrollServlet POST - pathInfo: " + pathInfo);
+        System.out.println("PayrollServlet POST - requestURI: " + requestURI);
+        System.out.println("PayrollServlet POST - servletPath: " + servletPath);
+        
+        // If pathInfo is null or empty, try to extract from requestURI
+        if (pathInfo == null || pathInfo.isEmpty() || pathInfo.equals("/")) {
+            String extractedPath = null;
+            if (requestURI != null) {
+                // Extract path after /api/payroll/
+                int payrollIndex = requestURI.indexOf("/api/payroll/");
+                if (payrollIndex >= 0) {
+                    String afterPayroll = requestURI.substring(payrollIndex + "/api/payroll/".length());
+                    int queryIndex = afterPayroll.indexOf('?');
+                    if (queryIndex > 0) {
+                        afterPayroll = afterPayroll.substring(0, queryIndex);
+                    }
+                    if (!afterPayroll.isEmpty()) {
+                        extractedPath = "/" + afterPayroll;
+                    }
+                }
+            }
+            
+            if (extractedPath != null && !extractedPath.isEmpty()) {
+                pathInfo = extractedPath;
+                System.out.println("PayrollServlet POST - Extracted pathInfo from URI: " + pathInfo);
+            } else {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JSONObject errorJson = new JSONObject();
+                errorJson.put("error", "Invalid endpoint - pathInfo is null or empty");
+                errorJson.put("pathInfo", pathInfo != null ? pathInfo : "null");
+                errorJson.put("requestURI", requestURI);
+                errorJson.put("servletPath", servletPath);
+                resp.getWriter().print(errorJson.toString());
+                resp.getWriter().flush();
+                return;
+            }
         }
 
         try {
-            if (pathInfo.equals("/mark-paid")) {
+            if (pathInfo.equals("/mark-paid") || pathInfo.contains("mark-paid")) {
                 // POST /api/payroll/mark-paid
                 handleMarkAsPaid(req, resp);
-            } else if (pathInfo.equals("/generate")) {
+            } else if (pathInfo.equals("/generate") || pathInfo.contains("generate")) {
                 // POST /api/payroll/generate?month=X&year=Y
                 handleGeneratePayroll(req, resp);
+            } else if (pathInfo.equals("/recalculate") || pathInfo.contains("recalculate")) {
+                // POST /api/payroll/recalculate?month=X&year=Y&employeeId=UUID (optional)
+                handleRecalculatePayroll(req, resp);
             } else {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                resp.getWriter().print("{\"error\":\"Invalid endpoint\"}");
+                JSONObject errorJson = new JSONObject();
+                errorJson.put("error", "Invalid endpoint");
+                errorJson.put("pathInfo", pathInfo);
+                errorJson.put("requestURI", requestURI);
+                resp.getWriter().print(errorJson.toString());
                 resp.getWriter().flush();
             }
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.getWriter().print("{\"error\":\"" + e.getMessage() + "\"}");
+            JSONObject errorJson = new JSONObject();
+            errorJson.put("error", e.getMessage());
+            errorJson.put("pathInfo", pathInfo);
+            resp.getWriter().print(errorJson.toString());
             resp.getWriter().flush();
             e.printStackTrace();
         }
@@ -312,6 +367,84 @@ public class PayrollServlet extends HttpServlet {
             JSONObject json = new JSONObject();
             json.put("success", false);
             json.put("error", "Lỗi khi tạo bảng lương: " + e.getMessage());
+            resp.getWriter().print(json.toString());
+            resp.getWriter().flush();
+            e.printStackTrace();
+        }
+    }
+
+    private void handleRecalculatePayroll(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String monthStr = req.getParameter("month");
+        String yearStr = req.getParameter("year");
+        String employeeIdStr = req.getParameter("employeeId");
+
+        LocalDate now = LocalDate.now();
+        int month = now.getMonthValue();
+        int year = now.getYear();
+
+        if (monthStr != null && !monthStr.trim().isEmpty()) {
+            try {
+                month = Integer.parseInt(monthStr.trim());
+                if (month < 1 || month > 12) {
+                    month = now.getMonthValue();
+                }
+            } catch (NumberFormatException e) {
+                month = now.getMonthValue();
+            }
+        }
+
+        if (yearStr != null && !yearStr.trim().isEmpty()) {
+            try {
+                year = Integer.parseInt(yearStr.trim());
+                if (year < 2020 || year > 2030) {
+                    year = now.getYear();
+                }
+            } catch (NumberFormatException e) {
+                year = now.getYear();
+            }
+        }
+
+        try {
+            JSONObject json = new JSONObject();
+            
+            if (employeeIdStr != null && !employeeIdStr.trim().isEmpty()) {
+                // Recalculate for specific employee
+                try {
+                    UUID employeeId = UUID.fromString(employeeIdStr.trim());
+                    boolean success = payrollService.recalculatePayrollEntry(employeeId, month, year);
+                    
+                    if (success) {
+                        json.put("success", true);
+                        json.put("message", "Đã cập nhật lại bảng lương cho nhân viên");
+                    } else {
+                        json.put("success", false);
+                        json.put("error", "Không thể cập nhật bảng lương");
+                    }
+                } catch (IllegalArgumentException e) {
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    json.put("success", false);
+                    json.put("error", "Invalid employee ID format");
+                }
+            } else {
+                // Recalculate for all employees in the month
+                int recalculatedCount = payrollService.recalculatePayrollForMonth(month, year);
+                
+                json.put("success", true);
+                json.put("message", "Đã cập nhật lại bảng lương cho " + recalculatedCount + " nhân viên");
+                json.put("recalculatedCount", recalculatedCount);
+            }
+            
+            json.put("month", month);
+            json.put("year", year);
+            
+            resp.getWriter().print(json.toString());
+            resp.getWriter().flush();
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            JSONObject json = new JSONObject();
+            json.put("success", false);
+            json.put("error", "Lỗi khi cập nhật bảng lương: " + e.getMessage());
             resp.getWriter().print(json.toString());
             resp.getWriter().flush();
             e.printStackTrace();

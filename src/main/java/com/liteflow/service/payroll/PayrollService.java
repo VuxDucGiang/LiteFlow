@@ -424,6 +424,103 @@ public class PayrollService {
     }
 
     /**
+     * Recalculate payroll entry for an employee in a specific month/year
+     * This should be called when attendance data changes
+     */
+    public boolean recalculatePayrollEntry(UUID employeeId, int month, int year) {
+        try {
+            System.out.println("=== Recalculating payroll for employee: " + employeeId + ", month: " + month + "/" + year + " ===");
+            
+            // Find existing payroll entry
+            PayrollEntry entry = payrollEntryDAO.findByEmployeeAndMonthYear(employeeId, month, year);
+            
+            if (entry == null) {
+                System.out.println("  -> No existing payroll entry found. Creating new one...");
+                // Create new entry if doesn't exist
+                PayPeriod payPeriod = getOrCreatePayPeriod(month, year);
+                PayrollRun payrollRun = getOrCreatePayrollRun(payPeriod);
+                entry = createPayrollEntryForRun(employeeId, month, year, payrollRun);
+                return entry != null;
+            }
+            
+            System.out.println("  -> Found existing payroll entry: " + entry.getPayrollEntryId());
+            
+            // Recalculate salary
+            PayrollCalculationService.MonthlySalaryResult salaryResult = 
+                calculationService.calculateMonthlySalary(employeeId, month, year);
+            
+            System.out.println("  -> Recalculated salary: Total=" + salaryResult.getTotalSalary() + 
+                ", Allowances=" + salaryResult.getAllowances() + 
+                ", Bonuses=" + salaryResult.getBonuses() + 
+                ", Deductions=" + salaryResult.getDeductions());
+            
+            // Update hours/shifts worked
+            if ("Hybrid".equals(entry.getCompensationType())) {
+                BigDecimal hours = calculationService.getTotalHoursWorked(employeeId, month, year);
+                entry.setHoursWorked(hours);
+                System.out.println("  -> Updated hours worked: " + hours);
+            } else if ("PerShift".equals(entry.getCompensationType())) {
+                int shifts = calculationService.getShiftsWorked(employeeId, month, year);
+                entry.setShiftsWorked(shifts);
+                System.out.println("  -> Updated shifts worked: " + shifts);
+            }
+            
+            // Update gross pay and net pay
+            entry.setGrossPay(salaryResult.getTotalSalary());
+            entry.setNetPay(salaryResult.getTotalSalary().subtract(salaryResult.getDeductions()));
+            
+            System.out.println("  -> Updated GrossPay=" + entry.getGrossPay() + ", NetPay=" + entry.getNetPay());
+            
+            // Save changes
+            payrollEntryDAO.update(entry);
+            System.out.println("  -> Payroll entry updated successfully");
+            
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error recalculating payroll entry for employee " + employeeId + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Recalculate all payroll entries for a specific month/year
+     * Useful when bulk attendance updates occur
+     */
+    public int recalculatePayrollForMonth(int month, int year) {
+        System.out.println("=== Recalculating all payroll entries for month " + month + "/" + year + " ===");
+        
+        List<PayrollEntry> entries = payrollEntryDAO.findByMonth(month, year);
+        System.out.println("Found " + entries.size() + " payroll entries to recalculate");
+        
+        int successCount = 0;
+        int errorCount = 0;
+        
+        for (PayrollEntry entry : entries) {
+            try {
+                boolean success = recalculatePayrollEntry(
+                    entry.getEmployee().getEmployeeID(), 
+                    month, 
+                    year
+                );
+                if (success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (Exception e) {
+                System.err.println("Error recalculating payroll entry " + entry.getPayrollEntryId() + ": " + e.getMessage());
+                errorCount++;
+            }
+        }
+        
+        System.out.println("=== Recalculation completed ===");
+        System.out.println("Success: " + successCount + ", Errors: " + errorCount);
+        
+        return successCount;
+    }
+
+    /**
      * DTO for payroll entry display
      */
     public static class PayrollEntryDTO {
