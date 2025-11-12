@@ -9,7 +9,9 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @WebServlet(name = "CompensationServlet", urlPatterns = {"/compensation"})
@@ -80,7 +82,7 @@ public class CompensationServlet extends HttpServlet {
 
         response.setContentType("application/json");
         if (compensation != null) {
-            String json = buildCompensationJson(compensation);
+            String json = buildCompensationJson(compensation, null);
             response.getWriter().write("{\"success\": true, \"data\": " + json + "}");
         } else {
             response.getWriter().write("{\"success\": false, \"error\": \"No active compensation found\"}");
@@ -95,7 +97,7 @@ public class CompensationServlet extends HttpServlet {
         StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < compensations.size(); i++) {
             if (i > 0) json.append(",");
-            json.append(buildCompensationJson(compensations.get(i)));
+                json.append(buildCompensationJson(compensations.get(i), null));
         }
         json.append("]");
 
@@ -184,14 +186,37 @@ public class CompensationServlet extends HttpServlet {
         }
     }
 
-    private String buildCompensationJson(EmployeeCompensation comp) {
+    private String buildCompensationJson(EmployeeCompensation comp, Map<UUID, Employee> employeeMap) {
         try {
             String employeeCode = "";
             String employeeName = "";
             
-            if (comp.getEmployee() != null) {
-                employeeCode = comp.getEmployee().getEmployeeCode() != null ? comp.getEmployee().getEmployeeCode() : "";
-                employeeName = comp.getEmployee().getFullName() != null ? comp.getEmployee().getFullName() : "";
+            // Try to get employee from compensation (should be eager fetched now)
+            Employee emp = null;
+            try {
+                emp = comp.getEmployee();
+            } catch (Exception e) {
+                // If still lazy loading fails, use map
+                System.err.println("Warning: Could not get employee from compensation, using map: " + e.getMessage());
+            }
+            
+            // If employee is null or not loaded, try to get from map
+            if (emp == null && employeeMap != null) {
+                // Try to get employeeId from compensation's employee reference
+                try {
+                    UUID employeeId = comp.getEmployee() != null ? comp.getEmployee().getEmployeeID() : null;
+                    if (employeeId != null) {
+                        emp = employeeMap.get(employeeId);
+                    }
+                } catch (Exception e) {
+                    // If we can't get employeeId, we'll leave emp as null
+                }
+            }
+            
+            // Extract employeeCode and employeeName
+            if (emp != null) {
+                employeeCode = emp.getEmployeeCode() != null ? emp.getEmployeeCode() : "";
+                employeeName = emp.getFullName() != null ? emp.getFullName() : "";
             }
             
             return String.format(
@@ -234,7 +259,13 @@ public class CompensationServlet extends HttpServlet {
             List<Employee> employees = employeeService.getAllEmployees();
             System.out.println("Fetched " + employees.size() + " employees");
 
-            // Get all active compensations
+            // Create employee map for quick lookup
+            Map<UUID, Employee> employeeMap = new HashMap<>();
+            for (Employee emp : employees) {
+                employeeMap.put(emp.getEmployeeID(), emp);
+            }
+
+            // Get all active compensations (with eager fetch)
             List<EmployeeCompensation> compensations = compensationService.getAllActiveCompensations();
             System.out.println("Fetched " + compensations.size() + " compensations");
 
@@ -259,7 +290,7 @@ public class CompensationServlet extends HttpServlet {
             json.append("\"compensations\":[");
             for (int i = 0; i < compensations.size(); i++) {
                 if (i > 0) json.append(",");
-                json.append(buildCompensationJson(compensations.get(i)));
+                json.append(buildCompensationJson(compensations.get(i), employeeMap));
             }
             json.append("]");
 

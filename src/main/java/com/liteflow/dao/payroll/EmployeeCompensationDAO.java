@@ -128,18 +128,20 @@ public class EmployeeCompensationDAO extends GenericDAO<EmployeeCompensation, UU
     }
 
     /**
-     * Lấy tất cả active compensations
+     * Lấy tất cả active compensations với Employee được eager fetch
      */
     public List<EmployeeCompensation> getAllActiveCompensations() {
         EntityManager em = emf.createEntityManager();
         try {
             String jpql = "SELECT ec FROM EmployeeCompensation ec " +
+                         "JOIN FETCH ec.employee e " +
                          "WHERE ec.isActive = true " +
-                         "ORDER BY ec.employee.fullName";
+                         "ORDER BY e.fullName";
             return em.createQuery(jpql, EmployeeCompensation.class)
                     .getResultList();
         } catch (Exception e) {
             System.err.println("Error getting all active compensations: " + e.getMessage());
+            e.printStackTrace();
             return Collections.emptyList();
         } finally {
             em.close();
