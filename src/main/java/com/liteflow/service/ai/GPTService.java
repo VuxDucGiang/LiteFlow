@@ -21,26 +21,68 @@ import java.util.concurrent.TimeUnit;
 public class GPTService {
     
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String DEFAULT_MODEL = "gpt-3.5-turbo";
-    private static final int MAX_TOKENS = 1000; // Increased for detailed revenue analysis
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    
+    // Default values (fallback if config not found)
+    private static final String DEFAULT_MODEL = "gpt-3.5-turbo";
+    private static final int DEFAULT_MAX_TOKENS = 1000;
+    private static final double DEFAULT_TEMPERATURE = 0.7;
+    private static final int DEFAULT_CONNECT_TIMEOUT = 30;
+    private static final int DEFAULT_WRITE_TIMEOUT = 30;
+    private static final int DEFAULT_READ_TIMEOUT = 60;
     
     private final OkHttpClient client;
     private final String apiKey;
     private final DemandForecastService demandService;
     private final RevenueReportService revenueService;
     private final ProductInventoryService productInventoryService;
+    private final AIAgentConfigService configService;
     
     public GPTService(String apiKey) {
         this.apiKey = apiKey;
+        this.configService = new AIAgentConfigService();
+        
+        // Build client with configurable timeouts
+        int connectTimeout = configService.getIntConfig("gpt.connect_timeout", DEFAULT_CONNECT_TIMEOUT);
+        int writeTimeout = configService.getIntConfig("gpt.write_timeout", DEFAULT_WRITE_TIMEOUT);
+        int readTimeout = configService.getIntConfig("gpt.read_timeout", DEFAULT_READ_TIMEOUT);
+        
         this.client = new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(connectTimeout, TimeUnit.SECONDS)
+            .writeTimeout(writeTimeout, TimeUnit.SECONDS)
+            .readTimeout(readTimeout, TimeUnit.SECONDS)
             .build();
         this.demandService = new DemandForecastService();
         this.revenueService = new RevenueReportService();
         this.productInventoryService = new ProductInventoryService();
+    }
+    
+    /**
+     * Get GPT model from config or default
+     */
+    private String getModel() {
+        return configService.getStringConfig("gpt.model", DEFAULT_MODEL);
+    }
+    
+    /**
+     * Get max tokens from config or default
+     */
+    private int getMaxTokens() {
+        return configService.getIntConfig("gpt.max_tokens", DEFAULT_MAX_TOKENS);
+    }
+    
+    /**
+     * Get temperature from config or default
+     */
+    private double getTemperature() {
+        return configService.getDecimalConfig("gpt.temperature", DEFAULT_TEMPERATURE);
+    }
+    
+    /**
+     * Check if GPT features are enabled
+     */
+    public boolean isGPTFeaturesEnabled() {
+        return configService.getBooleanConfig("gpt.enable_features", true);
     }
     
     /**
@@ -56,11 +98,16 @@ public class GPTService {
         
         System.out.println("🤖 GPT Request: " + userMessage);
         
+        // Check if GPT features are enabled
+        if (!isGPTFeaturesEnabled()) {
+            throw new IllegalStateException("GPT features are disabled in configuration");
+        }
+        
         // Build request JSON
         JSONObject requestBody = new JSONObject();
-        requestBody.put("model", DEFAULT_MODEL);
-        requestBody.put("max_tokens", MAX_TOKENS);
-        requestBody.put("temperature", 0.7);
+        requestBody.put("model", getModel());
+        requestBody.put("max_tokens", getMaxTokens());
+        requestBody.put("temperature", getTemperature());
         
         // Build messages array
         JSONArray messages = new JSONArray();

@@ -137,10 +137,21 @@ body{
   place-items:center;
   cursor:pointer;
   transition:background 0.2s;
+  text-decoration: none;
+  color: inherit;
 }
 
 .header-icon:hover{
   background:rgba(255,255,255,0.1);
+  transform: scale(1.1);
+}
+
+.header-icon i {
+  transition: transform 0.2s;
+}
+
+.header-icon:hover i {
+  transform: rotate(90deg);
 }
 
 /* User info in header */

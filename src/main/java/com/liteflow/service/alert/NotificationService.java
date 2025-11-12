@@ -356,25 +356,48 @@ public class NotificationService {
      * @return true if sent successfully
      */
     public boolean sendTelegramToUser(String chatId, String title, String message, String priority, String botToken) {
+        System.out.println("🔍 [Telegram] Starting sendTelegramToUser()");
+        System.out.println("🔍 [Telegram] Chat ID: " + (chatId != null ? chatId : "NULL"));
+        System.out.println("🔍 [Telegram] Title: " + (title != null ? title : "NULL"));
+        System.out.println("🔍 [Telegram] Priority: " + (priority != null ? priority : "NULL"));
+        System.out.println("🔍 [Telegram] Bot Token provided: " + (botToken != null && !botToken.isEmpty() ? "YES (length: " + botToken.length() + ")" : "NO"));
+        
         try {
             // Use provided bot token or get from default Telegram channel
             String token = botToken;
             if (token == null || token.isEmpty()) {
+                System.out.println("🔍 [Telegram] Bot token not provided, trying to get from default channel...");
                 NotificationChannel defaultTelegram = channelDAO.getDefaultTelegramChannel();
                 if (defaultTelegram != null && defaultTelegram.getTelegramBotToken() != null) {
                     token = defaultTelegram.getTelegramBotToken();
+                    System.out.println("✅ [Telegram] Got token from default channel (length: " + token.length() + ")");
                 } else {
-                    System.err.println("❌ Telegram bot token not provided and no default Telegram channel configured");
+                    System.err.println("❌ [Telegram] Telegram bot token not provided and no default Telegram channel configured");
+                    if (defaultTelegram == null) {
+                        System.err.println("❌ [Telegram] Default Telegram channel is NULL");
+                    } else {
+                        System.err.println("❌ [Telegram] Default Telegram channel exists but token is NULL");
+                    }
                     return false;
                 }
+            } else {
+                System.out.println("✅ [Telegram] Using provided bot token");
+            }
+            
+            // Validate token format (should be like "123456789:ABCdefGHIjklMNOpqrsTUVwxyz")
+            if (token != null && !token.contains(":")) {
+                System.err.println("⚠️ [Telegram] Token format may be invalid (should contain ':')");
             }
             
             if (chatId == null || chatId.isEmpty()) {
-                System.err.println("❌ Telegram chat ID is required");
+                System.err.println("❌ [Telegram] Telegram chat ID is required");
                 return false;
             }
             
+            System.out.println("✅ [Telegram] Chat ID validated: " + chatId);
+            
             // Build Telegram message (HTML format)
+            System.out.println("🔍 [Telegram] Building message...");
             String emoji = getPriorityEmoji(priority);
             StringBuilder telegramMessage = new StringBuilder();
             telegramMessage.append(emoji).append(" <b>").append(escapeHtml(title)).append("</b>\n\n");
@@ -385,32 +408,59 @@ public class NotificationService {
             telegramMessage.append(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
             telegramMessage.append("</i>");
             
+            String finalMessage = telegramMessage.toString();
+            System.out.println("🔍 [Telegram] Message length: " + finalMessage.length() + " characters");
+            
             // Build request
+            System.out.println("🔍 [Telegram] Building request body...");
             JSONObject requestBody = new JSONObject();
             requestBody.put("chat_id", chatId);
-            requestBody.put("text", telegramMessage.toString());
+            requestBody.put("text", finalMessage);
             requestBody.put("parse_mode", "HTML");
+            
+            String requestBodyStr = requestBody.toString();
+            System.out.println("🔍 [Telegram] Request body: " + requestBodyStr.substring(0, Math.min(200, requestBodyStr.length())) + "...");
             
             // Send HTTP POST
             String apiUrl = "https://api.telegram.org/bot" + token + "/sendMessage";
+            System.out.println("🔍 [Telegram] API URL: https://api.telegram.org/bot" + (token != null ? token.substring(0, Math.min(10, token.length())) + "..." : "NULL") + "/sendMessage");
+            
             URL url = new URL(apiUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
+            conn.setConnectTimeout(10000); // 10 seconds
+            conn.setReadTimeout(10000); // 10 seconds
             
+            System.out.println("🔍 [Telegram] Sending HTTP POST request...");
             try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
+                byte[] input = requestBodyStr.getBytes(StandardCharsets.UTF_8);
                 os.write(input, 0, input.length);
+                System.out.println("🔍 [Telegram] Request body sent (" + input.length + " bytes)");
             }
             
             // Read response
+            System.out.println("🔍 [Telegram] Reading response...");
             int responseCode = conn.getResponseCode();
+            System.out.println("🔍 [Telegram] Response code: " + responseCode);
+            
             if (responseCode == 200) {
-                System.out.println("✅ Telegram message sent to user: " + chatId);
+                // Read success response
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        response.append(line);
+                    }
+                    System.out.println("✅ [Telegram] Success response: " + response.toString());
+                }
+                System.out.println("✅ [Telegram] Telegram message sent to user: " + chatId);
                 return true;
             } else {
                 // Read error
+                System.err.println("❌ [Telegram] API returned error code: " + responseCode);
                 try (BufferedReader br = new BufferedReader(
                         new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
                     StringBuilder response = new StringBuilder();
@@ -418,13 +468,28 @@ public class NotificationService {
                     while ((line = br.readLine()) != null) {
                         response.append(line);
                     }
-                    System.err.println("❌ Telegram API error (" + responseCode + "): " + response.toString());
+                    System.err.println("❌ [Telegram] Error response body: " + response.toString());
+                } catch (Exception e) {
+                    System.err.println("❌ [Telegram] Could not read error stream: " + e.getMessage());
                 }
                 return false;
             }
             
+        } catch (java.net.SocketTimeoutException e) {
+            System.err.println("❌ [Telegram] Connection timeout: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } catch (java.net.UnknownHostException e) {
+            System.err.println("❌ [Telegram] Unknown host (network issue): " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } catch (java.io.IOException e) {
+            System.err.println("❌ [Telegram] IO error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         } catch (Exception e) {
-            System.err.println("❌ Telegram send to user failed: " + e.getMessage());
+            System.err.println("❌ [Telegram] Unexpected error: " + e.getMessage());
+            System.err.println("❌ [Telegram] Error class: " + e.getClass().getName());
             e.printStackTrace();
             return false;
         }

@@ -182,9 +182,9 @@
           <c:if test="${!isEmployee}">
             <div id="notification-bell-container"></div>
           </c:if>
-          <div class="header-icon">
+          <a href="${pageContext.request.contextPath}/settings" class="header-icon" title="Cài đặt" target="_blank">
             <i class='bx bx-cog'></i>
-          </div>
+          </a>
           <div class="nav-item dropdown" style="margin: 0;">
             <a href="#" class="nav-link dropdown-toggle" aria-expanded="false" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: #374151 !important;">
               <i class='bx bx-user' style="color: #374151;"></i>

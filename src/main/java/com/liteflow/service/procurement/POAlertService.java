@@ -8,9 +8,12 @@ import com.liteflow.model.alert.UserAlertPreference;
 import com.liteflow.model.procurement.POAlertNotification;
 import com.liteflow.model.procurement.PurchaseOrder;
 import com.liteflow.service.alert.NotificationService;
+import com.liteflow.service.ai.AIAgentConfigService;
+import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import java.io.File;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -25,16 +28,12 @@ public class POAlertService {
     
     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("LiteFlowPU");
     
-    // Telegram Bot Token (can be configured via environment variable or default channel)
-    private static final String TELEGRAM_BOT_TOKEN = System.getenv("TELEGRAM_BOT_TOKEN") != null 
-        ? System.getenv("TELEGRAM_BOT_TOKEN") 
-        : "Your:telegrambotToken"; // Default from user config
-    
     private final POAlertNotificationDAO notificationDAO;
     private final PurchaseOrderDAO poDAO;
     private final SupplierDAO supplierDAO;
     private final UserAlertPreferenceDAO userAlertPreferenceDAO;
     private final NotificationService notificationService;
+    private final AIAgentConfigService configService;
     
     public POAlertService() {
         this.notificationDAO = new POAlertNotificationDAO();
@@ -42,6 +41,204 @@ public class POAlertService {
         this.supplierDAO = new SupplierDAO();
         this.userAlertPreferenceDAO = new UserAlertPreferenceDAO();
         this.notificationService = new NotificationService();
+        this.configService = new AIAgentConfigService();
+    }
+    
+    /**
+     * Check if Telegram notifications are enabled globally
+     */
+    private boolean isTelegramNotificationsEnabled() {
+        return configService.getBooleanConfig("notification.enable_telegram", true);
+    }
+    
+    /**
+     * Get Telegram Bot Token from .env file or system environment
+     * Priority: 1. .env file at project root, 2. System environment variable
+     * @return Telegram bot token, or null if not found
+     */
+    private String getTelegramBotToken() {
+        System.out.println("🔍 [POAlert] getTelegramBotToken() called");
+        
+        // Priority 1: Load from .env file (try multiple locations)
+        try {
+            System.out.println("🔍 [POAlert] Attempting to load token from .env file...");
+            
+            // Build list of possible paths to check
+            java.util.List<String> pathList = new java.util.ArrayList<>();
+            
+            // Strategy 1: Project root (where pom.xml is)
+            String projectRoot = findProjectRoot();
+            if (projectRoot != null) {
+                pathList.add(projectRoot);
+                System.out.println("🔍 [POAlert] Added project root to search paths: " + projectRoot);
+            }
+            
+            // Strategy 2: Tomcat webapps path
+            String catalinaBase = System.getProperty("catalina.base");
+            if (catalinaBase != null) {
+                String webappsPath = catalinaBase + "/webapps/LiteFlow";
+                pathList.add(webappsPath);
+                System.out.println("🔍 [POAlert] Added Tomcat webapps path to search paths: " + webappsPath);
+            }
+            
+            // Strategy 3: Current working directory
+            String userDir = System.getProperty("user.dir");
+            if (userDir != null && !pathList.contains(userDir)) {
+                pathList.add(userDir);
+                System.out.println("🔍 [POAlert] Added user.dir to search paths: " + userDir);
+            }
+            
+            // Try each path
+            for (String path : pathList) {
+                if (path == null) continue;
+                
+                try {
+                    System.out.println("🔍 [POAlert] Trying .env at: " + path);
+                    Dotenv dotenv = Dotenv.configure()
+                        .directory(path)
+                        .ignoreIfMissing()
+                        .load();
+                    
+                    String token = dotenv.get("TELEGRAM_BOT_TOKEN");
+                    if (token != null && !token.isEmpty()) {
+                        System.out.println("✅ [POAlert] Token loaded from .env file at: " + path);
+                        System.out.println("🔍 [POAlert] Token length: " + token.length() + " characters");
+                        return token;
+                    } else {
+                        System.out.println("⚠️ [POAlert] TELEGRAM_BOT_TOKEN not found in .env at: " + path);
+                    }
+                } catch (Exception e) {
+                    System.out.println("⚠️ [POAlert] Error loading .env from " + path + ": " + e.getMessage());
+                    // Continue to next path
+                }
+            }
+            
+            System.out.println("⚠️ [POAlert] Could not load token from .env file in any of the checked paths");
+        } catch (Exception e) {
+            System.out.println("⚠️ [POAlert] Exception while trying to load .env: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Priority 2: System environment variable
+        System.out.println("🔍 [POAlert] Attempting to load token from system environment variable...");
+        String token = System.getenv("TELEGRAM_BOT_TOKEN");
+        if (token != null && !token.isEmpty()) {
+            System.out.println("✅ [POAlert] Token loaded from system environment variable");
+            System.out.println("🔍 [POAlert] Token length: " + token.length() + " characters");
+            return token;
+        } else {
+            System.out.println("⚠️ [POAlert] TELEGRAM_BOT_TOKEN not found in system environment or is empty");
+        }
+        
+        System.err.println("❌ [POAlert] Telegram bot token not found in .env file or system environment");
+        return null;
+    }
+    
+    /**
+     * Find project root by looking for pom.xml using multiple strategies
+     * Similar to ChatBotServlet.findProjectRoot() but adapted for non-servlet context
+     */
+    private String findProjectRoot() {
+        System.out.println("🔍 [POAlert] findProjectRoot() - Starting search...");
+        
+        // Strategy 1: Try class location (most reliable for IDE deployments)
+        try {
+            String classPath = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+            if (classPath != null) {
+                // Decode URL encoding
+                if (classPath.startsWith("file:")) {
+                    classPath = classPath.substring(5);
+                }
+                // Handle Windows paths
+                if (classPath.startsWith("/") && System.getProperty("os.name").toLowerCase().contains("win")) {
+                    classPath = classPath.substring(1);
+                }
+                
+                File classFile = new File(java.net.URLDecoder.decode(classPath, "UTF-8"));
+                System.out.println("🔍 [POAlert] Strategy 1 - Class location: " + classFile.getAbsolutePath());
+                
+                // If it's a JAR file, get the parent directory
+                if (classFile.getName().endsWith(".jar") || classFile.getName().endsWith(".war")) {
+                    classFile = classFile.getParentFile();
+                }
+                
+                // If it's WEB-INF/classes, go up to webapp root, then to project root
+                if (classFile.getName().equals("classes") && classFile.getParentFile() != null && 
+                    classFile.getParentFile().getName().equals("WEB-INF")) {
+                    classFile = classFile.getParentFile().getParentFile();
+                }
+                
+                // Walk up from class location to find pom.xml
+                File dir = classFile;
+                for (int i = 0; i < 10 && dir != null; i++) {
+                    File pomFile = new File(dir, "pom.xml");
+                    if (pomFile.exists() && pomFile.isFile()) {
+                        System.out.println("✅ [POAlert] Found project root via class location: " + dir.getAbsolutePath());
+                        return dir.getAbsolutePath();
+                    }
+                    dir = dir.getParentFile();
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ [POAlert] Strategy 1 (class location) failed: " + e.getMessage());
+        }
+        
+        // Strategy 2: Try Tomcat webapps path
+        try {
+            String catalinaBase = System.getProperty("catalina.base");
+            if (catalinaBase != null) {
+                File webappsDir = new File(catalinaBase, "webapps/LiteFlow");
+                System.out.println("🔍 [POAlert] Strategy 2 - Checking Tomcat webapps: " + webappsDir.getAbsolutePath());
+                
+                if (webappsDir.exists() && webappsDir.isDirectory()) {
+                    // Walk up from webapps to find project root
+                    File dir = webappsDir;
+                    for (int i = 0; i < 5 && dir != null; i++) {
+                        File pomFile = new File(dir, "pom.xml");
+                        if (pomFile.exists() && pomFile.isFile()) {
+                            System.out.println("✅ [POAlert] Found project root via Tomcat path: " + dir.getAbsolutePath());
+                            return dir.getAbsolutePath();
+                        }
+                        dir = dir.getParentFile();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ [POAlert] Strategy 2 (Tomcat path) failed: " + e.getMessage());
+        }
+        
+        // Strategy 3: Try current working directory and walk up
+        try {
+            String userDir = System.getProperty("user.dir");
+            if (userDir != null) {
+                File currentDir = new File(userDir);
+                System.out.println("🔍 [POAlert] Strategy 3 - Checking user.dir: " + currentDir.getAbsolutePath());
+                
+                File pomFile = new File(currentDir, "pom.xml");
+                if (pomFile.exists() && pomFile.isFile()) {
+                    System.out.println("✅ [POAlert] Found project root via user.dir: " + currentDir.getAbsolutePath());
+                    return currentDir.getAbsolutePath();
+                }
+                
+                // Walk up directories (max 10 levels)
+                File dir = currentDir;
+                for (int i = 0; i < 10 && dir != null; i++) {
+                    dir = dir.getParentFile();
+                    if (dir == null) break;
+                    
+                    pomFile = new File(dir, "pom.xml");
+                    if (pomFile.exists() && pomFile.isFile()) {
+                        System.out.println("✅ [POAlert] Found project root via user.dir walk-up: " + dir.getAbsolutePath());
+                        return dir.getAbsolutePath();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ [POAlert] Strategy 3 (user.dir) failed: " + e.getMessage());
+        }
+        
+        System.err.println("❌ [POAlert] Could not find project root using any strategy");
+        return null;
     }
     
     /**
@@ -51,6 +248,12 @@ public class POAlertService {
      * @param targetUserId User ID to send notification to (null = send to all users with Telegram enabled)
      */
     public void sendPOCreationNotification(UUID poid, UUID targetUserId) {
+        // Check if Telegram notifications are enabled globally
+        if (!isTelegramNotificationsEnabled()) {
+            System.out.println("ℹ️ Telegram notifications are disabled globally (notification.enable_telegram = false). Skipping PO creation notification for PO: " + poid);
+            return;
+        }
+        
         System.out.println("🔔 Initiating PO notification for POID: " + poid);
         System.out.println("🔔 Target user ID: " + (targetUserId != null ? targetUserId : "null (all users)"));
         
@@ -152,9 +355,23 @@ public class POAlertService {
                         String priority = "HIGH";
                         
                         // Send Telegram message
-                        System.out.println("📤 Sending Telegram message to Chat ID: " + chatId + " for PO: " + poid);
-                        boolean sent = notificationService.sendTelegramToUser(chatId, title, message, priority, TELEGRAM_BOT_TOKEN);
-                        System.out.println("📤 Telegram send result: " + (sent ? "SUCCESS" : "FAILED"));
+                        System.out.println("🔍 [POAlert] Attempting to send Telegram notification to Chat ID: " + chatId + " for PO: " + poid);
+                        System.out.println("🔍 [POAlert] Title: " + title);
+                        System.out.println("🔍 [POAlert] Message length: " + (message != null ? message.length() : 0) + " characters");
+                        System.out.println("🔍 [POAlert] Priority: " + priority);
+                        
+                        System.out.println("🔍 [POAlert] Loading Telegram bot token...");
+                        String telegramToken = getTelegramBotToken();
+                        if (telegramToken == null) {
+                            System.err.println("❌ [POAlert] Telegram bot token not configured. Cannot send notification.");
+                            System.err.println("❌ [POAlert] Checked .env file and system environment variable TELEGRAM_BOT_TOKEN");
+                            continue;
+                        }
+                        System.out.println("✅ [POAlert] Telegram bot token loaded (length: " + telegramToken.length() + " characters)");
+                        System.out.println("🔍 [POAlert] Token format check: " + (telegramToken.contains(":") ? "Valid format (contains ':')" : "Warning: May be invalid (no ':')"));
+                        
+                        boolean sent = notificationService.sendTelegramToUser(chatId, title, message, priority, telegramToken);
+                        System.out.println("🔍 [POAlert] Send result: " + (sent ? "SUCCESS" : "FAILED"));
                         
                         if (sent) {
                             // Mark notification as sent (use separate EntityManager for transaction)
@@ -214,6 +431,12 @@ public class POAlertService {
      * @param approverId User ID who approved/rejected
      */
     public void sendPOStatusUpdateNotification(UUID poid, String newStatus, UUID approverId) {
+        // Check if Telegram notifications are enabled globally
+        if (!isTelegramNotificationsEnabled()) {
+            System.out.println("ℹ️ Telegram notifications are disabled globally (notification.enable_telegram = false). Skipping PO status update notification for PO: " + poid);
+            return;
+        }
+        
         // Run asynchronously to not block approval/rejection response
         CompletableFuture.runAsync(() -> {
             EntityManager em = null;
@@ -310,7 +533,23 @@ public class POAlertService {
                         }
                         
                         // Send Telegram message (new message, not edit)
-                        boolean sent = notificationService.sendTelegramToUser(chatId, title, message, priority, TELEGRAM_BOT_TOKEN);
+                        System.out.println("🔍 [POAlert] Attempting to send PO status update notification to Chat ID: " + chatId);
+                        System.out.println("🔍 [POAlert] Title: " + title);
+                        System.out.println("🔍 [POAlert] New Status: " + newStatus);
+                        System.out.println("🔍 [POAlert] Message length: " + (message != null ? message.length() : 0) + " characters");
+                        System.out.println("🔍 [POAlert] Priority: " + priority);
+                        
+                        System.out.println("🔍 [POAlert] Loading Telegram bot token...");
+                        String telegramToken = getTelegramBotToken();
+                        if (telegramToken == null) {
+                            System.err.println("❌ [POAlert] Telegram bot token not configured. Cannot send notification.");
+                            System.err.println("❌ [POAlert] Checked .env file and system environment variable TELEGRAM_BOT_TOKEN");
+                            continue;
+                        }
+                        System.out.println("✅ [POAlert] Telegram bot token loaded (length: " + telegramToken.length() + " characters)");
+                        
+                        boolean sent = notificationService.sendTelegramToUser(chatId, title, message, priority, telegramToken);
+                        System.out.println("🔍 [POAlert] Send result: " + (sent ? "SUCCESS" : "FAILED"));
                         
                         if (sent) {
                             System.out.println("✅ PO status update notification sent to User " + userId + " | PO: " + poid + " | Status: " + newStatus);

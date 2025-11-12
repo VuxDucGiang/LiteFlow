@@ -45,14 +45,46 @@ public class POAutoCreationService {
     private final ProcurementService procurementService;
     private final SupplierMappingService supplierMappingService;
     private final PurchaseOrderItemDAO purchaseOrderItemDAO;
+    private final com.liteflow.service.ai.AIAgentConfigService configService;
+    
+    // Default values (fallback if config not found)
     private static final int DEFAULT_LEAD_TIME_DAYS = 7;
-    private static final int DEFAULT_REORDER_QUANTITY = 20; // Số lượng mặc định để đưa stock về mức an toàn
-    private static final int RECENT_PO_CHECK_DAYS = 1; // Kiểm tra PO trong vòng 1 ngày
+    private static final int DEFAULT_REORDER_QUANTITY = 20;
+    private static final int DEFAULT_RECENT_PO_CHECK_DAYS = 1;
     
     public POAutoCreationService() {
         this.procurementService = new ProcurementService();
         this.supplierMappingService = new SupplierMappingService();
         this.purchaseOrderItemDAO = new PurchaseOrderItemDAO();
+        this.configService = new com.liteflow.service.ai.AIAgentConfigService();
+    }
+    
+    /**
+     * Get recent PO check days from config or default
+     */
+    private int getRecentPOCheckDays() {
+        return configService.getIntConfig("po.recent_check_days", DEFAULT_RECENT_PO_CHECK_DAYS);
+    }
+    
+    /**
+     * Get default lead time days from config or default
+     */
+    private int getDefaultLeadTimeDays() {
+        return configService.getIntConfig("po.default_lead_time_days", DEFAULT_LEAD_TIME_DAYS);
+    }
+    
+    /**
+     * Get default reorder quantity from config or default
+     */
+    private int getDefaultReorderQuantity() {
+        return configService.getIntConfig("po.default_reorder_quantity", DEFAULT_REORDER_QUANTITY);
+    }
+    
+    /**
+     * Check if auto create PO is enabled
+     */
+    private boolean isAutoCreatePOEnabled() {
+        return configService.getBooleanConfig("po.auto_create_enabled", true);
     }
     
     /**
@@ -145,7 +177,7 @@ public class POAutoCreationService {
         }
         
         // Create PO for each supplier (mỗi supplier = 1 PO chứa tất cả items cùng category)
-        LocalDateTime expectedDelivery = LocalDateTime.now().plusDays(DEFAULT_LEAD_TIME_DAYS);
+        LocalDateTime expectedDelivery = LocalDateTime.now().plusDays(getDefaultLeadTimeDays());
         
         System.out.println("\n🚀 CREATING PURCHASE ORDERS:");
         for (Map.Entry<UUID, List<JSONObject>> entry : supplierItemsMap.entrySet()) {
@@ -220,16 +252,17 @@ public class POAutoCreationService {
                 }
                 
                 // Check xem có PO gần đây cho item này không (trong vòng 1 ngày)
-                boolean hasRecentPO = purchaseOrderItemDAO.hasRecentItemByProductNameAndSize(productName, size, RECENT_PO_CHECK_DAYS);
+                int recentCheckDays = getRecentPOCheckDays();
+                boolean hasRecentPO = purchaseOrderItemDAO.hasRecentItemByProductNameAndSize(productName, size, recentCheckDays);
                 if (hasRecentPO) {
-                    System.out.println("  ⚠️ Recent PO found for: " + itemName + " (created within " + RECENT_PO_CHECK_DAYS + " day(s)) - skipping");
+                    System.out.println("  ⚠️ Recent PO found for: " + itemName + " (created within " + recentCheckDays + " day(s)) - skipping");
                     result.addSkippedItem(itemName);
                     continue;
                 }
                 
                 // Tính số lượng đặt hàng
-                // Logic: Đưa về mức DEFAULT_REORDER_QUANTITY, tối thiểu 15 đơn vị
-                int reorderQuantity = Math.max(DEFAULT_REORDER_QUANTITY - currentStock, 15);
+                // Logic: Đưa về mức default reorder quantity, tối thiểu 15 đơn vị
+                int reorderQuantity = Math.max(getDefaultReorderQuantity() - currentStock, 15);
                 
                 PurchaseOrderItem poItem = new PurchaseOrderItem();
                 poItem.setItemName(itemName);
