@@ -857,13 +857,13 @@
             <div class="stat-card growth">
                 <div class="stat-header">
                     <div>
-                        <div class="stat-label">Khách Hàng Mới</div>
-                        <div class="stat-value" id="stat-customers">--</div>
-                        <div class="stat-change" id="stat-customers-change-container">
-                            <span id="stat-customers-change">Đang tải...</span> so với kỳ trước
+                        <div class="stat-label">Tổng Lợi Nhuận</div>
+                        <div class="stat-value" id="stat-profit">--</div>
+                        <div class="stat-change" id="stat-profit-change-container">
+                            <span id="stat-profit-change">Đang tải...</span> so với kỳ trước
                         </div>
                     </div>
-                    <div class="stat-icon">👥</div>
+                    <div class="stat-icon">💰</div>
                 </div>
             </div>
         </div>
@@ -1154,20 +1154,21 @@
                 avgChangeContainer.className = 'stat-change';
             }
             
-            // Update customers
-            document.getElementById('stat-customers').textContent = 
-                formatNumber(data.newCustomers || 0);
-            const customersGrowth = data.customersGrowth || 0;
-            const customersChangeEl = document.getElementById('stat-customers-change');
-            const customersChangeContainer = document.getElementById('stat-customers-change-container');
-            if (data.customersGrowth !== undefined) {
-                customersChangeEl.textContent = (customersGrowth > 0 ? '↑ +' : customersGrowth < 0 ? '↓ ' : '→ ') + 
-                    Math.abs(customersGrowth).toFixed(1) + '%';
-                customersChangeContainer.className = 'stat-change ' + 
-                    (customersGrowth > 0 ? 'positive' : customersGrowth < 0 ? 'negative' : '');
+            // Update profit
+            const profitValue = data.totalProfit || 0;
+            document.getElementById('stat-profit').textContent = formatCurrency(profitValue);
+            
+            const profitGrowth = data.profitGrowth || 0;
+            const profitChangeEl = document.getElementById('stat-profit-change');
+            const profitChangeContainer = document.getElementById('stat-profit-change-container');
+            if (data.profitGrowth !== undefined && data.profitGrowth !== null) {
+                profitChangeEl.textContent = (profitGrowth > 0 ? '↑ +' : profitGrowth < 0 ? '↓ ' : '→ ') + 
+                    Math.abs(profitGrowth).toFixed(1) + '%';
+                profitChangeContainer.className = 'stat-change ' + 
+                    (profitGrowth > 0 ? 'positive' : profitGrowth < 0 ? 'negative' : '');
             } else {
-                customersChangeEl.textContent = '--';
-                customersChangeContainer.className = 'stat-change';
+                profitChangeEl.textContent = '--';
+                profitChangeContainer.className = 'stat-change';
             }
         }
         
