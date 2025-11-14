@@ -819,9 +819,9 @@
                 <div class="stat-header">
                     <div>
                         <div class="stat-label">Doanh thu tháng</div>
-                        <div class="stat-value" id="stat-revenue">125,750,000 ₫</div>
-                        <div class="stat-change positive">
-                            ↑ <span id="stat-revenue-change">+15.5%</span> so với kỳ trước
+                        <div class="stat-value" id="stat-revenue">--</div>
+                        <div class="stat-change" id="stat-revenue-change-container">
+                            <span id="stat-revenue-change">Đang tải...</span> so với kỳ trước
                         </div>
                     </div>
                     <div class="stat-icon">💰</div>
@@ -832,9 +832,9 @@
                 <div class="stat-header">
                     <div>
                         <div class="stat-label">Số Đơn Hàng</div>
-                        <div class="stat-value" id="stat-orders">485</div>
-                        <div class="stat-change positive">
-                            ↑ <span id="stat-orders-change">+12.3%</span> so với kỳ trước
+                        <div class="stat-value" id="stat-orders">--</div>
+                        <div class="stat-change" id="stat-orders-change-container">
+                            <span id="stat-orders-change">Đang tải...</span> so với kỳ trước
                         </div>
                     </div>
                     <div class="stat-icon">🛒</div>
@@ -845,9 +845,9 @@
                 <div class="stat-header">
                     <div>
                         <div class="stat-label">Giá Trị TB/Đơn</div>
-                        <div class="stat-value" id="stat-avg">259,278 ₫</div>
-                        <div class="stat-change positive">
-                            ↑ <span id="stat-avg-change">+8.7%</span> so với kỳ trước
+                        <div class="stat-value" id="stat-avg">--</div>
+                        <div class="stat-change" id="stat-avg-change-container">
+                            <span id="stat-avg-change">Đang tải...</span> so với kỳ trước
                         </div>
                     </div>
                     <div class="stat-icon">📈</div>
@@ -858,9 +858,9 @@
                 <div class="stat-header">
                     <div>
                         <div class="stat-label">Khách Hàng Mới</div>
-                        <div class="stat-value" id="stat-customers">87</div>
-                        <div class="stat-change positive">
-                            ↑ <span id="stat-customers-change">+23.4%</span> so với kỳ trước
+                        <div class="stat-value" id="stat-customers">--</div>
+                        <div class="stat-change" id="stat-customers-change-container">
+                            <span id="stat-customers-change">Đang tải...</span> so với kỳ trước
                         </div>
                     </div>
                     <div class="stat-icon">👥</div>
@@ -1109,14 +1109,66 @@
         
         // Update statistics cards
         function updateStatistics(data) {
+            // Update revenue
             document.getElementById('stat-revenue').textContent = 
                 formatCurrency(data.totalRevenue);
+            const revenueGrowth = data.growth || 0;
+            const revenueChangeEl = document.getElementById('stat-revenue-change');
+            const revenueChangeContainer = document.getElementById('stat-revenue-change-container');
+            revenueChangeEl.textContent = (revenueGrowth > 0 ? '↑ +' : revenueGrowth < 0 ? '↓ ' : '→ ') + 
+                Math.abs(revenueGrowth).toFixed(1) + '%';
+            revenueChangeContainer.className = 'stat-change ' + 
+                (revenueGrowth > 0 ? 'positive' : revenueGrowth < 0 ? 'negative' : '');
+            
+            // Update orders
             document.getElementById('stat-orders').textContent = 
                 formatNumber(data.totalOrders);
+            // For orders growth, we can calculate if previous orders data is available
+            // For now, just show neutral if not available
+            const ordersGrowth = data.ordersGrowth || 0;
+            const ordersChangeEl = document.getElementById('stat-orders-change');
+            const ordersChangeContainer = document.getElementById('stat-orders-change-container');
+            if (data.ordersGrowth !== undefined) {
+                ordersChangeEl.textContent = (ordersGrowth > 0 ? '↑ +' : ordersGrowth < 0 ? '↓ ' : '→ ') + 
+                    Math.abs(ordersGrowth).toFixed(1) + '%';
+                ordersChangeContainer.className = 'stat-change ' + 
+                    (ordersGrowth > 0 ? 'positive' : ordersGrowth < 0 ? 'negative' : '');
+            } else {
+                ordersChangeEl.textContent = '--';
+                ordersChangeContainer.className = 'stat-change';
+            }
+            
+            // Update average order value
             document.getElementById('stat-avg').textContent = 
                 formatCurrency(data.avgOrderValue);
+            const avgGrowth = data.avgOrderGrowth || 0;
+            const avgChangeEl = document.getElementById('stat-avg-change');
+            const avgChangeContainer = document.getElementById('stat-avg-change-container');
+            if (data.avgOrderGrowth !== undefined) {
+                avgChangeEl.textContent = (avgGrowth > 0 ? '↑ +' : avgGrowth < 0 ? '↓ ' : '→ ') + 
+                    Math.abs(avgGrowth).toFixed(1) + '%';
+                avgChangeContainer.className = 'stat-change ' + 
+                    (avgGrowth > 0 ? 'positive' : avgGrowth < 0 ? 'negative' : '');
+            } else {
+                avgChangeEl.textContent = '--';
+                avgChangeContainer.className = 'stat-change';
+            }
+            
+            // Update customers
             document.getElementById('stat-customers').textContent = 
-                formatNumber(data.newCustomers || 87);
+                formatNumber(data.newCustomers || 0);
+            const customersGrowth = data.customersGrowth || 0;
+            const customersChangeEl = document.getElementById('stat-customers-change');
+            const customersChangeContainer = document.getElementById('stat-customers-change-container');
+            if (data.customersGrowth !== undefined) {
+                customersChangeEl.textContent = (customersGrowth > 0 ? '↑ +' : customersGrowth < 0 ? '↓ ' : '→ ') + 
+                    Math.abs(customersGrowth).toFixed(1) + '%';
+                customersChangeContainer.className = 'stat-change ' + 
+                    (customersGrowth > 0 ? 'positive' : customersGrowth < 0 ? 'negative' : '');
+            } else {
+                customersChangeEl.textContent = '--';
+                customersChangeContainer.className = 'stat-change';
+            }
         }
         
         // Render revenue trend chart
