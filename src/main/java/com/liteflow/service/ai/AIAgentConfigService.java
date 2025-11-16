@@ -188,6 +188,51 @@ public class AIAgentConfigService {
     }
     
     /**
+     * Get JSON configuration value
+     */
+    public JSONObject getJSONConfig(String key, JSONObject defaultValue) {
+        try {
+            AIAgentConfiguration config = configDAO.findByKey(key);
+            if (config == null || config.getConfigValue() == null || config.getConfigValue().trim().isEmpty()) {
+                return defaultValue;
+            }
+            
+            String jsonString = config.getConfigValue().trim();
+            if (jsonString.equals("{}") || jsonString.isEmpty()) {
+                return defaultValue;
+            }
+            
+            return new JSONObject(jsonString);
+        } catch (Exception e) {
+            System.err.println("❌ Error parsing JSON config for key '" + key + "': " + e.getMessage());
+            e.printStackTrace();
+            return defaultValue;
+        }
+    }
+    
+    /**
+     * Get JSON configuration value as Map
+     */
+    public Map<String, String> getJSONConfigAsMap(String key, Map<String, String> defaultValue) {
+        try {
+            JSONObject json = getJSONConfig(key, null);
+            if (json == null) {
+                return defaultValue;
+            }
+            
+            Map<String, String> result = new HashMap<>();
+            for (String jsonKey : json.keySet()) {
+                result.put(jsonKey, json.getString(jsonKey));
+            }
+            return result;
+        } catch (Exception e) {
+            System.err.println("❌ Error converting JSON config to Map for key '" + key + "': " + e.getMessage());
+            e.printStackTrace();
+            return defaultValue;
+        }
+    }
+    
+    /**
      * Get all configurations as JSON (for API response)
      */
     public JSONObject getAllConfigsAsJSON() {

@@ -30,7 +30,7 @@ CREATE TABLE AIAgentConfigurations (
     ConfigType NVARCHAR(50) NOT NULL CHECK (ConfigType IN ('INTEGER', 'STRING', 'JSON', 'BOOLEAN', 'TIME', 'CRON', 'DECIMAL')),
     
     -- Category for grouping
-    Category NVARCHAR(50) NOT NULL CHECK (Category IN ('STOCK_ALERT', 'DEMAND_FORECAST', 'PO_AUTO', 'GPT_SERVICE', 'NOTIFICATION')),
+    Category NVARCHAR(50) NOT NULL CHECK (Category IN ('STOCK_ALERT', 'DEMAND_FORECAST', 'PO_AUTO', 'SUPPLIER_MAPPING', 'GPT_SERVICE', 'NOTIFICATION')),
     
     -- Display Information
     DisplayName NVARCHAR(200) NOT NULL,

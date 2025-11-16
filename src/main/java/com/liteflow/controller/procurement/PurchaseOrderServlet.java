@@ -17,6 +17,17 @@ public class PurchaseOrderServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, jakarta.servlet.ServletException {
         String action = req.getParameter("action");
+        String requestURI = req.getRequestURI();
+        String pathInfo = req.getPathInfo();
+        
+        // Handle API request for supplier products
+        // Check both requestURI and pathInfo for flexibility
+        if ((requestURI != null && requestURI.contains("/api/products")) || 
+            (pathInfo != null && pathInfo.contains("/api/products")) ||
+            "products".equals(action)) {
+            handleGetSupplierProducts(req, resp);
+            return;
+        }
         
         // Handle AJAX request for PO details
         if ("details".equals(action)) {
@@ -145,6 +156,70 @@ public class PurchaseOrderServlet extends HttpServlet {
             resp.getWriter().write("{\"error\": \"" + e.getMessage().replace("\"", "\\\"") + "\"}");
         }
     }
+    
+    private void handleGetSupplierProducts(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json; charset=UTF-8");
+        resp.setCharacterEncoding("UTF-8");
+        
+        try {
+            String supplierIDStr = req.getParameter("supplierID");
+            System.out.println("handleGetSupplierProducts - SupplierID: " + supplierIDStr);
+            
+            if (supplierIDStr == null || supplierIDStr.trim().isEmpty()) {
+                resp.getWriter().write("{\"error\": \"supplierID parameter is required\"}");
+                return;
+            }
+            
+            UUID supplierID = UUID.fromString(supplierIDStr);
+            List<Map<String, Object>> products = service.getSupplierProducts(supplierID);
+            
+            // Build JSON response
+            StringBuilder json = new StringBuilder();
+            json.append("[");
+            
+            for (int i = 0; i < products.size(); i++) {
+                Map<String, Object> product = products.get(i);
+                if (i > 0) json.append(",");
+                
+                json.append("{");
+                json.append("\"itemName\":\"").append(escapeJson(product.get("itemName").toString())).append("\",");
+                json.append("\"latestPrice\":").append(product.get("latestPrice")).append(",");
+                json.append("\"orderCount\":").append(product.get("orderCount")).append(",");
+                
+                // Format LocalDateTime to ISO string
+                Object lastOrderDate = product.get("lastOrderDate");
+                if (lastOrderDate != null) {
+                    json.append("\"lastOrderDate\":\"").append(lastOrderDate.toString()).append("\"");
+                } else {
+                    json.append("\"lastOrderDate\":null");
+                }
+                
+                json.append("}");
+            }
+            
+            json.append("]");
+            
+            System.out.println("Sending " + products.size() + " products for supplier: " + supplierID);
+            resp.getWriter().write(json.toString());
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid UUID format: " + e.getMessage());
+            resp.getWriter().write("{\"error\": \"Invalid supplierID format\"}");
+        } catch (Exception e) {
+            System.err.println("ERROR in handleGetSupplierProducts: " + e.getMessage());
+            e.printStackTrace();
+            resp.getWriter().write("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}");
+        }
+    }
+    
+    private String escapeJson(String str) {
+        if (str == null) return "";
+        return str.replace("\\", "\\\\")
+                  .replace("\"", "\\\"")
+                  .replace("\n", "\\n")
+                  .replace("\r", "\\r")
+                  .replace("\t", "\\t");
+    }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -153,60 +228,257 @@ public class PurchaseOrderServlet extends HttpServlet {
         UUID userID = userLogin != null ? UUID.fromString(userLogin) : null;
 
         if ("create".equals(action)) {
+            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            System.out.println("PurchaseOrderServlet - CREATE action");
+            System.out.println("  User ID: " + userID);
+            
             try {
+                // Validate user is logged in
+                if (userID == null) {
+                    System.err.println("❌ CREATE FAILED: User not logged in");
+                    throw new IllegalStateException("Bạn chưa đăng nhập. Vui lòng đăng nhập lại.");
+                }
+                
                 // Get parameters from form (match with frontend field names)
                 String supplierIDParam = req.getParameter("supplierID");
                 String expectedDeliveryParam = req.getParameter("expectedDelivery");
                 String notes = req.getParameter("notes");
+                
+                System.out.println("  [Input] SupplierID param: " + supplierIDParam);
+                System.out.println("  [Input] Expected delivery param: " + expectedDeliveryParam);
+                System.out.println("  [Input] Notes: " + (notes != null ? notes.substring(0, Math.min(50, notes.length())) : "null"));
 
                 // Validate required fields
                 if (supplierIDParam == null || supplierIDParam.trim().isEmpty()) {
+                    System.err.println("❌ CREATE FAILED: SupplierID is empty");
                     throw new IllegalArgumentException("Nhà cung cấp không được để trống");
                 }
                 if (expectedDeliveryParam == null || expectedDeliveryParam.trim().isEmpty()) {
+                    System.err.println("❌ CREATE FAILED: Expected delivery is empty");
                     throw new IllegalArgumentException("Ngày giao dự kiến không được để trống");
                 }
 
-                UUID supplierID = UUID.fromString(supplierIDParam);
-                LocalDateTime expected = LocalDateTime.parse(expectedDeliveryParam);
+                // Parse UUID with proper error handling
+                UUID supplierID;
+                try {
+                    supplierID = UUID.fromString(supplierIDParam);
+                    System.out.println("  [Parse] SupplierID: " + supplierIDParam + " -> " + supplierID);
+                } catch (IllegalArgumentException e) {
+                    System.err.println("  [Parse] Invalid SupplierID format: " + supplierIDParam);
+                    throw new IllegalArgumentException("Mã nhà cung cấp không hợp lệ");
+                }
+
+                // Parse date with proper error handling
+                // HTML datetime-local format: "YYYY-MM-DDTHH:mm" or "YYYY-MM-DDTHH:mm:ss"
+                LocalDateTime expected;
+                try {
+                    System.out.println("  [Parse] Expected delivery param: " + expectedDeliveryParam);
+                    
+                    // Try ISO_LOCAL_DATE_TIME format first (YYYY-MM-DDTHH:mm:ss or YYYY-MM-DDTHH:mm)
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+                    expected = LocalDateTime.parse(expectedDeliveryParam, formatter);
+                    
+                    System.out.println("  [Parse] Parsed date: " + expected);
+                } catch (java.time.format.DateTimeParseException e) {
+                    System.err.println("  [Parse] DateTimeParseException: " + e.getMessage());
+                    // Try alternative format without seconds
+                    try {
+                        java.time.format.DateTimeFormatter altFormatter = 
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+                        expected = LocalDateTime.parse(expectedDeliveryParam, altFormatter);
+                        System.out.println("  [Parse] Parsed with alternative format: " + expected);
+                    } catch (Exception e2) {
+                        System.err.println("  [Parse] Alternative format also failed: " + e2.getMessage());
+                        throw new IllegalArgumentException("Ngày giao dự kiến không đúng định dạng. Vui lòng chọn lại ngày.");
+                    }
+                } catch (Exception e) {
+                    System.err.println("  [Parse] Unexpected exception: " + e.getMessage());
+                    e.printStackTrace();
+                    throw new IllegalArgumentException("Ngày giao dự kiến không đúng định dạng. Vui lòng chọn lại ngày.");
+                }
 
                 // Get item arrays (match with frontend field names)
                 String[] names = req.getParameterValues("itemName");
                 String[] qtys = req.getParameterValues("quantity");
                 String[] prices = req.getParameterValues("unitPrice");
+                
+                System.out.println("  [Input] Item names count: " + (names != null ? names.length : 0));
+                System.out.println("  [Input] Quantities count: " + (qtys != null ? qtys.length : 0));
+                System.out.println("  [Input] Prices count: " + (prices != null ? prices.length : 0));
 
-                // Validate items
+                // Validate items array consistency
                 if (names == null || names.length == 0) {
+                    System.err.println("❌ CREATE FAILED: No items provided");
                     throw new IllegalArgumentException("Phải có ít nhất 1 sản phẩm");
                 }
+                if (qtys == null || qtys.length != names.length) {
+                    System.err.println("❌ CREATE FAILED: Quantities array length mismatch. Names: " + names.length + ", Quantities: " + (qtys != null ? qtys.length : 0));
+                    throw new IllegalArgumentException("Số lượng sản phẩm không khớp với danh sách sản phẩm");
+                }
+                if (prices == null || prices.length != names.length) {
+                    System.err.println("❌ CREATE FAILED: Prices array length mismatch. Names: " + names.length + ", Prices: " + (prices != null ? prices.length : 0));
+                    throw new IllegalArgumentException("Đơn giá sản phẩm không khớp với danh sách sản phẩm");
+                }
+                
+                System.out.println("  [Parse] Starting to parse " + names.length + " items...");
 
                 List<PurchaseOrderItem> items = new ArrayList<>();
                 for (int i = 0; i < names.length; i++) {
                     if (names[i] != null && !names[i].trim().isEmpty()) {
                         PurchaseOrderItem item = new PurchaseOrderItem();
                         item.setItemName(names[i].trim());
-                        item.setQuantity(Integer.parseInt(qtys[i]));
-                        item.setUnitPrice(Double.parseDouble(prices[i]));
+                        
+                        // Parse quantity with proper error handling
+                        // Format Việt Nam: "1.000" -> "1000" (remove all non-digits)
+                        try {
+                            String qtyStr = qtys[i] != null ? qtys[i].trim() : "";
+                            if (qtyStr.isEmpty()) {
+                                throw new IllegalArgumentException("Số lượng sản phẩm \"" + names[i] + "\" không được để trống");
+                            }
+                            
+                            // Remove all non-digit characters (thousand separators, etc.)
+                            String qtyClean = qtyStr.replaceAll("[^0-9]", "");
+                            if (qtyClean.isEmpty()) {
+                                throw new IllegalArgumentException("Số lượng sản phẩm \"" + names[i] + "\" không hợp lệ");
+                            }
+                            
+                            int quantity = Integer.parseInt(qtyClean);
+                            if (quantity <= 0) {
+                                throw new IllegalArgumentException("Số lượng sản phẩm \"" + names[i] + "\" phải lớn hơn 0");
+                            }
+                            if (quantity > 100000) {
+                                throw new IllegalArgumentException("Số lượng sản phẩm \"" + names[i] + "\" không được vượt quá 100,000");
+                            }
+                            
+                            item.setQuantity(quantity);
+                            System.out.println("  [Parse] Item " + (i+1) + " - Quantity: " + qtyStr + " -> " + quantity);
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException("Số lượng sản phẩm \"" + names[i] + "\" không hợp lệ: " + e.getMessage());
+                        }
+                        
+                        // Parse price with proper error handling
+                        // Format Việt Nam: "1.000.000" -> "1000000" or "1.000.500,50" -> "1000500.50"
+                        // Handle both dot (.) and comma (,) as decimal separator
+                        try {
+                            String priceStr = prices[i] != null ? prices[i].trim() : "";
+                            if (priceStr.isEmpty()) {
+                                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + names[i] + "\" không được để trống");
+                            }
+                            
+                            // Remove thousand separators (dots in Vietnamese format)
+                            // Keep only digits and one decimal separator (last dot or comma)
+                            String priceClean = priceStr.replaceAll("[^0-9.,]", "");
+                            
+                            // Determine decimal separator: if has both dot and comma, use the last one
+                            int lastDot = priceClean.lastIndexOf('.');
+                            int lastComma = priceClean.lastIndexOf(',');
+                            
+                            if (lastDot > lastComma) {
+                                // Dot is decimal separator, remove other dots (thousand separators)
+                                priceClean = priceClean.substring(0, lastDot).replace(".", "") + "." + priceClean.substring(lastDot + 1).replace(".", "");
+                            } else if (lastComma > lastDot) {
+                                // Comma is decimal separator, remove dots and other commas
+                                priceClean = priceClean.substring(0, lastComma).replaceAll("[.,]", "") + "." + priceClean.substring(lastComma + 1).replaceAll("[.,]", "");
+                            } else {
+                                // No decimal separator, just remove all non-digits
+                                priceClean = priceClean.replaceAll("[^0-9]", "");
+                            }
+                            
+                            if (priceClean.isEmpty()) {
+                                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + names[i] + "\" không hợp lệ");
+                            }
+                            
+                            double price = Double.parseDouble(priceClean);
+                            
+                            // Validate price
+                            if (Double.isNaN(price) || Double.isInfinite(price)) {
+                                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + names[i] + "\" không hợp lệ (NaN hoặc Infinity)");
+                            }
+                            if (price <= 0) {
+                                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + names[i] + "\" phải lớn hơn 0");
+                            }
+                            if (price > 1000000000) {
+                                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + names[i] + "\" không được vượt quá 1,000,000,000 VNĐ");
+                            }
+                            
+                            item.setUnitPrice(price);
+                            System.out.println("  [Parse] Item " + (i+1) + " - Price: " + priceStr + " -> " + price);
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException("Đơn giá sản phẩm \"" + names[i] + "\" không hợp lệ: " + e.getMessage());
+                        }
+                        
                         items.add(item);
                     }
                 }
 
                 if (items.isEmpty()) {
+                    System.err.println("❌ CREATE FAILED: No valid items after parsing");
                     throw new IllegalArgumentException("Phải có ít nhất 1 sản phẩm hợp lệ");
                 }
-
-                service.createPurchaseOrder(supplierID, userID, expected, notes, items);
-                resp.sendRedirect(req.getContextPath() + "/procurement/po?status=created");
                 
+                System.out.println("  [Parse] Successfully parsed " + items.size() + " items");
+                System.out.println("  [Service] Calling createPurchaseOrder()...");
+                System.out.println("    - SupplierID: " + supplierID);
+                System.out.println("    - CreatedBy: " + userID);
+                System.out.println("    - ExpectedDelivery: " + expected);
+                System.out.println("    - Notes: " + (notes != null && !notes.isEmpty() ? "Yes" : "No"));
+                System.out.println("    - Items count: " + items.size());
+
+                // Call service (service will do additional validation)
+                UUID poid;
+                try {
+                    poid = service.createPurchaseOrder(supplierID, userID, expected, notes, items);
+                    System.out.println("  [Service] ✅ PO created successfully: " + poid);
+                } catch (Exception e) {
+                    System.err.println("  [Service] ❌ createPurchaseOrder() threw exception: " + e.getMessage());
+                    e.printStackTrace();
+                    throw e; // Re-throw to be caught by outer catch blocks
+                }
+                
+                // Success - redirect with success message
+                System.out.println("  [Response] Redirecting to success page with POID: " + poid.toString().substring(0, 8));
+                System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?status=created&poid=" + poid.toString().substring(0, 8));
+                
+            } catch (IllegalStateException e) {
+                // State errors (e.g., not logged in) - must be caught before IllegalArgumentException
+                System.err.println("ERROR: State error - " + e.getMessage());
+                String errorMsg = java.net.URLEncoder.encode(e.getMessage(), "UTF-8");
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + errorMsg);
+            } catch (java.time.format.DateTimeParseException e) {
+                // Date parsing errors - must be caught before IllegalArgumentException
+                System.err.println("ERROR: Date parsing failed - " + e.getMessage());
+                String errorMsg = java.net.URLEncoder.encode("Ngày giao dự kiến không đúng định dạng. Vui lòng chọn lại ngày.", "UTF-8");
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + errorMsg);
+            } catch (NumberFormatException e) {
+                // Number parsing errors - must be caught before IllegalArgumentException
+                System.err.println("ERROR: Number parsing failed - " + e.getMessage());
+                String errorMsg = java.net.URLEncoder.encode("Số lượng hoặc đơn giá không hợp lệ. Vui lòng kiểm tra lại.", "UTF-8");
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + errorMsg);
             } catch (IllegalArgumentException e) {
+                // Validation errors - user-friendly messages (catch after more specific exceptions)
                 System.err.println("ERROR: Validation failed - " + e.getMessage());
-                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
-                    java.net.URLEncoder.encode(e.getMessage(), "UTF-8"));
+                String errorMsg = java.net.URLEncoder.encode(e.getMessage(), "UTF-8");
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + errorMsg);
             } catch (Exception e) {
-                System.err.println("ERROR: Failed to create PO - " + e.getMessage());
+                // Unexpected errors - log full stack trace but show user-friendly message
+                System.err.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                System.err.println("❌ CREATE FAILED: Unexpected exception");
+                System.err.println("  Exception type: " + e.getClass().getName());
+                System.err.println("  Exception message: " + e.getMessage());
+                System.err.println("  Stack trace:");
                 e.printStackTrace();
-                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + 
-                    java.net.URLEncoder.encode("Lỗi hệ thống: " + e.getMessage(), "UTF-8"));
+                System.err.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                
+                // Show more detailed error in development (you can check for a debug flag)
+                String errorMsg = "Lỗi hệ thống khi tạo đơn hàng. Vui lòng thử lại sau hoặc liên hệ quản trị viên.";
+                if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                    // Include exception message for debugging
+                    errorMsg += " (Chi tiết: " + e.getMessage() + ")";
+                }
+                
+                String encodedError = java.net.URLEncoder.encode(errorMsg, "UTF-8");
+                resp.sendRedirect(req.getContextPath() + "/procurement/po?error=" + encodedError);
             }
         }
 

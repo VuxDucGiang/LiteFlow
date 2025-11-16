@@ -69,14 +69,30 @@ public class AIAgentConfigAPIServlet extends HttpServlet {
         }
         
         try {
-            String category = request.getParameter("category");
+            String categoryParam = request.getParameter("category");
+            String resource = request.getParameter("resource"); // "suppliers", "categories", or "products"
+            
+            // Handle resource requests (suppliers, categories, products)
+            if (resource != null && !resource.isEmpty()) {
+                if ("suppliers".equals(resource)) {
+                    handleGetSuppliers(response);
+                    return;
+                } else if ("categories".equals(resource)) {
+                    handleGetCategories(response);
+                    return;
+                } else if ("products".equals(resource)) {
+                    handleGetProducts(response, categoryParam);
+                    return;
+                }
+            }
+            
             JSONObject result;
             
-            if (category != null && !category.isEmpty()) {
+            if (categoryParam != null && !categoryParam.isEmpty()) {
                 // Get configs by category
-                result = configService.getConfigsByCategoryAsJSON(category);
+                result = configService.getConfigsByCategoryAsJSON(categoryParam);
                 result.put("success", true);
-                result.put("category", category);
+                result.put("category", categoryParam);
             } else {
                 // Get all configs
                 result = configService.getAllConfigsAsJSON();
@@ -229,6 +245,124 @@ public class AIAgentConfigAPIServlet extends HttpServlet {
         result.put("timestamp", System.currentTimeMillis());
         response.getWriter().write(result.toString(2));
         System.out.println("✅ Reset AI Agent configuration: " + (key != null ? key : category));
+    }
+    
+    private void handleGetSuppliers(HttpServletResponse response) throws IOException {
+        try {
+            com.liteflow.service.procurement.ProcurementService procurementService = 
+                new com.liteflow.service.procurement.ProcurementService();
+            java.util.List<com.liteflow.model.procurement.Supplier> suppliers = 
+                procurementService.getAllSuppliers();
+            
+            org.json.JSONArray suppliersArray = new org.json.JSONArray();
+            for (com.liteflow.model.procurement.Supplier supplier : suppliers) {
+                if (supplier.getIsActive() != null && supplier.getIsActive()) {
+                    org.json.JSONObject supplierObj = new org.json.JSONObject();
+                    supplierObj.put("supplierID", supplier.getSupplierID().toString());
+                    supplierObj.put("name", supplier.getName());
+                    supplierObj.put("email", supplier.getEmail() != null ? supplier.getEmail() : "");
+                    supplierObj.put("phone", supplier.getPhone() != null ? supplier.getPhone() : "");
+                    suppliersArray.put(supplierObj);
+                }
+            }
+            
+            JSONObject result = new JSONObject();
+            result.put("success", true);
+            result.put("suppliers", suppliersArray);
+            result.put("count", suppliersArray.length());
+            result.put("timestamp", System.currentTimeMillis());
+            
+            response.getWriter().write(result.toString(2));
+            System.out.println("✅ Returned " + suppliersArray.length() + " active suppliers");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting suppliers: " + e.getMessage());
+            e.printStackTrace();
+            sendError(response, "Error retrieving suppliers: " + e.getMessage(), 
+                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    private void handleGetCategories(HttpServletResponse response) throws IOException {
+        try {
+            com.liteflow.service.inventory.ProductService productService = 
+                new com.liteflow.service.inventory.ProductService();
+            java.util.List<String> categories = productService.getDistinctCategoriesFromProducts();
+            
+            org.json.JSONArray categoriesArray = new org.json.JSONArray();
+            for (String category : categories) {
+                if (category != null && !category.trim().isEmpty()) {
+                    org.json.JSONObject categoryObj = new org.json.JSONObject();
+                    categoryObj.put("name", category);
+                    categoriesArray.put(categoryObj);
+                }
+            }
+            
+            JSONObject result = new JSONObject();
+            result.put("success", true);
+            result.put("categories", categoriesArray);
+            result.put("count", categoriesArray.length());
+            result.put("timestamp", System.currentTimeMillis());
+            
+            response.getWriter().write(result.toString(2));
+            System.out.println("✅ Returned " + categoriesArray.length() + " categories");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting categories: " + e.getMessage());
+            e.printStackTrace();
+            sendError(response, "Error retrieving categories: " + e.getMessage(), 
+                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    private void handleGetProducts(HttpServletResponse response, String categoryName) throws IOException {
+        try {
+            if (categoryName == null || categoryName.trim().isEmpty()) {
+                sendError(response, "Category parameter is required", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+            
+            com.liteflow.service.inventory.ProductInventoryService productInventoryService = 
+                new com.liteflow.service.inventory.ProductInventoryService();
+            org.json.JSONObject result = productInventoryService.getProductsByCategory(categoryName.trim());
+            
+            if (!result.optBoolean("success", false)) {
+                sendError(response, result.optString("error", "Error retrieving products"), 
+                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
+            
+            // Format response: chỉ trả về productName và productId (đơn giản hóa)
+            org.json.JSONArray products = result.optJSONArray("products");
+            org.json.JSONArray simplifiedProducts = new org.json.JSONArray();
+            
+            if (products != null) {
+                for (int i = 0; i < products.length(); i++) {
+                    org.json.JSONObject product = products.getJSONObject(i);
+                    org.json.JSONObject simplified = new org.json.JSONObject();
+                    simplified.put("productName", product.optString("productName", ""));
+                    simplified.put("productId", product.optString("productId", ""));
+                    simplified.put("categoryName", product.optString("categoryName", categoryName));
+                    simplifiedProducts.put(simplified);
+                }
+            }
+            
+            JSONObject responseObj = new JSONObject();
+            responseObj.put("success", true);
+            responseObj.put("products", simplifiedProducts);
+            responseObj.put("category", categoryName);
+            responseObj.put("count", simplifiedProducts.length());
+            responseObj.put("timestamp", System.currentTimeMillis());
+            
+            response.getWriter().write(responseObj.toString(2));
+            System.out.println("✅ Returned " + simplifiedProducts.length() + " products for category: " + categoryName);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting products: " + e.getMessage());
+            e.printStackTrace();
+            sendError(response, "Error retrieving products: " + e.getMessage(), 
+                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
     
     private void sendError(HttpServletResponse response, String message, int statusCode) throws IOException {

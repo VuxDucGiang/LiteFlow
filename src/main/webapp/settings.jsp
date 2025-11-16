@@ -242,6 +242,9 @@
                             <button class="tab-btn" data-category="PO_AUTO">
                                 <i class='bx bx-cart'></i> Tự động Đặt hàng
                             </button>
+                            <button class="tab-btn" data-category="SUPPLIER_MAPPING">
+                                <i class='bx bx-link-alt'></i> Ánh xạ Nhà cung cấp
+                            </button>
                             <button class="tab-btn" data-category="GPT_SERVICE">
                                 <i class='bx bx-brain'></i> GPT Service
                             </button>

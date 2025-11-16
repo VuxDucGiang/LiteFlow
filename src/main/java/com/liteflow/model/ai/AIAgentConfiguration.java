@@ -26,7 +26,7 @@ public class AIAgentConfiguration {
     private String configType; // INTEGER, STRING, JSON, BOOLEAN, TIME, CRON, DECIMAL
     
     @Column(name = "Category", nullable = false, length = 50)
-    private String category; // STOCK_ALERT, DEMAND_FORECAST, PO_AUTO, GPT_SERVICE, NOTIFICATION
+    private String category; // STOCK_ALERT, DEMAND_FORECAST, PO_AUTO, SUPPLIER_MAPPING, GPT_SERVICE, NOTIFICATION
     
     @Column(name = "DisplayName", nullable = false, length = 200)
     private String displayName;

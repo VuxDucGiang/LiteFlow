@@ -124,19 +124,21 @@ public class POAutoCreationService {
                 System.out.println("📋 Processing item [" + (i+1) + "/" + lowStockItems.length() + "]: " + 
                                  productName + " (Size: " + size + "), Category: " + categoryName);
                 
-                // Validate category
-                if (categoryName == null || categoryName.trim().isEmpty()) {
-                    System.out.println("  ⚠️ Item '" + productName + "' has no category, skipping");
-                    skippedCount++;
-                    continue;
-                }
-                
-                // Map category -> supplier
-                UUID supplierId = supplierMappingService.getSupplierIdForCategory(categoryName.trim());
+                // Map product -> supplier (ưu tiên product mapping, fallback về category mapping)
+                UUID supplierId = supplierMappingService.getSupplierIdForProduct(productName.trim());
                 if (supplierId == null) {
-                    System.out.println("  ⚠️ No supplier mapping for category '" + categoryName + "', skipping item: " + productName);
-                    skippedCount++;
-                    continue;
+                    // Fallback: try category mapping if product mapping not found
+                    if (categoryName != null && !categoryName.trim().isEmpty()) {
+                        supplierId = supplierMappingService.getSupplierIdForCategory(categoryName.trim());
+                    }
+                    
+                    if (supplierId == null) {
+                        System.out.println("  ⚠️ No supplier mapping for product '" + productName + 
+                                         (categoryName != null ? "' (category: " + categoryName + ")" : "") + 
+                                         ", skipping item");
+                        skippedCount++;
+                        continue;
+                    }
                 }
                 
                 // Track category count for logging
