@@ -2558,19 +2558,34 @@ body {
 }
 
 .action-buttons {
-  display: grid;
-  grid-template-columns: auto auto auto 1fr 1fr;
+  display: flex;
+  flex-wrap: nowrap;
   gap: 12px;
   flex: 0 0 auto;
   background: white;
   padding: 16px 0;
   margin-top: 16px;
   border-top: 2px solid #e9ecef;
+  align-items: center;
+}
+
+.action-buttons .btn-icon-only {
+  flex: 0 0 auto;
+}
+
+.action-buttons .btn:not(.btn-icon-only) {
+  flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
   .action-buttons {
-    grid-template-columns: 1fr 1fr;
+    flex-wrap: wrap;
+  }
+  
+  .action-buttons .btn:not(.btn-icon-only) {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 120px;
   }
 }
 

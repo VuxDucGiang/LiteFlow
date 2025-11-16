@@ -49,6 +49,27 @@ public class RevenueReportService {
             long newCustomers = reportDAO.getNewCustomers(startDate, endDate);
             long returningCustomers = reportDAO.getReturningCustomers(startDate, endDate);
             
+            // Get total cost of goods sold (COGS) - with error handling
+            BigDecimal totalCOGS = BigDecimal.ZERO;
+            BigDecimal totalProfit = totalRevenue; // Default to revenue if COGS fails
+            double profitGrowthRate = 0.0;
+            
+            try {
+                totalCOGS = reportDAO.getTotalCostOfGoodsSold(startDate, endDate);
+                
+                // Calculate total profit = Revenue - COGS
+                totalProfit = totalRevenue.subtract(totalCOGS);
+                
+                // Get previous period COGS for profit comparison
+                BigDecimal prevCOGS = reportDAO.getPreviousPeriodCOGS(startDate, endDate);
+                BigDecimal prevProfit = prevRevenue.subtract(prevCOGS);
+                profitGrowthRate = calculateGrowthRate(totalProfit, prevProfit);
+            } catch (Exception e) {
+                System.err.println("❌ Error calculating COGS/Profit: " + e.getMessage());
+                e.printStackTrace();
+                // Use default values already set above
+            }
+            
             // Get peak hour
             Integer peakHour = reportDAO.getPeakHour(startDate, endDate);
             
@@ -60,6 +81,12 @@ public class RevenueReportService {
             report.put("comparedToPrevious", prevRevenue.doubleValue());
             report.put("newCustomers", newCustomers);
             report.put("returningCustomers", returningCustomers);
+            
+            // Always set COGS and Profit values (even if 0)
+            report.put("totalCOGS", totalCOGS != null ? totalCOGS.doubleValue() : 0.0);
+            report.put("totalProfit", totalProfit != null ? totalProfit.doubleValue() : totalRevenue.doubleValue());
+            report.put("profitGrowth", profitGrowthRate);
+            
             report.put("peakHour", peakHour != null ? peakHour + ":00" : "N/A");
             
             // Get trend data
@@ -89,12 +116,43 @@ public class RevenueReportService {
             System.err.println("❌ Error generating report: " + e.getMessage());
             e.printStackTrace();
             
-            // Return empty data structure on error
-            report.put("totalRevenue", 0);
-            report.put("totalOrders", 0);
-            report.put("avgOrderValue", 0);
-            report.put("growth", 0);
+            // If report already has some data, preserve COGS/Profit if they exist
+            if (!report.has("totalCOGS")) {
+                report.put("totalCOGS", 0);
+            }
+            if (!report.has("totalProfit")) {
+                report.put("totalProfit", report.has("totalRevenue") ? report.getDouble("totalRevenue") : 0);
+            }
+            if (!report.has("profitGrowth")) {
+                report.put("profitGrowth", 0);
+            }
+            
+            // Set other defaults only if not already set
+            if (!report.has("totalRevenue")) {
+                report.put("totalRevenue", 0);
+            }
+            if (!report.has("totalOrders")) {
+                report.put("totalOrders", 0);
+            }
+            if (!report.has("avgOrderValue")) {
+                report.put("avgOrderValue", 0);
+            }
+            if (!report.has("growth")) {
+                report.put("growth", 0);
+            }
+            
             report.put("error", e.getMessage());
+        }
+        
+        // Final check: ensure COGS/Profit are always set
+        if (!report.has("totalCOGS")) {
+            report.put("totalCOGS", 0);
+        }
+        if (!report.has("totalProfit")) {
+            report.put("totalProfit", report.has("totalRevenue") ? report.getDouble("totalRevenue") : 0);
+        }
+        if (!report.has("profitGrowth")) {
+            report.put("profitGrowth", 0);
         }
         
         return report;

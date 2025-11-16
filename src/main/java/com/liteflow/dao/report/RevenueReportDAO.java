@@ -317,6 +317,64 @@ public class RevenueReportDAO {
     }
     
     /**
+     * Get total cost of goods sold (COGS) for date range
+     * Calculates: SUM(OrderDetail.quantity * ProductVariant.originalPrice)
+     */
+    public BigDecimal getTotalCostOfGoodsSold(LocalDate startDate, LocalDate endDate) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+            
+            // Use JPQL to get all order details and calculate COGS in Java
+            // JPQL doesn't always handle Integer * BigDecimal multiplication well
+            String jpql = "SELECT od.quantity, pv.originalPrice " +
+                         "FROM OrderDetail od " +
+                         "JOIN od.order o " +
+                         "JOIN od.productVariant pv " +
+                         "WHERE o.orderDate BETWEEN :startDate AND :endDate " +
+                         "AND o.paymentStatus = 'Paid'";
+            
+            @SuppressWarnings("unchecked")
+            List<Object[]> orderDetails = em.createQuery(jpql, Object[].class)
+                .setParameter("startDate", startDateTime)
+                .setParameter("endDate", endDateTime)
+                .getResultList();
+            
+            BigDecimal totalCOGS = BigDecimal.ZERO;
+            for (Object[] row : orderDetails) {
+                Integer quantity = (Integer) row[0];
+                BigDecimal originalPrice = (BigDecimal) row[1];
+                
+                if (quantity != null && originalPrice != null) {
+                    BigDecimal itemCOGS = originalPrice.multiply(BigDecimal.valueOf(quantity));
+                    totalCOGS = totalCOGS.add(itemCOGS);
+                }
+            }
+            
+            return totalCOGS;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting total COGS: " + e.getMessage());
+            e.printStackTrace();
+            return BigDecimal.ZERO;
+        } finally {
+            em.close();
+        }
+    }
+    
+    /**
+     * Get previous period COGS for comparison
+     */
+    public BigDecimal getPreviousPeriodCOGS(LocalDate startDate, LocalDate endDate) {
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+        LocalDate prevStartDate = startDate.minusDays(days + 1);
+        LocalDate prevEndDate = startDate.minusDays(1);
+        
+        return getTotalCostOfGoodsSold(prevStartDate, prevEndDate);
+    }
+    
+    /**
      * Get revenue by weekday (1=Monday, 7=Sunday)
      * Returns: List of [weekday (1-7), revenue, orderCount]
      */

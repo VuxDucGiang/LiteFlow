@@ -87,7 +87,7 @@
         
         /* ========== LAYOUT ========== */
         .container {
-            max-width: 1400px;
+            max-width: 1700px;
             margin: 0 auto;
             padding: 30px 20px;
             width: 100%;
@@ -3073,7 +3073,7 @@
                     minute: '2-digit'
                 });
             } catch (e) {
-                console.warn('Date formatting error:', e, 'for date:', dateString);
+               
                 return dateString; // Return original if error
             }
         }
@@ -3633,8 +3633,7 @@
                 deliveryInput.value = dateString;
             }
             
-            console.log('Purchase Orders:', ${purchaseOrders != null ? purchaseOrders.size() : 0});
-            console.log('Suppliers:', ${suppliers != null ? suppliers.size() : 0});
+          
         };
     </script>
 </body>

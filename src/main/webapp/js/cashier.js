@@ -1182,6 +1182,12 @@ function updateBill() {
   }
   
   document.getElementById('notifyKitchenBtn').disabled = !hasItemsAndTable;
+  
+  // Enable/disable print bill button
+  const printBillBtn = document.getElementById('printBillBtn');
+  if (printBillBtn) {
+    printBillBtn.disabled = !hasItemsAndTable;
+  }
 }
 
 // Load orders của bàn đang có khách
@@ -3769,4 +3775,383 @@ document.addEventListener('DOMContentLoaded', function() {
     reportTypeSelect.addEventListener('change', previewReport);
   }
 });
+
+// ========================================
+// PRINT TEMPORARY BILL FUNCTION
+// ========================================
+
+/**
+ * Print temporary bill for current table order
+ */
+function printTemporaryBill() {
+  // Check if there are items and a selected table
+  if (!selectedTable || orderItems.length === 0) {
+    alert('Vui lòng chọn bàn và thêm món vào đơn hàng trước khi in bill!');
+    return;
+  }
+
+  // Calculate bill totals (same logic as updateBill)
+  let subtotal = 0;
+  let totalItemDiscounts = 0;
+  
+  orderItems.forEach(item => {
+    const itemSubtotal = item.price * item.quantity;
+    let itemDiscountAmount = 0;
+    
+    if (item.discount) {
+      if (item.discount.type === 'percent') {
+        itemDiscountAmount = Math.round(itemSubtotal * item.discount.value / 100);
+      } else {
+        itemDiscountAmount = item.discount.value;
+      }
+      totalItemDiscounts += itemDiscountAmount;
+    }
+    
+    subtotal += Math.max(0, itemSubtotal - itemDiscountAmount);
+  });
+  
+  // Calculate order discount
+  let orderDiscountAmount = 0;
+  if (currentDiscount) {
+    if (currentDiscount.type === 'percent') {
+      orderDiscountAmount = Math.round(subtotal * currentDiscount.value / 100);
+    } else {
+      orderDiscountAmount = currentDiscount.value;
+    }
+  }
+  
+  // Get VAT rate
+  const vatRateInput = document.getElementById('vatRate');
+  const vatRate = vatRateInput ? parseFloat(vatRateInput.value) || 0 : 10;
+  
+  const afterDiscount = Math.max(0, subtotal - orderDiscountAmount);
+  const vat = Math.round(afterDiscount * (vatRate / 100));
+  const total = afterDiscount + vat;
+  
+  // Get table name
+  const tableName = selectedTable.name || 'Chưa xác định';
+  const tableRoom = selectedTable.room ? (typeof selectedTable.room === 'string' ? selectedTable.room : selectedTable.room.name) : '';
+  
+  // Get current invoice name
+  const currentInvoice = invoices.find(inv => inv.id === currentInvoiceId);
+  const invoiceName = currentInvoice?.name || 'Hóa đơn';
+  
+  // Get order note
+  const orderNote = currentInvoice?.note || '';
+  
+  // Get current date and time
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const timeStr = now.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Create print window
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Không thể mở cửa sổ in. Vui lòng cho phép popup và thử lại.');
+    return;
+  }
+  
+  // Build bill HTML
+  const billHTML = `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Bill Tạm Tính - ${tableName}</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Arial', 'Helvetica', sans-serif;
+          padding: 20px;
+          background: white;
+          color: #333;
+        }
+        
+        .bill-container {
+          max-width: 400px;
+          margin: 0 auto;
+          background: white;
+        }
+        
+        .bill-header {
+          text-align: center;
+          border-bottom: 2px dashed #333;
+          padding-bottom: 15px;
+          margin-bottom: 15px;
+        }
+        
+        .bill-header h1 {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 5px;
+          color: #333;
+        }
+        
+        .bill-header h2 {
+          font-size: 18px;
+          font-weight: normal;
+          color: #666;
+          margin-bottom: 10px;
+        }
+        
+        .bill-info {
+          margin-bottom: 15px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid #ddd;
+        }
+        
+        .bill-info-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+          font-size: 14px;
+        }
+        
+        .bill-info-label {
+          font-weight: bold;
+        }
+        
+        .bill-items {
+          margin-bottom: 15px;
+        }
+        
+        .bill-item {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+          padding-bottom: 8px;
+          border-bottom: 1px dotted #ddd;
+          font-size: 14px;
+        }
+        
+        .bill-item-name {
+          flex: 1;
+          margin-right: 10px;
+        }
+        
+        .bill-item-details {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          min-width: 120px;
+        }
+        
+        .bill-item-quantity {
+          color: #666;
+          font-size: 12px;
+        }
+        
+        .bill-item-price {
+          font-weight: bold;
+        }
+        
+        .bill-item-discount {
+          color: #dc3545;
+          font-size: 12px;
+        }
+        
+        .bill-summary {
+          border-top: 2px solid #333;
+          padding-top: 15px;
+          margin-top: 15px;
+        }
+        
+        .bill-summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+          font-size: 14px;
+        }
+        
+        .bill-summary-label {
+          color: #666;
+        }
+        
+        .bill-summary-value {
+          font-weight: bold;
+        }
+        
+        .bill-total {
+          border-top: 2px dashed #333;
+          padding-top: 10px;
+          margin-top: 10px;
+        }
+        
+        .bill-total-label {
+          font-size: 18px;
+          font-weight: bold;
+        }
+        
+        .bill-total-value {
+          font-size: 20px;
+          font-weight: bold;
+          color: #dc3545;
+        }
+        
+        .bill-note {
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid #ddd;
+          font-size: 12px;
+          color: #666;
+          font-style: italic;
+        }
+        
+        .bill-footer {
+          text-align: center;
+          margin-top: 20px;
+          padding-top: 15px;
+          border-top: 1px dashed #ddd;
+          font-size: 12px;
+          color: #999;
+        }
+        
+        @media print {
+          body {
+            padding: 0;
+          }
+          
+          .bill-container {
+            max-width: 100%;
+          }
+          
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="bill-container">
+        <div class="bill-header">
+          <h1>LITEFLOW RESTAURANT</h1>
+          <h2>BILL TẠM TÍNH</h2>
+        </div>
+        
+        <div class="bill-info">
+          <div class="bill-info-row">
+            <span class="bill-info-label">Bàn:</span>
+            <span>${tableName}${tableRoom ? ' - ' + tableRoom : ''}</span>
+          </div>
+          <div class="bill-info-row">
+            <span class="bill-info-label">Hóa đơn:</span>
+            <span>${invoiceName}</span>
+          </div>
+          <div class="bill-info-row">
+            <span class="bill-info-label">Ngày:</span>
+            <span>${dateStr} ${timeStr}</span>
+          </div>
+        </div>
+        
+        <div class="bill-items">
+          ${orderItems.map(item => {
+            const itemSubtotal = item.price * item.quantity;
+            let itemDiscountAmount = 0;
+            let discountText = '';
+            
+            if (item.discount) {
+              if (item.discount.type === 'percent') {
+                itemDiscountAmount = Math.round(itemSubtotal * item.discount.value / 100);
+                discountText = `-${item.discount.value}%`;
+              } else {
+                itemDiscountAmount = item.discount.value;
+                discountText = `-${itemDiscountAmount.toLocaleString('vi-VN')}đ`;
+              }
+            }
+            
+            const itemTotal = Math.max(0, itemSubtotal - itemDiscountAmount);
+            
+            return `
+              <div class="bill-item">
+                <div class="bill-item-name">
+                  ${item.name}
+                </div>
+                <div class="bill-item-details">
+                  <div class="bill-item-quantity">${item.quantity} x ${item.price.toLocaleString('vi-VN')}đ</div>
+                  ${discountText ? `<div class="bill-item-discount">${discountText}</div>` : ''}
+                  <div class="bill-item-price">${itemTotal.toLocaleString('vi-VN')}đ</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        
+        <div class="bill-summary">
+          <div class="bill-summary-row">
+            <span class="bill-summary-label">Tạm tính:</span>
+            <span class="bill-summary-value">${subtotal.toLocaleString('vi-VN')}đ</span>
+          </div>
+          ${orderDiscountAmount > 0 ? `
+            <div class="bill-summary-row">
+              <span class="bill-summary-label">Giảm giá:</span>
+              <span class="bill-summary-value" style="color: #dc3545;">-${orderDiscountAmount.toLocaleString('vi-VN')}đ</span>
+            </div>
+          ` : ''}
+          <div class="bill-summary-row">
+            <span class="bill-summary-label">VAT (${vatRate}%):</span>
+            <span class="bill-summary-value">${vat.toLocaleString('vi-VN')}đ</span>
+          </div>
+          <div class="bill-summary-row bill-total">
+            <span class="bill-total-label">TỔNG CỘNG:</span>
+            <span class="bill-total-value">${total.toLocaleString('vi-VN')}đ</span>
+          </div>
+        </div>
+        
+        ${orderNote ? `
+          <div class="bill-note">
+            <strong>Ghi chú:</strong> ${orderNote}
+          </div>
+        ` : ''}
+        
+        <div class="bill-footer">
+          <p>Cảm ơn quý khách!</p>
+          <p>Bill tạm tính - Chưa thanh toán</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  // Write HTML to print window
+  printWindow.document.open();
+  printWindow.document.write(billHTML);
+  printWindow.document.close();
+  
+  // Wait for content to load, then print
+  const printAfterLoad = () => {
+    try {
+      printWindow.focus();
+      // Small delay to ensure content is rendered
+      setTimeout(() => {
+        printWindow.print();
+      }, 100);
+    } catch (error) {
+      console.error('Error printing:', error);
+      alert('Có lỗi xảy ra khi in. Vui lòng thử lại.');
+    }
+  };
+  
+  // Check if document is already loaded
+  if (printWindow.document.readyState === 'complete') {
+    printAfterLoad();
+  } else {
+    printWindow.addEventListener('load', printAfterLoad, { once: true });
+    // Fallback timeout
+    setTimeout(printAfterLoad, 1000);
+  }
+}
 

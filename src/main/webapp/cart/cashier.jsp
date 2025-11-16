@@ -330,6 +330,9 @@
           <button class="btn btn-success btn-icon-only" id="discountBtn" title="Giảm giá" onclick="openDiscountModal()">
             <i class='bx bx-gift'></i>
           </button>
+          <button class="btn btn-info btn-icon-only" id="printBillBtn" onclick="printTemporaryBill()" disabled title="In bill tạm tính">
+            <i class='bx bx-printer'></i>
+          </button>
           <button class="btn btn-warning" id="notifyKitchenBtn" disabled>
             <i class='bx bx-bell'></i> Thông báo bếp
           </button>
