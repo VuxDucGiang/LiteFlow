@@ -613,6 +613,142 @@
             font-size: 15px;
         }
         
+        /* ========== ALERT MESSAGES ========== */
+        .alert-message {
+            display: none;
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 20px 25px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideDown 0.3s ease-out;
+            position: relative;
+            border-left: 5px solid;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert-error {
+            border-left-color: var(--danger-500);
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        }
+        
+        .alert-success {
+            border-left-color: var(--success-500);
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        }
+        
+        .alert-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+        
+        .alert-content {
+            flex: 1;
+        }
+        
+        .alert-content h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        
+        .alert-error .alert-content h3 {
+            color: var(--danger-700);
+        }
+        
+        .alert-success .alert-content h3 {
+            color: var(--success-700);
+        }
+        
+        .alert-content p {
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .alert-error .alert-content p {
+            color: var(--danger-800);
+        }
+        
+        .alert-success .alert-content p {
+            color: var(--success-800);
+        }
+        
+        .alert-close {
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-500);
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        
+        .alert-close:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: var(--gray-700);
+        }
+        
+        /* ========== FORM VALIDATION STYLES ========== */
+        .form-group input:invalid,
+        .form-group select:invalid,
+        .form-group textarea:invalid {
+            border-color: var(--danger-400);
+        }
+        
+        .form-group input:valid:not(:placeholder-shown),
+        .form-group select:valid:not(:placeholder-shown),
+        .form-group textarea:valid:not(:placeholder-shown) {
+            border-color: var(--success-400);
+        }
+        
+        .field-error {
+            color: var(--danger-600);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            font-weight: 500;
+        }
+        
+        .field-error.show {
+            display: block;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        .form-group.has-error input,
+        .form-group.has-error select,
+        .form-group.has-error textarea {
+            border-color: var(--danger-500);
+            background-color: #fef2f2;
+        }
+        
+        .form-group.has-success input,
+        .form-group.has-success select,
+        .form-group.has-success textarea {
+            border-color: var(--success-500);
+            background-color: #f0fdf4;
+        }
+        
         /* ========== MODALS ========== */
         .modal {
             display: none;
@@ -622,17 +758,53 @@
             top: 0;
             width: 100%;
             height: 100vh;
-            background: rgba(17, 24, 39, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             overflow-y: auto;
             overflow-x: hidden;
-            animation: fadeIn 0.2s ease;
+            animation: fadeIn 0.25s ease;
+            padding: 80px 20px 40px 20px;
+            box-sizing: border-box;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        
+        .modal[style*="display: block"] {
+            display: flex !important;
+        }
+        
+        .modal::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .modal::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .modal::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        .modal::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
         
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
         }
         
         @keyframes spin {
@@ -643,7 +815,7 @@
         @keyframes modalSlideIn {
             from {
                 opacity: 0;
-                transform: translateY(-40px) scale(0.95);
+                transform: translateY(20px) scale(0.98);
             }
             to {
                 opacity: 1;
@@ -652,159 +824,162 @@
         }
         
         .modal-content {
-            background: white;
-            margin: 60px auto 30px auto;
+            background: #ffffff;
+            margin: 0 auto;
             padding: 0;
-            border-radius: 16px;
-            width: 92%;
-            max-width: 900px;
-            max-height: calc(100vh - 100px);
-            overflow-y: auto;
-            overflow-x: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
-            animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 950px;
+            max-height: calc(100vh - 160px);
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            animation: modalSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
-            border: 1px solid var(--color-primary);
-            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-self: center;
+            margin-top: auto;
+            margin-bottom: auto;
         }
         
         .modal-header {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-            color: white;
-            padding: 25px 35px;
+            background: #ffffff;
+            color: var(--gray-900);
+            padding: 28px 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: relative;
-            overflow: hidden;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .modal-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-500), var(--secondary-500));
+            border-bottom: 1px solid var(--gray-200);
+            flex-shrink: 0;
         }
         
         .modal-header h2 {
             margin: 0;
-            margin-top: 4px;
-            font-size: 24px;
-            font-weight: 800;
-            color: white;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gray-900);
             display: flex;
             align-items: center;
             gap: 12px;
             position: relative;
             z-index: 1;
+            letter-spacing: -0.3px;
         }
         
-        .modal-header .close {
-            color: white;
-            margin-top: 4px;
-        }
-        
-        .modal-header .close:hover {
-            color: rgba(255, 255, 255, 0.8);
+        .modal-header h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            border-radius: 2px;
+            display: inline-block;
         }
         
         .close {
-            color: var(--gray-600, #6b7280);
-            font-size: 28px;
-            font-weight: bold;
+            color: var(--gray-500);
+            font-size: 24px;
+            font-weight: 400;
             line-height: 1;
             cursor: pointer;
-            transition: all 0.2s;
-            background: rgba(255,255,255,0.15);
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            min-height: 40px;
+            transition: all 0.2s ease;
+            background: var(--gray-100);
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            min-height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
+            border-radius: 10px;
             position: relative;
             z-index: 1;
             flex-shrink: 0;
+            border: none;
         }
         
         .close:hover {
-            background: rgba(239, 68, 68, 0.9);
-            transform: rotate(90deg) scale(1.1);
+            background: var(--danger-100);
+            color: var(--danger-600);
+            transform: rotate(90deg);
+        }
+        
+        .close:active {
+            transform: rotate(90deg) scale(0.95);
         }
         
         .modal-body {
-            padding: 35px;
-            max-height: calc(100vh - 260px);
+            padding: 32px;
             overflow-y: auto;
+            flex: 1;
+            background: #fafbfc;
+            scroll-behavior: smooth;
         }
         
         .modal-body::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
         
         .modal-body::-webkit-scrollbar-track {
-            background: var(--gray-100);
-            border-radius: 10px;
+            background: transparent;
         }
         
         .modal-body::-webkit-scrollbar-thumb {
-            background: var(--gray-400);
-            border-radius: 10px;
+            background: var(--gray-300);
+            border-radius: 3px;
         }
         
         .modal-body::-webkit-scrollbar-thumb:hover {
-            background: var(--gray-500);
+            background: var(--gray-400);
         }
         
         .modal-footer {
-            padding: 25px 35px;
-            border-top: 2px solid var(--gray-100);
-            background: var(--gray-50);
+            padding: 24px 32px;
+            border-top: 1px solid var(--gray-200);
+            background: #ffffff;
             display: flex;
             justify-content: flex-end;
             gap: 12px;
+            flex-shrink: 0;
         }
         
         /* ========== FORMS ========== */
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 10px;
-            font-weight: 700;
-            color: var(--gray-800);
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 13px;
+            letter-spacing: 0.2px;
         }
         
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 14px 16px;
-            border: 2px solid var(--gray-200);
-            border-radius: var(--radius);
-            font-size: 15px;
+            padding: 12px 16px;
+            border: 1.5px solid var(--gray-300);
+            border-radius: 10px;
+            font-size: 14px;
             font-family: inherit;
-            transition: var(--transition);
+            transition: all 0.2s ease;
             box-sizing: border-box;
-            background: white;
+            background: #ffffff;
+            color: var(--gray-900);
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.5;
         }
         
         .form-group input:hover,
         .form-group select:hover,
         .form-group textarea:hover {
-            border-color: var(--gray-300);
+            border-color: var(--gray-400);
+            background: #fafbfc;
         }
         
         .form-group input:focus,
@@ -812,114 +987,249 @@
         .form-group textarea:focus {
             outline: none;
             border-color: var(--primary-500);
-            box-shadow: 0 0 0 4px var(--primary-100);
-            transform: translateY(-1px);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: #ffffff;
         }
         
         .form-group.required label::after {
             content: ' *';
             color: var(--danger-500);
-            font-weight: 900;
+            font-weight: 700;
+            margin-left: 2px;
         }
         
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            gap: 20px;
         }
         
         .form-row.full {
             grid-template-columns: 1fr;
         }
         
-        /* ========== ITEMS SECTION ========== */
-        .items-section {
-            border: 3px solid var(--gray-200);
-            border-radius: var(--radius-md);
-            padding: 25px;
-            margin-bottom: 24px;
-            background: linear-gradient(135deg, var(--gray-50), white);
-            position: relative;
-            overflow: hidden;
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
         }
         
-        .items-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
+        /* ========== ITEMS SECTION ========== */
+        .items-section {
+            border: 1.5px solid var(--gray-200);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            background: #ffffff;
+            position: relative;
             width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-500), var(--success-500));
+            box-sizing: border-box;
+            overflow: visible;
         }
         
         .items-section h4 {
             margin: 0 0 20px 0;
-            color: var(--gray-800);
-            font-size: 18px;
-            font-weight: 800;
+            color: var(--gray-900);
+            font-size: 16px;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 10px;
+            letter-spacing: -0.2px;
         }
         
         .items-section h4::before {
-            content: '📝';
-            font-size: 24px;
+            content: '';
+            width: 3px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+            border-radius: 2px;
+            display: inline-block;
+        }
+        
+        /* Items table header */
+        .items-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 16px;
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+        
+        .items-header > div {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        .items-header > div:first-child {
+            text-align: left;
+        }
+        
+        .items-header > div:not(:first-child):not(:last-child) {
+            text-align: right;
+            justify-content: flex-end;
         }
         
         .item-row {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr auto;
-            gap: 15px;
-            align-items: end;
-            margin-bottom: 16px;
-            padding: 18px;
-            background: white;
-            border-radius: var(--radius);
-            border: 2px solid var(--gray-200);
-            transition: var(--transition);
+            gap: 16px;
+            align-items: start;
+            margin-bottom: 12px;
+            padding: 16px 20px;
+            background: #ffffff;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
         }
         
         .item-row:hover {
             border-color: var(--primary-300);
-            box-shadow: var(--shadow-md);
-            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+            background: #fafbfc;
+        }
+        
+        .item-row > div {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        
+        /* Allow autocomplete dropdown to overflow */
+        .item-row > div:first-child {
+            overflow: visible;
+        }
+        
+        .item-row > div:not(:first-child):not(:last-child) {
+            align-items: flex-end;
         }
         
         .item-row input {
             margin-bottom: 0;
+            height: 40px;
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1.5px solid var(--gray-300);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+        
+        .item-row input:focus {
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
+        
+        .item-row input[name="quantity"],
+        .item-row input[name="unitPrice"] {
+            text-align: right;
+        }
+        
+        .item-row input[name="total"] {
+            text-align: right;
+            background: #f0fdf4;
+            border-color: var(--success-300);
+            color: var(--success-700);
+            font-weight: 600;
+            cursor: default;
+        }
+        
+        .item-row input[name="total"]:focus {
+            border-color: var(--success-400);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        .item-row input::placeholder {
+            color: var(--gray-400);
+            font-size: 13px;
+        }
+        
+        .item-row .field-error {
+            font-size: 11px;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+        
+        @media (max-width: 768px) {
+            .items-section {
+                padding: 16px;
+            }
+            
+            .items-header {
+                display: none;
+            }
+            
+            .item-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 12px 16px;
+            }
+            
+            .item-row > div:not(:first-child):not(:last-child) {
+                align-items: stretch;
+            }
+            
+            .item-row input[name="quantity"],
+            .item-row input[name="unitPrice"] {
+                text-align: left;
+            }
+            
+            .autocomplete-dropdown {
+                max-height: 200px;
+            }
         }
         
         .btn-remove-item {
-            background: linear-gradient(135deg, var(--danger-600), var(--danger-500));
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            padding: 10px 14px;
+            background: var(--danger-50);
+            color: var(--danger-600);
+            border: 1.5px solid var(--danger-200);
+            border-radius: 10px;
+            padding: 10px 12px;
             cursor: pointer;
             font-size: 16px;
-            font-weight: 700;
-            transition: var(--transition);
-            box-shadow: var(--shadow);
+            font-weight: 600;
+            transition: all 0.2s ease;
+            align-self: center;
         }
         
         .btn-remove-item:hover {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: var(--shadow-md);
+            background: var(--danger-100);
+            border-color: var(--danger-300);
+            transform: scale(1.05);
         }
         
         .btn-add-item {
-            background: linear-gradient(135deg, var(--success-600), var(--success-500));
+            background: var(--primary-600);
             color: white;
             border: none;
-            border-radius: var(--radius);
-            padding: 12px 24px;
+            border-radius: 10px;
+            padding: 12px 20px;
             cursor: pointer;
-            font-weight: 700;
+            font-weight: 600;
             font-size: 14px;
-            transition: var(--transition);
-            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -927,91 +1237,147 @@
         
         .btn-add-item::before {
             content: '+';
-            font-size: 20px;
-            font-weight: 900;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1;
         }
         
         .btn-add-item:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            background: var(--primary-700);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-add-item:active {
+            transform: translateY(0);
         }
         
         /* ========== TOTAL SECTION ========== */
         .total-section {
-            background: linear-gradient(135deg, var(--success-50), white);
-            padding: 25px;
-            border-radius: var(--radius-md);
-            border: 3px solid var(--success-200);
+            background: linear-gradient(135deg, #f0fdf4, #ffffff);
+            padding: 20px 24px;
+            border-radius: 12px;
+            border: 1.5px solid var(--success-200);
             margin-bottom: 24px;
             position: relative;
-            overflow: hidden;
-        }
-        
-        .total-section::before {
-            content: '💰';
-            position: absolute;
-            font-size: 100px;
-            right: -20px;
-            top: 50%;
-            transform: translateY(-50%);
-            opacity: 0.1;
         }
         
         .total-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-700);
         }
         
         .total-amount {
-            color: #10b981;
-            font-size: 24px;
+            color: var(--success-600);
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
         }
         
         .form-actions {
             display: flex;
             justify-content: flex-end;
-            gap: 15px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
+            gap: 12px;
+            padding-top: 0;
+            border-top: none;
+        }
+        
+        .form-actions .btn-primary,
+        .form-actions .btn-success {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .form-actions .btn-primary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+        
+        .form-actions .btn-primary:hover {
+            background: var(--gray-200);
+            transform: translateY(-1px);
+        }
+        
+        .form-actions .btn-success {
+            background: var(--success-600);
+            color: white;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        }
+        
+        .form-actions .btn-success:hover {
+            background: var(--success-700);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
         
         @media (max-width: 768px) {
+            .modal {
+                padding: 60px 15px 30px 15px;
+            }
+            
+            .modal-content {
+                max-width: 100%;
+                border-radius: 16px;
+            }
+            
+            .modal-header {
+                padding: 20px 24px;
+            }
+            
+            .modal-header h2 {
+                font-size: 20px;
+            }
+            
+            .modal-body {
+                padding: 20px 16px;
+            }
+            
+            .items-section {
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+            
+            .modal-footer {
+                padding: 20px 24px;
+                flex-direction: column-reverse;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .form-actions .btn-primary,
+            .form-actions .btn-success {
+                width: 100%;
+            }
+            
             .form-row {
                 grid-template-columns: 1fr;
             }
             
             .item-row {
                 grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .form-actions {
-                flex-direction: column;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
+                gap: 12px;
             }
             
             .page-header {
                 flex-direction: column;
                 align-items: stretch;
                 gap: 15px;
-                padding: 20px;
-            }
-            
-            .page-title {
-                font-size: 24px;
             }
             
             .filters {
                 flex-direction: column;
-                padding: 20px;
             }
             
             .search-box {
@@ -1023,28 +1389,7 @@
             }
             
             .po-table {
-                min-width: 1000px;
-            }
-            
-            .po-table th,
-            .po-table td {
-                padding: 14px 12px;
-                font-size: 13px;
-            }
-            
-            .modal-content {
-                width: 95%;
-                margin: 20px auto;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .page-title {
-                font-size: 20px;
-            }
-            
-            .po-table {
-                min-width: 900px;
+                overflow-x: auto;
             }
             
             .po-table th,
@@ -1052,6 +1397,159 @@
                 padding: 12px 10px;
                 font-size: 12px;
             }
+        }
+        
+        /* ========== AUTocomplete ========== */
+        .autocomplete-wrapper {
+            position: relative;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow: visible;
+            z-index: 1;
+        }
+        
+        /* Disable browser autocomplete suggestions completely */
+        .autocomplete-wrapper input[type="text"] {
+            -webkit-autofill: none;
+            background-color: #ffffff !important;
+        }
+        
+        /* Hide browser autocomplete dropdown completely */
+        .autocomplete-wrapper input::-webkit-contacts-auto-fill-button,
+        .autocomplete-wrapper input::-webkit-credentials-auto-fill-button {
+            visibility: hidden !important;
+            display: none !important;
+            pointer-events: none !important;
+            height: 0 !important;
+            width: 0 !important;
+            margin: 0 !important;
+            opacity: 0 !important;
+        }
+        
+        /* Prevent browser autocomplete overlay */
+        .autocomplete-wrapper input:-webkit-autofill,
+        .autocomplete-wrapper input:-webkit-autofill:hover,
+        .autocomplete-wrapper input:-webkit-autofill:focus,
+        .autocomplete-wrapper input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            box-shadow: 0 0 0 30px white inset !important;
+        }
+        
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1.5px solid var(--primary-300);
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 10000;
+            width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
+            margin-top: 4px;
+            display: none;
+        }
+        
+        .autocomplete-dropdown.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--gray-100);
+            transition: all 0.15s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        
+        .autocomplete-item:hover {
+            background: var(--primary-50);
+        }
+        
+        .autocomplete-item.selected {
+            background: var(--primary-100);
+        }
+        
+        .autocomplete-item-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            flex: 1;
+        }
+        
+        .autocomplete-item-info {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+        
+        .autocomplete-item-price {
+            font-weight: 600;
+            color: var(--success-600);
+        }
+        
+        .autocomplete-item-badge {
+            background: var(--primary-100);
+            color: var(--primary-700);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .autocomplete-loading {
+            padding: 16px;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+        
+        .autocomplete-empty {
+            padding: 16px;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+        
+        .autocomplete-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .autocomplete-dropdown::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .autocomplete-dropdown::-webkit-scrollbar-thumb {
+            background: var(--gray-300);
+            border-radius: 3px;
+        }
+        
+        .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
+            background: var(--gray-400);
         }
     </style>
 </head>
@@ -1081,24 +1579,35 @@
 
         <!-- Error Display -->
         <c:if test="${not empty param.error}">
-            <div class="error-info" style="background: #fee; border-left: 4px solid #e00; padding: 20px; margin-bottom: 20px; border-radius: 8px;">
-                <h3 style="color: #c00; margin: 0 0 10px 0;">⚠️ Lỗi</h3>
-                <p style="margin: 0; color: #333;">${param.error}</p>
+            <div id="errorAlert" class="alert-message alert-error" style="display: block;">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <h3>Lỗi xác thực</h3>
+                    <p>${param.error}</p>
+                </div>
+                <button class="alert-close" onclick="closeAlert('errorAlert')">&times;</button>
             </div>
         </c:if>
         
         <!-- Success Display -->
         <c:if test="${not empty param.status}">
-            <div class="success-info" style="background: #efe; border-left: 4px solid #0a0; padding: 20px; margin-bottom: 20px; border-radius: 8px;">
-                <h3 style="color: #0a0; margin: 0 0 10px 0;">✅ Thành công</h3>
-                <p style="margin: 0; color: #333;">
-                    <c:choose>
-                        <c:when test="${param.status == 'created'}">Đã tạo đơn hàng thành công!</c:when>
-                        <c:when test="${param.status == 'approved'}">Đã duyệt đơn hàng thành công!</c:when>
-                        <c:when test="${param.status == 'rejected'}">Đã từ chối đơn hàng!</c:when>
-                        <c:otherwise>Thao tác thành công!</c:otherwise>
-                    </c:choose>
-                </p>
+            <div id="successAlert" class="alert-message alert-success" style="display: block;">
+                <div class="alert-icon">✅</div>
+                <div class="alert-content">
+                    <h3>Thành công</h3>
+                    <p>
+                        <c:choose>
+                            <c:when test="${param.status == 'created'}">
+                                Đã tạo đơn hàng thành công<c:if test="${not empty param.poid}"> (Mã: ${param.poid})</c:if>!
+                            </c:when>
+                            <c:when test="${param.status == 'approved'}">Đã duyệt đơn hàng thành công!</c:when>
+                            <c:when test="${param.status == 'rejected'}">Đã từ chối đơn hàng!</c:when>
+                            <c:when test="${param.status == 'received'}">Đã nhận hàng thành công!</c:when>
+                            <c:otherwise>Thao tác thành công!</c:otherwise>
+                        </c:choose>
+                    </p>
+                </div>
+                <button class="alert-close" onclick="closeAlert('successAlert')">&times;</button>
             </div>
         </c:if>
 
@@ -1261,10 +1770,10 @@
 
     <!-- Create PO Modal -->
     <div id="createModal" class="modal">
-        <div class="modal-content" style="max-width: 1000px;">
+        <div class="modal-content">
             <div class="modal-header">
-                <h2>📋 Tạo Đơn đặt hàng mới</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>Tạo Đơn đặt hàng mới</h2>
+                <button type="button" class="close" onclick="closeModal()" aria-label="Đóng">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="createPOForm" action="${pageContext.request.contextPath}/procurement/po" method="post" onsubmit="return validateAndCleanForm()">
@@ -1274,16 +1783,18 @@
                     <div class="form-row">
                         <div class="form-group required">
                             <label for="supplierSelect">Nhà cung cấp</label>
-                            <select id="supplierSelect" name="supplierID" required>
+                            <select id="supplierSelect" name="supplierID" required onchange="handleSupplierChange(this)">
                                 <option value="">Chọn nhà cung cấp</option>
                                 <c:forEach var="supplier" items="${suppliers}">
-                                    <option value="${supplier.supplierID}">${supplier.name}</option>
+                                    <option value="${supplier.supplierID}" data-active="${supplier.isActive}">${supplier.name}</option>
                                 </c:forEach>
                             </select>
+                            <span class="field-error" id="supplierError">Vui lòng chọn nhà cung cấp</span>
                         </div>
                         <div class="form-group required">
                             <label for="expectedDelivery">Ngày giao dự kiến</label>
-                            <input type="datetime-local" id="expectedDelivery" name="expectedDelivery" required>
+                            <input type="datetime-local" id="expectedDelivery" name="expectedDelivery" required onchange="validateDeliveryDate(this)">
+                            <span class="field-error" id="deliveryDateError">Ngày giao dự kiến phải sau thời điểm hiện tại ít nhất 1 giờ</span>
                         </div>
                     </div>
                     
@@ -1297,12 +1808,34 @@
                     <!-- Items Section -->
                     <div class="items-section">
                         <h4>📦 Chi tiết sản phẩm</h4>
+                        <!-- Table Header -->
+                        <div class="items-header">
+                            <div>Tên sản phẩm</div>
+                            <div>Số lượng</div>
+                            <div>Đơn giá (₫)</div>
+                            <div>Thành tiền</div>
+                            <div></div>
+                        </div>
                         <div id="itemsContainer">
                             <div class="item-row">
-                                <input type="text" name="itemName" placeholder="Tên sản phẩm" required>
-                                <input type="text" name="quantity" placeholder="Số lượng" required oninput="formatNumber(this)" onblur="formatNumber(this)">
-                                <input type="text" name="unitPrice" placeholder="Đơn giá (₫)" required oninput="formatNumber(this)" onblur="formatNumber(this)">
-                                <input type="text" name="total" placeholder="Thành tiền" readonly>
+                                <div style="flex: 2;">
+                                    <div class="autocomplete-wrapper">
+                                        <input type="text" name="itemName" placeholder="Tên sản phẩm" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly'); showAutocomplete(this);" onblur="validateItemName(this)" oninput="handleItemNameInput(this)">
+                                        <div class="autocomplete-dropdown" id="autocomplete-0"></div>
+                                    </div>
+                                    <span class="field-error" style="display: none;">Tên sản phẩm không được để trống</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="text" name="quantity" placeholder="Số lượng" required oninput="formatNumber(this)" onblur="validateQuantity(this)">
+                                    <span class="field-error" style="display: none;">Số lượng phải lớn hơn 0 và không vượt quá 100,000</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="text" name="unitPrice" placeholder="Đơn giá (₫)" required oninput="formatNumber(this)" onblur="validatePrice(this)">
+                                    <span class="field-error" style="display: none;">Đơn giá phải lớn hơn 0 và không vượt quá 1,000,000,000 VNĐ</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="text" name="total" placeholder="Thành tiền" readonly>
+                                </div>
                                 <button type="button" class="btn-remove-item" onclick="removeItem(this)" style="display: none;">🗑️</button>
                             </div>
                         </div>
@@ -2082,8 +2615,8 @@
             const mainNav = document.querySelector('.main-nav');
             const body = document.body;
             
-            // Show modal
-            modal.style.display = 'block';
+            // Show modal with flex display for centering
+            modal.style.display = 'flex';
             
             // Hide main-nav
             if (mainNav) {
@@ -2092,6 +2625,9 @@
             
             // Lock body scroll
             body.style.overflow = 'hidden';
+            
+            // Scroll modal to top
+            modal.scrollTop = 0;
         }
 
         function closeModal() {
@@ -2121,11 +2657,26 @@
             const container = document.getElementById('itemsContainer');
             const newRow = document.createElement('div');
             newRow.className = 'item-row';
+            const itemIndex = container.children.length;
             newRow.innerHTML = `
-                <input type="text" name="itemName" placeholder="Tên sản phẩm" required>
-                <input type="text" name="quantity" placeholder="Số lượng" required oninput="formatNumber(this)" onblur="formatNumber(this)">
-                <input type="text" name="unitPrice" placeholder="Đơn giá (₫)" required oninput="formatNumber(this)" onblur="formatNumber(this)">
-                <input type="text" name="total" placeholder="Thành tiền" readonly>
+                <div style="flex: 2;">
+                    <div class="autocomplete-wrapper">
+                        <input type="text" name="itemName" placeholder="Tên sản phẩm" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly'); showAutocomplete(this);" onblur="validateItemName(this)" oninput="handleItemNameInput(this)">
+                        <div class="autocomplete-dropdown" id="autocomplete-${itemIndex}"></div>
+                    </div>
+                    <span class="field-error" style="display: none;">Tên sản phẩm không được để trống</span>
+                </div>
+                <div style="flex: 1;">
+                    <input type="text" name="quantity" placeholder="Số lượng" required oninput="formatNumber(this)" onblur="validateQuantity(this)">
+                    <span class="field-error" style="display: none;">Số lượng phải lớn hơn 0 và không vượt quá 100,000</span>
+                </div>
+                <div style="flex: 1;">
+                    <input type="text" name="unitPrice" placeholder="Đơn giá (₫)" required oninput="formatNumber(this)" onblur="validatePrice(this)">
+                    <span class="field-error" style="display: none;">Đơn giá phải lớn hơn 0 và không vượt quá 1,000,000,000 VNĐ</span>
+                </div>
+                <div style="flex: 1;">
+                    <input type="text" name="total" placeholder="Thành tiền" readonly>
+                </div>
                 <button type="button" class="btn-remove-item" onclick="removeItem(this)">🗑️</button>
             `;
             container.appendChild(newRow);
@@ -2156,29 +2707,96 @@
 
         // Format number with thousand separator
         function formatNumber(input) {
-            // Get raw value (remove all non-digits)
-            let value = input.value.replace(/\D/g, '');
+            if (!input) return;
+            
+            // Get raw value (remove all non-digits for quantity, keep decimal for price)
+            let value = input.value;
+            
+            // For unitPrice, we need to handle decimal points correctly
+            if (input.name === 'unitPrice') {
+                // Remove all non-digit and non-decimal characters
+                value = value.replace(/[^0-9.,]/g, '');
+                
+                if (!value) {
+                    input.value = '';
+                    if (input.name === 'quantity' || input.name === 'unitPrice') {
+                        calculateItemTotal(input);
+                    }
+                    return;
+                }
+                
+                // Handle Vietnamese number format - same logic as calculateItemTotal
+                const lastDot = value.lastIndexOf('.');
+                const lastComma = value.lastIndexOf(',');
+                const lastSeparator = Math.max(lastDot, lastComma);
+                
+                if (lastSeparator === -1) {
+                    // No separators, just digits
+                    value = value.replace(/[^0-9]/g, '');
+                } else {
+                    // Has separator(s) - need to determine if last one is decimal or thousand
+                    const afterLastSeparator = value.substring(lastSeparator + 1);
+                    const digitsAfter = afterLastSeparator.replace(/[^0-9]/g, '');
+                    
+                    // Rule: If 1-2 digits after last separator → decimal separator
+                    // Rule: If 3+ digits after last separator → thousand separator
+                    const isDecimalSeparator = digitsAfter.length >= 1 && digitsAfter.length <= 2;
+                    
+                    if (isDecimalSeparator) {
+                        // Last separator is decimal separator
+                        if (lastDot > lastComma) {
+                            // Dot is decimal separator
+                            const beforeDecimal = value.substring(0, lastDot).replace(/[.,]/g, '');
+                            const afterDecimal = value.substring(lastDot + 1).replace(/[.,]/g, '');
+                            value = beforeDecimal + '.' + afterDecimal;
+                        } else {
+                            // Comma is decimal separator
+                            const beforeDecimal = value.substring(0, lastComma).replace(/[.,]/g, '');
+                            const afterDecimal = value.substring(lastComma + 1).replace(/[.,]/g, '');
+                            value = beforeDecimal + '.' + afterDecimal;
+                        }
+                    } else {
+                        // Last separator is thousand separator (or no decimal part)
+                        // Remove all separators
+                        value = value.replace(/[.,]/g, '');
+                    }
+                }
+            } else {
+                // For quantity, just remove all non-digits
+                value = value.replace(/\D/g, '');
+            }
             
             // Don't format if empty
             if (!value) {
                 input.value = '';
+                if (input.name === 'quantity' || input.name === 'unitPrice') {
+                    calculateItemTotal(input);
+                }
                 return;
             }
+            
+            // Parse value
+            const numValue = input.name === 'unitPrice' ? parseFloat(value) : parseInt(value);
             
             // Validate: must be positive number
-            const numValue = parseInt(value);
             if (isNaN(numValue) || numValue <= 0) {
                 input.value = '';
+                if (input.name === 'quantity' || input.name === 'unitPrice') {
+                    calculateItemTotal(input);
+                }
                 return;
             }
             
-            // Format with thousand separator
-            const formatted = numValue.toLocaleString('vi-VN');
+            // Format with thousand separator (no decimals for display)
+            const formatted = Math.round(numValue).toLocaleString('vi-VN');
             input.value = formatted;
             
             // Trigger calculation after formatting
             if (input.name === 'quantity' || input.name === 'unitPrice') {
-                calculateItemTotal(input);
+                // Use setTimeout to ensure DOM is updated
+                setTimeout(() => {
+                    calculateItemTotal(input);
+                }, 0);
             }
         }
         
@@ -2186,50 +2804,85 @@
         function validateAndCleanForm() {
             console.log('=== Form Validation START ===');
             
+            // Validate supplier
+            const supplierSelect = document.getElementById('supplierSelect');
+            if (!validateSupplier(supplierSelect)) {
+                supplierSelect.focus();
+                return false;
+            }
+            
+            // Validate delivery date
+            const deliveryInput = document.getElementById('expectedDelivery');
+            if (!validateDeliveryDate(deliveryInput)) {
+                deliveryInput.focus();
+                return false;
+            }
+            
             // Get all quantity and unitPrice inputs
             const quantityInputs = document.querySelectorAll('input[name="quantity"]');
             const priceInputs = document.querySelectorAll('input[name="unitPrice"]');
+            const nameInputs = document.querySelectorAll('input[name="itemName"]');
             
             // Validate: at least one item
             if (quantityInputs.length === 0) {
-                alert('Vui lòng thêm ít nhất 1 sản phẩm!');
+                alert('⚠️ Vui lòng thêm ít nhất 1 sản phẩm!');
                 return false;
             }
             
             // Clean and validate each input
             let hasValidItem = false;
-            for (let i = 0; i < quantityInputs.length; i++) {
+            let firstInvalidField = null;
+            
+            for (let i = 0; i < nameInputs.length; i++) {
+                const nameInput = nameInputs[i];
                 const qtyInput = quantityInputs[i];
                 const priceInput = priceInputs[i];
-                const nameInput = qtyInput.parentElement.querySelector('input[name="itemName"]');
                 
-                // Parse raw values
-                const qtyRaw = qtyInput.value.replace(/\D/g, '');
-                const priceRaw = priceInput.value.replace(/\D/g, '');
                 const name = nameInput ? nameInput.value.trim() : '';
+                const qtyRaw = qtyInput ? qtyInput.value.replace(/\D/g, '') : '';
+                const priceRaw = priceInput ? priceInput.value.replace(/[^0-9.]/g, '') : '';
                 
-                // Check if this row has data
-                if (name && qtyRaw && priceRaw) {
-                    const qty = parseInt(qtyRaw);
-                    const price = parseInt(priceRaw);
-                    
-                    // Validate positive numbers
-                    if (qty <= 0 || price <= 0) {
-                        alert(`Sản phẩm "${name}": Số lượng và đơn giá phải lớn hơn 0!`);
-                        return false;
-                    }
-                    
-                    // Convert formatted value to raw number for submission
-                    qtyInput.value = qtyRaw;
-                    priceInput.value = priceRaw;
-                    
-                    hasValidItem = true;
-                    console.log(`✅ Item ${i+1}: ${name} - Qty: ${qtyRaw}, Price: ${priceRaw}`);
+                // Skip empty rows
+                if (!name && !qtyRaw && !priceRaw) {
+                    continue;
                 }
+                
+                // Validate item name
+                if (!name || name.trim() === '') {
+                    if (!firstInvalidField) firstInvalidField = nameInput;
+                    validateItemName(nameInput);
+                    continue;
+                }
+                
+                // Validate quantity
+                if (!qtyRaw || parseInt(qtyRaw) <= 0 || parseInt(qtyRaw) > 100000) {
+                    if (!firstInvalidField) firstInvalidField = qtyInput;
+                    validateQuantity(qtyInput);
+                    continue;
+                }
+                
+                // Validate price
+                if (!priceRaw || parseFloat(priceRaw) <= 0 || parseFloat(priceRaw) > 1000000000) {
+                    if (!firstInvalidField) firstInvalidField = priceInput;
+                    validatePrice(priceInput);
+                    continue;
+                }
+                
+                // All validations passed for this item
+                // Convert formatted value to raw number for submission
+                if (qtyInput) qtyInput.value = qtyRaw;
+                if (priceInput) priceInput.value = priceRaw;
+                
+                hasValidItem = true;
+                console.log(`✅ Item ${i+1}: ${name} - Qty: ${qtyRaw}, Price: ${priceRaw}`);
             }
             
             if (!hasValidItem) {
-                alert('Vui lòng nhập đầy đủ thông tin cho ít nhất 1 sản phẩm!');
+                alert('⚠️ Vui lòng nhập đầy đủ thông tin hợp lệ cho ít nhất 1 sản phẩm!');
+                if (firstInvalidField) {
+                    firstInvalidField.focus();
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 return false;
             }
             
@@ -2238,19 +2891,85 @@
         }
         
         function calculateItemTotal(input) {
-            const row = input.parentElement;
+            // Find the item-row container (handle nested divs)
+            const row = input.closest('.item-row');
+            if (!row) {
+                console.error('Could not find .item-row for input:', input);
+                return;
+            }
+            
             const quantityInput = row.querySelector('input[name="quantity"]');
             const unitPriceInput = row.querySelector('input[name="unitPrice"]');
             const totalInput = row.querySelector('input[name="total"]');
             
-            // Parse raw values (remove formatting)
-            const quantity = quantityInput.value.replace(/\D/g, '');
-            const unitPrice = unitPriceInput.value.replace(/\D/g, '');
+            if (!quantityInput || !unitPriceInput || !totalInput) {
+                console.error('Could not find required inputs in row:', row);
+                return;
+            }
             
-            if (quantity && unitPrice) {
-                const total = parseInt(quantity) * parseInt(unitPrice);
-                totalInput.value = total.toLocaleString('vi-VN') + ' ₫';
+            // Parse raw values (remove formatting but keep decimal point for price)
+            // Quantity: remove all non-digits
+            const quantityStr = quantityInput.value.replace(/\D/g, '');
+            
+            // Price: parse Vietnamese number format correctly
+            // Vietnamese format: dots/commas can be thousand separators OR decimal separator
+            let priceStr = unitPriceInput.value.replace(/[^0-9.,]/g, '');
+            
+            if (!priceStr) {
+                totalInput.value = '';
                 calculateTotal();
+                return;
+            }
+            
+            // Strategy: Determine if last separator is decimal or thousand separator
+            const lastDot = priceStr.lastIndexOf('.');
+            const lastComma = priceStr.lastIndexOf(',');
+            const lastSeparator = Math.max(lastDot, lastComma);
+            
+            if (lastSeparator === -1) {
+                // No separators, just digits
+                priceStr = priceStr.replace(/[^0-9]/g, '');
+            } else {
+                // Has separator(s) - need to determine if last one is decimal or thousand
+                const afterLastSeparator = priceStr.substring(lastSeparator + 1);
+                const digitsAfter = afterLastSeparator.replace(/[^0-9]/g, '');
+                
+                // Rule: If 1-2 digits after last separator → decimal separator
+                // Rule: If 3+ digits after last separator → thousand separator
+                const isDecimalSeparator = digitsAfter.length >= 1 && digitsAfter.length <= 2;
+                
+                if (isDecimalSeparator) {
+                    // Last separator is decimal separator
+                    if (lastDot > lastComma) {
+                        // Dot is decimal separator
+                        const beforeDecimal = priceStr.substring(0, lastDot).replace(/[.,]/g, '');
+                        const afterDecimal = priceStr.substring(lastDot + 1).replace(/[.,]/g, '');
+                        priceStr = beforeDecimal + '.' + afterDecimal;
+                    } else {
+                        // Comma is decimal separator
+                        const beforeDecimal = priceStr.substring(0, lastComma).replace(/[.,]/g, '');
+                        const afterDecimal = priceStr.substring(lastComma + 1).replace(/[.,]/g, '');
+                        priceStr = beforeDecimal + '.' + afterDecimal;
+                    }
+                } else {
+                    // Last separator is thousand separator (or no decimal part)
+                    // Remove all separators
+                    priceStr = priceStr.replace(/[.,]/g, '');
+                }
+            }
+            
+            if (quantityStr && priceStr) {
+                const quantity = parseInt(quantityStr) || 0;
+                const unitPrice = parseFloat(priceStr) || 0;
+                
+                if (quantity > 0 && unitPrice > 0) {
+                    const total = quantity * unitPrice;
+                    totalInput.value = total.toLocaleString('vi-VN', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' ₫';
+                    calculateTotal();
+                } else {
+                    totalInput.value = '';
+                    calculateTotal();
+                }
             } else {
                 totalInput.value = '';
                 calculateTotal();
@@ -2262,13 +2981,18 @@
             let total = 0;
             
             totalInputs.forEach(input => {
-                const value = input.value.replace(/[^\d]/g, '');
-                if (value) {
-                    total += parseInt(value);
+                // Remove all non-digit characters (including currency symbol and formatting)
+                const valueStr = input.value.replace(/[^\d]/g, '');
+                if (valueStr) {
+                    const value = parseInt(valueStr) || 0;
+                    total += value;
                 }
             });
             
-            document.getElementById('totalAmount').textContent = total.toLocaleString('vi-VN') + ' ₫';
+            const totalAmountElement = document.getElementById('totalAmount');
+            if (totalAmountElement) {
+                totalAmountElement.textContent = total.toLocaleString('vi-VN', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' ₫';
+            }
         }
 
         function resetForm() {
@@ -2276,14 +3000,29 @@
             const container = document.getElementById('itemsContainer');
             container.innerHTML = `
                 <div class="item-row">
-                    <input type="text" name="itemName" placeholder="Tên sản phẩm" required>
-                    <input type="text" name="quantity" placeholder="Số lượng" required oninput="formatNumber(this)" onblur="formatNumber(this)">
-                    <input type="text" name="unitPrice" placeholder="Đơn giá (₫)" required oninput="formatNumber(this)" onblur="formatNumber(this)">
-                    <input type="text" name="total" placeholder="Thành tiền" readonly>
+                    <div style="flex: 2;">
+                        <div class="autocomplete-wrapper">
+                            <input type="text" name="itemName" placeholder="Tên sản phẩm" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly'); showAutocomplete(this);" onblur="validateItemName(this)" oninput="handleItemNameInput(this)">
+                            <div class="autocomplete-dropdown" id="autocomplete-0"></div>
+                        </div>
+                        <span class="field-error" style="display: none;">Tên sản phẩm không được để trống</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="text" name="quantity" placeholder="Số lượng" required oninput="formatNumber(this)" onblur="validateQuantity(this)">
+                        <span class="field-error" style="display: none;">Số lượng phải lớn hơn 0 và không vượt quá 100,000</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="text" name="unitPrice" placeholder="Đơn giá (₫)" required oninput="formatNumber(this)" onblur="validatePrice(this)">
+                        <span class="field-error" style="display: none;">Đơn giá phải lớn hơn 0 và không vượt quá 1,000,000,000 VNĐ</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="text" name="total" placeholder="Thành tiền" readonly>
+                    </div>
                     <button type="button" class="btn-remove-item" onclick="removeItem(this)" style="display: none;">🗑️</button>
                 </div>
             `;
             calculateTotal();
+            updateRemoveButtons();
         }
 
         function closeModal() {
@@ -2351,18 +3090,548 @@
             });
         }
 
+        // ========== CLIENT-SIDE VALIDATION FUNCTIONS ==========
+        function closeAlert(alertId) {
+            const alert = document.getElementById(alertId);
+            if (alert) {
+                alert.style.animation = 'slideUp 0.3s ease-out';
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        // ========== AUTocomplete Functions ==========
+        let supplierProducts = [];
+        let currentSupplierID = null;
+        
+        function handleSupplierChange(select) {
+            validateSupplier(select);
+            
+            const supplierID = select.value;
+            if (supplierID && supplierID.trim() !== '') {
+                currentSupplierID = supplierID;
+                loadSupplierProducts(supplierID);
+            } else {
+                currentSupplierID = null;
+                supplierProducts = [];
+                // Hide all autocomplete dropdowns
+                document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+            }
+        }
+        
+        function loadSupplierProducts(supplierID) {
+            if (!supplierID) {
+                console.warn('SupplierID is empty');
+                return;
+            }
+            
+            console.log('Loading products for supplier:', supplierID);
+            
+            // Show loading state on all autocomplete dropdowns
+            document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+                dropdown.innerHTML = '<div class="autocomplete-loading">Đang tải sản phẩm...</div>';
+                dropdown.classList.add('show');
+            });
+            
+            const contextPath = '${pageContext.request.contextPath}';
+            const url = contextPath + '/procurement/po?action=products&supplierID=' + encodeURIComponent(supplierID);
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Loaded products:', data);
+                    supplierProducts = data;
+                    updateAllAutocompletes();
+                })
+                .catch(error => {
+                    console.error('Error loading supplier products:', error);
+                    supplierProducts = [];
+                    document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+                        dropdown.innerHTML = '<div class="autocomplete-empty">Không thể tải sản phẩm. Vui lòng thử lại.</div>';
+                    });
+                });
+        }
+        
+        function updateAllAutocompletes() {
+            document.querySelectorAll('input[name="itemName"]').forEach(input => {
+                const value = input.value.trim();
+                if (value) {
+                    filterAndShowAutocomplete(input, value);
+                }
+            });
+        }
+        
+        function showAutocomplete(input) {
+            // Hide browser autocomplete by blurring and refocusing
+            if (input) {
+                input.setAttribute('autocomplete', 'off');
+                input.setAttribute('autocorrect', 'off');
+                input.setAttribute('autocapitalize', 'off');
+                input.setAttribute('spellcheck', 'false');
+            }
+            
+            if (!currentSupplierID || supplierProducts.length === 0) {
+                return;
+            }
+            
+            const value = input.value.trim();
+            if (value) {
+                filterAndShowAutocomplete(input, value);
+            } else {
+                showAllProducts(input);
+            }
+        }
+        
+        function handleItemNameInput(input) {
+            if (!currentSupplierID || supplierProducts.length === 0) {
+                return;
+            }
+            
+            const value = input.value.trim();
+            if (value.length > 0) {
+                filterAndShowAutocomplete(input, value);
+            } else {
+                hideAutocomplete(input);
+            }
+        }
+        
+        function filterAndShowAutocomplete(input, searchTerm) {
+            const dropdown = input.parentElement.querySelector('.autocomplete-dropdown');
+            if (!dropdown) return;
+            
+            const searchLower = searchTerm.toLowerCase();
+            const filtered = supplierProducts.filter(product => 
+                product.itemName.toLowerCase().includes(searchLower)
+            );
+            
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="autocomplete-empty">Không tìm thấy sản phẩm</div>';
+                dropdown.classList.add('show');
+                return;
+            }
+            
+            let html = '';
+            filtered.slice(0, 10).forEach((product, index) => {
+                const price = formatCurrency(product.latestPrice);
+                const orderCount = product.orderCount || 0;
+                const badgeHtml = orderCount > 0 ? '<span class="autocomplete-item-badge">Đã đặt ' + orderCount + ' lần</span>' : '';
+                
+                html += '<div class="autocomplete-item" onclick="selectProduct(this, \'' + escapeHtml(product.itemName) + '\', ' + product.latestPrice + ')" data-index="' + index + '">' +
+                    '<span class="autocomplete-item-name">' + escapeHtml(product.itemName) + '</span>' +
+                    '<div class="autocomplete-item-info">' +
+                    '<span class="autocomplete-item-price">' + price + '</span>' +
+                    badgeHtml +
+                    '</div>' +
+                    '</div>';
+            });
+            
+            dropdown.innerHTML = html;
+            dropdown.classList.add('show');
+        }
+        
+        function showAllProducts(input) {
+            const dropdown = input.parentElement.querySelector('.autocomplete-dropdown');
+            if (!dropdown) return;
+            
+            if (supplierProducts.length === 0) {
+                dropdown.innerHTML = '<div class="autocomplete-empty">Chưa có sản phẩm nào từ nhà cung cấp này</div>';
+                dropdown.classList.add('show');
+                return;
+            }
+            
+            let html = '';
+            supplierProducts.slice(0, 10).forEach((product, index) => {
+                const price = formatCurrency(product.latestPrice);
+                const orderCount = product.orderCount || 0;
+                const badgeHtml = orderCount > 0 ? '<span class="autocomplete-item-badge">Đã đặt ' + orderCount + ' lần</span>' : '';
+                
+                html += '<div class="autocomplete-item" onclick="selectProduct(this, \'' + escapeHtml(product.itemName) + '\', ' + product.latestPrice + ')" data-index="' + index + '">' +
+                    '<span class="autocomplete-item-name">' + escapeHtml(product.itemName) + '</span>' +
+                    '<div class="autocomplete-item-info">' +
+                    '<span class="autocomplete-item-price">' + price + '</span>' +
+                    badgeHtml +
+                    '</div>' +
+                    '</div>';
+            });
+            
+            dropdown.innerHTML = html;
+            dropdown.classList.add('show');
+        }
+        
+        function selectProduct(element, itemName, unitPrice) {
+            const item = element.closest('.item-row');
+            if (!item) return;
+            
+            const nameInput = item.querySelector('input[name="itemName"]');
+            const priceInput = item.querySelector('input[name="unitPrice"]');
+            
+            if (nameInput) {
+                nameInput.value = itemName;
+                validateItemName(nameInput);
+            }
+            
+            if (priceInput) {
+                priceInput.value = formatNumberValue(unitPrice);
+                validatePrice(priceInput);
+                // Trigger calculation with priceInput (not item)
+                calculateItemTotal(priceInput);
+            }
+            
+            // Hide autocomplete
+            hideAutocomplete(nameInput);
+            
+            // Focus on quantity field
+            const quantityInput = item.querySelector('input[name="quantity"]');
+            if (quantityInput) {
+                quantityInput.focus();
+            }
+        }
+        
+        function hideAutocomplete(input) {
+            if (!input) return;
+            const dropdown = input.parentElement.querySelector('.autocomplete-dropdown');
+            if (dropdown) {
+                dropdown.classList.remove('show');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatNumberValue(value) {
+            return Math.round(value).toLocaleString('vi-VN');
+        }
+        
+        function formatCurrency(value) {
+            if (!value) return '0 ₫';
+            return Math.round(value).toLocaleString('vi-VN') + ' ₫';
+        }
+        
+        // Hide autocomplete when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.autocomplete-wrapper')) {
+                document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+            }
+        });
+        
+        // Prevent browser autocomplete from showing - Multiple strategies
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[name="itemName"]').forEach(input => {
+                // Strategy 1: Set autocomplete to new-password (Chrome ignores 'off')
+                input.setAttribute('autocomplete', 'new-password');
+                input.setAttribute('autocorrect', 'off');
+                input.setAttribute('autocapitalize', 'off');
+                input.setAttribute('spellcheck', 'false');
+                
+                // Strategy 2: Use readonly trick - remove on focus
+                if (!input.hasAttribute('readonly')) {
+                    input.setAttribute('readonly', 'readonly');
+                    input.addEventListener('focus', function() {
+                        this.removeAttribute('readonly');
+                    });
+                }
+                
+                // Strategy 3: Change name attribute temporarily
+                const originalName = input.getAttribute('name');
+                input.setAttribute('name', 'itemName_' + Date.now());
+                setTimeout(() => {
+                    input.setAttribute('name', originalName);
+                }, 100);
+            });
+        });
+        
+        // Also prevent when adding new items
+        const originalAddItem = window.addItem;
+        if (originalAddItem) {
+            window.addItem = function() {
+                originalAddItem();
+                // Apply autocomplete prevention to newly added inputs
+                setTimeout(() => {
+                    document.querySelectorAll('input[name="itemName"]').forEach(input => {
+                        if (!input.hasAttribute('readonly')) {
+                            input.setAttribute('readonly', 'readonly');
+                            input.setAttribute('autocomplete', 'new-password');
+                            input.addEventListener('focus', function() {
+                                this.removeAttribute('readonly');
+                            }, { once: true });
+                        }
+                    });
+                }, 50);
+            };
+        }
+        
+        // ========== END AUTocomplete Functions ==========
+        
+        function validateSupplier(select) {
+            const formGroup = select.closest('.form-group');
+            const errorSpan = document.getElementById('supplierError');
+            
+            if (!select.value || select.value.trim() === '') {
+                formGroup.classList.add('has-error');
+                formGroup.classList.remove('has-success');
+                if (errorSpan) {
+                    errorSpan.textContent = 'Vui lòng chọn nhà cung cấp';
+                    errorSpan.classList.add('show');
+                }
+                return false;
+            }
+            
+            // Check if supplier is active
+            const selectedOption = select.options[select.selectedIndex];
+            const isActive = selectedOption.getAttribute('data-active') === 'true';
+            
+            if (!isActive) {
+                formGroup.classList.add('has-error');
+                formGroup.classList.remove('has-success');
+                if (errorSpan) {
+                    errorSpan.textContent = 'Nhà cung cấp đã bị vô hiệu hóa. Vui lòng chọn nhà cung cấp khác';
+                    errorSpan.classList.add('show');
+                }
+                return false;
+            }
+            
+            formGroup.classList.remove('has-error');
+            formGroup.classList.add('has-success');
+            if (errorSpan) {
+                errorSpan.classList.remove('show');
+            }
+            return true;
+        }
+        
+        function validateDeliveryDate(input) {
+            const formGroup = input.closest('.form-group');
+            const errorSpan = document.getElementById('deliveryDateError');
+            
+            if (!input.value) {
+                formGroup.classList.add('has-error');
+                formGroup.classList.remove('has-success');
+                if (errorSpan) {
+                    errorSpan.textContent = 'Ngày giao dự kiến không được để trống';
+                    errorSpan.classList.add('show');
+                }
+                return false;
+            }
+            
+            const selectedDate = new Date(input.value);
+            const now = new Date();
+            const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+            
+            if (selectedDate <= now) {
+                formGroup.classList.add('has-error');
+                formGroup.classList.remove('has-success');
+                if (errorSpan) {
+                    errorSpan.textContent = 'Ngày giao dự kiến phải sau thời điểm hiện tại';
+                    errorSpan.classList.add('show');
+                }
+                return false;
+            }
+            
+            if (selectedDate <= oneHourLater) {
+                formGroup.classList.add('has-error');
+                formGroup.classList.remove('has-success');
+                if (errorSpan) {
+                    errorSpan.textContent = 'Ngày giao dự kiến phải cách thời điểm hiện tại ít nhất 1 giờ';
+                    errorSpan.classList.add('show');
+                }
+                return false;
+            }
+            
+            formGroup.classList.remove('has-error');
+            formGroup.classList.add('has-success');
+            if (errorSpan) {
+                errorSpan.classList.remove('show');
+            }
+            return true;
+        }
+        
+        function validateItemName(input) {
+            const itemRow = input.closest('.item-row');
+            const errorSpan = input.nextElementSibling;
+            
+            if (!input.value || input.value.trim() === '') {
+                if (errorSpan && errorSpan.classList.contains('field-error')) {
+                    errorSpan.textContent = 'Tên sản phẩm không được để trống';
+                    errorSpan.style.display = 'block';
+                }
+                input.style.borderColor = 'var(--danger-500)';
+                input.style.backgroundColor = '#fef2f2';
+                return false;
+            }
+            
+            if (errorSpan && errorSpan.classList.contains('field-error')) {
+                errorSpan.style.display = 'none';
+            }
+            input.style.borderColor = 'var(--success-500)';
+            input.style.backgroundColor = '#f0fdf4';
+            return true;
+        }
+        
+        function validateQuantity(input) {
+            const itemRow = input.closest('.item-row');
+            const errorSpan = input.nextElementSibling;
+            
+            const rawValue = input.value.replace(/\D/g, '');
+            const quantity = parseInt(rawValue) || 0;
+            
+            if (quantity <= 0) {
+                if (errorSpan && errorSpan.classList.contains('field-error')) {
+                    errorSpan.textContent = 'Số lượng phải lớn hơn 0';
+                    errorSpan.style.display = 'block';
+                }
+                input.style.borderColor = 'var(--danger-500)';
+                input.style.backgroundColor = '#fef2f2';
+                // Still calculate to update total
+                calculateItemTotal(input);
+                return false;
+            }
+            
+            if (quantity > 100000) {
+                if (errorSpan && errorSpan.classList.contains('field-error')) {
+                    errorSpan.textContent = 'Số lượng không được vượt quá 100,000';
+                    errorSpan.style.display = 'block';
+                }
+                input.style.borderColor = 'var(--danger-500)';
+                input.style.backgroundColor = '#fef2f2';
+                // Still calculate to update total
+                calculateItemTotal(input);
+                return false;
+            }
+            
+            if (errorSpan && errorSpan.classList.contains('field-error')) {
+                errorSpan.style.display = 'none';
+            }
+            input.style.borderColor = 'var(--success-500)';
+            input.style.backgroundColor = '#f0fdf4';
+            // Trigger calculation after validation
+            calculateItemTotal(input);
+            return true;
+        }
+        
+        function validatePrice(input) {
+            const itemRow = input.closest('.item-row');
+            const errorSpan = input.nextElementSibling;
+            
+            // Parse price (handle Vietnamese format) - same logic as calculateItemTotal
+            let priceStr = input.value.replace(/[^0-9.,]/g, '');
+            
+            if (!priceStr) {
+                priceStr = '0';
+            } else {
+                // Strategy: Determine if last separator is decimal or thousand separator
+                const lastDot = priceStr.lastIndexOf('.');
+                const lastComma = priceStr.lastIndexOf(',');
+                const lastSeparator = Math.max(lastDot, lastComma);
+                
+                if (lastSeparator === -1) {
+                    // No separators, just digits
+                    priceStr = priceStr.replace(/[^0-9]/g, '');
+                } else {
+                    // Has separator(s) - need to determine if last one is decimal or thousand
+                    const afterLastSeparator = priceStr.substring(lastSeparator + 1);
+                    const digitsAfter = afterLastSeparator.replace(/[^0-9]/g, '');
+                    
+                    // Rule: If 1-2 digits after last separator → decimal separator
+                    // Rule: If 3+ digits after last separator → thousand separator
+                    const isDecimalSeparator = digitsAfter.length >= 1 && digitsAfter.length <= 2;
+                    
+                    if (isDecimalSeparator) {
+                        // Last separator is decimal separator
+                        if (lastDot > lastComma) {
+                            // Dot is decimal separator
+                            const beforeDecimal = priceStr.substring(0, lastDot).replace(/[.,]/g, '');
+                            const afterDecimal = priceStr.substring(lastDot + 1).replace(/[.,]/g, '');
+                            priceStr = beforeDecimal + '.' + afterDecimal;
+                        } else {
+                            // Comma is decimal separator
+                            const beforeDecimal = priceStr.substring(0, lastComma).replace(/[.,]/g, '');
+                            const afterDecimal = priceStr.substring(lastComma + 1).replace(/[.,]/g, '');
+                            priceStr = beforeDecimal + '.' + afterDecimal;
+                        }
+                    } else {
+                        // Last separator is thousand separator (or no decimal part)
+                        // Remove all separators
+                        priceStr = priceStr.replace(/[.,]/g, '');
+                    }
+                }
+            }
+            
+            const price = parseFloat(priceStr) || 0;
+            
+            if (price <= 0) {
+                if (errorSpan && errorSpan.classList.contains('field-error')) {
+                    errorSpan.textContent = 'Đơn giá phải lớn hơn 0';
+                    errorSpan.style.display = 'block';
+                }
+                input.style.borderColor = 'var(--danger-500)';
+                input.style.backgroundColor = '#fef2f2';
+                // Still calculate to update total
+                calculateItemTotal(input);
+                return false;
+            }
+            
+            if (price > 1000000000) {
+                if (errorSpan && errorSpan.classList.contains('field-error')) {
+                    errorSpan.textContent = 'Đơn giá không được vượt quá 1,000,000,000 VNĐ';
+                    errorSpan.style.display = 'block';
+                }
+                input.style.borderColor = 'var(--danger-500)';
+                input.style.backgroundColor = '#fef2f2';
+                // Still calculate to update total
+                calculateItemTotal(input);
+                return false;
+            }
+            
+            if (errorSpan && errorSpan.classList.contains('field-error')) {
+                errorSpan.style.display = 'none';
+            }
+            input.style.borderColor = 'var(--success-500)';
+            input.style.backgroundColor = '#f0fdf4';
+            // Trigger calculation after validation
+            calculateItemTotal(input);
+            return true;
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        function autoHideAlerts() {
+            const alerts = document.querySelectorAll('.alert-message');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert.style.display !== 'none') {
+                        closeAlert(alert.id);
+                    }
+                }, 5000);
+            });
+        }
+        
         // Initialize on page load
         window.onload = function() {
             formatAllDates();
             updateStatistics();
             updateRemoveButtons();
             calculateTotal();
+            autoHideAlerts();
             
             // Set default date to tomorrow
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const dateString = tomorrow.toISOString().slice(0, 16);
-            document.getElementById('expectedDelivery').value = dateString;
+            const deliveryInput = document.getElementById('expectedDelivery');
+            if (deliveryInput) {
+                deliveryInput.value = dateString;
+            }
             
             console.log('Purchase Orders:', ${purchaseOrders != null ? purchaseOrders.size() : 0});
             console.log('Suppliers:', ${suppliers != null ? suppliers.size() : 0});

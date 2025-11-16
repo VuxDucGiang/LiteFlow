@@ -61,41 +61,204 @@ public class ProcurementService {
        2. LẬP ĐƠN ĐẶT HÀNG (PO)
     ============================================================ */
     public UUID createPurchaseOrder(UUID supplierID, UUID createdBy, LocalDateTime expectedDate, String notes, List<PurchaseOrderItem> items) {
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.out.println("=== ProcurementService.createPurchaseOrder START ===");
+        System.out.println("  SupplierID: " + supplierID);
+        System.out.println("  CreatedBy: " + createdBy);
+        System.out.println("  ExpectedDate: " + expectedDate);
+        System.out.println("  Notes: " + (notes != null && !notes.isEmpty() ? notes.substring(0, Math.min(50, notes.length())) : "null"));
+        System.out.println("  Items count: " + (items != null ? items.size() : 0));
+        
+        // ========== VALIDATION ==========
+        System.out.println("=== Starting validation ===");
+        
+        // Validate supplier exists and is active
+        System.out.println("  [Validation] Checking supplier: " + supplierID);
+        Supplier supplier = supplierDAO.findById(supplierID);
+        if (supplier == null) {
+            System.err.println("  [Validation] ❌ Supplier not found: " + supplierID);
+            throw new IllegalArgumentException("Nhà cung cấp không tồn tại trong hệ thống");
+        }
+        System.out.println("  [Validation] ✅ Supplier found: " + supplier.getName());
+        
+        if (supplier.getIsActive() == null || !supplier.getIsActive()) {
+            System.err.println("  [Validation] ❌ Supplier is inactive: " + supplier.getName());
+            throw new IllegalArgumentException("Nhà cung cấp đã bị vô hiệu hóa. Vui lòng chọn nhà cung cấp khác");
+        }
+        System.out.println("  [Validation] ✅ Supplier is active");
+        
+        // Validate expected delivery date
+        System.out.println("  [Validation] Checking expected delivery date: " + expectedDate);
+        LocalDateTime now = LocalDateTime.now();
+        System.out.println("  [Validation] Current time: " + now);
+        
+        if (expectedDate == null) {
+            System.err.println("  [Validation] ❌ Expected date is null");
+            throw new IllegalArgumentException("Ngày giao dự kiến không được để trống");
+        }
+        if (expectedDate.isBefore(now)) {
+            System.err.println("  [Validation] ❌ Expected date is in the past");
+            throw new IllegalArgumentException("Ngày giao dự kiến phải sau thời điểm hiện tại");
+        }
+        if (expectedDate.isBefore(now.plusHours(1))) {
+            System.err.println("  [Validation] ❌ Expected date is less than 1 hour from now");
+            throw new IllegalArgumentException("Ngày giao dự kiến phải cách thời điểm hiện tại ít nhất 1 giờ");
+        }
+        System.out.println("  [Validation] ✅ Expected date is valid");
+        
+        // Validate items
+        System.out.println("  [Validation] Checking items...");
+        if (items == null || items.isEmpty()) {
+            System.err.println("  [Validation] ❌ Items list is null or empty");
+            throw new IllegalArgumentException("Đơn hàng phải có ít nhất 1 sản phẩm");
+        }
+        
+        for (int i = 0; i < items.size(); i++) {
+            PurchaseOrderItem item = items.get(i);
+            System.out.println("  [Validation] Item " + (i + 1) + ": " + item.getItemName());
+            
+            // Validate item name
+            if (item.getItemName() == null || item.getItemName().trim().isEmpty()) {
+                System.err.println("    ❌ Item name is empty");
+                throw new IllegalArgumentException("Tên sản phẩm thứ " + (i + 1) + " không được để trống");
+            }
+            
+            // Validate quantity
+            System.out.println("    Quantity: " + item.getQuantity());
+            if (item.getQuantity() <= 0) {
+                System.err.println("    ❌ Quantity is <= 0");
+                throw new IllegalArgumentException("Số lượng sản phẩm \"" + item.getItemName() + "\" phải lớn hơn 0");
+            }
+            if (item.getQuantity() > 100000) {
+                System.err.println("    ❌ Quantity exceeds limit: " + item.getQuantity());
+                throw new IllegalArgumentException("Số lượng sản phẩm \"" + item.getItemName() + "\" không được vượt quá 100,000");
+            }
+            
+            // Validate unit price
+            System.out.println("    Unit Price: " + item.getUnitPrice());
+            if (Double.isNaN(item.getUnitPrice()) || Double.isInfinite(item.getUnitPrice())) {
+                System.err.println("    ❌ Unit price is NaN or Infinity");
+                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + item.getItemName() + "\" không hợp lệ (NaN hoặc Infinity)");
+            }
+            if (item.getUnitPrice() <= 0) {
+                System.err.println("    ❌ Unit price is <= 0");
+                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + item.getItemName() + "\" phải lớn hơn 0");
+            }
+            if (item.getUnitPrice() > 1000000000) {
+                System.err.println("    ❌ Unit price exceeds limit: " + item.getUnitPrice());
+                throw new IllegalArgumentException("Đơn giá sản phẩm \"" + item.getItemName() + "\" không được vượt quá 1,000,000,000 VNĐ");
+            }
+            
+            System.out.println("    ✅ Item " + (i + 1) + " is valid");
+        }
+        System.out.println("  [Validation] ✅ All items are valid");
+        // ========== END VALIDATION ==========
+        
+        System.out.println("=== Creating PurchaseOrder entity ===");
         PurchaseOrder po = new PurchaseOrder();
         po.setSupplierID(supplierID);
         po.setCreatedBy(createdBy);
         po.setExpectedDelivery(expectedDate);
         po.setNotes(notes);
         po.setStatus("PENDING");
+        System.out.println("  PO entity created (POID will be generated on persist)");
         
         // Insert PO and check result
+        System.out.println("=== Inserting PurchaseOrder into database ===");
         boolean poInserted = poDAO.insert(po);
         if (!poInserted) {
             System.err.println("❌ FAILED to insert PurchaseOrder!");
             throw new RuntimeException("Không thể tạo đơn hàng. Vui lòng kiểm tra dữ liệu và thử lại.");
         }
+        System.out.println("✅ PurchaseOrder inserted successfully. POID: " + po.getPoid());
 
         // Insert items and calculate total
-        double total = 0;
+        System.out.println("=== Calculating total amount ===");
+        double total = 0.0;
+        
         for (int i = 0; i < items.size(); i++) {
             PurchaseOrderItem it = items.get(i);
             it.setPoid(po.getPoid());
-            total += it.getQuantity() * it.getUnitPrice();
             
+            // Calculate item total with validation
+            int quantity = it.getQuantity();
+            double unitPrice = it.getUnitPrice();
+            
+            System.out.println("  Item " + (i+1) + ": " + it.getItemName());
+            System.out.println("    Quantity: " + quantity);
+            System.out.println("    Unit Price: " + unitPrice);
+            
+            // Validate quantity and price before calculation
+            if (quantity <= 0) {
+                throw new IllegalStateException("Số lượng sản phẩm \"" + it.getItemName() + "\" phải lớn hơn 0");
+            }
+            if (Double.isNaN(unitPrice) || Double.isInfinite(unitPrice)) {
+                throw new IllegalStateException("Đơn giá sản phẩm \"" + it.getItemName() + "\" không hợp lệ (NaN hoặc Infinity)");
+            }
+            if (unitPrice <= 0) {
+                throw new IllegalStateException("Đơn giá sản phẩm \"" + it.getItemName() + "\" phải lớn hơn 0");
+            }
+            
+            // Calculate item total
+            double itemTotal = quantity * unitPrice;
+            
+            // Validate item total
+            if (Double.isNaN(itemTotal) || Double.isInfinite(itemTotal)) {
+                throw new IllegalStateException("Thành tiền sản phẩm \"" + it.getItemName() + "\" không hợp lệ (NaN hoặc Infinity)");
+            }
+            if (itemTotal < 0) {
+                throw new IllegalStateException("Thành tiền sản phẩm \"" + it.getItemName() + "\" không được âm");
+            }
+            
+            System.out.println("    Item Total: " + itemTotal);
+            
+            // Add to total (check for overflow)
+            double previousTotal = total;
+            total += itemTotal;
+            
+            // Check for overflow
+            if (Double.isNaN(total) || Double.isInfinite(total)) {
+                throw new IllegalStateException("Tổng tiền đơn hàng vượt quá giới hạn (NaN hoặc Infinity). Vui lòng kiểm tra lại số lượng và đơn giá.");
+            }
+            if (total < previousTotal) {
+                throw new IllegalStateException("Tổng tiền đơn hàng bị overflow. Vui lòng giảm số lượng hoặc đơn giá.");
+            }
+            
+            System.out.println("    Running Total: " + total);
+            
+            // Insert item
             boolean itemInserted = itemDAO.insert(it);
             if (!itemInserted) {
                 System.err.println("❌ FAILED to insert PurchaseOrderItem #" + (i+1));
                 throw new RuntimeException("Không thể thêm sản phẩm vào đơn hàng. Vui lòng thử lại.");
             }
+            System.out.println("    ✅ Item inserted successfully");
+        }
+        
+        // Final validation of total amount
+        System.out.println("=== Final Total Amount: " + total + " ===");
+        
+        if (Double.isNaN(total) || Double.isInfinite(total)) {
+            throw new IllegalStateException("Tổng tiền đơn hàng không hợp lệ (NaN hoặc Infinity). Vui lòng kiểm tra lại.");
+        }
+        if (total < 0) {
+            throw new IllegalStateException("Tổng tiền đơn hàng không được âm.");
+        }
+        if (total > 1000000000000.0) { // 1 trillion VND
+            throw new IllegalStateException("Tổng tiền đơn hàng quá lớn (vượt quá 1,000,000,000,000 VNĐ). Vui lòng kiểm tra lại.");
         }
         
         // Update total amount
         po.setTotalAmount(total);
+        System.out.println("=== Updating PO with total amount: " + total + " ===");
+        
         boolean poUpdated = poDAO.update(po);
         if (!poUpdated) {
             System.err.println("❌ FAILED to update PurchaseOrder total amount!");
             throw new RuntimeException("Không thể cập nhật tổng tiền. Vui lòng thử lại.");
         }
+        
+        System.out.println("✅ Total amount updated successfully");
         
         // Send Telegram notification for new PO (async) - notify all users with Telegram enabled
         try {
@@ -122,6 +285,38 @@ public class ProcurementService {
             });
         }
         return items;
+    }
+    
+    /**
+     * Lấy danh sách sản phẩm từ lịch sử PO của một nhà cung cấp
+     * @param supplierID ID của nhà cung cấp
+     * @return List of Map với keys: itemName, latestPrice, orderCount, lastOrderDate
+     */
+    public List<Map<String, Object>> getSupplierProducts(UUID supplierID) {
+        System.out.println("ProcurementService.getSupplierProducts() called with SupplierID: " + supplierID);
+        
+        if (supplierID == null) {
+            System.err.println("SupplierID is null");
+            return List.of();
+        }
+        
+        // Lấy dữ liệu từ DAO (limit 30 sản phẩm)
+        List<Object[]> results = itemDAO.getProductsBySupplier(supplierID, 30);
+        
+        // Format dữ liệu thành List<Map>
+        List<Map<String, Object>> products = new ArrayList<>();
+        for (Object[] row : results) {
+            Map<String, Object> product = new HashMap<>();
+            product.put("itemName", row[0]); // String
+            product.put("latestPrice", row[1]); // Double
+            product.put("orderCount", row[2]); // Long
+            product.put("lastOrderDate", row[3]); // LocalDateTime
+            
+            products.add(product);
+        }
+        
+        System.out.println("Returning " + products.size() + " products for supplier: " + supplierID);
+        return products;
     }
     
     /**

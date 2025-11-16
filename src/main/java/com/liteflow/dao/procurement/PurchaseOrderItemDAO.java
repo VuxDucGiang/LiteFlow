@@ -116,4 +116,48 @@ public class PurchaseOrderItemDAO extends GenericDAO<PurchaseOrderItem, Integer>
             }
         }
     }
+    
+    /**
+     * Lấy danh sách sản phẩm từ lịch sử PO của một nhà cung cấp
+     * @param supplierID ID của nhà cung cấp
+     * @param limit Số lượng sản phẩm tối đa (top 20-30)
+     * @return List of Object[] với format: [ItemName, LatestPrice, OrderCount, LastOrderDate]
+     */
+    public List<Object[]> getProductsBySupplier(UUID supplierID, int limit) {
+        EntityManager em = null;
+        try {
+            em = emf.createEntityManager();
+            
+            // Query lấy sản phẩm từ lịch sử PO của supplier
+            // Group by ItemName, lấy giá gần nhất và số lần đặt
+            String jpql = 
+                "SELECT poi.itemName, " +
+                "       MAX(poi.unitPrice) as latestPrice, " +
+                "       COUNT(DISTINCT po.poid) as orderCount, " +
+                "       MAX(po.createDate) as lastOrderDate " +
+                "FROM PurchaseOrderItem poi " +
+                "INNER JOIN PurchaseOrder po ON poi.poid = po.poid " +
+                "WHERE po.supplierID = :supplierID " +
+                "  AND po.status IN ('APPROVED', 'COMPLETED', 'RECEIVING') " +
+                "GROUP BY poi.itemName " +
+                "ORDER BY lastOrderDate DESC, orderCount DESC";
+            
+            TypedQuery<Object[]> query = em.createQuery(jpql, Object[].class);
+            query.setParameter("supplierID", supplierID);
+            query.setMaxResults(limit);
+            
+            List<Object[]> results = query.getResultList();
+            System.out.println("Found " + results.size() + " products for supplier: " + supplierID);
+            
+            return results;
+        } catch (Exception e) {
+            System.err.println("ERROR in PurchaseOrderItemDAO.getProductsBySupplier(): " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
+        } finally {
+            if (em != null) {
+                em.close();
+            }
+        }
+    }
 }
