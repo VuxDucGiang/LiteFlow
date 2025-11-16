@@ -67,6 +67,14 @@ VALUES
     ('po.auto_approve_below_amount', '5000000', 'INTEGER', 'PO_AUTO', N'Tự động duyệt PO dưới số tiền (VNĐ)', N'Tự động duyệt đơn đặt hàng nếu tổng tiền dưới số tiền này (VNĐ)', '0', '100000000', '5000000', 1, @AdminUserID);
 
 -- ============================================================
+-- SUPPLIER MAPPING SETTINGS
+-- ============================================================
+
+INSERT INTO AIAgentConfigurations (ConfigKey, ConfigValue, ConfigType, Category, DisplayName, Description, MinValue, MaxValue, DefaultValue, IsActive, UpdatedBy)
+VALUES
+    ('po.supplier_mapping', '{}', 'JSON', 'SUPPLIER_MAPPING', N'Ánh xạ nhà cung cấp theo danh mục', N'Thiết lập nhà cung cấp cho từng danh mục sản phẩm (JSON: {"CategoryName": "SupplierID"})', NULL, NULL, '{}', 1, @AdminUserID);
+
+-- ============================================================
 -- GPT SERVICE SETTINGS
 -- ============================================================
 

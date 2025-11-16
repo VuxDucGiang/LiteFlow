@@ -70,6 +70,19 @@ public class AIAgentConfigAPIServlet extends HttpServlet {
         
         try {
             String category = request.getParameter("category");
+            String resource = request.getParameter("resource"); // "suppliers" or "categories"
+            
+            // Handle resource requests (suppliers, categories)
+            if (resource != null && !resource.isEmpty()) {
+                if ("suppliers".equals(resource)) {
+                    handleGetSuppliers(response);
+                    return;
+                } else if ("categories".equals(resource)) {
+                    handleGetCategories(response);
+                    return;
+                }
+            }
+            
             JSONObject result;
             
             if (category != null && !category.isEmpty()) {
@@ -229,6 +242,74 @@ public class AIAgentConfigAPIServlet extends HttpServlet {
         result.put("timestamp", System.currentTimeMillis());
         response.getWriter().write(result.toString(2));
         System.out.println("✅ Reset AI Agent configuration: " + (key != null ? key : category));
+    }
+    
+    private void handleGetSuppliers(HttpServletResponse response) throws IOException {
+        try {
+            com.liteflow.service.procurement.ProcurementService procurementService = 
+                new com.liteflow.service.procurement.ProcurementService();
+            java.util.List<com.liteflow.model.procurement.Supplier> suppliers = 
+                procurementService.getAllSuppliers();
+            
+            org.json.JSONArray suppliersArray = new org.json.JSONArray();
+            for (com.liteflow.model.procurement.Supplier supplier : suppliers) {
+                if (supplier.getIsActive() != null && supplier.getIsActive()) {
+                    org.json.JSONObject supplierObj = new org.json.JSONObject();
+                    supplierObj.put("supplierID", supplier.getSupplierID().toString());
+                    supplierObj.put("name", supplier.getName());
+                    supplierObj.put("email", supplier.getEmail() != null ? supplier.getEmail() : "");
+                    supplierObj.put("phone", supplier.getPhone() != null ? supplier.getPhone() : "");
+                    suppliersArray.put(supplierObj);
+                }
+            }
+            
+            JSONObject result = new JSONObject();
+            result.put("success", true);
+            result.put("suppliers", suppliersArray);
+            result.put("count", suppliersArray.length());
+            result.put("timestamp", System.currentTimeMillis());
+            
+            response.getWriter().write(result.toString(2));
+            System.out.println("✅ Returned " + suppliersArray.length() + " active suppliers");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting suppliers: " + e.getMessage());
+            e.printStackTrace();
+            sendError(response, "Error retrieving suppliers: " + e.getMessage(), 
+                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    private void handleGetCategories(HttpServletResponse response) throws IOException {
+        try {
+            com.liteflow.service.inventory.ProductService productService = 
+                new com.liteflow.service.inventory.ProductService();
+            java.util.List<String> categories = productService.getDistinctCategoriesFromProducts();
+            
+            org.json.JSONArray categoriesArray = new org.json.JSONArray();
+            for (String category : categories) {
+                if (category != null && !category.trim().isEmpty()) {
+                    org.json.JSONObject categoryObj = new org.json.JSONObject();
+                    categoryObj.put("name", category);
+                    categoriesArray.put(categoryObj);
+                }
+            }
+            
+            JSONObject result = new JSONObject();
+            result.put("success", true);
+            result.put("categories", categoriesArray);
+            result.put("count", categoriesArray.length());
+            result.put("timestamp", System.currentTimeMillis());
+            
+            response.getWriter().write(result.toString(2));
+            System.out.println("✅ Returned " + categoriesArray.length() + " categories");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting categories: " + e.getMessage());
+            e.printStackTrace();
+            sendError(response, "Error retrieving categories: " + e.getMessage(), 
+                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
     
     private void sendError(HttpServletResponse response, String message, int statusCode) throws IOException {
