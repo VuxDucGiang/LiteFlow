@@ -316,11 +316,23 @@ public class AlertHistoryDAO {
     
     /**
      * Mark all as read
+     * IMPORTANT: This method only UPDATES alerts to mark them as read.
+     * It does NOT delete alerts from the database.
      */
     public int markAllAsRead(UUID userId) {
         EntityManager em = emf.createEntityManager();
         try {
             em.getTransaction().begin();
+            
+            // Count alerts before update (for validation)
+            Long totalBefore = em.createQuery(
+                "SELECT COUNT(ah) FROM AlertHistory ah",
+                Long.class
+            ).getSingleResult();
+            
+            System.out.println("📊 Total alerts in database before mark all as read: " + totalBefore);
+            
+            // UPDATE only - do NOT delete
             int count = em.createQuery(
                 "UPDATE AlertHistory ah SET ah.isRead = true, ah.readAt = :now, ah.readBy = :userId " +
                 "WHERE ah.isRead = false"
@@ -328,14 +340,30 @@ public class AlertHistoryDAO {
             .setParameter("now", LocalDateTime.now())
             .setParameter("userId", userId)
             .executeUpdate();
+            
+            // Count alerts after update (for validation)
+            Long totalAfter = em.createQuery(
+                "SELECT COUNT(ah) FROM AlertHistory ah",
+                Long.class
+            ).getSingleResult();
+            
             em.getTransaction().commit();
-            System.out.println("✅ Marked " + count + " alerts as read");
+            
+            // Validate that no alerts were deleted
+            if (!totalBefore.equals(totalAfter)) {
+                System.err.println("⚠️ WARNING: Alert count changed from " + totalBefore + " to " + totalAfter + 
+                    ". Alerts may have been deleted!");
+            } else {
+                System.out.println("✅ Marked " + count + " alerts as read. Total alerts in database: " + totalAfter + " (unchanged)");
+            }
+            
             return count;
         } catch (Exception e) {
             if (em.getTransaction().isActive()) {
                 em.getTransaction().rollback();
             }
             System.err.println("❌ Failed to mark all as read: " + e.getMessage());
+            e.printStackTrace();
             return 0;
         } finally {
             em.close();
