@@ -211,20 +211,45 @@ class AIAgentConfig {
         ]);
         
         // Build table HTML
+        // Format mới: {"ProductName": "SupplierID"}
+        // Cần lấy category của từng product để hiển thị
         let tableRows = '';
         const mappingEntries = Object.entries(mapping);
         
         if (mappingEntries.length === 0) {
-            tableRows = '<tr><td colspan="3" style="text-align: center; color: #999; padding: 20px;">Chưa có ánh xạ nào. Nhấn "Thêm ánh xạ" để bắt đầu.</td></tr>';
+            tableRows = '<tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">Chưa có ánh xạ nào. Nhấn "Thêm ánh xạ" để bắt đầu.</td></tr>';
         } else {
-            mappingEntries.forEach(([categoryName, supplierId], index) => {
+            // Load products để lấy category của từng product
+            const productPromises = mappingEntries.map(([productName, supplierId]) => 
+                this.getProductCategory(productName)
+            );
+            const productCategories = await Promise.all(productPromises);
+            
+            // Load products for each category found
+            const categoryProductsMap = new Map();
+            for (let i = 0; i < mappingEntries.length; i++) {
+                const categoryName = productCategories[i];
+                if (categoryName && !categoryProductsMap.has(categoryName)) {
+                    const products = await this.fetchProductsByCategory(categoryName);
+                    categoryProductsMap.set(categoryName, products);
+                }
+            }
+            
+            mappingEntries.forEach(([productName, supplierId], index) => {
+                const categoryName = productCategories[index] || '';
                 const supplier = suppliers.find(s => s.supplierID === supplierId);
-                const supplierName = supplier ? supplier.name : 'Không tìm thấy';
+                const products = categoryName ? (categoryProductsMap.get(categoryName) || []) : [];
+                
                 tableRows += `
-                    <tr data-index="${index}">
+                    <tr data-index="${index}" data-product-name="${this.escapeHtml(productName)}">
                         <td>
                             <select class="supplier-mapping-category" data-index="${index}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                 ${this.buildCategoryOptions(categories, categoryName)}
+                            </select>
+                        </td>
+                        <td>
+                            <select class="supplier-mapping-product" data-index="${index}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" ${categoryName ? '' : 'disabled'}>
+                                ${this.buildProductOptions(products, productName)}
                             </select>
                         </td>
                         <td>
@@ -254,13 +279,14 @@ class AIAgentConfig {
                 <div class="config-input-wrapper">
                     <div class="supplier-mapping-container" style="margin-top: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h4 style="margin: 0; font-size: 14px; font-weight: 600;">Ánh xạ danh mục → Nhà cung cấp</h4>
+                            <h4 style="margin: 0; font-size: 14px; font-weight: 600;">Ánh xạ sản phẩm → Nhà cung cấp</h4>
                             <button type="button" class="btn-add-mapping" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">➕ Thêm ánh xạ</button>
                         </div>
                         <table class="supplier-mapping-table" style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
                             <thead>
                                 <tr style="background: #f9fafb;">
                                     <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e5e7eb;">Danh mục</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e5e7eb;">Sản phẩm</th>
                                     <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e5e7eb;">Nhà cung cấp</th>
                                     <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 13px; border-bottom: 1px solid #e5e7eb; width: 100px;">Thao tác</th>
                                 </tr>
@@ -295,6 +321,18 @@ class AIAgentConfig {
         return options;
     }
     
+    buildProductOptions(products, selectedProductName) {
+        if (!products || products.length === 0) {
+            return `<option value="${this.escapeHtml(selectedProductName || '')}">${this.escapeHtml(selectedProductName || '-- Chọn danh mục trước --')}</option>`;
+        }
+        let options = '<option value="">-- Chọn sản phẩm --</option>';
+        products.forEach(product => {
+            const selected = product.productName === selectedProductName ? 'selected' : '';
+            options += `<option value="${this.escapeHtml(product.productName)}" ${selected}>${this.escapeHtml(product.productName)}</option>`;
+        });
+        return options;
+    }
+    
     async fetchSuppliers() {
         try {
             const response = await fetch(`${this.getContextPath()}/api/ai-agent-config?resource=suppliers`);
@@ -323,6 +361,44 @@ class AIAgentConfig {
         }
     }
     
+    async fetchProductsByCategory(categoryName) {
+        try {
+            if (!categoryName || categoryName.trim() === '') {
+                return [];
+            }
+            const response = await fetch(`${this.getContextPath()}/api/ai-agent-config?resource=products&category=${encodeURIComponent(categoryName)}`);
+            const data = await response.json();
+            if (data.success && data.products) {
+                return data.products;
+            }
+            return [];
+        } catch (error) {
+            console.error('Error fetching products by category:', error);
+            return [];
+        }
+    }
+    
+    async getProductCategory(productName) {
+        try {
+            // Load tất cả categories và tìm category chứa product này
+            const categories = await this.fetchCategories();
+            
+            // Thử tìm category của product bằng cách query từng category
+            for (const category of categories) {
+                const products = await this.fetchProductsByCategory(category.name);
+                const found = products.find(p => p.productName === productName);
+                if (found) {
+                    return category.name;
+                }
+            }
+            
+            return '';
+        } catch (error) {
+            console.error('Error getting product category:', error);
+            return '';
+        }
+    }
+    
     attachSupplierMappingListeners(key) {
         const container = document.querySelector(`[data-key="${key}"]`);
         if (!container) return;
@@ -341,8 +417,18 @@ class AIAgentConfig {
             });
         });
         
-        // Category and supplier dropdowns
-        container.querySelectorAll('.supplier-mapping-category, .supplier-mapping-supplier').forEach(select => {
+        // Category dropdown - load products when changed
+        container.querySelectorAll('.supplier-mapping-category').forEach(select => {
+            select.addEventListener('change', async (e) => {
+                const index = parseInt(e.target.getAttribute('data-index'));
+                const categoryName = e.target.value;
+                await this.loadProductsForRow(key, index, categoryName);
+                this.updateSupplierMappingValue(key);
+            });
+        });
+        
+        // Product and supplier dropdowns
+        container.querySelectorAll('.supplier-mapping-product, .supplier-mapping-supplier').forEach(select => {
             select.addEventListener('change', () => this.updateSupplierMappingValue(key));
         });
     }
@@ -357,7 +443,7 @@ class AIAgentConfig {
         if (!tbody) return;
         
         // Clear empty message if exists
-        if (tbody.querySelector('td[colspan="3"]')) {
+        if (tbody.querySelector('td[colspan="4"]')) {
             tbody.innerHTML = '';
         }
         
@@ -368,6 +454,11 @@ class AIAgentConfig {
             <td>
                 <select class="supplier-mapping-category" data-index="${index}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                     ${this.buildCategoryOptions(categories, '')}
+                </select>
+            </td>
+            <td>
+                <select class="supplier-mapping-product" data-index="${index}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" disabled>
+                    <option value="">-- Chọn danh mục trước --</option>
                 </select>
             </td>
             <td>
@@ -383,6 +474,33 @@ class AIAgentConfig {
         
         // Re-attach listeners
         this.attachSupplierMappingListeners(key);
+    }
+    
+    async loadProductsForRow(key, index, categoryName) {
+        const row = document.querySelector(`[data-key="${key}"] tr[data-index="${index}"]`);
+        if (!row) return;
+        
+        const productSelect = row.querySelector('.supplier-mapping-product');
+        if (!productSelect) return;
+        
+        if (!categoryName || categoryName.trim() === '') {
+            productSelect.innerHTML = '<option value="">-- Chọn danh mục trước --</option>';
+            productSelect.disabled = true;
+            return;
+        }
+        
+        // Load products for this category
+        const products = await this.fetchProductsByCategory(categoryName);
+        productSelect.innerHTML = '<option value="">-- Chọn sản phẩm --</option>';
+        
+        products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.productName;
+            option.textContent = product.productName;
+            productSelect.appendChild(option);
+        });
+        
+        productSelect.disabled = false;
     }
     
     removeSupplierMappingRow(key, index) {
@@ -404,7 +522,7 @@ class AIAgentConfig {
         
         // Show empty message if no rows
         if (tbody.children.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #999; padding: 20px;">Chưa có ánh xạ nào. Nhấn "Thêm ánh xạ" để bắt đầu.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #999; padding: 20px;">Chưa có ánh xạ nào. Nhấn "Thêm ánh xạ" để bắt đầu.</td></tr>';
         }
         
         // Update value
@@ -417,6 +535,7 @@ class AIAgentConfig {
         
         if (!tbody || !hiddenInput) return;
         
+        // Format mới: {"ProductName": "SupplierID"}
         const mapping = {};
         const rows = Array.from(tbody.querySelectorAll('tr'));
         
@@ -424,12 +543,13 @@ class AIAgentConfig {
             // Skip empty message row
             if (row.querySelector('td[colspan]')) return;
             
-            const categorySelect = row.querySelector('.supplier-mapping-category');
+            const productSelect = row.querySelector('.supplier-mapping-product');
             const supplierSelect = row.querySelector('.supplier-mapping-supplier');
             
-            if (categorySelect && supplierSelect && 
-                categorySelect.value && supplierSelect.value) {
-                mapping[categorySelect.value] = supplierSelect.value;
+            if (productSelect && supplierSelect && 
+                productSelect.value && supplierSelect.value) {
+                // Format mới: ProductName -> SupplierID
+                mapping[productSelect.value] = supplierSelect.value;
             }
         });
         

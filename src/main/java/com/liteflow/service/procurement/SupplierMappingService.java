@@ -34,6 +34,8 @@ public class SupplierMappingService {
     
     /**
      * Get supplier mapping from config (with caching)
+     * Format mới: {"ProductName": "SupplierID"}
+     * Format cũ (backward compatibility): {"CategoryName": "SupplierID"}
      */
     private Map<String, String> getSupplierMappingFromConfig() {
         long now = System.currentTimeMillis();
@@ -48,15 +50,15 @@ public class SupplierMappingService {
         Map<String, String> mapping = new HashMap<>();
         
         if (jsonConfig != null && jsonConfig.length() > 0) {
-            for (String categoryName : jsonConfig.keySet()) {
+            for (String key : jsonConfig.keySet()) {
                 try {
-                    String supplierIdStr = jsonConfig.getString(categoryName);
-                    mapping.put(categoryName, supplierIdStr);
+                    String supplierIdStr = jsonConfig.getString(key);
+                    mapping.put(key, supplierIdStr);
                 } catch (Exception e) {
-                    System.err.println("⚠️ Error reading supplier mapping for category '" + categoryName + "': " + e.getMessage());
+                    System.err.println("⚠️ Error reading supplier mapping for key '" + key + "': " + e.getMessage());
                 }
             }
-            System.out.println("✅ Loaded " + mapping.size() + " supplier mappings from config");
+            System.out.println("✅ Loaded " + mapping.size() + " supplier mappings from config (format: ProductName -> SupplierID)");
         } else {
             System.out.println("ℹ️ No supplier mapping in config, using fallback");
         }
@@ -66,6 +68,43 @@ public class SupplierMappingService {
         lastCacheUpdate = now;
         
         return mapping;
+    }
+    
+    /**
+     * Get category name for a product (helper method for fallback)
+     */
+    private String getCategoryNameForProduct(String productName) {
+        if (productName == null || productName.trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            var em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+            try {
+                // Query để lấy category của product
+                String jpql = "SELECT DISTINCT c.name " +
+                             "FROM Product p " +
+                             "LEFT JOIN ProductCategory pc ON p.productId = pc.product.productId " +
+                             "LEFT JOIN Category c ON pc.category.categoryId = c.categoryId " +
+                             "WHERE p.name = :productName " +
+                             "AND (p.isDeleted = false OR p.isDeleted IS NULL)";
+                
+                var query = em.createQuery(jpql, String.class);
+                query.setParameter("productName", productName.trim());
+                var results = query.getResultList();
+                
+                if (!results.isEmpty()) {
+                    return results.get(0); // Return first category
+                }
+                
+                return null;
+            } finally {
+                em.close();
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Error getting category for product '" + productName + "': " + e.getMessage());
+            return null;
+        }
     }
     
     /**
@@ -171,6 +210,48 @@ public class SupplierMappingService {
         
         // Check fallback
         return FALLBACK_CATEGORY_SUPPLIER_MAP.containsKey(trimmedCategory);
+    }
+    
+    /**
+     * Get supplier ID cho product
+     * Logic: Product mapping → Category mapping → Fallback hardcode
+     * @param productName Tên sản phẩm (ví dụ: "Cà phê đen")
+     * @return Supplier ID hoặc null nếu không tìm thấy
+     */
+    public UUID getSupplierIdForProduct(String productName) {
+        if (productName == null || productName.trim().isEmpty()) {
+            return null;
+        }
+        
+        String trimmedProduct = productName.trim();
+        
+        // Step 1: Try product mapping first (format mới)
+        Map<String, String> configMapping = getSupplierMappingFromConfig();
+        String supplierIdStr = configMapping.get(trimmedProduct);
+        
+        if (supplierIdStr != null && !supplierIdStr.isEmpty()) {
+            try {
+                UUID supplierId = UUID.fromString(supplierIdStr);
+                System.out.println("✅ Mapped product '" + trimmedProduct + "' -> Supplier ID: " + supplierId + " (from product mapping)");
+                return supplierId;
+            } catch (IllegalArgumentException e) {
+                System.err.println("⚠️ Invalid Supplier ID format in config for product '" + trimmedProduct + "': " + supplierIdStr);
+                // Fall through to category mapping
+            }
+        }
+        
+        // Step 2: Fallback to category mapping (backward compatibility)
+        String categoryName = getCategoryNameForProduct(trimmedProduct);
+        if (categoryName != null && !categoryName.trim().isEmpty()) {
+            UUID supplierId = getSupplierIdForCategory(categoryName.trim());
+            if (supplierId != null) {
+                System.out.println("✅ Mapped product '" + trimmedProduct + "' -> Category '" + categoryName + "' -> Supplier ID: " + supplierId + " (from category mapping)");
+                return supplierId;
+            }
+        }
+        
+        System.out.println("⚠️ No supplier mapping found for product: " + trimmedProduct);
+        return null;
     }
     
     /**
