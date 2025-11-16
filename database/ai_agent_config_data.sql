@@ -72,7 +72,7 @@ VALUES
 
 INSERT INTO AIAgentConfigurations (ConfigKey, ConfigValue, ConfigType, Category, DisplayName, Description, MinValue, MaxValue, DefaultValue, IsActive, UpdatedBy)
 VALUES
-    ('po.supplier_mapping', '{}', 'JSON', 'SUPPLIER_MAPPING', N'Ánh xạ nhà cung cấp theo danh mục', N'Thiết lập nhà cung cấp cho từng danh mục sản phẩm (JSON: {"CategoryName": "SupplierID"})', NULL, NULL, '{}', 1, @AdminUserID);
+    ('po.supplier_mapping', '{}', 'JSON', 'SUPPLIER_MAPPING', N'Ánh xạ nhà cung cấp theo sản phẩm', N'Thiết lập nhà cung cấp cho từng sản phẩm (JSON: {"ProductName": "SupplierID"})', NULL, NULL, '{}', 1, @AdminUserID);
 
 -- ============================================================
 -- GPT SERVICE SETTINGS
