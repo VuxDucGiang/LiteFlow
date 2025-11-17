@@ -726,6 +726,160 @@
                 font-size: 1.8em;
             }
         }
+        
+        /* Export Report Modal */
+        .export-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .export-modal-overlay.show {
+            display: flex;
+        }
+        
+        .export-modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .export-modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .export-modal-header h3 {
+            margin: 0;
+            font-size: 1.25em;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .export-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .export-modal-close:hover {
+            background: var(--gray-50);
+            color: var(--text-primary);
+        }
+        
+        .export-modal-body {
+            padding: 24px;
+        }
+        
+        .export-modal-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .export-modal-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.95em;
+        }
+        
+        .export-modal-form-group input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+        
+        .export-modal-form-group input[type="date"]:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
+        }
+        
+        .export-modal-error {
+            color: var(--danger-500);
+            font-size: 0.875em;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .export-modal-error.show {
+            display: block;
+        }
+        
+        .export-modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .export-modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .export-modal-btn-cancel {
+            background: var(--gray-50);
+            color: var(--text-primary);
+        }
+        
+        .export-modal-btn-cancel:hover {
+            background: var(--gray-200);
+        }
+        
+        .export-modal-btn-export {
+            background: var(--success-500);
+            color: white;
+        }
+        
+        .export-modal-btn-export:hover {
+            background: #388e3c;
+        }
 </style>
 
 <div class="container">
@@ -745,7 +899,7 @@
                     </button>
                 </div>
                 <button class="btn btn-success" onclick="exportReport()">
-                    📥 Xuất Excel
+                    📥 Xuất báo cáo
                 </button>
             </div>
         </div>
@@ -1429,9 +1583,9 @@
             loadReportData();
         }
         
-        // Export report to Excel
+        // Export report to print - Open modal
         function exportReport() {
-            alert('Tính năng xuất Excel đang được phát triển...');
+            openExportModal();
         }
         
         // Format currency
@@ -1446,7 +1600,120 @@
         function formatNumber(value) {
             return new Intl.NumberFormat('vi-VN').format(value);
         }
+        
+        // Export Report Modal Functions
+        function openExportModal() {
+            const modal = document.getElementById('exportReportModal');
+            const startDateInput = document.getElementById('exportStartDate');
+            const endDateInput = document.getElementById('exportEndDate');
+            
+            // Get current date values from main form
+            const currentStartDate = document.getElementById('startDate').value;
+            const currentEndDate = document.getElementById('endDate').value;
+            
+            // Set default values
+            startDateInput.value = currentStartDate || '';
+            endDateInput.value = currentEndDate || '';
+            
+            // Clear any previous errors
+            const errorMsg = document.getElementById('exportModalError');
+            if (errorMsg) {
+                errorMsg.classList.remove('show');
+                errorMsg.textContent = '';
+            }
+            
+            // Show modal
+            modal.classList.add('show');
+        }
+        
+        function closeExportModal() {
+            const modal = document.getElementById('exportReportModal');
+            modal.classList.remove('show');
+            
+            // Clear error message
+            const errorMsg = document.getElementById('exportModalError');
+            if (errorMsg) {
+                errorMsg.classList.remove('show');
+                errorMsg.textContent = '';
+            }
+        }
+        
+        function confirmExportReport() {
+            const startDate = document.getElementById('exportStartDate').value;
+            const endDate = document.getElementById('exportEndDate').value;
+            const errorMsg = document.getElementById('exportModalError');
+            
+            // Validation
+            if (!startDate || !endDate) {
+                errorMsg.textContent = 'Vui lòng chọn đầy đủ từ ngày và đến ngày';
+                errorMsg.classList.add('show');
+                return;
+            }
+            
+            if (new Date(endDate) < new Date(startDate)) {
+                errorMsg.textContent = 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu';
+                errorMsg.classList.add('show');
+                return;
+            }
+            
+            // Get context path
+            const contextPath = '${pageContext.request.contextPath}';
+            
+            // Open print window
+            const url = contextPath + '/report/revenue/print?startDate=' + startDate + '&endDate=' + endDate;
+            window.open(url, '_blank');
+            
+            // Close modal
+            closeExportModal();
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('exportReportModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeExportModal();
+                    }
+                });
+            }
+        });
 </script>
+
+<!-- Export Report Modal -->
+<div id="exportReportModal" class="export-modal-overlay">
+    <div class="export-modal-content" onclick="event.stopPropagation();">
+        <div class="export-modal-header">
+            <h3>Chọn khoảng thời gian báo cáo</h3>
+            <button class="export-modal-close" onclick="closeExportModal()" aria-label="Đóng">
+                ×
+            </button>
+        </div>
+        <div class="export-modal-body">
+            <div class="export-modal-form-group">
+                <label for="exportStartDate">
+                    Từ ngày <span style="color: var(--danger-500);">*</span>
+                </label>
+                <input type="date" id="exportStartDate" required>
+            </div>
+            <div class="export-modal-form-group">
+                <label for="exportEndDate">
+                    Đến ngày <span style="color: var(--danger-500);">*</span>
+                </label>
+                <input type="date" id="exportEndDate" required>
+            </div>
+            <div class="export-modal-error" id="exportModalError"></div>
+        </div>
+        <div class="export-modal-footer">
+            <button class="export-modal-btn export-modal-btn-cancel" onclick="closeExportModal()">
+                Hủy
+            </button>
+            <button class="export-modal-btn export-modal-btn-export" onclick="confirmExportReport()">
+                📥 Xuất báo cáo
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- Include Footer -->
 <jsp:include page="/includes/footer.jsp" />
