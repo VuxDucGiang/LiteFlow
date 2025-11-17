@@ -18,6 +18,24 @@ public class EmployeeDAO extends GenericDAO<Employee, UUID> {
     }
 
     /**
+     * Override getAll() để eager load User (để có thể truy cập passwordHash)
+     */
+    @Override
+    public List<Employee> getAll() {
+        EntityManager em = emf.createEntityManager();
+        try {
+            String jpql = "SELECT e FROM Employee e LEFT JOIN FETCH e.user ORDER BY e.fullName";
+            return em.createQuery(jpql, Employee.class).getResultList();
+        } catch (Exception e) {
+            System.err.println("❌ Error in EmployeeDAO.getAll(): " + e.getMessage());
+            e.printStackTrace();
+            return Collections.emptyList();
+        } finally {
+            em.close();
+        }
+    }
+
+    /**
      * Tìm employee theo mã nhân viên
      */
     public Employee findByEmployeeCode(String employeeCode) {

@@ -44,46 +44,6 @@
             box-sizing: border-box;
         }
         
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 2px solid rgba(255,255,255,0.3);
-            width: 100%;
-            box-sizing: border-box;
-            flex-wrap: wrap;
-        }
-        
-        .page-title {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .page-title .icon {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.3);
-        }
-        
         .table-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -177,14 +137,6 @@
                 padding: 10px;
             }
             
-            .page-header {
-                padding: 20px;
-            }
-            
-            .page-title {
-                font-size: 24px;
-            }
-            
             .filters-container {
                 flex-direction: column;
             }
@@ -206,11 +158,6 @@
         }
         
         @media (max-width: 480px) {
-            .page-title {
-                font-size: 20px;
-                flex-wrap: wrap;
-            }
-            
             .invoice-table {
                 min-width: 500px;
             }
@@ -227,13 +174,6 @@
     <%@ include file="/includes/header.jsp" %>
     
     <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">
-                <span class="icon">🧾</span>
-                Hoá đơn Bán hàng
-            </h1>
-        </div>
-        
         <!-- Filters & Search -->
         <div class="filters-container" style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-start; background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%); padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid var(--color-primary); position: relative; overflow: hidden; width: 100%; box-sizing: border-box; flex-wrap: wrap;">
             <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--primary-500), var(--secondary-500));"></div>

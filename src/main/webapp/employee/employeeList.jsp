@@ -380,6 +380,7 @@
                                         data-termination-date="${emp.terminationDate}"
                                         data-created-at="${emp.createdAt}"
                                         data-updated-at="${emp.updatedAt}"
+                                        data-password="${passwordMap[emp.employeeCode] != null ? passwordMap[emp.employeeCode] : ''}"
                                     >
                                         <td>
                                             <span class="employee-code">${emp.employeeCode}</span>
@@ -417,6 +418,48 @@
     </div>
 </div>
 
+<!-- Add Employee Modal -->
+<div id="addEmployeeModal" class="employee-modal-overlay" style="display: none;">
+    <div class="employee-modal" role="dialog" aria-modal="true" aria-labelledby="addEmployeeTitle">
+        <div class="employee-modal__header">
+            <h3 id="addEmployeeTitle" class="employee-modal__title">➕ Thêm nhân viên mới</h3>
+            <button type="button" class="employee-modal__close" onclick="closeAddEmployeeModal()" aria-label="Đóng">✕</button>
+        </div>
+        <div class="employee-modal__body">
+            <form id="addEmployeeForm" method="post" action="${pageContext.request.contextPath}/employees">
+                <input type="hidden" name="action" value="create" />
+                <div class="employee-modal__fields">
+                    <div class="employee-field">
+                        <label for="newFullName">Họ tên *</label>
+                        <input type="text" id="newFullName" name="fullName" class="value" required 
+                               placeholder="Nhập họ tên nhân viên" style="width: 100%;">
+                    </div>
+                    <div class="employee-field">
+                        <label for="newPhone">Số điện thoại *</label>
+                        <input type="tel" id="newPhone" name="phone" class="value" required 
+                               placeholder="Nhập số điện thoại" style="width: 100%;">
+                    </div>
+                    <div class="employee-field">
+                        <label for="newEmail">Email *</label>
+                        <input type="email" id="newEmail" name="email" class="value" required 
+                               placeholder="Nhập email" style="width: 100%;">
+                    </div>
+                    <div class="employee-field">
+                        <label for="newPassword">Mật khẩu *</label>
+                        <input type="password" id="newPassword" name="password" class="value" required 
+                               placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)" minlength="8" style="width: 100%;">
+                        <small style="color: #6b7280; font-size: 12px;">Mật khẩu tối thiểu 8 ký tự</small>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" class="btn" onclick="closeAddEmployeeModal()" style="background: var(--gray-200, #e5e7eb); color: var(--gray-800, #374151);">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tạo nhân viên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Employee Detail Modal -->
 <div id="employeeDetailModal" class="employee-modal-overlay">
     <div class="employee-modal" role="dialog" aria-modal="true" aria-labelledby="employeeDetailTitle">
@@ -431,7 +474,6 @@
                     <div class="employee-tab-nav" role="tablist" aria-label="Employee detail tabs">
                         <button type="button" class="employee-tab-btn active" data-tab="info">Thông tin</button>
                         <button type="button" class="employee-tab-btn" data-tab="schedule">Lịch làm việc</button>
-                        <button type="button" class="employee-tab-btn" data-tab="salary">Thiết lập lương</button>
                     </div>
 
                     <div class="employee-tab-content active" data-content="info">
@@ -443,6 +485,7 @@
                                 <div class="employee-field"><label>Mã nhân viên</label><input id="modalEmployeeCode" name="employeeCode" class="value" readonly></div>
                                 <div class="employee-field"><label>Họ tên</label><input id="modalFullName" name="fullName" class="value"></div>
                                 <div class="employee-field"><label>Email</label><input id="modalEmail" name="email" class="value"></div>
+                                <div class="employee-field"><label>Mật khẩu tài khoản (Hash)</label><input id="modalPassword" name="password" class="value" readonly style="font-family: monospace; background-color: #f3f4f6; font-size: 11px;"></div>
                                 <div class="employee-field"><label>Số điện thoại</label><input id="modalPhone" name="phone" class="value"></div>
                                 <div class="employee-field"><label>CCCD/CMND</label><input id="modalNationalID" name="nationalID" class="value"></div>
                                 <div class="employee-field"><label>Giới tính</label><input id="modalGender" name="gender" class="value"></div>
@@ -720,8 +763,28 @@
             }
 
             function addEmployee() {
-                alert('Chức năng thêm nhân viên sẽ được triển khai');
+                const modal = document.getElementById('addEmployeeModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    // Reset form
+                    document.getElementById('addEmployeeForm').reset();
+                }
             }
+
+            function closeAddEmployeeModal() {
+                const modal = document.getElementById('addEmployeeModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+
+            // Close modal when clicking outside
+            document.addEventListener('click', function(e) {
+                const addModal = document.getElementById('addEmployeeModal');
+                if (addModal && e.target === addModal) {
+                    closeAddEmployeeModal();
+                }
+            });
 
             function viewEmployee(employeeCode) {
                 const row = document.querySelector('tr[data-employee-code="' + employeeCode + '"]');
@@ -743,6 +806,7 @@
                 setVal('modalEmployeeCode', get('data-employee-code'));
                 setVal('modalFullName', get('data-full-name'));
                 setVal('modalEmail', get('data-email'));
+                setVal('modalPassword', get('data-password'));
                 setVal('modalPhone', get('data-phone'));
                 setVal('modalNationalID', get('data-national-id'));
                 setVal('modalGender', get('data-gender'));
