@@ -28,159 +28,19 @@ html {
 </style>
 
 <div class="setup-container">
-    <!-- Sidebar -->
-    <aside class="setup-sidebar">
-        <h2>Thiết lập nhân viên</h2>
-        <ul class="sidebar-menu">
-            <li>
-                <a href="#" class="active">
-                    <i class='bx bx-cog'></i>
-                    <span>Khởi tạo</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-time'></i>
-                    <span>Ca làm việc</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-clipboard'></i>
-                    <span>Chấm công</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-dollar'></i>
-                    <span>Tính lương</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-calendar'></i>
-                    <span>Ngày làm & Nghỉ</span>
-                </a>
-            </li>
-        </ul>
-    </aside>
-
     <!-- Main Content -->
-    <main class="setup-main">
-        <div class="setup-header">
-            <h1>Thiết lập nhanh</h1>
-            <p>Chỉ vài bước cài đặt để quản lý nhân viên hiệu quả, tối ưu vận hành và tính lương chính xác</p>
-        </div>
-
-        <div class="setup-checklist">
-            <!-- Thêm nhân viên -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Thêm nhân viên</h3>
-                        <p>Cửa hàng đang có 3 nhân viên. <a href="${pageContext.request.contextPath}/employees">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="${pageContext.request.contextPath}/employees" class="btn-setup">Thêm nhân viên</a>
-                </div>
-            </div>
-
-            <!-- Tạo ca làm việc -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Tạo ca làm việc</h3>
-                        <p>Cửa hàng đang có 3 ca làm việc. <a href="${pageContext.request.contextPath}/schedule">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="${pageContext.request.contextPath}/schedule" class="btn-setup">Tạo ca</a>
-                </div>
-            </div>
-
-            <!-- Xếp lịch làm việc -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Xếp lịch làm việc</h3>
-                        <p>Đã xếp lịch cho 1/3 nhân viên trong cửa hàng. <a href="${pageContext.request.contextPath}/schedule">Xem lịch</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="${pageContext.request.contextPath}/schedule" class="btn-setup">Xếp lịch</a>
-                </div>
-            </div>
-
-            <!-- Hình thức chấm công -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Hình thức chấm công</h3>
-                        <p>Cửa hàng đã thiết lập hình thức chấm công. <a href="#">Xem chi tiết</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="#" class="btn-setup">Thiết lập</a>
-                </div>
-            </div>
-
-            <!-- Thiết lập lương -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Thiết lập lương</h3>
-                        <p>Đã thiết lập lương cho <span id="salaryConfigCount">0</span>/<span id="totalEmployeeCount">0</span> nhân viên. <a href="#salary-section" onclick="scrollToSalarySection(); return false;">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="#salary-section" class="btn-setup" onclick="scrollToSalarySection(); return false;">Thiết lập</a>
-                </div>
-            </div>
-
-            <!-- Thiết lập bảng lương -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Thiết lập bảng lương</h3>
-                        <p>Theo dõi chính xác và tự động tính lương của nhân viên. <a href="#">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="#" class="btn-setup">Tạo bảng lương</a>
-                </div>
-            </div>
+    <main class="setup-main" style="width: 100%; max-width: 100%;">
+        <!-- Header -->
+        <div class="setup-header" style="margin-bottom: 2rem;">
+            <h1 style="font-size: 2rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem;">
+                <i class='bx bx-dollar' style="color: #0080FF; margin-right: 8px;"></i>
+                Thiết lập lương
+            </h1>
+            <p style="color: #6c757d; font-size: 1rem;">Quản lý và điều chỉnh cấu hình lương cho từng nhân viên</p>
         </div>
 
         <!-- Salary Configuration Section -->
-        <div id="salary-section" class="salary-config-section" style="margin-top: 3rem;">
-            <div class="section-header">
-                <h2 style="font-size: 1.5rem; font-weight: 700; color: #333; margin-bottom: 0.5rem;">
-                    <i class='bx bx-dollar' style="color: #0080FF; margin-right: 8px;"></i>
-                    Cấu hình lương nhân viên
-                </h2>
-                <p style="color: #6c757d; font-size: 0.95rem; margin-bottom: 1.5rem;">
-                    Quản lý và điều chỉnh cấu hình lương cho từng nhân viên
-                </p>
-            </div>
+        <div id="salary-section" class="salary-config-section">
 
             <!-- Search and Filter -->
             <div class="salary-controls" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
@@ -781,7 +641,6 @@ function testWithMockData() {
     }
 
     renderSalaryTable();
-    updateCounts();
 }
 
 function closeSalaryModal() {
@@ -841,7 +700,6 @@ function loadSalaryData() {
                 // Always render table if we have employees
                 if (employeesData.length > 0) {
                     renderSalaryTable();
-                    updateCounts();
                 } else {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Không có nhân viên nào.</td></tr>';
                     if (debugStatus) {
@@ -1094,17 +952,6 @@ function saveCompField() {
     });
 }
 
-function updateCounts() {
-    const totalCount = employeesData.length;
-    const configuredCount = Object.keys(compensationsData).length;
-
-    document.getElementById('totalEmployeeCount').textContent = totalCount;
-    document.getElementById('salaryConfigCount').textContent = configuredCount;
-}
-
-function scrollToSalarySection() {
-    document.getElementById('salary-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
 
 // Load salary data for main table
 function loadSalaryDataMain() {
@@ -1152,7 +999,6 @@ function loadSalaryDataMain() {
 
                     console.log('Rendering table with', employeesData.length, 'employees');
                     renderSalaryTableMain();
-                    updateCounts();
                 } catch (parseError) {
                     console.error('JSON parse error:', parseError);
                     console.error('Response text:', text);
