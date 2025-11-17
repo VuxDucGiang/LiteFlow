@@ -485,7 +485,7 @@
                                 <div class="employee-field"><label>Mã nhân viên</label><input id="modalEmployeeCode" name="employeeCode" class="value" readonly></div>
                                 <div class="employee-field"><label>Họ tên</label><input id="modalFullName" name="fullName" class="value"></div>
                                 <div class="employee-field"><label>Email</label><input id="modalEmail" name="email" class="value"></div>
-                                <div class="employee-field"><label>Mật khẩu tài khoản (Hash)</label><input id="modalPassword" name="password" class="value" readonly style="font-family: monospace; background-color: #f3f4f6; font-size: 11px;"></div>
+                                <div class="employee-field"><label>Mật khẩu tài khoản</label><input id="modalPassword" name="password" class="value" readonly style="font-family: monospace; background-color: #f3f4f6; font-size: 14px; font-weight: 600; color: #1f2937;"></div>
                                 <div class="employee-field"><label>Số điện thoại</label><input id="modalPhone" name="phone" class="value"></div>
                                 <div class="employee-field"><label>CCCD/CMND</label><input id="modalNationalID" name="nationalID" class="value"></div>
                                 <div class="employee-field"><label>Giới tính</label><input id="modalGender" name="gender" class="value"></div>

@@ -1,5 +1,8 @@
 package com.liteflow.controller.employee;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.liteflow.dao.BaseDAO;
 import com.liteflow.model.auth.Employee;
 import com.liteflow.model.auth.User;
@@ -37,14 +40,13 @@ public class EmployeeServlet extends HttpServlet {
             // Lấy danh sách employees
             List<Employee> employees = employeeService.getAllEmployees();
             
-            // Tạo Map để lưu passwordHash theo employeeCode (tránh LazyInitializationException)
-            // Query passwordHash trực tiếp từ database bằng cách JOIN với User table
+            // Tạo Map để lưu mật khẩu gốc (plainPassword) từ Meta field của User
             Map<String, String> passwordMap = new HashMap<>();
             if (employees != null && !employees.isEmpty() && BaseDAO.emf != null) {
                 EntityManager em = BaseDAO.emf.createEntityManager();
                 try {
-                    // Query tất cả passwordHash cùng lúc bằng JOIN
-                    String jpql = "SELECT e.employeeCode, u.passwordHash " +
+                    // Query tất cả Meta cùng lúc bằng JOIN để lấy plainPassword
+                    String jpql = "SELECT e.employeeCode, u.meta " +
                                  "FROM Employee e " +
                                  "LEFT JOIN e.user u " +
                                  "WHERE e.employeeCode IN :codes";
@@ -62,10 +64,26 @@ public class EmployeeServlet extends HttpServlet {
                         @SuppressWarnings("unchecked")
                         List<Object[]> results = query.getResultList();
                         
+                        ObjectMapper mapper = new ObjectMapper();
+                        
                         for (Object[] result : results) {
                             String code = (String) result[0];
-                            String passwordHash = result[1] != null ? (String) result[1] : "";
-                            passwordMap.put(code, passwordHash);
+                            String metaJson = result[1] != null ? (String) result[1] : null;
+                            String plainPassword = "";
+                            
+                            if (metaJson != null && !metaJson.trim().isEmpty()) {
+                                try {
+                                    JsonNode node = mapper.readTree(metaJson);
+                                    JsonNode passwordNode = node.get("plainPassword");
+                                    if (passwordNode != null) {
+                                        plainPassword = passwordNode.asText("");
+                                    }
+                                } catch (Exception e) {
+                                    // Nếu không parse được JSON, để trống
+                                }
+                            }
+                            
+                            passwordMap.put(code, plainPassword);
                         }
                     }
                     
@@ -218,6 +236,15 @@ public class EmployeeServlet extends HttpServlet {
             // Hash mật khẩu
             String passwordHash = PasswordUtil.hash(password, 12);
             user.setPasswordHash(passwordHash);
+            // Lưu mật khẩu gốc vào Meta để hiển thị sau
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                ObjectNode metaJson = mapper.createObjectNode();
+                metaJson.put("plainPassword", password);
+                user.setMeta(mapper.writeValueAsString(metaJson));
+            } catch (Exception e) {
+                System.err.println("⚠️ Warning: Could not save plain password to meta: " + e.getMessage());
+            }
             user.setIsActive(true);
 
             boolean userCreated = userService.createUser(user);
