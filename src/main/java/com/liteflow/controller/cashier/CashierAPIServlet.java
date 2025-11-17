@@ -671,6 +671,16 @@ public class CashierAPIServlet extends HttpServlet {
                         em.merge(table);
                         System.out.println("✅ Đã cập nhật trạng thái bàn về Available");
                     }
+                    
+                    // ✅ Đóng reservation của bàn này (nếu có)
+                    try {
+                        com.liteflow.service.inventory.ReservationService reservationService = 
+                            new com.liteflow.service.inventory.ReservationService();
+                        reservationService.closeReservationByTable(tableId);
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Warning: Failed to close reservation: " + e.getMessage());
+                        // Don't fail payment if reservation update fails
+                    }
                 }
                 
                 // 4. Cập nhật tất cả orders thành Served và lưu paymentMethod
