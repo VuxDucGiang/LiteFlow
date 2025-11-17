@@ -261,6 +261,32 @@
             box-shadow: 0 4px 12px rgba(0, 128, 255, 0.4);
         }
         
+        .btn-print {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-print:hover {
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+        
+        .btn-print i {
+            font-size: 16px;
+        }
+        
         /* ========== FILTERS ========== */
         .filters {
             display: flex;
@@ -1756,6 +1782,11 @@
                                         <c:if test="${po.status == 'RECEIVING'}">
                                             <button class="btn-info" onclick="receiveGoods('${po.poid}')">Tiếp tục nhận hàng</button>
                                         </c:if>
+                                        <c:if test="${po.status == 'COMPLETED'}">
+                                            <button class="btn-print" onclick="printInvoice('${po.poid}')" title="In hóa đơn">
+                                                <i class='bx bx-printer'></i> In hóa đơn
+                                            </button>
+                                        </c:if>
                                         <button class="btn-warning" onclick="viewDetails('${po.poid}')">Chi tiết</button>
                                     </div>
                                 </td>
@@ -2438,6 +2469,17 @@
             }
         });
 
+        function printInvoice(poId) {
+            if (!poId) {
+                alert('Mã đơn hàng không hợp lệ');
+                return;
+            }
+            
+            // Open invoice print page in new window
+            const url = '${pageContext.request.contextPath}/procurement/invoice/print?poid=' + encodeURIComponent(poId);
+            window.open(url, '_blank', 'width=800,height=600');
+        }
+        
         function viewDetails(poId) {
             console.log('=== viewDetails START ===');
             console.log('POID:', poId);

@@ -14,6 +14,16 @@ public class SupplierServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, jakarta.servlet.ServletException {
         try {
+            // Check if this is a JSON API request (for fetching single supplier)
+            String supplierIdParam = req.getParameter("id");
+            String format = req.getParameter("format");
+            
+            if (supplierIdParam != null && "json".equals(format)) {
+                // Return JSON for single supplier
+                handleGetSupplierJson(supplierIdParam, resp);
+                return;
+            }
+            
             System.out.println("=== SUPPLIER SERVLET DEBUG ===");
             
             // Set content type and encoding FIRST
@@ -43,6 +53,68 @@ public class SupplierServlet extends HttpServlet {
             resp.getWriter().write("<html><head><meta charset='UTF-8'></head><body><h1>Lỗi hệ thống</h1><p>" + e.getMessage() + "</p><a href='/LiteFlow/procurement/supplier-simple'>Thử phiên bản đơn giản</a></body></html>");
             resp.getWriter().flush();
         }
+    }
+    
+    /**
+     * Handle GET request for single supplier JSON
+     * Endpoint: /procurement/supplier?id={uuid}&format=json
+     */
+    private void handleGetSupplierJson(String supplierIdParam, HttpServletResponse resp) throws IOException {
+        try {
+            resp.setContentType("application/json; charset=UTF-8");
+            resp.setCharacterEncoding("UTF-8");
+            
+            UUID supplierId = UUID.fromString(supplierIdParam);
+            Supplier supplier = service.getSupplierById(supplierId);
+            
+            if (supplier == null) {
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                resp.getWriter().write("{\"success\": false, \"message\": \"Supplier not found\"}");
+                return;
+            }
+            
+            // Build JSON response
+            StringBuilder json = new StringBuilder();
+            json.append("{");
+            json.append("\"success\": true,");
+            json.append("\"data\": {");
+            json.append("\"id\": \"").append(supplier.getSupplierID()).append("\",");
+            json.append("\"name\": \"").append(escapeJson(supplier.getName())).append("\",");
+            json.append("\"contact\": \"").append(escapeJson(supplier.getContact())).append("\",");
+            json.append("\"email\": \"").append(escapeJson(supplier.getEmail())).append("\",");
+            json.append("\"phone\": \"").append(escapeJson(supplier.getPhone())).append("\",");
+            json.append("\"address\": \"").append(escapeJson(supplier.getAddress())).append("\",");
+            json.append("\"taxCode\": \"").append(escapeJson(supplier.getTaxCode())).append("\",");
+            json.append("\"rating\": ").append(supplier.getRating() != null ? supplier.getRating() : 0).append(",");
+            json.append("\"onTimeRate\": ").append(supplier.getOnTimeRate() != null ? supplier.getOnTimeRate() : 0).append(",");
+            json.append("\"isActive\": ").append(supplier.getIsActive() != null && supplier.getIsActive());
+            json.append("}");
+            json.append("}");
+            
+            resp.getWriter().write(json.toString());
+            resp.getWriter().flush();
+            
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().write("{\"success\": false, \"message\": \"Invalid supplier ID format\"}");
+        } catch (Exception e) {
+            System.err.println("ERROR in handleGetSupplierJson: " + e.getMessage());
+            e.printStackTrace();
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().write("{\"success\": false, \"message\": \"Error fetching supplier: " + e.getMessage() + "\"}");
+        }
+    }
+    
+    /**
+     * Escape JSON string
+     */
+    private String escapeJson(String str) {
+        if (str == null) return "";
+        return str.replace("\\", "\\\\")
+                  .replace("\"", "\\\"")
+                  .replace("\n", "\\n")
+                  .replace("\r", "\\r")
+                  .replace("\t", "\\t");
     }
 
     @Override
@@ -113,6 +185,7 @@ public class SupplierServlet extends HttpServlet {
             String email = extractJsonValueSafe(jsonString, "email");
             String phone = extractJsonValueSafe(jsonString, "phone");
             String address = extractJsonValueSafe(jsonString, "address");
+            String taxCode = extractJsonValueSafe(jsonString, "taxCode");
             String ratingStr = extractJsonValueSafe(jsonString, "rating");
             String onTimeRateStr = extractJsonValueSafe(jsonString, "onTimeRate");
             String isActiveStr = extractJsonValueSafe(jsonString, "isActive");
@@ -124,6 +197,7 @@ public class SupplierServlet extends HttpServlet {
             System.out.println("Email: " + email);
             System.out.println("Phone: " + phone);
             System.out.println("Address: " + address);
+            System.out.println("TaxCode: " + taxCode);
             System.out.println("Rating: " + ratingStr);
             System.out.println("OnTimeRate: " + onTimeRateStr);
             System.out.println("IsActive: " + isActiveStr);
@@ -175,6 +249,7 @@ public class SupplierServlet extends HttpServlet {
             existingSupplier.setEmail(email);
             existingSupplier.setPhone(phone);
             existingSupplier.setAddress(address);
+            existingSupplier.setTaxCode(taxCode != null && !taxCode.trim().isEmpty() ? taxCode.trim() : null);
             existingSupplier.setRating(rating);
             existingSupplier.setOnTimeRate(onTimeRate);
             existingSupplier.setIsActive(isActive);
@@ -207,6 +282,7 @@ public class SupplierServlet extends HttpServlet {
             String email = extractJsonValueSafe(jsonString, "email");
             String phone = extractJsonValueSafe(jsonString, "phone");
             String address = extractJsonValueSafe(jsonString, "address");
+            String taxCode = extractJsonValueSafe(jsonString, "taxCode");
             String ratingStr = extractJsonValueSafe(jsonString, "rating");
             String onTimeRateStr = extractJsonValueSafe(jsonString, "onTimeRate");
             String isActiveStr = extractJsonValueSafe(jsonString, "isActive");
@@ -217,6 +293,7 @@ public class SupplierServlet extends HttpServlet {
             System.out.println("Email: " + email);
             System.out.println("Phone: " + phone);
             System.out.println("Address: " + address);
+            System.out.println("TaxCode: " + taxCode);
             System.out.println("Rating: " + ratingStr);
             System.out.println("OnTimeRate: " + onTimeRateStr);
             System.out.println("IsActive: " + isActiveStr);
@@ -285,6 +362,7 @@ public class SupplierServlet extends HttpServlet {
                     newSupplier.setContact(contact);
                     newSupplier.setPhone(phone);
                     newSupplier.setAddress(address);
+                    newSupplier.setTaxCode(taxCode != null && !taxCode.trim().isEmpty() ? taxCode.trim() : null);
                     newSupplier.setRating(rating);
                     newSupplier.setOnTimeRate(onTimeRate);
                     newSupplier.setIsActive(isActive);

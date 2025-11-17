@@ -66,6 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             initializeAIAgentConfig();
                         }, 100);
                     }
+                    
+                    // Initialize Company Info if company-info section is shown
+                    if (sectionId === 'company-info') {
+                        // Company info will auto-initialize via MutationObserver in company-info.js
+                        // But we can trigger it here if needed
+                        if (typeof initializeCompanyInfo === 'function') {
+                            setTimeout(() => {
+                                initializeCompanyInfo();
+                            }, 100);
+                        }
+                    }
                 }
             }
         });

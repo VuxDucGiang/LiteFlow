@@ -221,4 +221,381 @@ public class MailUtil {
         Transport.send(message);
         LOG.info("✅ Reservation confirmation email sent to " + to + " - Code: " + reservationCode);
     }
+
+    /**
+     * Send purchase order email to supplier
+     * @param to Supplier email address
+     * @param supplierName Supplier name
+     * @param poId Purchase Order ID (UUID as string)
+     * @param createDate Order creation date (formatted string)
+     * @param expectedDelivery Expected delivery date (formatted string)
+     * @param totalAmount Total amount (double)
+     * @param notes Notes (can be null)
+     * @param items List of purchase order items
+     */
+    public static void sendPurchaseOrderEmail(
+            String to,
+            String supplierName,
+            String poId,
+            String createDate,
+            String expectedDelivery,
+            double totalAmount,
+            String notes,
+            java.util.List<com.liteflow.model.procurement.PurchaseOrderItem> items) 
+            throws MessagingException, UnsupportedEncodingException {
+        
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", SMTP_HOST);
+        props.put("mail.smtp.port", SMTP_PORT);
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(SMTP_USER, SMTP_PASS);
+            }
+        });
+
+        Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(SMTP_USER, "LiteFlow Procurement"));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+        message.setSubject("Đơn đặt hàng từ LiteFlow");
+
+        // Format total amount with VND currency
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,###");
+        String formattedAmount = df.format(totalAmount) + " VNĐ";
+
+        // Build items table HTML
+        StringBuilder itemsTableHtml = new StringBuilder();
+        if (items != null && !items.isEmpty()) {
+            itemsTableHtml.append("<table style=\"width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff;\">");
+            itemsTableHtml.append("<thead>");
+            itemsTableHtml.append("<tr style=\"background: #0080FF; color: #fff;\">");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: left; border: 1px solid #ddd;\">STT</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: left; border: 1px solid #ddd;\">Tên sản phẩm</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: right; border: 1px solid #ddd;\">Số lượng</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: right; border: 1px solid #ddd;\">Đơn giá</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: right; border: 1px solid #ddd;\">Thành tiền</th>");
+            itemsTableHtml.append("</tr>");
+            itemsTableHtml.append("</thead>");
+            itemsTableHtml.append("<tbody>");
+            
+            int stt = 1;
+            for (com.liteflow.model.procurement.PurchaseOrderItem item : items) {
+                double itemTotal = item.getQuantity() * item.getUnitPrice();
+                String formattedUnitPrice = df.format(item.getUnitPrice()) + " VNĐ";
+                String formattedItemTotal = df.format(itemTotal) + " VNĐ";
+                
+                itemsTableHtml.append("<tr style=\"border-bottom: 1px solid #e9ecef;\">");
+                itemsTableHtml.append("<td style=\"padding: 10px; border: 1px solid #ddd;\">").append(stt++).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; border: 1px solid #ddd;\">").append(escapeHtml(item.getItemName())).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; text-align: right; border: 1px solid #ddd;\">").append(item.getQuantity()).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; text-align: right; border: 1px solid #ddd;\">").append(formattedUnitPrice).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; text-align: right; border: 1px solid #ddd; font-weight: bold;\">").append(formattedItemTotal).append("</td>");
+                itemsTableHtml.append("</tr>");
+            }
+            
+            itemsTableHtml.append("</tbody>");
+            itemsTableHtml.append("</table>");
+        } else {
+            itemsTableHtml.append("<p style=\"color: #999; font-style: italic; padding: 20px;\">Không có sản phẩm nào trong đơn hàng.</p>");
+        }
+
+        // Professional HTML email template
+        String html = 
+            "<!DOCTYPE html>" +
+            "<html>" +
+            "<head>" +
+                "<meta charset=\"UTF-8\">" +
+                "<style>" +
+                    "body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }" +
+                    ".container { max-width: 700px; margin: 0 auto; background: #ffffff; }" +
+                    ".header { background: linear-gradient(135deg, #0080FF 0%, #00c6ff 50%, #7d2ae8 100%); padding: 30px 20px; text-align: center; }" +
+                    ".header h1 { color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; }" +
+                    ".header p { color: #ffffff; margin: 10px 0 0 0; font-size: 14px; opacity: 0.9; }" +
+                    ".content { padding: 30px 20px; }" +
+                    ".greeting { font-size: 18px; color: #333; margin-bottom: 20px; }" +
+                    ".details-box { background: #f8f9fa; border-left: 4px solid #0080FF; padding: 20px; margin: 20px 0; border-radius: 4px; }" +
+                    ".detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }" +
+                    ".detail-row:last-child { border-bottom: none; }" +
+                    ".detail-label { font-weight: 600; color: #555; }" +
+                    ".detail-value { color: #333; text-align: right; }" +
+                    ".total-amount { background: #e7f3ff; border: 2px solid #0080FF; border-radius: 8px; padding: 15px; text-align: center; margin: 20px 0; }" +
+                    ".total-amount .label { font-size: 14px; color: #555; margin-bottom: 5px; }" +
+                    ".total-amount .value { font-size: 24px; font-weight: bold; color: #0080FF; }" +
+                    ".notes-section { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }" +
+                    ".notes-section strong { color: #856404; }" +
+                    ".footer { background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef; }" +
+                    ".footer p { color: #6c757d; font-size: 12px; margin: 5px 0; }" +
+                    ".contact-info { margin: 15px 0; }" +
+                    ".contact-info a { color: #0080FF; text-decoration: none; }" +
+                "</style>" +
+            "</head>" +
+            "<body>" +
+                "<div class=\"container\">" +
+                    "<!-- Header -->" +
+                    "<div class=\"header\">" +
+                        "<h1>📦 LiteFlow</h1>" +
+                        "<p>Hệ thống quản lý nhà hàng</p>" +
+                    "</div>" +
+                    
+                    "<!-- Content -->" +
+                    "<div class=\"content\">" +
+                        "<p class=\"greeting\">Kính gửi <strong>" + escapeHtml(supplierName) + "</strong>,</p>" +
+                        
+                        "<p>Chúng tôi xin gửi đơn đặt hàng với thông tin như sau:</p>" +
+                        
+                        "<!-- Order Details -->" +
+                        "<div class=\"details-box\">" +
+                            "<h3 style=\"margin-top: 0; color: #0080FF;\">📋 Thông Tin Đơn Hàng</h3>" +
+                            "<div class=\"detail-row\">" +
+                                "<span class=\"detail-label\">Mã đơn hàng:</span>" +
+                                "<span class=\"detail-value\"><strong>" + escapeHtml(poId) + "</strong></span>" +
+                            "</div>" +
+                            "<div class=\"detail-row\">" +
+                                "<span class=\"detail-label\">Ngày gửi:</span>" +
+                                "<span class=\"detail-value\">" + escapeHtml(createDate) + "</span>" +
+                            "</div>" +
+                            "<div class=\"detail-row\">" +
+                                "<span class=\"detail-label\">Ngày giao dự kiến:</span>" +
+                                "<span class=\"detail-value\">" + escapeHtml(expectedDelivery) + "</span>" +
+                            "</div>" +
+                        "</div>" +
+                        
+                        "<!-- Items Table -->" +
+                        "<div style=\"margin: 20px 0;\">" +
+                            "<h3 style=\"color: #0080FF; margin-bottom: 10px;\">📦 Danh Sách Sản Phẩm</h3>" +
+                            itemsTableHtml.toString() +
+                        "</div>" +
+                        
+                        "<!-- Total Amount -->" +
+                        "<div class=\"total-amount\">" +
+                            "<div class=\"label\">Tổng tiền đơn hàng</div>" +
+                            "<div class=\"value\">" + formattedAmount + "</div>" +
+                        "</div>" +
+                        
+                        (notes != null && !notes.trim().isEmpty() ?
+                            "<!-- Notes -->" +
+                            "<div class=\"notes-section\">" +
+                                "<strong>📝 Ghi chú:</strong><br>" +
+                                "<p style=\"margin: 10px 0 0 0; color: #856404;\">" + escapeHtml(notes) + "</p>" +
+                            "</div>" : "") +
+                        
+                        "<p style=\"margin-top: 20px;\">Vui lòng xác nhận và chuẩn bị hàng hóa theo đơn hàng trên. Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>" +
+                        
+                        "<p><strong>Trân trọng,</strong><br>Đội ngũ LiteFlow 📦</p>" +
+                    "</div>" +
+                    
+                    "<!-- Footer -->" +
+                    "<div class=\"footer\">" +
+                        "<p><strong>LiteFlow</strong></p>" +
+                        "<p>Hệ thống quản lý nhà hàng</p>" +
+                        "<div class=\"contact-info\">" +
+                            "📧 Email: <a href=\"mailto:procurement@liteflow.com\">procurement@liteflow.com</a><br>" +
+                            "📞 Hotline: 1900-1234" +
+                        "</div>" +
+                        "<hr style=\"margin: 15px 0; border: none; border-top: 1px solid #dee2e6;\">" +
+                        "<p style=\"font-size: 11px; color: #999;\">Đây là email tự động, vui lòng không trả lời email này.</p>" +
+                        "<p style=\"font-size: 11px; color: #999;\">© 2025 LiteFlow. All rights reserved.</p>" +
+                    "</div>" +
+                "</div>" +
+            "</body>" +
+            "</html>";
+
+        message.setContent(html, "text/html; charset=UTF-8");
+
+        Transport.send(message);
+        LOG.info("✅ Purchase order email sent to " + to + " - PO ID: " + poId);
+    }
+
+    /**
+     * Send missing goods notification email to supplier
+     * @param to Supplier email address
+     * @param supplierName Supplier name
+     * @param poId Purchase Order ID (UUID as string)
+     * @param createDate Order creation date (formatted string)
+     * @param expectedDelivery Expected delivery date (formatted string)
+     * @param missingItems List of missing items (List<Map> with keys: itemName, orderedQty, receivedQty, missingQty)
+     */
+    public static void sendMissingGoodsEmail(
+            String to,
+            String supplierName,
+            String poId,
+            String createDate,
+            String expectedDelivery,
+            java.util.List<java.util.Map<String, Object>> missingItems) 
+            throws MessagingException, UnsupportedEncodingException {
+        
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", SMTP_HOST);
+        props.put("mail.smtp.port", SMTP_PORT);
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(SMTP_USER, SMTP_PASS);
+            }
+        });
+
+        Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(SMTP_USER, "LiteFlow Procurement"));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+        message.setSubject("Thông báo thiếu hàng - Đơn đặt hàng " + poId);
+
+        // Build missing items table HTML
+        StringBuilder itemsTableHtml = new StringBuilder();
+        if (missingItems != null && !missingItems.isEmpty()) {
+            itemsTableHtml.append("<table style=\"width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff;\">");
+            itemsTableHtml.append("<thead>");
+            itemsTableHtml.append("<tr style=\"background: #ff9800; color: #fff;\">");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: left; border: 1px solid #ddd;\">STT</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: left; border: 1px solid #ddd;\">Tên sản phẩm</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: right; border: 1px solid #ddd;\">Số lượng đặt</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: right; border: 1px solid #ddd;\">Số lượng đã nhận</th>");
+            itemsTableHtml.append("<th style=\"padding: 12px; text-align: right; border: 1px solid #ddd;\">Số lượng thiếu</th>");
+            itemsTableHtml.append("</tr>");
+            itemsTableHtml.append("</thead>");
+            itemsTableHtml.append("<tbody>");
+            
+            int stt = 1;
+            for (java.util.Map<String, Object> item : missingItems) {
+                String itemName = (String) item.get("itemName");
+                Integer orderedQty = ((Number) item.get("orderedQty")).intValue();
+                Integer receivedQty = ((Number) item.get("receivedQty")).intValue();
+                Integer missingQty = ((Number) item.get("missingQty")).intValue();
+                
+                itemsTableHtml.append("<tr style=\"border-bottom: 1px solid #e9ecef; background: #fff3cd;\">");
+                itemsTableHtml.append("<td style=\"padding: 10px; border: 1px solid #ddd;\">").append(stt++).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">").append(escapeHtml(itemName)).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; text-align: right; border: 1px solid #ddd;\">").append(orderedQty).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; text-align: right; border: 1px solid #ddd;\">").append(receivedQty).append("</td>");
+                itemsTableHtml.append("<td style=\"padding: 10px; text-align: right; border: 1px solid #ddd; font-weight: bold; color: #dc3545;\">").append(missingQty).append("</td>");
+                itemsTableHtml.append("</tr>");
+            }
+            
+            itemsTableHtml.append("</tbody>");
+            itemsTableHtml.append("</table>");
+        } else {
+            itemsTableHtml.append("<p style=\"color: #999; font-style: italic; padding: 20px;\">Không có thông tin sản phẩm thiếu.</p>");
+        }
+
+        // Professional HTML email template
+        String html = 
+            "<!DOCTYPE html>" +
+            "<html>" +
+            "<head>" +
+                "<meta charset=\"UTF-8\">" +
+                "<style>" +
+                    "body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }" +
+                    ".container { max-width: 700px; margin: 0 auto; background: #ffffff; }" +
+                    ".header { background: linear-gradient(135deg, #ff9800 0%, #ff6b35 50%, #f7931e 100%); padding: 30px 20px; text-align: center; }" +
+                    ".header h1 { color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; }" +
+                    ".header p { color: #ffffff; margin: 10px 0 0 0; font-size: 14px; opacity: 0.9; }" +
+                    ".content { padding: 30px 20px; }" +
+                    ".greeting { font-size: 18px; color: #333; margin-bottom: 20px; }" +
+                    ".warning-badge { background: #fff3cd; border: 2px solid #ff9800; border-radius: 8px; padding: 15px; text-align: center; margin: 20px 0; }" +
+                    ".warning-badge h2 { color: #856404; margin: 0 0 10px 0; font-size: 24px; }" +
+                    ".details-box { background: #f8f9fa; border-left: 4px solid #ff9800; padding: 20px; margin: 20px 0; border-radius: 4px; }" +
+                    ".detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }" +
+                    ".detail-row:last-child { border-bottom: none; }" +
+                    ".detail-label { font-weight: 600; color: #555; }" +
+                    ".detail-value { color: #333; text-align: right; }" +
+                    ".request-section { background: #e7f3ff; border-left: 4px solid #0080FF; padding: 15px; margin: 20px 0; border-radius: 4px; }" +
+                    ".request-section strong { color: #004085; }" +
+                    ".footer { background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef; }" +
+                    ".footer p { color: #6c757d; font-size: 12px; margin: 5px 0; }" +
+                    ".contact-info { margin: 15px 0; }" +
+                    ".contact-info a { color: #0080FF; text-decoration: none; }" +
+                "</style>" +
+            "</head>" +
+            "<body>" +
+                "<div class=\"container\">" +
+                    "<!-- Header -->" +
+                    "<div class=\"header\">" +
+                        "<h1>⚠️ LiteFlow</h1>" +
+                        "<p>Thông báo thiếu hàng</p>" +
+                    "</div>" +
+                    
+                    "<!-- Content -->" +
+                    "<div class=\"content\">" +
+                        "<p class=\"greeting\">Kính gửi <strong>" + escapeHtml(supplierName) + "</strong>,</p>" +
+                        
+                        "<p>Chúng tôi đã nhận hàng nhưng chưa đủ số lượng theo đơn đặt hàng sau:</p>" +
+                        
+                        "<!-- Warning Badge -->" +
+                        "<div class=\"warning-badge\">" +
+                            "<h2>⚠️ Chưa nhận đủ hàng</h2>" +
+                            "<p>Vui lòng kiểm tra và giao bổ sung số lượng hàng còn thiếu</p>" +
+                        "</div>" +
+                        
+                        "<!-- Order Details -->" +
+                        "<div class=\"details-box\">" +
+                            "<h3 style=\"margin-top: 0; color: #ff9800;\">📋 Thông Tin Đơn Hàng</h3>" +
+                            "<div class=\"detail-row\">" +
+                                "<span class=\"detail-label\">Mã đơn hàng:</span>" +
+                                "<span class=\"detail-value\"><strong>" + escapeHtml(poId) + "</strong></span>" +
+                            "</div>" +
+                            "<div class=\"detail-row\">" +
+                                "<span class=\"detail-label\">Ngày tạo:</span>" +
+                                "<span class=\"detail-value\">" + escapeHtml(createDate) + "</span>" +
+                            "</div>" +
+                            "<div class=\"detail-row\">" +
+                                "<span class=\"detail-label\">Ngày giao dự kiến:</span>" +
+                                "<span class=\"detail-value\">" + escapeHtml(expectedDelivery) + "</span>" +
+                            "</div>" +
+                        "</div>" +
+                        
+                        "<!-- Missing Items Table -->" +
+                        "<div style=\"margin: 20px 0;\">" +
+                            "<h3 style=\"color: #ff9800; margin-bottom: 10px;\">📦 Danh Sách Sản Phẩm Thiếu</h3>" +
+                            itemsTableHtml.toString() +
+                        "</div>" +
+                        
+                        "<!-- Request Section -->" +
+                        "<div class=\"request-section\">" +
+                            "<strong>📝 Yêu cầu:</strong><br>" +
+                            "<p style=\"margin: 10px 0 0 0; color: #004085;\">Vui lòng giao bổ sung số lượng hàng còn thiếu theo thông tin trên. Chúng tôi rất mong nhận được hàng hóa đầy đủ trong thời gian sớm nhất.</p>" +
+                        "</div>" +
+                        
+                        "<p style=\"margin-top: 20px;\">Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>" +
+                        
+                        "<p><strong>Trân trọng,</strong><br>Đội ngũ LiteFlow 📦</p>" +
+                    "</div>" +
+                    
+                    "<!-- Footer -->" +
+                    "<div class=\"footer\">" +
+                        "<p><strong>LiteFlow</strong></p>" +
+                        "<p>Hệ thống quản lý nhà hàng</p>" +
+                        "<div class=\"contact-info\">" +
+                            "📧 Email: <a href=\"mailto:procurement@liteflow.com\">procurement@liteflow.com</a><br>" +
+                            "📞 Hotline: 1900-1234" +
+                        "</div>" +
+                        "<hr style=\"margin: 15px 0; border: none; border-top: 1px solid #dee2e6;\">" +
+                        "<p style=\"font-size: 11px; color: #999;\">Đây là email tự động, vui lòng không trả lời email này.</p>" +
+                        "<p style=\"font-size: 11px; color: #999;\">© 2025 LiteFlow. All rights reserved.</p>" +
+                    "</div>" +
+                "</div>" +
+            "</body>" +
+            "</html>";
+
+        message.setContent(html, "text/html; charset=UTF-8");
+
+        Transport.send(message);
+        LOG.info("✅ Missing goods email sent to " + to + " - PO ID: " + poId);
+    }
+
+    /**
+     * Escape HTML special characters to prevent XSS
+     */
+    private static String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;");
+    }
 }
