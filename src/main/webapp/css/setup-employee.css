@@ -1,3 +1,6 @@
+/* Import Design System */
+@import url('design-system.css');
+
 /* Setup Employee Page Styles */
 /* Prevent horizontal scroll on setup page */
 body.setup-page,
@@ -7,33 +10,31 @@ html.setup-page {
 }
 
 .setup-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    gap: 2rem;
+    display: block;
     padding: 0;
     max-width: 100%;
     margin: 0;
     width: 100%;
     overflow-x: hidden;
     box-sizing: border-box;
-    min-width: 0;
 }
 
 .setup-sidebar {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: var(--surface-elevated, #fff);
+    border-radius: var(--radius-xl, 12px);
+    padding: var(--space-5, 1.5rem);
+    box-shadow: var(--shadow-md, 0 2px 8px rgba(0, 0, 0, 0.1));
+    border: 1px solid var(--border-primary, var(--gray-200));
     height: fit-content;
     position: sticky;
     top: 2rem;
 }
 
 .setup-sidebar h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 1.5rem;
+    font-size: var(--text-lg, 1.1rem);
+    font-weight: var(--font-bold, 700);
+    color: var(--text-primary, var(--gray-900));
+    margin-bottom: var(--space-5, 1.5rem);
 }
 
 .sidebar-menu {
@@ -51,22 +52,22 @@ html.setup-page {
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    color: #495057;
+    color: var(--text-secondary, var(--gray-600));
     text-decoration: none;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    font-size: 0.95rem;
+    border-radius: var(--radius-lg, 8px);
+    transition: all var(--transition-base, 0.3s ease);
+    font-size: var(--text-sm, 0.95rem);
 }
 
 .sidebar-menu a:hover {
-    background: #f8f9fa;
-    color: #007bff;
+    background: var(--gray-50, #f8f9fa);
+    color: var(--color-primary, #0080FF);
 }
 
 .sidebar-menu a.active {
-    background: #e7f3ff;
-    color: #007bff;
-    font-weight: 600;
+    background: var(--primary-50, #e7f3ff);
+    color: var(--color-primary, #0080FF);
+    font-weight: var(--font-semibold, 600);
 }
 
 .sidebar-menu a i {
@@ -74,14 +75,17 @@ html.setup-page {
 }
 
 .setup-main {
-    background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: var(--surface-elevated, #fff);
+    border-radius: var(--radius-2xl, 16px);
+    padding: var(--space-6, 2rem);
+    box-shadow: var(--shadow-lg, 0 4px 12px rgba(0, 0, 0, 0.1));
+    border: 1px solid var(--border-primary, var(--gray-200));
     width: 100%;
     max-width: 100%;
+    margin: 0 auto;
     overflow-x: hidden;
     box-sizing: border-box;
+    position: relative;
 }
 
 .setup-header {
@@ -89,15 +93,16 @@ html.setup-page {
 }
 
 .setup-header h1 {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 0.5rem;
+    font-size: var(--text-2xl, 1.75rem);
+    font-weight: var(--font-bold, 700);
+    color: var(--text-primary, var(--gray-900));
+    margin-bottom: var(--space-2, 0.5rem);
+    font-family: var(--font-family-display);
 }
 
 .setup-header p {
-    color: #6c757d;
-    font-size: 0.95rem;
+    color: var(--text-secondary, var(--gray-600));
+    font-size: var(--text-base, 1rem);
     line-height: 1.6;
 }
 
@@ -111,15 +116,16 @@ html.setup-page {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem;
-    border: 1px solid #e9ecef;
-    border-radius: 10px;
-    transition: all 0.3s ease;
+    padding: var(--space-5, 1.5rem);
+    border: 1px solid var(--border-primary, var(--gray-200));
+    border-radius: var(--radius-xl, 12px);
+    transition: all var(--transition-base, 0.3s ease);
+    background: var(--surface-elevated, #fff);
 }
 
 .checklist-item:hover {
-    border-color: #007bff;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+    border-color: var(--color-primary, #0080FF);
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 128, 255, 0.1));
 }
 
 .checklist-left {
@@ -133,33 +139,33 @@ html.setup-page {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #28a745;
+    background: var(--success-500, #22c55e);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 0.9rem;
+    font-size: var(--text-sm, 0.9rem);
     flex-shrink: 0;
     margin-top: 2px;
 }
 
 .checklist-content h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
+    font-size: var(--text-base, 1rem);
+    font-weight: var(--font-semibold, 600);
+    color: var(--text-primary, var(--gray-900));
+    margin-bottom: var(--space-2, 0.5rem);
 }
 
 .checklist-content p {
-    color: #6c757d;
-    font-size: 0.9rem;
+    color: var(--text-secondary, var(--gray-600));
+    font-size: var(--text-sm, 0.9rem);
     line-height: 1.5;
 }
 
 .checklist-content a {
-    color: #007bff;
+    color: var(--color-primary, #0080FF);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: var(--font-medium, 500);
 }
 
 .checklist-content a:hover {
@@ -171,30 +177,76 @@ html.setup-page {
 }
 
 .btn-setup {
-    padding: 0.65rem 1.5rem;
-    background: white;
-    color: #333;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 500;
+    padding: var(--space-3, 0.65rem) var(--space-5, 1.5rem);
+    background: var(--color-white);
+    color: var(--text-primary);
+    border: 1.5px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-base);
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    box-shadow: var(--shadow-xs);
+    font-family: var(--font-family-primary);
+    letter-spacing: -0.01em;
 }
 
 .btn-setup:hover {
-    background: #f8f9fa;
-    border-color: #007bff;
-    color: #007bff;
+    background: var(--primary-50);
+    border-color: var(--primary-300);
+    color: var(--primary-600);
     transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Salary controls */
+.salary-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 12px);
+    margin-bottom: var(--space-5, 20px);
+    padding: var(--space-4, 16px);
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
+    border-radius: var(--radius-xl, 12px);
+    border: 1.5px solid var(--border-primary);
+    box-shadow: var(--shadow-xs);
+}
+
+.salary-controls input {
+    flex: 1;
+    padding: 0.625rem 0.75rem;
+    border: 1.5px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    background: var(--color-white);
+    transition: all var(--transition-fast);
+    font-family: var(--font-family-primary);
+}
+
+.salary-controls input:hover {
+    border-color: var(--primary-300);
+}
+
+.salary-controls input:focus {
+    outline: none;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
+    background: var(--color-white);
 }
 
 /* Salary table styles */
 .salary-table-container-main {
     width: 100%;
     overflow: hidden;
+    background: var(--surface-elevated, #fff);
+    border-radius: var(--radius-xl, 12px);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+    border: 1px solid var(--border-primary, var(--gray-200));
 }
 
 .salary-table-container-main > div {
@@ -276,28 +328,161 @@ html.setup-page {
     width: 7%; 
 } /* Thao tác */
 
-.salary-table th,
+.salary-table thead tr {
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
+}
+
+.salary-table th {
+    padding: var(--space-3, 12px) var(--space-2, 6px);
+    text-align: left;
+    font-weight: var(--font-semibold);
+    letter-spacing: -0.01em;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--primary-300);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    box-sizing: border-box;
+    max-width: 0;
+    font-family: var(--font-family-primary);
+}
+
 .salary-table td {
-    padding: 10px 6px;
+    padding: var(--space-3, 10px) var(--space-2, 6px);
     text-align: left;
     vertical-align: middle;
     word-wrap: break-word;
     overflow-wrap: break-word;
     box-sizing: border-box;
     max-width: 0;
-}
-
-.salary-table th {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.salary-table td {
     white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.4;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    letter-spacing: -0.005em;
+    border-bottom: 1px solid var(--border-primary);
+    font-family: var(--font-family-primary);
+    transition: background-color var(--transition-fast);
+}
+
+.salary-table tbody tr:hover {
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
+}
+
+/* Button styles */
+.btn-edit-salary {
+    padding: var(--space-2, 6px) var(--space-3, 12px);
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%) !important;
+    color: var(--color-white) !important;
+    border: none !important;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    transition: all var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1, 4px);
+    box-shadow: 0 2px 8px rgba(0, 128, 255, 0.25);
+    font-family: var(--font-family-primary);
+}
+
+.btn-edit-salary:hover {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 128, 255, 0.35);
+}
+
+.add-btn {
+    background: none !important;
+    border: 1.5px dashed var(--border-primary) !important;
+    color: var(--text-tertiary) !important;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    font-weight: var(--font-semibold);
+}
+
+.add-btn:hover {
+    border-color: var(--primary-500) !important;
+    color: var(--primary-600) !important;
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%) !important;
+}
+
+.value-text {
+    font-weight: var(--font-medium);
+    color: var(--text-primary) !important;
+    font-family: var(--font-family-primary);
+}
+
+.edit-icon {
+    background: none !important;
+    border: none !important;
+    color: var(--text-tertiary) !important;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    opacity: 0;
+    transition: all var(--transition-fast);
+}
+
+.edit-icon:hover {
+    opacity: 1 !important;
+    background: var(--gray-100) !important;
+    color: var(--primary-600) !important;
+}
+
+.value-display {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 8px);
+}
+
+.value-display:hover .edit-icon {
+    opacity: 1;
+}
+
+/* Status text */
+.status-not-set {
+    color: var(--text-tertiary) !important;
+    font-size: var(--text-sm);
+}
+
+/* Employee info styles like setPrice */
+.employee-name {
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
+}
+
+.employee-code {
+    font-weight: var(--font-semibold);
+    color: var(--primary-500);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+}
+
+.salary-amount {
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
+}
+
+.salary-type {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    font-family: var(--font-family-primary);
 }
 
 /* Modal table styles */
@@ -315,7 +500,6 @@ html.setup-page {
 
 @media (max-width: 768px) {
     .setup-container {
-        grid-template-columns: 1fr;
         padding: 0;
     }
     

@@ -44,46 +44,6 @@
             box-sizing: border-box;
         }
         
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 2px solid rgba(255,255,255,0.3);
-            width: 100%;
-            box-sizing: border-box;
-            flex-wrap: wrap;
-        }
-        
-        .page-title {
-            font-size: 32px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .page-title .icon {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.3);
-        }
-        
         .table-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -129,15 +89,14 @@
             border-bottom: 1px solid var(--gray-200, #e5e7eb);
         }
         
-        .invoice-table tr:hover {
-            background: rgba(0, 128, 255, 0.05);
+        .invoice-table tbody tr {
+            cursor: pointer;
             transition: all 0.2s ease;
         }
         
-        @media (min-width: 1024px) {
-            .invoice-table tr:hover {
-                transform: translateX(2px);
-            }
+        .invoice-table tbody tr:hover {
+            background: rgba(0, 128, 255, 0.1) !important;
+            transform: translateX(2px);
         }
         
         .btn {
@@ -178,14 +137,6 @@
                 padding: 10px;
             }
             
-            .page-header {
-                padding: 20px;
-            }
-            
-            .page-title {
-                font-size: 24px;
-            }
-            
             .filters-container {
                 flex-direction: column;
             }
@@ -207,11 +158,6 @@
         }
         
         @media (max-width: 480px) {
-            .page-title {
-                font-size: 20px;
-                flex-wrap: wrap;
-            }
-            
             .invoice-table {
                 min-width: 500px;
             }
@@ -228,13 +174,6 @@
     <%@ include file="/includes/header.jsp" %>
     
     <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">
-                <span class="icon">🧾</span>
-                Hoá đơn Bán hàng
-            </h1>
-        </div>
-        
         <!-- Filters & Search -->
         <div class="filters-container" style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-start; background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%); padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid var(--color-primary); position: relative; overflow: hidden; width: 100%; box-sizing: border-box; flex-wrap: wrap;">
             <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--primary-500), var(--secondary-500));"></div>
@@ -283,12 +222,11 @@
                     <th>Tổng tiền</th>
                     <th>Thanh toán</th>
                     <th>Nhân viên</th>
-                    <th>Hành động</th>
                 </tr>
             </thead>
             <tbody id="salesInvoiceTableBody">
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 40px;">
+                    <td colspan="7" style="text-align: center; padding: 40px;">
                         <div class="loading-state">
                             <i class='bx bx-loader-alt bx-spin' style="font-size: 48px; background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
                             <p style="margin-top: 15px; color: var(--gray-600, #6b7280);">Đang tải dữ liệu...</p>
@@ -365,7 +303,7 @@
                 .catch(error => {
                     console.error('❌ Error:', error);
                     document.getElementById('salesInvoiceTableBody').innerHTML = 
-                        '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--error-500, #ef4444);">' +
+                        '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--error-500, #ef4444);">' +
                         '<i class="bx bx-error" style="font-size: 48px;"></i>' +
                         '<p style="margin-top: 15px;">Lỗi: ' + error.message + '</p></td></tr>';
                 });
@@ -375,7 +313,7 @@
             const tbody = document.getElementById('salesInvoiceTableBody');
             
             if (!invoices || invoices.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">' +
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">' +
                     '<i class="bx bx-receipt" style="font-size: 64px; color: var(--gray-300, #d1d5db);"></i>' +
                     '<h3 style="margin: 20px 0 10px 0; color: var(--gray-600, #6b7280);">Không tìm thấy hóa đơn</h3></td></tr>';
                 return;
@@ -399,7 +337,7 @@
                 };
                 const paymentBadge = badges[inv.paymentMethod] || badges[paymentMethodKey] || '<span style="color: var(--gray-600, #6b7280);">' + (inv.paymentMethod || 'N/A') + '</span>';
                 
-                html += '<tr style="animation: slideIn 0.3s ease ' + (i * 0.05) + 's both;">';
+                html += '<tr style="animation: slideIn 0.3s ease ' + (i * 0.05) + 's both;" onclick="viewDetails(\'' + inv.orderId + '\')">';
                 html += '<td><strong>' + (inv.orderNumber || 'N/A') + '</strong></td>';
                 html += '<td>' + (inv.orderDateFormatted || '') + '</td>';
                 html += '<td><strong>' + (inv.customerName || 'Khách lẻ') + '</strong>';
@@ -409,7 +347,6 @@
                 html += '<td><strong style="background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 15px;">' + (inv.totalAmount ? inv.totalAmount.toLocaleString('vi-VN') + ' ₫' : '0 ₫') + '</strong></td>';
                 html += '<td>' + paymentBadge + '</td>';
                 html += '<td>' + (inv.createdByName || '-') + '</td>';
-                html += '<td><button class="btn btn-info" onclick="viewDetails(\'' + inv.orderId + '\')"><i class="bx bx-show"></i></button></td>';
                 html += '</tr>';
             });
             

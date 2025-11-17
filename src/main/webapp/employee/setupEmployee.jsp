@@ -28,164 +28,23 @@ html {
 </style>
 
 <div class="setup-container">
-    <!-- Sidebar -->
-    <aside class="setup-sidebar">
-        <h2>Thiết lập nhân viên</h2>
-        <ul class="sidebar-menu">
-            <li>
-                <a href="#" class="active">
-                    <i class='bx bx-cog'></i>
-                    <span>Khởi tạo</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-time'></i>
-                    <span>Ca làm việc</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-clipboard'></i>
-                    <span>Chấm công</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-dollar'></i>
-                    <span>Tính lương</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class='bx bx-calendar'></i>
-                    <span>Ngày làm & Nghỉ</span>
-                </a>
-            </li>
-        </ul>
-    </aside>
-
     <!-- Main Content -->
-    <main class="setup-main">
-        <div class="setup-header">
-            <h1>Thiết lập nhanh</h1>
-            <p>Chỉ vài bước cài đặt để quản lý nhân viên hiệu quả, tối ưu vận hành và tính lương chính xác</p>
-        </div>
-
-        <div class="setup-checklist">
-            <!-- Thêm nhân viên -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Thêm nhân viên</h3>
-                        <p>Cửa hàng đang có 3 nhân viên. <a href="${pageContext.request.contextPath}/employees">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="${pageContext.request.contextPath}/employees" class="btn-setup">Thêm nhân viên</a>
-                </div>
-            </div>
-
-            <!-- Tạo ca làm việc -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Tạo ca làm việc</h3>
-                        <p>Cửa hàng đang có 3 ca làm việc. <a href="${pageContext.request.contextPath}/schedule">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="${pageContext.request.contextPath}/schedule" class="btn-setup">Tạo ca</a>
-                </div>
-            </div>
-
-            <!-- Xếp lịch làm việc -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Xếp lịch làm việc</h3>
-                        <p>Đã xếp lịch cho 1/3 nhân viên trong cửa hàng. <a href="${pageContext.request.contextPath}/schedule">Xem lịch</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="${pageContext.request.contextPath}/schedule" class="btn-setup">Xếp lịch</a>
-                </div>
-            </div>
-
-            <!-- Hình thức chấm công -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Hình thức chấm công</h3>
-                        <p>Cửa hàng đã thiết lập hình thức chấm công. <a href="#">Xem chi tiết</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="#" class="btn-setup">Thiết lập</a>
-                </div>
-            </div>
-
-            <!-- Thiết lập lương -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Thiết lập lương</h3>
-                        <p>Đã thiết lập lương cho <span id="salaryConfigCount">0</span>/<span id="totalEmployeeCount">0</span> nhân viên. <a href="#salary-section" onclick="scrollToSalarySection(); return false;">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="#salary-section" class="btn-setup" onclick="scrollToSalarySection(); return false;">Thiết lập</a>
-                </div>
-            </div>
-
-            <!-- Thiết lập bảng lương -->
-            <div class="checklist-item">
-                <div class="checklist-left">
-                    <div class="check-icon">
-                        <i class='bx bx-check'></i>
-                    </div>
-                    <div class="checklist-content">
-                        <h3>Thiết lập bảng lương</h3>
-                        <p>Theo dõi chính xác và tự động tính lương của nhân viên. <a href="#">Xem danh sách</a></p>
-                    </div>
-                </div>
-                <div class="checklist-action">
-                    <a href="#" class="btn-setup">Tạo bảng lương</a>
-                </div>
-            </div>
+    <main class="setup-main" style="width: 100%; max-width: 100%;">
+        <!-- Header -->
+        <div class="setup-header" style="margin-bottom: 2rem;">
+            <h1>
+                <i class='bx bx-dollar' style="color: var(--color-primary, #0080FF); margin-right: 8px;"></i>
+                Thiết lập lương
+            </h1>
+            <p>Quản lý và điều chỉnh cấu hình lương cho từng nhân viên</p>
         </div>
 
         <!-- Salary Configuration Section -->
-        <div id="salary-section" class="salary-config-section" style="margin-top: 3rem;">
-            <div class="section-header">
-                <h2 style="font-size: 1.5rem; font-weight: 700; color: #333; margin-bottom: 0.5rem;">
-                    <i class='bx bx-dollar' style="color: #0080FF; margin-right: 8px;"></i>
-                    Cấu hình lương nhân viên
-                </h2>
-                <p style="color: #6c757d; font-size: 0.95rem; margin-bottom: 1.5rem;">
-                    Quản lý và điều chỉnh cấu hình lương cho từng nhân viên
-                </p>
-            </div>
+        <div id="salary-section" class="salary-config-section">
 
             <!-- Search and Filter -->
-            <div class="salary-controls" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+            <div class="salary-controls">
                 <input type="text" id="salarySearchInput" placeholder="Tìm kiếm theo mã, tên nhân viên..." 
-                       style="flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;"
                        onkeyup="filterSalaryTable()">
                 <button class="btn-setup" onclick="loadSalaryDataMain()" style="white-space: nowrap;">
                     <i class='bx bx-refresh'></i> Tải lại
@@ -193,26 +52,26 @@ html {
             </div>
 
             <!-- Salary Table -->
-            <div class="salary-table-container-main" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div class="salary-table-container-main">
                 <div style="width: 100%; overflow: hidden;">
                     <table class="salary-table">
                         <thead>
-                            <tr style="background: #f9fafb;">
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">STT</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Nhân viên</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Loại lương</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Lương chính</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Làm thêm</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Thưởng</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Hoa hồng</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Phụ cấp</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Giảm trừ</th>
-                                <th style="text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Thao tác</th>
+                            <tr>
+                                <th>STT</th>
+                                <th>Nhân viên</th>
+                                <th>Loại lương</th>
+                                <th>Lương chính</th>
+                                <th>Làm thêm</th>
+                                <th>Thưởng</th>
+                                <th>Hoa hồng</th>
+                                <th>Phụ cấp</th>
+                                <th>Giảm trừ</th>
+                                <th>Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="salaryTableBodyMain">
                             <tr>
-                                <td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;">
+                                <td colspan="10" style="text-align: center; padding: 40px; color: var(--text-secondary, #6b7280);">
                                     <i class='bx bx-loader-alt bx-spin' style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
                                     Đang tải dữ liệu...
                                 </td>
@@ -379,45 +238,48 @@ html {
 }
 
 .salary-modal {
-    background: white;
+    background: var(--surface-elevated, #fff);
     width: 90%;
     max-width: 1400px;
     max-height: 85vh;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-2xl, 16px);
+    box-shadow: var(--shadow-xl, 0 10px 40px rgba(0, 0, 0, 0.2));
+    border: 1px solid var(--border-primary, var(--gray-200));
     display: flex;
     flex-direction: column;
 }
 
 .salary-modal-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: var(--space-5, 20px) var(--space-6, 24px);
+    border-bottom: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .salary-modal-header h2 {
     margin: 0;
-    font-size: 20px;
-    font-weight: 600;
-    color: #111827;
+    font-size: var(--text-xl, 20px);
+    font-weight: var(--font-semibold, 600);
+    color: var(--text-primary, var(--gray-900));
+    font-family: var(--font-family-display);
 }
 
 .close-btn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: var(--text-2xl, 24px);
     cursor: pointer;
-    color: #6b7280;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.2s;
+    color: var(--text-secondary, var(--gray-600));
+    padding: var(--space-1, 4px) var(--space-2, 8px);
+    border-radius: var(--radius-md, 6px);
+    transition: all var(--transition-base, 0.2s);
 }
 
 .close-btn:hover {
-    background: #f3f4f6;
-    color: #111827;
+    background: var(--gray-100, #f3f4f6);
+    color: var(--text-primary, var(--gray-900));
 }
 
 .salary-modal-body {
@@ -437,31 +299,33 @@ html {
 }
 
 .salary-table thead {
-    background: #f9fafb;
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
 .salary-table th {
-    padding: 12px 16px;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
     text-align: left;
-    font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--primary-300);
+    font-family: var(--font-family-primary);
 }
 
 .salary-table tbody tr {
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--border-primary, var(--gray-200));
 }
 
 .salary-table tbody tr:hover {
-    background: #f9fafb;
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .salary-table td {
-    padding: 12px 16px;
-    color: #111827;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    color: var(--text-primary, var(--gray-900));
 }
 
 .employee-info {
@@ -470,15 +334,7 @@ html {
     gap: 2px;
 }
 
-.employee-name {
-    font-weight: 500;
-    color: #111827;
-}
-
-.employee-code {
-    font-size: 12px;
-    color: #6b7280;
-}
+/* Employee name and code styles are now in setup-employee.css */
 
 .salary-type-info {
     display: flex;
@@ -486,35 +342,28 @@ html {
     gap: 2px;
 }
 
-.salary-amount {
-    font-weight: 500;
-    color: #111827;
-}
-
-.salary-type {
-    font-size: 12px;
-    color: #6b7280;
-}
+/* Salary amount and type styles are now in setup-employee.css */
 
 .add-btn {
     background: none;
-    border: 1px dashed #d1d5db;
-    color: #6b7280;
+    border: 1.5px dashed var(--border-primary);
+    color: var(--text-tertiary);
     width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
+    font-weight: var(--font-semibold);
 }
 
 .add-btn:hover {
-    border-color: #2563eb;
-    color: #2563eb;
-    background: #eff6ff;
+    border-color: var(--primary-500);
+    color: var(--primary-600);
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .value-display {
@@ -524,20 +373,21 @@ html {
 }
 
 .value-text {
-    font-weight: 500;
-    color: #111827;
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
 }
 
 .edit-icon {
     background: none;
     border: none;
-    color: #6b7280;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 4px;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
     opacity: 0;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
 }
 
 .value-display:hover .edit-icon {
@@ -545,30 +395,35 @@ html {
 }
 
 .edit-icon:hover {
-    background: #f3f4f6;
-    color: #2563eb;
+    background: var(--gray-100);
+    color: var(--primary-600);
 }
 
 .salary-modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid #e5e7eb;
+    padding: var(--space-4) var(--space-6);
+    border-top: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: flex-end;
 }
 
 .btn-done {
-    padding: 10px 24px;
-    background: #2563eb;
-    color: white;
+    padding: 0.625rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+    color: var(--color-white);
     border: none;
-    border-radius: 8px;
-    font-weight: 500;
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
+    box-shadow: 0 2px 8px rgba(0, 128, 255, 0.25);
+    font-family: var(--font-family-primary);
 }
 
 .btn-done:hover {
-    background: #1d4ed8;
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 128, 255, 0.35);
 }
 
 /* Edit Compensation Modal */
@@ -586,25 +441,29 @@ html {
 }
 
 .edit-comp-modal {
-    background: white;
+    background: var(--surface-elevated);
     width: 90%;
     max-width: 500px;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    border: 1.5px solid var(--border-primary);
 }
 
 .edit-comp-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: var(--space-5) var(--space-6);
+    border-bottom: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .edit-comp-header h3 {
     margin: 0;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-family: var(--font-family-display);
 }
 
 .edit-comp-body {
@@ -618,95 +477,105 @@ html {
 }
 
 .form-group label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #374151;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
 }
 
 .form-control {
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: all 0.2s;
+    padding: 0.625rem 0.75rem;
+    border: 1.5px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    background: var(--color-white);
+    transition: all var(--transition-fast);
+    font-family: var(--font-family-primary);
+}
+
+.form-control:hover {
+    border-color: var(--primary-300);
 }
 
 .form-control:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
+    background: var(--color-white);
 }
 
 .edit-comp-footer {
-    padding: 16px 24px;
-    border-top: 1px solid #e5e7eb;
+    padding: var(--space-4) var(--space-6);
+    border-top: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .btn-cancel {
-    padding: 10px 20px;
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    background: var(--color-white);
+    color: var(--text-primary);
+    border: 1.5px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
+    font-family: var(--font-family-primary);
 }
 
 .btn-cancel:hover {
-    background: #f3f4f6;
+    background: var(--gray-50);
+    border-color: var(--primary-300);
+    color: var(--primary-600);
 }
 
 .btn-save {
-    padding: 10px 20px;
-    background: #2563eb;
-    color: white;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+    color: var(--color-white);
     border: none;
-    border-radius: 8px;
-    font-weight: 500;
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
+    box-shadow: 0 2px 8px rgba(0, 128, 255, 0.25);
+    font-family: var(--font-family-primary);
 }
 
 .btn-save:hover {
-    background: #1d4ed8;
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 128, 255, 0.35);
 }
 
 .compensation-type-badge {
     display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
+    padding: var(--space-1, 4px) var(--space-2, 8px);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--text-xs, 12px);
+    font-weight: var(--font-semibold, 600);
 }
 
 .compensation-type-badge.fixed {
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--info-50, #eff6ff);
+    color: var(--info-700, #1d4ed8);
 }
 
 .compensation-type-badge.hybrid {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--success-50, #f0fdf4);
+    color: var(--success-700, #15803d);
 }
 
 .compensation-type-badge.pershift {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--warning-50, #fffbeb);
+    color: var(--warning-700, #b45309);
 }
 
-.btn-edit-salary {
-    transition: all 0.2s;
-}
-
-.btn-edit-salary:hover {
-    background: #1d4ed8 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-}
+/* .btn-edit-salary styles are now in setup-employee.css */
 
 .salary-row {
     transition: background-color 0.2s;
@@ -781,7 +650,6 @@ function testWithMockData() {
     }
 
     renderSalaryTable();
-    updateCounts();
 }
 
 function closeSalaryModal() {
@@ -841,7 +709,6 @@ function loadSalaryData() {
                 // Always render table if we have employees
                 if (employeesData.length > 0) {
                     renderSalaryTable();
-                    updateCounts();
                 } else {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">Không có nhân viên nào.</td></tr>';
                     if (debugStatus) {
@@ -1094,17 +961,6 @@ function saveCompField() {
     });
 }
 
-function updateCounts() {
-    const totalCount = employeesData.length;
-    const configuredCount = Object.keys(compensationsData).length;
-
-    document.getElementById('totalEmployeeCount').textContent = totalCount;
-    document.getElementById('salaryConfigCount').textContent = configuredCount;
-}
-
-function scrollToSalarySection() {
-    document.getElementById('salary-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
 
 // Load salary data for main table
 function loadSalaryDataMain() {
@@ -1116,7 +972,7 @@ function loadSalaryDataMain() {
             return;
         }
 
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;"><i class=\'bx bx-loader-alt bx-spin\' style="font-size: 24px; margin-bottom: 8px; display: block;"></i>Đang tải dữ liệu...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-secondary, #6b7280);"><i class=\'bx bx-loader-alt bx-spin\' style="font-size: 24px; margin-bottom: 8px; display: block;"></i>Đang tải dữ liệu...</td></tr>';
 
         const url = '${pageContext.request.contextPath}/compensation?action=getAllWithEmployees';
         console.log('Fetching from:', url);
@@ -1152,7 +1008,6 @@ function loadSalaryDataMain() {
 
                     console.log('Rendering table with', employeesData.length, 'employees');
                     renderSalaryTableMain();
-                    updateCounts();
                 } catch (parseError) {
                     console.error('JSON parse error:', parseError);
                     console.error('Response text:', text);
@@ -1178,7 +1033,7 @@ function renderSalaryTableMain() {
     tbody.innerHTML = '';
 
     if (employeesData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #6b7280;">Không có nhân viên nào.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-secondary, #6b7280);">Không có nhân viên nào.</td></tr>';
         return;
     }
 
@@ -1236,7 +1091,7 @@ function createSalaryRowMain(stt, employee, compensation) {
         badge.textContent = typeLabels[compensation.compensationType] || compensation.compensationType;
         tdType.appendChild(badge);
     } else {
-        tdType.innerHTML = '<span style="color: #9ca3af;">Chưa thiết lập</span>';
+        tdType.innerHTML = '<span class="status-not-set">Chưa thiết lập</span>';
     }
     tr.appendChild(tdType);
 
@@ -1264,7 +1119,7 @@ function createSalaryRowMain(stt, employee, compensation) {
     const tdAction = document.createElement('td');
     const editBtn = document.createElement('button');
     editBtn.className = 'btn-edit-salary';
-    editBtn.style.cssText = 'padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;';
+    // Styles are now in CSS class .btn-edit-salary
     editBtn.onclick = function() { openEditSalaryModal(employee.employeeCode); };
     
     const icon = document.createElement('i');
@@ -1280,7 +1135,7 @@ function createSalaryRowMain(stt, employee, compensation) {
 
 function renderMainSalaryMain(employeeCode, compensation) {
     if (!compensation || !compensation.compensationType) {
-        return '<button class="add-btn" onclick="openEditSalaryModal(\'' + escapeHtml(employeeCode) + '\')" style="background: none; border: 1px dashed #d1d5db; color: #6b7280; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 18px;">+</button>';
+        return '<button class="add-btn" onclick="openEditSalaryModal(\'' + escapeHtml(employeeCode) + '\')">+</button>';
     }
 
     let amount = '';
@@ -1316,23 +1171,22 @@ function renderCompFieldMain(employeeCode, fieldName, value, label, isPercentage
         btn.className = 'add-btn';
         btn.textContent = '+';
         btn.onclick = () => editCompensationField(employeeCode, fieldName, label, value);
-        btn.style.cssText = 'background: none; border: 1px dashed #d1d5db; color: #6b7280; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 18px;';
+        // Styles are now in CSS class .add-btn
         td.appendChild(btn);
     } else {
         const div = document.createElement('div');
         div.className = 'value-display';
-        div.style.cssText = 'display: flex; align-items: center; gap: 8px;';
 
         const span = document.createElement('span');
         span.className = 'value-text';
         span.textContent = isPercentage ? value + '%' : formatCurrency(value);
-        span.style.cssText = 'font-weight: 500; color: #111827;';
+        // Styles are now in CSS class .value-text
 
         const editBtn = document.createElement('button');
         editBtn.className = 'edit-icon';
         editBtn.innerHTML = '✎';
         editBtn.onclick = () => editCompensationField(employeeCode, fieldName, label, value);
-        editBtn.style.cssText = 'background: none; border: none; color: #6b7280; cursor: pointer; padding: 4px; border-radius: 4px; font-size: 14px; opacity: 0; transition: all 0.2s;';
+        // Styles are now in CSS class .edit-icon
         editBtn.onmouseover = () => editBtn.style.opacity = '1';
         editBtn.onmouseout = () => editBtn.style.opacity = '0';
 

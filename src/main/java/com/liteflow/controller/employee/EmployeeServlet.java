@@ -1,11 +1,22 @@
 package com.liteflow.controller.employee;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.liteflow.dao.BaseDAO;
 import com.liteflow.model.auth.Employee;
+import com.liteflow.model.auth.User;
+import com.liteflow.service.auth.UserService;
 import com.liteflow.service.employee.EmployeeService;
+import com.liteflow.util.PasswordUtil;
+import jakarta.persistence.EntityManager;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 // @WebServlet annotation removed - using web.xml mapping
 public class EmployeeServlet extends HttpServlet {
@@ -21,6 +32,13 @@ public class EmployeeServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
+            // Kiểm tra action export
+            String action = request.getParameter("action");
+            if ("export".equals(action)) {
+                exportExcel(request, response);
+                return;
+            }
+            
             // Kiểm tra employeeService
             if (employeeService == null) {
                 employeeService = new EmployeeService();
@@ -28,6 +46,73 @@ public class EmployeeServlet extends HttpServlet {
             
             // Lấy danh sách employees
             List<Employee> employees = employeeService.getAllEmployees();
+            
+            // Tạo Map để lưu mật khẩu gốc (plainPassword) từ Meta field của User
+            Map<String, String> passwordMap = new HashMap<>();
+            if (employees != null && !employees.isEmpty() && BaseDAO.emf != null) {
+                EntityManager em = BaseDAO.emf.createEntityManager();
+                try {
+                    // Query tất cả Meta cùng lúc bằng JOIN để lấy plainPassword
+                    String jpql = "SELECT e.employeeCode, u.meta " +
+                                 "FROM Employee e " +
+                                 "LEFT JOIN e.user u " +
+                                 "WHERE e.employeeCode IN :codes";
+                    
+                    List<String> employeeCodes = new java.util.ArrayList<>();
+                    for (Employee emp : employees) {
+                        if (emp.getEmployeeCode() != null) {
+                            employeeCodes.add(emp.getEmployeeCode());
+                        }
+                    }
+                    
+                    if (!employeeCodes.isEmpty()) {
+                        jakarta.persistence.Query query = em.createQuery(jpql);
+                        query.setParameter("codes", employeeCodes);
+                        @SuppressWarnings("unchecked")
+                        List<Object[]> results = query.getResultList();
+                        
+                        ObjectMapper mapper = new ObjectMapper();
+                        
+                        for (Object[] result : results) {
+                            String code = (String) result[0];
+                            String metaJson = result[1] != null ? (String) result[1] : null;
+                            String plainPassword = "";
+                            
+                            if (metaJson != null && !metaJson.trim().isEmpty()) {
+                                try {
+                                    JsonNode node = mapper.readTree(metaJson);
+                                    JsonNode passwordNode = node.get("plainPassword");
+                                    if (passwordNode != null) {
+                                        plainPassword = passwordNode.asText("");
+                                    }
+                                } catch (Exception e) {
+                                    // Nếu không parse được JSON, để trống
+                                }
+                            }
+                            
+                            passwordMap.put(code, plainPassword);
+                        }
+                    }
+                    
+                    // Đảm bảo tất cả employees đều có entry trong map
+                    for (Employee emp : employees) {
+                        if (emp.getEmployeeCode() != null && !passwordMap.containsKey(emp.getEmployeeCode())) {
+                            passwordMap.put(emp.getEmployeeCode(), "");
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Error loading passwords: " + e.getMessage());
+                    e.printStackTrace();
+                    // Fallback: set empty password cho tất cả
+                    for (Employee emp : employees) {
+                        if (emp.getEmployeeCode() != null) {
+                            passwordMap.put(emp.getEmployeeCode(), "");
+                        }
+                    }
+                } finally {
+                    em.close();
+                }
+            }
             
             // Lấy thống kê
             EmployeeService.EmployeeStatistics stats = employeeService.getEmployeeStatistics();
@@ -47,6 +132,7 @@ public class EmployeeServlet extends HttpServlet {
             // Gửi sang JSP
             request.setAttribute("employees", employees);
             request.setAttribute("stats", stats);
+            request.setAttribute("passwordMap", passwordMap);
             request.getRequestDispatcher("/employee/employeeList.jsp").forward(request, response);
             
         } catch (Exception e) {
@@ -103,24 +189,12 @@ public class EmployeeServlet extends HttpServlet {
     private void handleCreateEmployee(HttpServletRequest request, HttpServletResponse response) {
         System.out.println("=== DEBUG: Creating Employee ===");
         
-        String employeeCode = request.getParameter("employeeCode");
         String fullName = request.getParameter("fullName");
-        String nationalID = request.getParameter("nationalID");
         String phone = request.getParameter("phone");
         String email = request.getParameter("email");
-        String position = request.getParameter("position");
-        String gender = request.getParameter("gender");
-        String address = request.getParameter("address");
-
-        System.out.println("Employee Code: " + employeeCode);
-        System.out.println("Full Name: " + fullName);
+        String password = request.getParameter("password");
 
         // Validation
-        if (employeeCode == null || employeeCode.trim().isEmpty()) {
-            request.setAttribute("error", "Mã nhân viên không được để trống");
-            return;
-        }
-
         if (fullName == null || fullName.trim().isEmpty()) {
             request.setAttribute("error", "Họ tên không được để trống");
             return;
@@ -131,26 +205,129 @@ public class EmployeeServlet extends HttpServlet {
             return;
         }
 
-        // Create employee
-        Employee employee = new Employee();
-        employee.setEmployeeCode(employeeCode.trim());
-        employee.setFullName(fullName.trim());
-        employee.setNationalID(nationalID != null ? nationalID.trim() : null);
-        employee.setPhone(phone.trim());
-        employee.setEmail(email != null ? email.trim() : null);
-        employee.setPosition(position != null ? position.trim() : null);
-        employee.setGender(gender != null ? gender.trim() : null);
-        employee.setAddress(address != null ? address.trim() : null);
-        employee.setEmploymentStatus("Đang làm");
+        if (email == null || email.trim().isEmpty()) {
+            request.setAttribute("error", "Email không được để trống");
+            return;
+        }
 
-        boolean success = employeeService.createEmployee(employee);
-        
-        if (success) {
-            request.setAttribute("success", "Thêm nhân viên thành công!");
-            System.out.println("✅ Thêm nhân viên thành công: " + fullName);
-        } else {
-            request.setAttribute("error", "Có lỗi xảy ra khi thêm nhân viên");
-            System.out.println("❌ Lỗi khi thêm nhân viên: " + fullName);
+        if (password == null || password.trim().isEmpty() || password.length() < 8) {
+            request.setAttribute("error", "Mật khẩu phải có ít nhất 8 ký tự");
+            return;
+        }
+
+        email = email.trim().toLowerCase();
+        phone = phone.trim();
+        fullName = fullName.trim();
+
+        try {
+            UserService userService = new UserService();
+            
+            // Kiểm tra email đã tồn tại chưa
+            if (userService.findByEmail(email) != null) {
+                request.setAttribute("error", "Email đã được sử dụng. Vui lòng chọn email khác.");
+                return;
+            }
+
+            // Kiểm tra phone đã tồn tại chưa
+            if (userService.findByPhone(phone) != null) {
+                request.setAttribute("error", "Số điện thoại đã được sử dụng. Vui lòng chọn số khác.");
+                return;
+            }
+
+            // Tạo User trước
+            User user = new User();
+            user.setUserID(UUID.randomUUID());
+            user.setEmail(email);
+            user.setPhone(phone);
+            user.setDisplayName(fullName);
+            // Hash mật khẩu
+            String passwordHash = PasswordUtil.hash(password, 12);
+            user.setPasswordHash(passwordHash);
+            // Lưu mật khẩu gốc vào Meta để hiển thị sau
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                ObjectNode metaJson = mapper.createObjectNode();
+                metaJson.put("plainPassword", password);
+                user.setMeta(mapper.writeValueAsString(metaJson));
+            } catch (Exception e) {
+                System.err.println("⚠️ Warning: Could not save plain password to meta: " + e.getMessage());
+            }
+            user.setIsActive(true);
+
+            boolean userCreated = userService.createUser(user);
+            if (!userCreated) {
+                request.setAttribute("error", "Không thể tạo tài khoản người dùng");
+                return;
+            }
+
+            // Gán role Employee cho User
+            try {
+                String clientIp = request.getRemoteAddr();
+                userService.assignRole(user.getUserID(), "Employee", clientIp);
+            } catch (Exception e) {
+                System.err.println("⚠️ Warning: Could not assign Employee role: " + e.getMessage());
+                // Tiếp tục tạo Employee dù không gán được role
+            }
+
+            // Tự động sinh employeeCode
+            String employeeCode = generateEmployeeCode();
+            
+            // Tạo Employee
+            Employee employee = new Employee();
+            employee.setEmployeeCode(employeeCode);
+            employee.setFullName(fullName);
+            employee.setPhone(phone);
+            employee.setEmail(email);
+            employee.setUser(user);
+            employee.setEmploymentStatus("Đang làm");
+
+            boolean employeeCreated = employeeService.createEmployee(employee);
+            
+            if (employeeCreated) {
+                request.setAttribute("success", "Thêm nhân viên thành công! Mã nhân viên: " + employeeCode);
+                System.out.println("✅ Thêm nhân viên thành công: " + fullName + " (Code: " + employeeCode + ")");
+            } else {
+                // Rollback: xóa User nếu không tạo được Employee
+                // Note: Có thể cần thêm logic xóa User nếu cần
+                request.setAttribute("error", "Tạo tài khoản thành công nhưng không thể tạo thông tin nhân viên");
+                System.out.println("❌ Lỗi khi tạo Employee sau khi đã tạo User: " + fullName);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi tạo nhân viên: " + e.getMessage());
+            e.printStackTrace();
+            request.setAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tự động sinh mã nhân viên (EMP001, EMP002, ...)
+     */
+    private String generateEmployeeCode() {
+        try {
+            List<Employee> allEmployees = employeeService.getAllEmployees();
+            int maxNumber = 0;
+            
+            for (Employee emp : allEmployees) {
+                String code = emp.getEmployeeCode();
+                if (code != null && code.startsWith("EMP")) {
+                    try {
+                        String numberPart = code.substring(3);
+                        int number = Integer.parseInt(numberPart);
+                        if (number > maxNumber) {
+                            maxNumber = number;
+                        }
+                    } catch (NumberFormatException e) {
+                        // Bỏ qua nếu không parse được
+                    }
+                }
+            }
+            
+            maxNumber++;
+            return String.format("EMP%03d", maxNumber);
+        } catch (Exception e) {
+            System.err.println("⚠️ Error generating employee code: " + e.getMessage());
+            // Fallback: sử dụng timestamp
+            return "EMP" + System.currentTimeMillis() % 10000;
         }
     }
 
@@ -229,5 +406,110 @@ public class EmployeeServlet extends HttpServlet {
     private void handleDeleteEmployee(HttpServletRequest request, HttpServletResponse response) {
         // Implementation for delete
         System.out.println("Delete employee functionality");
+    }
+
+    /**
+     * Export Employees to Excel
+     */
+    private void exportExcel(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            // Get all employees
+            List<Employee> employees = employeeService.getAllEmployees();
+            
+            if (employees == null || employees.isEmpty()) {
+                response.setContentType("application/json");
+                response.getWriter().write("{\"success\": false, \"message\": \"Không có dữ liệu để xuất\"}");
+                return;
+            }
+            
+            // Create Excel workbook
+            org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("Nhân viên");
+            
+            // Create header row
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+            String[] headers = {"Mã nhân viên", "Họ tên", "Số điện thoại", "Email", "Giới tính", 
+                              "Ngày sinh", "Ngày vào làm", "Chức vụ", "Trạng thái", "Địa chỉ", 
+                              "CMND/CCCD", "Tài khoản ngân hàng", "Tên ngân hàng"};
+            
+            org.apache.poi.ss.usermodel.CellStyle headerStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            
+            // Fill data rows
+            int rowNum = 1;
+            for (Employee emp : employees) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowNum++);
+                
+                row.createCell(0).setCellValue(emp.getEmployeeCode() != null ? emp.getEmployeeCode() : "");
+                row.createCell(1).setCellValue(emp.getFullName() != null ? emp.getFullName() : "");
+                row.createCell(2).setCellValue(emp.getPhone() != null ? emp.getPhone() : "");
+                row.createCell(3).setCellValue(emp.getEmail() != null ? emp.getEmail() : "");
+                row.createCell(4).setCellValue(emp.getGender() != null ? emp.getGender() : "");
+                
+                // Format dates
+                if (emp.getBirthDate() != null) {
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    row.createCell(5).setCellValue(emp.getBirthDate().format(formatter));
+                } else {
+                    row.createCell(5).setCellValue("");
+                }
+                
+                if (emp.getHireDate() != null) {
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    row.createCell(6).setCellValue(emp.getHireDate().format(formatter));
+                } else {
+                    row.createCell(6).setCellValue("");
+                }
+                
+                row.createCell(7).setCellValue(emp.getPosition() != null ? emp.getPosition() : "");
+                row.createCell(8).setCellValue(emp.getEmploymentStatus() != null ? emp.getEmploymentStatus() : "");
+                row.createCell(9).setCellValue(emp.getAddress() != null ? emp.getAddress() : "");
+                row.createCell(10).setCellValue(emp.getNationalID() != null ? emp.getNationalID() : "");
+                row.createCell(11).setCellValue(emp.getBankAccount() != null ? emp.getBankAccount() : "");
+                row.createCell(12).setCellValue(emp.getBankName() != null ? emp.getBankName() : "");
+            }
+            
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            // Write workbook to byte array
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            workbook.write(outputStream);
+            byte[] excelData = outputStream.toByteArray();
+            workbook.close();
+            outputStream.close();
+            
+            // Generate filename with date
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss");
+            String filename = "danh_sach_nhan_vien_" + sdf.format(new java.util.Date()) + ".xlsx";
+            
+            // Set response headers
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+            response.setContentLength(excelData.length);
+            
+            // Write Excel data to response
+            java.io.OutputStream out = response.getOutputStream();
+            out.write(excelData);
+            out.flush();
+            out.close();
+
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi xuất Excel: " + e.getMessage());
+            e.printStackTrace();
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi khi xuất file: " + e.getMessage() + "\"}");
+        }
     }
 }

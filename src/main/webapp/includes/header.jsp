@@ -165,18 +165,10 @@
         <span class="nav-brand-name">LiteFlow</span>
       </a>
       <nav class="top-header-nav">
-        <a href="#"><i class='bx bx-dollar'></i> Thanh toán</a>
-        <a href="#"><i class='bx bx-dollar'></i> Vay vốn</a>
-        <a href="#"><i class='bx bx-file'></i> Hoá đơn điện tử</a>
-        <a href="#"><i class='bx bx-palette'></i> Chủ đề</a>
-        <a href="#"><i class='bx bx-help-circle'></i> Hỗ trợ</a>
-        <a href="#"><i class='bx bx-map-pin'></i> Chi nhánh trung tâm</a>
+        <div class="top-header-banner">Where small shops run smarter</div>
       </nav>
       <div class="top-header-right">
-        <div class="language-selector">
-          <span> (VN)</span>
-          <i class='bx bx-chevron-down'></i>
-        </div>
+        
         <div class="header-icons">
           <!-- Notification Bell - Hidden for Employee role -->
           <c:if test="${!isEmployee}">

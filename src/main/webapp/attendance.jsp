@@ -24,23 +24,23 @@ body, html {
 <div class="schedule-container">
   <div class="schedule-header">
     <h1>Bảng chấm công</h1>
-    <div class="header-actions" style="display:flex; align-items:center; gap:12px; flex-wrap:nowrap;">
-      <form method="get" action="${pageContext.request.contextPath}/attendance" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap; background:#fff; padding:8px 12px; border:1px solid #e5e7eb; border-radius:10px;">
+    <div class="header-actions">
+      <form method="get" action="${pageContext.request.contextPath}/attendance" class="employee-filter-form">
         <input type="hidden" name="weekStart" value="${currentWeekStart}" />
-        <select name="employeeCode" style="width:220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px;">
+        <select name="employeeCode" class="employee-select">
           <option value="">Chọn nhân viên</option>
           <c:forEach var="e" items="${employees}">
             <option value="${e.employeeCode}" <c:if test='${selectedEmployeeCode == e.employeeCode}'>selected</c:if>>${e.employeeCode} - ${e.fullName}</option>
           </c:forEach>
         </select>
-        <button type="submit" class="btn btn-primary" title="Tìm kiếm" style="display:flex; align-items:center; justify-content:center; width:40px; height:36px; padding:0;">
+        <button type="submit" class="btn btn-primary btn-icon" title="Tìm kiếm">
           <i class='bx bx-search'></i>
         </button>
-        <a href="${pageContext.request.contextPath}/attendance?weekStart=${currentWeekStart}" class="btn btn-light" title="Hủy lọc" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0;">
+        <a href="${pageContext.request.contextPath}/attendance?weekStart=${currentWeekStart}" class="btn btn-light btn-icon" title="Hủy lọc">
           <i class='bx bx-filter-alt-off'></i>
         </a>
       </form>
-      <div class="schedule-toolbar" style="margin: 0 12px 0 0;">
+      <div class="schedule-toolbar">
         <div class="week-chip" id="weekChip">
           <a class="chip-btn prev" href="${pageContext.request.contextPath}/attendance?weekStart=${prevWeekStart}${filterQuery}"><i class='bx bx-chevron-left'></i></a>
           <button type="button" class="chip-label">${controlLabel}</button>
@@ -111,7 +111,7 @@ body, html {
                             </c:choose>
                             
                             <div class="shift-block" title="${item.employee}"
-                              style="background:${blockBg}; border:1px solid ${blockBorder}; padding:8px;"
+                              style="background:${blockBg}; border:1px solid ${blockBorder}; padding:8px; width:100%; max-width:100%; box-sizing:border-box; overflow:hidden;"
                               data-employee="${item.employee}"
                               data-employee-code="${item.employeeCode}"
                               data-status="${item.status}"
@@ -128,42 +128,42 @@ body, html {
                               data-is-early-leave="${item.isEarlyLeave}">
                               
                               <!-- 1. Tên nhân viên -->
-                              <div class="shift-emp" style="font-weight:600; font-size:13px; margin-bottom:4px;">${item.employee}</div>
+                              <div class="shift-emp" style="font-weight:600; font-size:13px; margin-bottom:4px; word-wrap:break-word; overflow-wrap:break-word; max-width:100%;">${item.employee}</div>
                               
-                              <!-- 2. Thời gian check-in/out -->
-                              <c:if test="${not empty item.checkInAt}">
-                                <div class="shift-time" style="color:#374151; font-size:11px; font-weight:500; margin-bottom:4px;">
-                                  <i class='bx bx-time' style="font-size:12px;"></i> ${item.checkInAt} - ${item.checkOutAt}
-                                </div>
-                              </c:if>
-                              
-                              <!-- 3. Ghi chú -->
-                              <c:if test="${not empty item.notes}">
-                                <div class="shift-notes" style="color:#6b7280; font-size:10px; font-style:italic; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                  <i class='bx bx-note' style="font-size:11px;"></i> ${item.notes}
-                                </div>
-                              </c:if>
-                              
-                              <!-- 4. Trạng thái -->
-                              <div class="shift-status" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
+                              <!-- 2. Trạng thái (di chuyển lên dưới tên) -->
+                              <div class="shift-status" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center; max-width:100%; overflow:hidden; box-sizing:border-box; margin-bottom:4px;">
                                 <c:choose>
                                   <c:when test="${attStatus == 'Work' || attStatus == 'Approved'}">
-                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#166534;border:1px solid rgba(134,239,172,0.5);font-size:10px;padding:2px 5px;">Đi làm</span>
+                                    <span class="badge" data-status="work" style="background:#ffffff;color:#166534;border:1px solid #86efac;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.1);">Đi làm</span>
                                   </c:when>
                                   <c:when test="${attStatus == 'LeavePaid'}">
-                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#075985;border:1px solid rgba(186,230,253,0.5);font-size:10px;padding:2px 5px;">Nghỉ có phép</span>
+                                    <span class="badge" data-status="leave-paid" style="background:#ffffff;color:#075985;border:1px solid #bae6fd;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.1);">Nghỉ có phép</span>
                                   </c:when>
                                   <c:when test="${attStatus == 'LeaveUnpaid'}">
-                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#991b1b;border:1px solid rgba(254,202,202,0.5);font-size:10px;padding:2px 5px;">Nghỉ không phép</span>
+                                    <span class="badge" data-status="leave-unpaid" style="background:#ffffff;color:#991b1b;border:1px solid #fecaca;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.1);">Nghỉ không phép</span>
                                   </c:when>
                                   <c:otherwise>
-                                    <span class="badge" style="background:rgba(255,255,255,0.7);color:#854d0e;border:1px solid rgba(253,230,138,0.5);font-size:10px;padding:2px 5px;">Chưa xác định</span>
+                                    <span class="badge" data-status="unknown" style="background:#ffffff;color:#854d0e;border:1px solid #fde68a;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.1);">Chưa xác định</span>
                                   </c:otherwise>
                                 </c:choose>
                               </div>
                               
+                              <!-- 3. Thời gian check-in/out -->
+                              <c:if test="${not empty item.checkInAt}">
+                                <div class="shift-time" style="color:#374151; font-size:11px; font-weight:500; margin-bottom:4px; word-wrap:break-word; overflow-wrap:break-word; max-width:100%;">
+                                  <i class='bx bx-time' style="font-size:12px;"></i> ${item.checkInAt} - ${item.checkOutAt}
+                                </div>
+                              </c:if>
+                              
+                              <!-- 4. Ghi chú -->
+                              <c:if test="${not empty item.notes}">
+                                <div class="shift-notes" style="color:#6b7280; font-size:10px; font-style:italic; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;">
+                                  <i class='bx bx-note' style="font-size:11px;"></i> ${item.notes}
+                                </div>
+                              </c:if>
+                              
                               <!-- Status flags with calculated time diff (will be filled by JS) -->
-                              <div class="shift-flags" style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; font-size:9px;"></div>
+                              <div class="shift-flags" style="display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; font-size:9px; max-width:100%; overflow:hidden; box-sizing:border-box;"></div>
                             </div>
                           </c:forEach>
                         </c:otherwise>
