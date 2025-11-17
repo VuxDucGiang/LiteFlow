@@ -386,6 +386,11 @@
                         <textarea id="editAddress" name="address" rows="3"></textarea>
                     </div>
                     
+                    <div class="form-group">
+                        <label for="editTaxCode">Mã số thuế</label>
+                        <input type="text" id="editTaxCode" name="taxCode" placeholder="Nhập mã số thuế">
+                    </div>
+                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="editRating">Đánh giá (1-5)</label>
@@ -442,6 +447,10 @@
                             <div class="detail-item">
                                 <label>Số điện thoại:</label>
                                 <span id="detailPhone">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Mã số thuế:</label>
+                                <span id="detailTaxCode">-</span>
                             </div>
                             <div class="detail-item full-width">
                                 <label>Địa chỉ:</label>
@@ -534,6 +543,11 @@
                     <div class="form-group">
                         <label for="addAddress">Địa chỉ</label>
                         <textarea id="addAddress" name="address" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="addTaxCode">Mã số thuế</label>
+                        <input type="text" id="addTaxCode" name="taxCode" placeholder="Nhập mã số thuế">
                     </div>
                     
                     <div class="form-row">
@@ -901,31 +915,92 @@
         function editSupplier(supplierId) {
             console.log('Edit supplier:', supplierId);
             
-            // Find supplier data from table
-            const supplierData = findSupplierInTable(supplierId);
-            
-            if (!supplierData) {
-                alert('Không tìm thấy thông tin nhà cung cấp');
-                return;
-            }
-            
-            currentSupplierData = supplierData;
-            showEditModal(supplierData);
+            // Fetch full supplier data from server (to get taxCode)
+            fetchSupplierById(supplierId)
+                .then(supplierData => {
+                    if (supplierData) {
+                        currentSupplierData = supplierData;
+                        showEditModal(supplierData);
+                    } else {
+                        alert('Không tìm thấy thông tin nhà cung cấp');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching supplier:', error);
+                    // Fallback to table data if fetch fails
+                    const supplierData = findSupplierInTable(supplierId);
+                    if (supplierData) {
+                        currentSupplierData = supplierData;
+                        showEditModal(supplierData);
+                    } else {
+                        alert('Không tìm thấy thông tin nhà cung cấp');
+                    }
+                });
         }
         
         function viewDetails(supplierId) {
             console.log('View details for supplier:', supplierId);
             
-            // Find supplier data from table
-            const supplierData = findSupplierInTable(supplierId);
+            // Fetch full supplier data from server (to get taxCode)
+            fetchSupplierById(supplierId)
+                .then(supplierData => {
+                    if (supplierData) {
+                        currentSupplierData = supplierData;
+                        showDetailsModal(supplierData);
+                    } else {
+                        alert('Không tìm thấy thông tin nhà cung cấp');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching supplier:', error);
+                    // Fallback to table data if fetch fails
+                    const supplierData = findSupplierInTable(supplierId);
+                    if (supplierData) {
+                        currentSupplierData = supplierData;
+                        showDetailsModal(supplierData);
+                    } else {
+                        alert('Không tìm thấy thông tin nhà cung cấp');
+                    }
+                });
+        }
+        
+        /**
+         * Fetch supplier data from server by ID
+         * Returns Promise with supplier data object
+         */
+        function fetchSupplierById(supplierId) {
+            const contextPath = '${pageContext.request.contextPath}';
+            const url = contextPath + '/procurement/supplier?id=' + encodeURIComponent(supplierId) + '&format=json';
             
-            if (!supplierData) {
-                alert('Không tìm thấy thông tin nhà cung cấp');
-                return;
-            }
-            
-            currentSupplierData = supplierData;
-            showDetailsModal(supplierData);
+            return fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success && result.data) {
+                    return {
+                        id: result.data.id,
+                        name: result.data.name || '',
+                        contact: result.data.contact || '',
+                        email: result.data.email || '',
+                        phone: result.data.phone || '',
+                        address: result.data.address || '',
+                        taxCode: result.data.taxCode || '',
+                        rating: result.data.rating || 0,
+                        onTimeRate: result.data.onTimeRate || 0,
+                        isActive: result.data.isActive || false
+                    };
+                }
+                return null;
+            });
         }
 
         function findSupplierInTable(supplierId) {
@@ -970,6 +1045,7 @@
             document.getElementById('editEmail').value = supplierData.email || '';
             document.getElementById('editPhone').value = supplierData.phone || '';
             document.getElementById('editAddress').value = supplierData.address || '';
+            document.getElementById('editTaxCode').value = supplierData.taxCode || '';
             document.getElementById('editRating').value = supplierData.rating || 0;
             document.getElementById('editOnTimeRate').value = supplierData.onTimeRate || 0;
             document.getElementById('editIsActive').checked = supplierData.isActive;
@@ -989,6 +1065,7 @@
             document.getElementById('detailContact').textContent = supplierData.contact || 'Chưa cập nhật';
             document.getElementById('detailEmail').textContent = supplierData.email || 'Chưa cập nhật';
             document.getElementById('detailPhone').textContent = supplierData.phone || 'Chưa cập nhật';
+            document.getElementById('detailTaxCode').textContent = supplierData.taxCode || 'Chưa cập nhật';
             document.getElementById('detailAddress').textContent = supplierData.address || 'Chưa cập nhật';
             
             // Rating with stars
@@ -1070,6 +1147,7 @@
                 email: document.getElementById('addEmail').value,
                 phone: document.getElementById('addPhone').value,
                 address: document.getElementById('addAddress').value,
+                taxCode: document.getElementById('addTaxCode').value,
                 rating: parseFloat(document.getElementById('addRating').value) || 0,
                 onTimeRate: parseFloat(document.getElementById('addOnTimeRate').value) || 0,
                 isActive: document.getElementById('addIsActive').checked
@@ -1162,6 +1240,7 @@
                 email: document.getElementById('editEmail').value,
                 phone: document.getElementById('editPhone').value,
                 address: document.getElementById('editAddress').value,
+                taxCode: document.getElementById('editTaxCode').value,
                 rating: parseFloat(document.getElementById('editRating').value) || 0,
                 onTimeRate: parseFloat(document.getElementById('editOnTimeRate').value) || 0,
                 isActive: document.getElementById('editIsActive').checked

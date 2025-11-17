@@ -29,6 +29,7 @@ CREATE TABLE Suppliers (
     Email NVARCHAR(150),
     Phone NVARCHAR(50),
     Address NVARCHAR(250),
+    TaxCode NVARCHAR(50) NULL,
     Rating DECIMAL(3,2) DEFAULT 0,
     OnTimeRate DECIMAL(5,2) DEFAULT 0,
     DefectRate DECIMAL(5,2) DEFAULT 0,

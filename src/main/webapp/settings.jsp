@@ -80,6 +80,13 @@
                 </a>
             </c:if>
             
+            <c:if test="${canAccessAI}">
+                <a href="#company-info" class="sidebar-item" data-section="company-info">
+                    <i class='bx bx-building'></i>
+                    <span class="sidebar-item-text">Thông tin công ty</span>
+                </a>
+            </c:if>
+            
             <!-- Placeholder for future menu items -->
             <!--
             <a href="#system" class="sidebar-item" data-section="system">
@@ -286,6 +293,90 @@
                 </section>
             </c:if>
             
+            <!-- Company Info Section -->
+            <c:if test="${canAccessAI}">
+                <section id="company-info-section" class="settings-section">
+                    <div class="section-header">
+                        <h1><i class='bx bx-building'></i> Thông tin công ty</h1>
+                        <p class="section-description">Quản lý thông tin công ty LiteFlow (Mã số thuế được lấy từ file .env)</p>
+                    </div>
+                    
+                    <div class="company-info-container">
+                        <div class="company-info-card">
+                            <form id="companyInfoForm" class="company-info-form">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">
+                                        <i class='bx bx-info-circle'></i> Thông tin cơ bản
+                                    </h3>
+                                    
+                                    <div class="form-group">
+                                        <label for="companyName">
+                                            Tên công ty 
+                                            <span class="required">*</span>
+                                        </label>
+                                        <input type="text" id="companyName" name="name" required 
+                                               placeholder="Nhập tên công ty" class="form-input">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="companyAddress">Địa chỉ</label>
+                                        <textarea id="companyAddress" name="address" rows="3" 
+                                                  placeholder="Nhập địa chỉ công ty" class="form-input"></textarea>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="companyPhone">Số điện thoại</label>
+                                            <input type="text" id="companyPhone" name="phone" 
+                                                   placeholder="Nhập số điện thoại" class="form-input">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="companyEmail">Email</label>
+                                            <input type="email" id="companyEmail" name="email" 
+                                                   placeholder="Nhập email" class="form-input">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-section">
+                                    <h3 class="form-section-title">
+                                        <i class='bx bx-file-blank'></i> Thông tin thuế
+                                    </h3>
+                                    
+                                    <div class="form-group readonly-field">
+                                        <label for="companyTaxCode">
+                                            Mã số thuế
+                                            <span class="readonly-badge">
+                                                <i class='bx bx-lock-alt'></i> Chỉ đọc - từ file .env
+                                            </span>
+                                        </label>
+                                        <input type="text" id="companyTaxCode" name="taxCode" readonly 
+                                               placeholder="Mã số thuế sẽ được lấy từ file .env" 
+                                               class="form-input readonly-input">
+                                        <div class="form-hint">
+                                            <i class='bx bx-info-circle'></i>
+                                            Mã số thuế được cấu hình trong file <code>.env</code> với key <code>MaSoThue:</code>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="button" id="cancelCompanyInfoBtn" class="btn btn-outline">
+                                        <i class='bx bx-x'></i> Hủy
+                                    </button>
+                                    <button type="submit" id="saveCompanyInfoBtn" class="btn btn-primary">
+                                        <i class='bx bx-save'></i> Lưu thông tin
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <div id="companyInfoMessage" class="message-box" style="display: none;"></div>
+                        </div>
+                    </div>
+                </section>
+            </c:if>
+            
             <!-- Empty State Section (if no accessible settings) -->
             <c:if test="${!canAccessAI}">
                 <section id="empty-section" class="settings-section active">
@@ -317,6 +408,7 @@
 <!-- JavaScript -->
 <script src="${pageContext.request.contextPath}/js/settings.js"></script>
 <script src="${pageContext.request.contextPath}/js/ai-agent-config.js"></script>
+<script src="${pageContext.request.contextPath}/js/company-info.js"></script>
 
 </body>
 </html>

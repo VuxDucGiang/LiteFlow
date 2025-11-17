@@ -2,7 +2,9 @@ package com.liteflow.service.procurement;
 
 import com.liteflow.dao.procurement.*;
 import com.liteflow.model.procurement.*;
+import com.liteflow.util.MailUtil;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -414,6 +416,54 @@ public class ProcurementService {
                 System.err.println("⚠️ Warning: PO approval notification failed (approval still successful): " + e.getMessage());
                 e.printStackTrace();
             }
+            
+            // Send email to supplier
+            try {
+                // Get supplier information
+                Supplier supplier = getSupplierById(po.getSupplierID());
+                if (supplier == null) {
+                    System.err.println("⚠️ Warning: Supplier not found for PO " + poid + " - email not sent");
+                } else if (supplier.getEmail() == null || supplier.getEmail().trim().isEmpty()) {
+                    System.err.println("⚠️ Warning: Supplier '" + supplier.getName() + "' has no email address - email not sent");
+                } else {
+                    // Get purchase order items
+                    List<PurchaseOrderItem> items = itemDAO.findByPOID(poid);
+                    
+                    // Format dates
+                    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                    String createDateStr = po.getCreateDate() != null ? 
+                        po.getCreateDate().format(dateFormatter) : "N/A";
+                    String expectedDeliveryStr = po.getExpectedDelivery() != null ? 
+                        po.getExpectedDelivery().format(dateFormatter) : "N/A";
+                    
+                    // Format PO ID (UUID to string)
+                    String poIdStr = po.getPoid().toString();
+                    
+                    // Get total amount
+                    double totalAmount = po.getTotalAmount() != null ? po.getTotalAmount() : 0.0;
+                    
+                    // Get notes
+                    String notes = po.getNotes();
+                    
+                    // Send email
+                    MailUtil.sendPurchaseOrderEmail(
+                        supplier.getEmail(),
+                        supplier.getName(),
+                        poIdStr,
+                        createDateStr,
+                        expectedDeliveryStr,
+                        totalAmount,
+                        notes,
+                        items
+                    );
+                    
+                    System.out.println("✅ Purchase order email sent to supplier: " + supplier.getEmail() + " for PO: " + poIdStr);
+                }
+            } catch (Exception e) {
+                // Don't fail approval if email fails
+                System.err.println("⚠️ Warning: Failed to send purchase order email (approval still successful): " + e.getMessage());
+                e.printStackTrace();
+            }
         }
         
         return updated;
@@ -511,6 +561,9 @@ public class ProcurementService {
             int totalReceived = 0;
             int totalOrdered = 0;
             
+            // List to collect missing items for email notification
+            List<Map<String, Object>> missingItems = new ArrayList<>();
+            
             // Create GoodsReceiptItems and update inventory
             com.liteflow.dao.inventory.InventoryDAO inventoryDAO = new com.liteflow.dao.inventory.InventoryDAO();
             
@@ -570,6 +623,14 @@ public class ProcurementService {
                 
                 if (totalReceivedForItem < orderedQty) {
                     allFull = false;
+                    
+                    // Add to missing items list for email notification
+                    Map<String, Object> missingItem = new HashMap<>();
+                    missingItem.put("itemName", itemName);
+                    missingItem.put("orderedQty", orderedQty);
+                    missingItem.put("receivedQty", totalReceivedForItem);
+                    missingItem.put("missingQty", orderedQty - totalReceivedForItem);
+                    missingItems.add(missingItem);
                 }
                 
                 // Find matching POItem
@@ -722,6 +783,45 @@ public class ProcurementService {
             
             em.getTransaction().commit();
             
+            // Send email notification if there are missing items
+            if (!missingItems.isEmpty()) {
+                try {
+                    // Get supplier information
+                    Supplier supplier = getSupplierById(po.getSupplierID());
+                    if (supplier == null) {
+                        System.err.println("⚠️ Warning: Supplier not found for PO " + poid + " - missing goods email not sent");
+                    } else if (supplier.getEmail() == null || supplier.getEmail().trim().isEmpty()) {
+                        System.err.println("⚠️ Warning: Supplier '" + supplier.getName() + "' has no email address - missing goods email not sent");
+                    } else {
+                        // Format dates
+                        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                        String createDateStr = po.getCreateDate() != null ? 
+                            po.getCreateDate().format(dateFormatter) : "N/A";
+                        String expectedDeliveryStr = po.getExpectedDelivery() != null ? 
+                            po.getExpectedDelivery().format(dateFormatter) : "N/A";
+                        
+                        // Format PO ID (UUID to string)
+                        String poIdStr = po.getPoid().toString();
+                        
+                        // Send email
+                        MailUtil.sendMissingGoodsEmail(
+                            supplier.getEmail(),
+                            supplier.getName(),
+                            poIdStr,
+                            createDateStr,
+                            expectedDeliveryStr,
+                            missingItems
+                        );
+                        
+                        System.out.println("✅ Missing goods email sent to supplier: " + supplier.getEmail() + " for PO: " + poIdStr + " (" + missingItems.size() + " missing items)");
+                    }
+                } catch (Exception e) {
+                    // Don't fail goods receipt if email fails
+                    System.err.println("⚠️ Warning: Failed to send missing goods email (goods receipt still successful): " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
             return gr.getReceiptID();
             
         } catch (Exception e) {
@@ -736,6 +836,145 @@ public class ProcurementService {
                 em.close();
             }
         }
+    }
+
+    /* ============================================================
+       4. GENERATE HÓA ĐƠN TỪ PO/GR (CHO IN)
+    ============================================================ */
+    
+    /**
+     * Generate invoice data from PO/GR for printing
+     * @param poid Purchase Order ID
+     * @return Map containing all invoice data
+     * @throws RuntimeException if PO not found or not COMPLETED
+     */
+    public Map<String, Object> generateInvoiceFromPO(UUID poid) {
+        // 1. Validate PO status = COMPLETED
+        PurchaseOrder po = poDAO.findById(poid);
+        if (po == null) {
+            throw new RuntimeException("Đơn hàng không tồn tại");
+        }
+        if (!"COMPLETED".equals(po.getStatus())) {
+            throw new RuntimeException("Chỉ có thể in hóa đơn cho đơn hàng đã hoàn thành. Đơn hàng hiện tại có trạng thái: " + po.getStatus());
+        }
+        
+        // 2. Get Supplier information
+        Supplier supplier = getSupplierById(po.getSupplierID());
+        if (supplier == null) {
+            System.err.println("⚠️ Warning: Supplier not found for PO " + poid);
+        }
+        
+        // 3. Get POItems
+        List<PurchaseOrderItem> poItems = itemDAO.findByPOID(poid);
+        if (poItems == null || poItems.isEmpty()) {
+            throw new RuntimeException("Đơn hàng không có sản phẩm");
+        }
+        
+        // 4. Get GoodsReceiptItems (sum by POItemID, only OK quality)
+        Map<Integer, Integer> receivedQuantities = new HashMap<>();
+        jakarta.persistence.EntityManager em = null;
+        try {
+            em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+            
+            // Get all receipt IDs for this PO
+            jakarta.persistence.Query receiptsQuery = em.createQuery(
+                "SELECT gr.receiptID FROM com.liteflow.model.procurement.GoodsReceipt gr WHERE gr.poid = :poid");
+            receiptsQuery.setParameter("poid", poid);
+            List<UUID> receiptIDs = receiptsQuery.getResultList();
+            
+            if (!receiptIDs.isEmpty()) {
+                // Sum received quantities by POItemID (only OK quality)
+                String jpql = "SELECT gri.poItemID, SUM(gri.receivedQuantity) " +
+                             "FROM com.liteflow.model.procurement.GoodsReceiptItem gri " +
+                             "WHERE gri.receiptID IN :receiptIDs " +
+                             "AND gri.qualityStatus = 'OK' " +
+                             "GROUP BY gri.poItemID";
+                
+                jakarta.persistence.Query query = em.createQuery(jpql);
+                query.setParameter("receiptIDs", receiptIDs);
+                List<Object[]> results = query.getResultList();
+                
+                for (Object[] row : results) {
+                    Integer poItemID = (Integer) row[0];
+                    Long sumReceived = ((Number) row[1]).longValue();
+                    receivedQuantities.put(poItemID, sumReceived.intValue());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Warning: Error getting received quantities: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
+        
+        // 5. Merge data: POItems + GRItems
+        List<Map<String, Object>> invoiceItems = new ArrayList<>();
+        double totalAmount = 0.0;
+        
+        for (PurchaseOrderItem poItem : poItems) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("itemName", poItem.getItemName());
+            item.put("unitPrice", poItem.getUnitPrice());
+            
+            // Use received quantity if available, otherwise use ordered quantity
+            Integer receivedQty = receivedQuantities.getOrDefault(poItem.getItemID(), poItem.getQuantity());
+            item.put("quantity", receivedQty);
+            item.put("orderedQuantity", poItem.getQuantity());
+            
+            // Calculate item total
+            double itemTotal = receivedQty * poItem.getUnitPrice();
+            item.put("total", itemTotal);
+            totalAmount += itemTotal;
+            
+            invoiceItems.add(item);
+        }
+        
+        // 6. Get latest GoodsReceipt date (for delivery date)
+        LocalDateTime deliveryDate = po.getExpectedDelivery();
+        try {
+            em = com.liteflow.dao.BaseDAO.emf.createEntityManager();
+            jakarta.persistence.Query latestReceiptQuery = em.createQuery(
+                "SELECT MAX(gr.receiveDate) FROM com.liteflow.model.procurement.GoodsReceipt gr WHERE gr.poid = :poid");
+            latestReceiptQuery.setParameter("poid", poid);
+            Object latestDate = latestReceiptQuery.getSingleResult();
+            if (latestDate != null && latestDate instanceof LocalDateTime) {
+                deliveryDate = (LocalDateTime) latestDate;
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Warning: Error getting latest receipt date: " + e.getMessage());
+        } finally {
+            if (em != null && em.isOpen()) {
+                em.close();
+            }
+        }
+        
+        // 7. Get tax information
+        String companyTaxCode = com.liteflow.util.EnvConfigUtil.getMaSoThue();
+        String supplierTaxCode = supplier != null ? supplier.getTaxCode() : null;
+        double vatRate = com.liteflow.util.EnvConfigUtil.getVATRate();
+        
+        // 8. Calculate tax amounts
+        double subTotal = totalAmount; // Tổng tiền trước thuế
+        double taxAmount = subTotal * vatRate / 100.0; // Tiền thuế
+        double totalAmountWithTax = subTotal + taxAmount; // Tổng tiền sau thuế
+        
+        // 9. Build result map
+        Map<String, Object> invoiceData = new HashMap<>();
+        invoiceData.put("po", po);
+        invoiceData.put("supplier", supplier);
+        invoiceData.put("items", invoiceItems);
+        invoiceData.put("subTotal", subTotal);
+        invoiceData.put("vatRate", vatRate);
+        invoiceData.put("taxAmount", taxAmount);
+        invoiceData.put("totalAmount", totalAmountWithTax); // Tổng tiền sau thuế
+        invoiceData.put("companyTaxCode", companyTaxCode);
+        invoiceData.put("supplierTaxCode", supplierTaxCode);
+        invoiceData.put("deliveryDate", deliveryDate);
+        invoiceData.put("printDate", LocalDateTime.now());
+        
+        return invoiceData;
     }
 
     /* ============================================================

@@ -33,6 +33,9 @@ public class Supplier implements Serializable {
     @Column(name = "Address")
     private String address;
 
+    @Column(name = "TaxCode", length = 50)
+    private String taxCode;
+
     @Column(name = "Rating")
     private Double rating = 0.0;      // 0–5 stars
     
@@ -64,6 +67,8 @@ public class Supplier implements Serializable {
     public void setPhone(String phone) { this.phone = phone; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+    public String getTaxCode() { return taxCode; }
+    public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
     public Double getOnTimeRate() { return onTimeRate; }
