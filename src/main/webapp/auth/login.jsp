@@ -226,9 +226,9 @@
                 </div>
 
                 <div class="footer-links">
-                    <a href="#">Terms & Conditions</a>
-                    <a href="#">Support</a>
-                    <a href="#">Customer Care</a>
+                    <a href="${pageContext.request.contextPath}/auth/terms.jsp" target="_blank">Terms & Conditions</a>
+                    <a href="${pageContext.request.contextPath}/auth/support.jsp" target="_blank">Support</a>
+                    <a href="${pageContext.request.contextPath}/auth/customer-care.jsp" target="_blank">Customer Care</a>
                 </div>
             </div>
         </div>
