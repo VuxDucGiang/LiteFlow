@@ -298,7 +298,7 @@
                 <section id="company-info-section" class="settings-section">
                     <div class="section-header">
                         <h1><i class='bx bx-building'></i> Thông tin công ty</h1>
-                        <p class="section-description">Quản lý thông tin công ty LiteFlow (Mã số thuế được lấy từ file .env)</p>
+                        <p class="section-description">Quản lý thông tin công ty LiteFlow</p>
                     </div>
                     
                     <div class="company-info-container">
@@ -348,16 +348,12 @@
                                         <label for="companyTaxCode">
                                             Mã số thuế
                                             <span class="readonly-badge">
-                                                <i class='bx bx-lock-alt'></i> Chỉ đọc - từ file .env
+                                                <i class='bx bx-lock-alt'></i> Chỉ đọc
                                             </span>
                                         </label>
                                         <input type="text" id="companyTaxCode" name="taxCode" readonly 
                                                placeholder="Mã số thuế sẽ được lấy từ file .env" 
                                                class="form-input readonly-input">
-                                        <div class="form-hint">
-                                            <i class='bx bx-info-circle'></i>
-                                            Mã số thuế được cấu hình trong file <code>.env</code> với key <code>MaSoThue:</code>
-                                        </div>
                                     </div>
                                 </div>
                                 

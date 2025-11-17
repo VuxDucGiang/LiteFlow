@@ -581,5 +581,159 @@ public class RevenueReportService {
         
         return todayReport;
     }
+    
+    /**
+     * Get report data for printing
+     * Returns a Map with all necessary data for printable report
+     */
+    public Map<String, Object> getReportDataForPrint(LocalDate startDate, LocalDate endDate) {
+        Map<String, Object> reportData = new HashMap<>();
+        
+        try {
+            System.out.println("📊 Getting report data for print from " + startDate + " to " + endDate);
+            
+            // Get basic statistics
+            BigDecimal totalRevenue = reportDAO.getTotalRevenue(startDate, endDate);
+            long totalOrders = reportDAO.getTotalOrders(startDate, endDate);
+            
+            // Calculate average order value
+            BigDecimal avgOrderValue = totalOrders > 0 ? 
+                totalRevenue.divide(BigDecimal.valueOf(totalOrders), 0, RoundingMode.HALF_UP) : 
+                BigDecimal.ZERO;
+            
+            // Get previous period for comparison
+            BigDecimal prevRevenue = reportDAO.getPreviousPeriodRevenue(startDate, endDate);
+            double growthRate = calculateGrowthRate(totalRevenue, prevRevenue);
+            
+            // Get customer statistics
+            long newCustomers = reportDAO.getNewCustomers(startDate, endDate);
+            long returningCustomers = reportDAO.getReturningCustomers(startDate, endDate);
+            
+            // Get COGS and profit
+            BigDecimal totalCOGS = BigDecimal.ZERO;
+            BigDecimal totalProfit = totalRevenue;
+            double profitGrowthRate = 0.0;
+            
+            try {
+                totalCOGS = reportDAO.getTotalCostOfGoodsSold(startDate, endDate);
+                totalProfit = totalRevenue.subtract(totalCOGS);
+                
+                BigDecimal prevCOGS = reportDAO.getPreviousPeriodCOGS(startDate, endDate);
+                BigDecimal prevProfit = prevRevenue.subtract(prevCOGS);
+                profitGrowthRate = calculateGrowthRate(totalProfit, prevProfit);
+            } catch (Exception e) {
+                System.err.println("❌ Error calculating COGS/Profit: " + e.getMessage());
+            }
+            
+            // Determine if single day or multiple days
+            boolean isSingleDay = startDate.equals(endDate);
+            
+            // Get hourly data (if single day)
+            Map<String, Object> hourlyData = null;
+            if (isSingleDay) {
+                JSONObject hourlyJson = generateHourlyData(startDate);
+                hourlyData = new HashMap<>();
+                // Convert JSONArray to List
+                List<String> hours = new ArrayList<>();
+                List<Double> revenues = new ArrayList<>();
+                JSONArray hoursArray = hourlyJson.getJSONArray("hours");
+                JSONArray revenuesArray = hourlyJson.getJSONArray("revenues");
+                for (int i = 0; i < hoursArray.length(); i++) {
+                    hours.add(hoursArray.getString(i));
+                }
+                for (int i = 0; i < revenuesArray.length(); i++) {
+                    revenues.add(revenuesArray.getDouble(i));
+                }
+                hourlyData.put("hours", hours);
+                hourlyData.put("revenues", revenues);
+            }
+            
+            // Get daily data (if multiple days)
+            Map<String, Object> dailyData = null;
+            if (!isSingleDay) {
+                JSONObject trendJson = generateTrendData(startDate, endDate);
+                dailyData = new HashMap<>();
+                // Convert JSONArray to List
+                List<String> dates = new ArrayList<>();
+                List<Double> revenues = new ArrayList<>();
+                List<Long> orders = new ArrayList<>();
+                JSONArray datesArray = trendJson.getJSONArray("dates");
+                JSONArray revenuesArray = trendJson.getJSONArray("revenues");
+                JSONArray ordersArray = trendJson.getJSONArray("orders");
+                for (int i = 0; i < datesArray.length(); i++) {
+                    dates.add(datesArray.getString(i));
+                }
+                for (int i = 0; i < revenuesArray.length(); i++) {
+                    revenues.add(revenuesArray.getDouble(i));
+                }
+                for (int i = 0; i < ordersArray.length(); i++) {
+                    orders.add(ordersArray.getLong(i));
+                }
+                dailyData.put("dates", dates);
+                dailyData.put("revenues", revenues);
+                dailyData.put("orders", orders);
+            }
+            
+            // Get top products
+            JSONArray topProductsJson = generateTopProducts(startDate, endDate, 10);
+            List<Map<String, Object>> topProducts = new ArrayList<>();
+            for (int i = 0; i < topProductsJson.length(); i++) {
+                JSONObject product = topProductsJson.getJSONObject(i);
+                Map<String, Object> productMap = new HashMap<>();
+                productMap.put("name", product.getString("name"));
+                productMap.put("quantity", product.getLong("quantity"));
+                productMap.put("revenue", product.getDouble("revenue"));
+                productMap.put("share", product.getString("share"));
+                topProducts.add(productMap);
+            }
+            
+            // Get category revenue
+            JSONObject categoryJson = generateCategoryData(startDate, endDate);
+            List<Map<String, Object>> categories = new ArrayList<>();
+            JSONArray categoryNames = categoryJson.getJSONArray("categories");
+            JSONArray categoryRevenues = categoryJson.getJSONArray("revenues");
+            BigDecimal totalCategoryRevenue = BigDecimal.ZERO;
+            for (int i = 0; i < categoryRevenues.length(); i++) {
+                totalCategoryRevenue = totalCategoryRevenue.add(BigDecimal.valueOf(categoryRevenues.getDouble(i)));
+            }
+            
+            for (int i = 0; i < categoryNames.length(); i++) {
+                Map<String, Object> categoryMap = new HashMap<>();
+                categoryMap.put("name", categoryNames.getString(i));
+                double revenue = categoryRevenues.getDouble(i);
+                categoryMap.put("revenue", revenue);
+                double percentage = totalCategoryRevenue.compareTo(BigDecimal.ZERO) > 0 ?
+                    (revenue / totalCategoryRevenue.doubleValue()) * 100 : 0;
+                categoryMap.put("percentage", String.format("%.1f%%", percentage));
+                categories.add(categoryMap);
+            }
+            
+            // Build report data map
+            reportData.put("startDate", startDate);
+            reportData.put("endDate", endDate);
+            reportData.put("isSingleDay", isSingleDay);
+            reportData.put("totalRevenue", totalRevenue);
+            reportData.put("totalOrders", totalOrders);
+            reportData.put("avgOrderValue", avgOrderValue);
+            reportData.put("totalCOGS", totalCOGS);
+            reportData.put("totalProfit", totalProfit);
+            reportData.put("growthRate", growthRate);
+            reportData.put("profitGrowthRate", profitGrowthRate);
+            reportData.put("newCustomers", newCustomers);
+            reportData.put("returningCustomers", returningCustomers);
+            reportData.put("hourlyData", hourlyData);
+            reportData.put("dailyData", dailyData);
+            reportData.put("topProducts", topProducts);
+            reportData.put("categories", categories);
+            
+            System.out.println("✅ Report data for print generated successfully");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error getting report data for print: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return reportData;
+    }
 }
 
