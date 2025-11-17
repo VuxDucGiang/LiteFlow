@@ -32,6 +32,13 @@ public class EmployeeServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
+            // Kiểm tra action export
+            String action = request.getParameter("action");
+            if ("export".equals(action)) {
+                exportExcel(request, response);
+                return;
+            }
+            
             // Kiểm tra employeeService
             if (employeeService == null) {
                 employeeService = new EmployeeService();
@@ -399,5 +406,110 @@ public class EmployeeServlet extends HttpServlet {
     private void handleDeleteEmployee(HttpServletRequest request, HttpServletResponse response) {
         // Implementation for delete
         System.out.println("Delete employee functionality");
+    }
+
+    /**
+     * Export Employees to Excel
+     */
+    private void exportExcel(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            // Get all employees
+            List<Employee> employees = employeeService.getAllEmployees();
+            
+            if (employees == null || employees.isEmpty()) {
+                response.setContentType("application/json");
+                response.getWriter().write("{\"success\": false, \"message\": \"Không có dữ liệu để xuất\"}");
+                return;
+            }
+            
+            // Create Excel workbook
+            org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook();
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("Nhân viên");
+            
+            // Create header row
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(0);
+            String[] headers = {"Mã nhân viên", "Họ tên", "Số điện thoại", "Email", "Giới tính", 
+                              "Ngày sinh", "Ngày vào làm", "Chức vụ", "Trạng thái", "Địa chỉ", 
+                              "CMND/CCCD", "Tài khoản ngân hàng", "Tên ngân hàng"};
+            
+            org.apache.poi.ss.usermodel.CellStyle headerStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            
+            // Fill data rows
+            int rowNum = 1;
+            for (Employee emp : employees) {
+                org.apache.poi.ss.usermodel.Row row = sheet.createRow(rowNum++);
+                
+                row.createCell(0).setCellValue(emp.getEmployeeCode() != null ? emp.getEmployeeCode() : "");
+                row.createCell(1).setCellValue(emp.getFullName() != null ? emp.getFullName() : "");
+                row.createCell(2).setCellValue(emp.getPhone() != null ? emp.getPhone() : "");
+                row.createCell(3).setCellValue(emp.getEmail() != null ? emp.getEmail() : "");
+                row.createCell(4).setCellValue(emp.getGender() != null ? emp.getGender() : "");
+                
+                // Format dates
+                if (emp.getBirthDate() != null) {
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    row.createCell(5).setCellValue(emp.getBirthDate().format(formatter));
+                } else {
+                    row.createCell(5).setCellValue("");
+                }
+                
+                if (emp.getHireDate() != null) {
+                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    row.createCell(6).setCellValue(emp.getHireDate().format(formatter));
+                } else {
+                    row.createCell(6).setCellValue("");
+                }
+                
+                row.createCell(7).setCellValue(emp.getPosition() != null ? emp.getPosition() : "");
+                row.createCell(8).setCellValue(emp.getEmploymentStatus() != null ? emp.getEmploymentStatus() : "");
+                row.createCell(9).setCellValue(emp.getAddress() != null ? emp.getAddress() : "");
+                row.createCell(10).setCellValue(emp.getNationalID() != null ? emp.getNationalID() : "");
+                row.createCell(11).setCellValue(emp.getBankAccount() != null ? emp.getBankAccount() : "");
+                row.createCell(12).setCellValue(emp.getBankName() != null ? emp.getBankName() : "");
+            }
+            
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            // Write workbook to byte array
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            workbook.write(outputStream);
+            byte[] excelData = outputStream.toByteArray();
+            workbook.close();
+            outputStream.close();
+            
+            // Generate filename with date
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss");
+            String filename = "danh_sach_nhan_vien_" + sdf.format(new java.util.Date()) + ".xlsx";
+            
+            // Set response headers
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+            response.setContentLength(excelData.length);
+            
+            // Write Excel data to response
+            java.io.OutputStream out = response.getOutputStream();
+            out.write(excelData);
+            out.flush();
+            out.close();
+
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi xuất Excel: " + e.getMessage());
+            e.printStackTrace();
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\": false, \"message\": \"Lỗi khi xuất file: " + e.getMessage() + "\"}");
+        }
     }
 }

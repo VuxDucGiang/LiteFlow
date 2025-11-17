@@ -315,8 +315,7 @@
             <div class="toolbar">
                 <div>
                     <a href="#" class="btn btn-success" onclick="addEmployee()">➕ Thêm nhân viên</a>
-                    <button class="btn btn-primary" onclick="exportEmployees()">📊 Xuất file</button>
-                    <button class="btn btn-primary" onclick="importEmployees()">📥 Import</button>
+                    <button class="btn btn-primary" onclick="exportEmployees()">📊 Xuất file Excel</button>
                 </div>
             </div>
 
@@ -880,11 +879,8 @@
             }
 
             function exportEmployees() {
-                alert('Chức năng xuất file sẽ được triển khai');
-            }
-
-            function importEmployees() {
-                alert('Chức năng import sẽ được triển khai');
+                // Redirect to servlet with export action
+                window.location.href = '${pageContext.request.contextPath}/employees?action=export';
             }
 
             // Auto search khi gõ

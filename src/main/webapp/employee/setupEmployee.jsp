@@ -251,11 +251,11 @@ html {
 
 .salary-modal-header {
     padding: var(--space-5, 20px) var(--space-6, 24px);
-    border-bottom: 1px solid var(--border-primary, var(--gray-200));
+    border-bottom: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--gray-50, #f9fafb);
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .salary-modal-header h2 {
@@ -299,7 +299,7 @@ html {
 }
 
 .salary-table thead {
-    background: var(--gray-50, #f9fafb);
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
     position: sticky;
     top: 0;
     z-index: 10;
@@ -308,9 +308,11 @@ html {
 .salary-table th {
     padding: var(--space-3, 12px) var(--space-4, 16px);
     text-align: left;
-    font-weight: var(--font-semibold, 600);
-    color: var(--text-primary, var(--gray-700));
-    border-bottom: 2px solid var(--border-primary, var(--gray-200));
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--primary-300);
+    font-family: var(--font-family-primary);
 }
 
 .salary-table tbody tr {
@@ -318,7 +320,7 @@ html {
 }
 
 .salary-table tbody tr:hover {
-    background: var(--gray-50, #f9fafb);
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .salary-table td {
@@ -344,23 +346,24 @@ html {
 
 .add-btn {
     background: none;
-    border: 1px dashed #d1d5db;
-    color: #6b7280;
+    border: 1.5px dashed var(--border-primary);
+    color: var(--text-tertiary);
     width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
     font-size: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
+    font-weight: var(--font-semibold);
 }
 
 .add-btn:hover {
-    border-color: var(--color-primary, #0080FF);
-    color: var(--color-primary, #0080FF);
-    background: var(--primary-50, #e6f0ff);
+    border-color: var(--primary-500);
+    color: var(--primary-600);
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .value-display {
@@ -370,20 +373,21 @@ html {
 }
 
 .value-text {
-    font-weight: 500;
-    color: #111827;
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
 }
 
 .edit-icon {
     background: none;
     border: none;
-    color: #6b7280;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 4px;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
     opacity: 0;
-    transition: all 0.2s;
+    transition: all var(--transition-fast);
 }
 
 .value-display:hover .edit-icon {
@@ -391,30 +395,35 @@ html {
 }
 
 .edit-icon:hover {
-    background: #f3f4f6;
-    color: #2563eb;
+    background: var(--gray-100);
+    color: var(--primary-600);
 }
 
 .salary-modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid #e5e7eb;
+    padding: var(--space-4) var(--space-6);
+    border-top: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: flex-end;
 }
 
 .btn-done {
-    padding: 10px 24px;
-    background: #2563eb;
-    color: white;
+    padding: 0.625rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+    color: var(--color-white);
     border: none;
-    border-radius: 8px;
-    font-weight: 500;
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
+    box-shadow: 0 2px 8px rgba(0, 128, 255, 0.25);
+    font-family: var(--font-family-primary);
 }
 
 .btn-done:hover {
-    background: #1d4ed8;
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 128, 255, 0.35);
 }
 
 /* Edit Compensation Modal */
@@ -432,25 +441,29 @@ html {
 }
 
 .edit-comp-modal {
-    background: white;
+    background: var(--surface-elevated);
     width: 90%;
     max-width: 500px;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    border: 1.5px solid var(--border-primary);
 }
 
 .edit-comp-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: var(--space-5) var(--space-6);
+    border-bottom: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(135deg, var(--primary-50) 0%, var(--secondary-50) 100%);
 }
 
 .edit-comp-header h3 {
     margin: 0;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-family: var(--font-family-display);
 }
 
 .edit-comp-body {
@@ -464,61 +477,79 @@ html {
 }
 
 .form-group label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #374151;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-family: var(--font-family-primary);
 }
 
 .form-control {
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: all 0.2s;
+    padding: 0.625rem 0.75rem;
+    border: 1.5px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    background: var(--color-white);
+    transition: all var(--transition-fast);
+    font-family: var(--font-family-primary);
+}
+
+.form-control:hover {
+    border-color: var(--primary-300);
 }
 
 .form-control:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.1);
+    background: var(--color-white);
 }
 
 .edit-comp-footer {
-    padding: 16px 24px;
-    border-top: 1px solid #e5e7eb;
+    padding: var(--space-4) var(--space-6);
+    border-top: 1.5px solid var(--border-primary);
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .btn-cancel {
-    padding: 10px 20px;
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    background: var(--color-white);
+    color: var(--text-primary);
+    border: 1.5px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
+    font-family: var(--font-family-primary);
 }
 
 .btn-cancel:hover {
-    background: #f3f4f6;
+    background: var(--gray-50);
+    border-color: var(--primary-300);
+    color: var(--primary-600);
 }
 
 .btn-save {
-    padding: 10px 20px;
-    background: #2563eb;
-    color: white;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--secondary-500) 100%);
+    color: var(--color-white);
     border: none;
-    border-radius: 8px;
-    font-weight: 500;
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-base);
+    box-shadow: 0 2px 8px rgba(0, 128, 255, 0.25);
+    font-family: var(--font-family-primary);
 }
 
 .btn-save:hover {
-    background: #1d4ed8;
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--secondary-600) 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 128, 255, 0.35);
 }
 
 .compensation-type-badge {
