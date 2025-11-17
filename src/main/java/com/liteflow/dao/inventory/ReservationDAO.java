@@ -543,5 +543,29 @@ public class ReservationDAO extends GenericDAO<Reservation, UUID> {
             em.close();
         }
     }
+
+    /**
+     * Find active reservation by table (CONFIRMED status, chưa đóng)
+     */
+    public Reservation findActiveReservationByTable(UUID tableId) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            TypedQuery<Reservation> query = em.createQuery(
+                "SELECT r FROM Reservation r WHERE r.table.tableId = :tableId AND r.status = 'CONFIRMED' ORDER BY r.arrivalTime DESC",
+                Reservation.class
+            );
+            query.setParameter("tableId", tableId);
+            query.setMaxResults(1);
+            List<Reservation> results = query.getResultList();
+            return results.isEmpty() ? null : results.get(0);
+        } catch (Exception e) {
+            System.err.println("❌ Error finding active reservation by table: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        } finally {
+            em.close();
+        }
+    }
 }
+
 

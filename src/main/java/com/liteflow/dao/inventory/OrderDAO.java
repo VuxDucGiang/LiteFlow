@@ -88,7 +88,14 @@ public class OrderDAO {
                 detail.setQuantity(quantity);
                 detail.setUnitPrice(unitPrice);
                 detail.calculateTotalPrice();
-                detail.setStatus("Pending"); // Món đang chờ làm
+                
+                // ✅ Set status từ item hoặc mặc định "Pending"
+                String itemStatus = (String) item.get("status");
+                if (itemStatus != null && !itemStatus.trim().isEmpty()) {
+                    detail.setStatus(itemStatus);
+                } else {
+                    detail.setStatus("Pending"); // Món đang chờ làm
+                }
                 
                 // Set ghi chú nếu có
                 if (note != null && !note.trim().isEmpty()) {

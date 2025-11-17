@@ -645,9 +645,9 @@ public class ReceptionServlet extends HttpServlet {
             stats.put("total", reservationDAO.findByDate(date).size());
             stats.put("pending", reservationDAO.countByDateAndStatus(date, "PENDING"));
             stats.put("confirmed", reservationDAO.countByDateAndStatus(date, "CONFIRMED"));
-            stats.put("seated", reservationDAO.countByDateAndStatus(date, "SEATED"));
             stats.put("cancelled", reservationDAO.countByDateAndStatus(date, "CANCELLED"));
             stats.put("noShow", reservationDAO.countByDateAndStatus(date, "NO_SHOW"));
+            stats.put("closed", reservationDAO.countByDateAndStatus(date, "CLOSED"));
             
             Map<String, Object> responseMap = new HashMap<>();
             responseMap.put("success", true);

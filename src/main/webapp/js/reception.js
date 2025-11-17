@@ -260,14 +260,13 @@ function updateStats() {
     
     const total = todayReservations.length;
     const pending = todayReservations.filter(r => r.status === 'PENDING').length;
-    const closed = todayReservations.filter(r => r.status === 'CLOSED').length;
-    const seated = todayReservations.filter(r => r.status === 'SEATED').length;
+    // ✅ Tính cả CLOSED và NO_SHOW vào trạng thái đã đóng
+    const closed = todayReservations.filter(r => r.status === 'CLOSED' || r.status === 'NO_SHOW').length;
     
     document.getElementById('totalReservations').textContent = total;
     document.getElementById('pendingReservations').textContent = pending;
     const closedEl = document.getElementById('closedReservations');
     if (closedEl) closedEl.textContent = closed;
-    document.getElementById('seatedReservations').textContent = seated;
 }
 
 function getReservationsForDate(date) {
@@ -540,7 +539,6 @@ function getStatusLabel(status) {
     const labels = {
         'PENDING': 'Chờ xác nhận',
         'CONFIRMED': 'Đã xác nhận',
-        'SEATED': 'Đang phục vụ',
         'CANCELLED': 'Đã hủy',
         'NO_SHOW': 'Không đến',
         'CLOSED': 'Đã đóng'
@@ -549,7 +547,7 @@ function getStatusLabel(status) {
 }
 
 function getQuickActions(reservation) {
-    if (reservation.status === 'PENDING' || reservation.status === 'CONFIRMED') {
+    if (reservation.status === 'PENDING') {
         return `
             <button class="card-action-btn primary" onclick="openActionModal('confirm', '${reservation.reservationId}')">
                 <i class='bx bx-check'></i>
@@ -558,13 +556,6 @@ function getQuickActions(reservation) {
             <button class="card-action-btn" onclick="cancelReservation('${reservation.reservationId}')">
                 <i class='bx bx-x'></i>
                 Hủy
-            </button>
-        `;
-    } else if (reservation.status === 'SEATED') {
-        return `
-            <button class="card-action-btn primary" onclick="openActionModal('close', '${reservation.reservationId}')">
-                <i class='bx bx-check-circle'></i>
-                Khách đã thanh toán
             </button>
         `;
     }

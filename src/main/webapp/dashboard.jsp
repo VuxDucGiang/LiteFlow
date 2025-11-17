@@ -85,10 +85,10 @@
   <!-- Right Section -->
   <div class="right-section">
     <!-- Advertisement Banner -->
-    <div class="ad-banner">
+    <div class="ad-banner" onclick="window.open('https://fpt.edu.vn', '_blank')" style="cursor: pointer;">
       <img src="${pageContext.request.contextPath}/img/fpt.jpg" alt="FPT Logo" class="logo">
-      <div class="title">Trường Đại Học hàng đầu Việt Nam</div>
-      <div class="subtitle">Ưu đãi học phí lên đến 100%</div>
+      <div class="title">FPT University</div>
+      <div class="subtitle">Top University in Vietnam - Innovation & Excellence</div>
     </div>
 
     <!-- Recent Activities -->

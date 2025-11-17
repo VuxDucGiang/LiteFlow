@@ -34,33 +34,32 @@
           <div class="footer-column">
             <h4 class="column-title">Sản phẩm</h4>
             <ul class="footer-menu">
-              <li><a href="#" class="footer-link">Quản lý kho hàng</a></li>
-              <li><a href="#" class="footer-link">Bán hàng đa kênh</a></li>
-              <li><a href="#" class="footer-link">Báo cáo thống kê</a></li>
-              <li><a href="#" class="footer-link">Tích hợp API</a></li>
-              <li><a href="#" class="footer-link">Ứng dụng di động</a></li>
+              <li><a href="${pageContext.request.contextPath}/products" class="footer-link">Hàng hóa</a></li>
+              <li><a href="${pageContext.request.contextPath}/cashier" class="footer-link">Thu ngân</a></li>
+              <li><a href="${pageContext.request.contextPath}/report/revenue" class="footer-link">Báo cáo</a></li>
+              <li><a href="${pageContext.request.contextPath}/procurement/dashboard" class="footer-link">Mua sắm</a></li>
+              <li><a href="${pageContext.request.contextPath}/ai-agent-config" class="footer-link">AI Agent</a></li>
             </ul>
           </div>
           
           <div class="footer-column">
             <h4 class="column-title">Hỗ trợ</h4>
             <ul class="footer-menu">
-              <li><a href="#" class="footer-link">Trung tâm trợ giúp</a></li>
-              <li><a href="#" class="footer-link">Tài liệu hướng dẫn</a></li>
-              <li><a href="#" class="footer-link">Video hướng dẫn</a></li>
-              <li><a href="#" class="footer-link">Liên hệ hỗ trợ</a></li>
-              <li><a href="#" class="footer-link">Cộng đồng người dùng</a></li>
+              <li><a href="${pageContext.request.contextPath}/auth/support.jsp" class="footer-link">Trung tâm hỗ trợ</a></li>
+              <li><a href="${pageContext.request.contextPath}/auth/customer-care.jsp" class="footer-link">Chăm sóc khách hàng</a></li>
+              <li><a href="${pageContext.request.contextPath}/auth/contact-form.jsp?type=email" class="footer-link">Liên hệ</a></li>
+              <li><a href="https://github.com/VuxDucGiang/LiteFlow" target="_blank" class="footer-link">GitHub Repository</a></li>
+              <li><a href="https://github.com/VuxDucGiang/LiteFlow/wiki" target="_blank" class="footer-link">Tài liệu hướng dẫn</a></li>
             </ul>
           </div>
           
           <div class="footer-column">
             <h4 class="column-title">Công ty</h4>
             <ul class="footer-menu">
-              <li><a href="#" class="footer-link">Giới thiệu về chúng tôi</a></li>
-              <li><a href="#" class="footer-link">Tin tức & Sự kiện</a></li>
-              <li><a href="#" class="footer-link">Tuyển dụng</a></li>
-              <li><a href="#" class="footer-link">Đối tác</a></li>
-              <li><a href="#" class="footer-link">Liên hệ</a></li>
+              <li><a href="https://fpt.edu.vn" target="_blank" class="footer-link">Trường Đại học FPT</a></li>
+              <li><a href="${pageContext.request.contextPath}/auth/terms.jsp" class="footer-link">Điều khoản sử dụng</a></li>
+              <li><a href="https://github.com/VuxDucGiang/LiteFlow/issues" target="_blank" class="footer-link">Báo cáo lỗi</a></li>
+              <li><a href="${pageContext.request.contextPath}/auth/customer-care.jsp#team" class="footer-link">Đội ngũ phát triển</a></li>
             </ul>
           </div>
           
@@ -68,20 +67,20 @@
             <h4 class="column-title">Liên hệ</h4>
             <div class="contact-info">
               <div class="contact-row">
-                <i class='bx bx-phone'></i>
-                <span>Hotline: 1900 1234</span>
+                <i class='bx bx-envelope'></i>
+                <span>liteflow.team@fpt.edu.vn</span>
               </div>
               <div class="contact-row">
-                <i class='bx bx-envelope'></i>
-                <span>Email: support@liteflow.com</span>
+                <i class='bx bxl-github'></i>
+                <span><a href="https://github.com/VuxDucGiang/LiteFlow" target="_blank" style="color: inherit; text-decoration: none;">GitHub Project</a></span>
               </div>
               <div class="contact-row">
                 <i class='bx bx-map'></i>
-                <span>Địa chỉ: Hà Nội, Việt Nam</span>
+                <span>Trường Đại học FPT, Việt Nam</span>
               </div>
               <div class="contact-row">
                 <i class='bx bx-time'></i>
-                <span>Giờ làm việc: 8:00 - 18:00</span>
+                <span>Thứ 2 - Thứ 6: 8:00 - 17:00 (GMT+7)</span>
               </div>
             </div>
           </div>
@@ -93,12 +92,12 @@
        <div class="footer-bottom">
         <div class="footer-bottom-content">
           <div class="copyright">
-            <p>&copy; 2024 LiteFlow. Tất cả quyền được bảo lưu.</p>
+            <p>&copy; 2025 LiteFlow Development Team - Trường Đại học FPT. Tất cả quyền được bảo lưu.</p>
           </div>
           <div class="legal-links">
-            <a href="#" class="legal-link">Điều khoản sử dụng</a>
-            <a href="#" class="legal-link">Chính sách bảo mật</a>
-            <a href="#" class="legal-link">Chính sách cookie</a>
+            <a href="${pageContext.request.contextPath}/auth/terms.jsp" class="legal-link">Điều khoản sử dụng</a>
+            <a href="${pageContext.request.contextPath}/auth/customer-care.jsp" class="legal-link">Chăm sóc khách hàng</a>
+            <a href="https://github.com/VuxDucGiang/LiteFlow" target="_blank" class="legal-link">Chính sách bảo mật</a>
           </div>
         </div>
       </div>

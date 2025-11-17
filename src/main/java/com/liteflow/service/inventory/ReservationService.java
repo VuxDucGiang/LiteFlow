@@ -367,16 +367,16 @@ public class ReservationService {
                 throw new IllegalArgumentException("Không tìm thấy đặt bàn");
             }
 
-            if (reservation.isSeated()) {
-                throw new IllegalArgumentException("Khách đã được nhận bàn");
+            if (reservation.isConfirmed()) {
+                throw new IllegalArgumentException("Khách đã được xác nhận đến");
             }
 
             if (reservation.isCancelled() || reservation.isNoShow()) {
-                throw new IllegalArgumentException("Không thể nhận bàn cho đặt bàn đã hủy hoặc không đến");
+                throw new IllegalArgumentException("Không thể xác nhận cho đặt bàn đã hủy hoặc không đến");
             }
 
-            // Update status to SEATED
-            reservation.setStatus("SEATED");
+            // Update status to CONFIRMED (not SEATED)
+            reservation.setStatus("CONFIRMED");
             
             // Update table status to Occupied if table is assigned
             if (reservation.getTable() != null) {
@@ -385,11 +385,73 @@ public class ReservationService {
                 tableDAO.update(table);
             }
 
+            // Create order and notify kitchen if there are pre-ordered items
+            // OrderDAO will automatically create TableSession for the table
+            if (reservation.getReservationItems() != null && !reservation.getReservationItems().isEmpty()) {
+                notifyKitchenForReservation(reservation);
+            }
+
             return reservationDAO.updateReservation(reservation);
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("Error confirming arrival: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Notify kitchen with pre-ordered items
+     */
+    private void notifyKitchenForReservation(Reservation reservation) {
+        try {
+            List<java.util.Map<String, Object>> items = new java.util.ArrayList<>();
+            ProductVariantDAO variantDAO = new ProductVariantDAO();
+            
+            for (ReservationItem item : reservation.getReservationItems()) {
+                try {
+                    Product product = item.getProduct();
+                    UUID productId = product.getProductId();
+                    
+                    // Load variants from database to avoid lazy loading issue
+                    List<ProductVariant> variants = variantDAO.findByProductId(productId);
+                    
+                    if (variants == null || variants.isEmpty()) {
+                        System.err.println("⚠️ Sản phẩm " + product.getName() + " (ID: " + productId + ") không có variant, bỏ qua");
+                        continue;
+                    }
+                    
+                    // Use first variant as default
+                    ProductVariant variant = variants.get(0);
+                    
+                    java.util.Map<String, Object> orderItem = new java.util.HashMap<>();
+                    orderItem.put("variantId", variant.getProductVariantId().toString());
+                    orderItem.put("quantity", item.getQuantity());
+                    orderItem.put("unitPrice", variant.getPrice());
+                    orderItem.put("note", item.getNote());
+                    orderItem.put("status", "Preparing"); // Món đặt trước đã thông báo bếp
+                    items.add(orderItem);
+                } catch (Exception itemEx) {
+                    System.err.println("⚠️ Lỗi khi xử lý món: " + itemEx.getMessage());
+                    continue; // Skip this item and continue with others
+                }
+            }
+            
+            if (!items.isEmpty()) {
+                OrderService orderService = new OrderService();
+                UUID tableId = reservation.getTable() != null ? reservation.getTable().getTableId() : null;
+                UUID userId = null; // Can be set from session if available
+                String invoiceName = reservation.getCustomerName();
+                String orderNote = "Đặt trước - Mã: " + reservation.getReservationCode();
+                
+                orderService.createOrderAndNotifyKitchen(tableId, items, userId, invoiceName, orderNote);
+                System.out.println("✅ Đã gửi thông báo món đặt trước tới bếp cho: " + reservation.getReservationCode());
+            } else {
+                System.out.println("ℹ️ Không có món hợp lệ để gửi tới bếp cho: " + reservation.getReservationCode());
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi gửi thông báo tới bếp: " + e.getMessage());
+            e.printStackTrace();
+            // Don't throw - let the confirmation continue even if kitchen notification fails
         }
     }
 
@@ -610,6 +672,32 @@ public class ReservationService {
                 // Don't throw exception - email failure shouldn't fail the reservation
             }
         }).start();
+    }
+
+    /**
+     * Close reservation after payment (from cashier)
+     * Updates reservation status to CLOSED for the table
+     */
+    public void closeReservationByTable(UUID tableId) {
+        try {
+            // Tìm reservation CONFIRMED của bàn này (chưa đóng)
+            Reservation reservation = reservationDAO.findActiveReservationByTable(tableId);
+            
+            if (reservation != null) {
+                // Cập nhật trạng thái sang CLOSED
+                reservation.setStatus("CLOSED");
+                reservationDAO.update(reservation);
+                
+                System.out.println("✅ Đã đóng reservation " + reservation.getReservationCode() + 
+                                 " cho bàn " + tableId);
+            } else {
+                System.out.println("ℹ️ Không tìm thấy reservation active cho bàn " + tableId);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi đóng reservation: " + e.getMessage());
+            e.printStackTrace();
+            // Don't throw - payment shouldn't fail if reservation update fails
+        }
     }
 
 }

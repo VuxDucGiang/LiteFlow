@@ -130,15 +130,6 @@
                 </div>
             </div>
 
-            <div class="stat-card stat-card-seated">
-                <div class="stat-icon">
-                    <i class='bx bx-chair'></i>
-                </div>
-                <div class="stat-info">
-                    <div class="stat-label">Đang phục vụ</div>
-                    <div class="stat-value" id="seatedReservations">0</div>
-                </div>
-            </div>
 
             <div class="stat-card stat-card-closed">
                 <div class="stat-icon">
@@ -212,7 +203,6 @@
                         <select id="statusFilter" onchange="filterReservations()" class="filter-select">
                             <option value="">Tất cả trạng thái</option>
                             <option value="PENDING">Chờ xác nhận</option>
-                            <option value="SEATED">Đang phục vụ</option>
                             <option value="CANCELLED">Đã hủy</option>
                         </select>
                     </div>
@@ -410,8 +400,8 @@
     </div>
 
     <!-- Action Confirm Modal -->
-    <div class="modal-overlay" id="actionModalOverlay"></div>
-    <div class="modal" id="actionModal">
+    <div class="modal-overlay" id="actionModalOverlay" onclick="closeActionModal()"></div>
+    <div class="modal" id="actionModal" onclick="event.stopPropagation()">
         <div class="modal-header">
             <h3 id="actionModalTitle"><i class='bx bx-question-mark'></i> Xác nhận thao tác</h3>
             <button class="close-btn" onclick="closeActionModal()"><i class='bx bx-x'></i></button>
