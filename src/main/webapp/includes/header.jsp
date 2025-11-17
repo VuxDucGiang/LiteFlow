@@ -168,10 +168,7 @@
         <div class="top-header-banner">Where small shops run smarter</div>
       </nav>
       <div class="top-header-right">
-        <div class="language-selector">
-          <span> (VN)</span>
-          <i class='bx bx-chevron-down'></i>
-        </div>
+        
         <div class="header-icons">
           <!-- Notification Bell - Hidden for Employee role -->
           <c:if test="${!isEmployee}">
