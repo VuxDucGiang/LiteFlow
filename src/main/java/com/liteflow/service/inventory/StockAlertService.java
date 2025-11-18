@@ -8,9 +8,11 @@ import com.liteflow.model.inventory.ProductVariant;
 import com.liteflow.model.inventory.StockAlertNotification;
 import com.liteflow.service.alert.NotificationService;
 import com.liteflow.service.ai.AIAgentConfigService;
+import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -67,6 +69,304 @@ public class StockAlertService {
      */
     private boolean isTelegramNotificationsEnabled() {
         return configService.getBooleanConfig("notification.enable_telegram", true);
+    }
+    
+    /**
+     * Get Telegram Bot Token from .env file or system environment
+     * Priority: 1. .env file at project root, 2. System environment variable
+     * @return Telegram bot token, or null if not found
+     */
+    private String getTelegramBotToken() {
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.out.println("🔍 [StockAlert] getTelegramBotToken() called");
+        
+        // Priority 1: Load from .env file (try multiple locations)
+        try {
+            System.out.println("🔍 [StockAlert] Attempting to load token from .env file...");
+            
+            // Build list of possible paths to check
+            java.util.List<String> pathList = new java.util.ArrayList<>();
+            
+            // Strategy 1: Project root (where pom.xml is)
+            String projectRoot = findProjectRoot();
+            if (projectRoot != null) {
+                pathList.add(projectRoot);
+                System.out.println("  ✅ Added project root to search paths: " + projectRoot);
+            } else {
+                System.out.println("  ⚠️ Project root not found");
+            }
+            
+            // Strategy 2: Tomcat webapps path
+            String catalinaBase = System.getProperty("catalina.base");
+            if (catalinaBase != null) {
+                String webappsPath = catalinaBase + "/webapps/LiteFlow";
+                pathList.add(webappsPath);
+                System.out.println("  ✅ Added Tomcat webapps path: " + webappsPath);
+                
+                // Also try WEB-INF path
+                String webInfPath = catalinaBase + "/webapps/LiteFlow/WEB-INF";
+                pathList.add(webInfPath);
+                System.out.println("  ✅ Added WEB-INF path: " + webInfPath);
+            } else {
+                System.out.println("  ⚠️ catalina.base not set");
+            }
+            
+            // Strategy 3: Current working directory
+            String userDir = System.getProperty("user.dir");
+            if (userDir != null && !pathList.contains(userDir)) {
+                pathList.add(userDir);
+                System.out.println("  ✅ Added user.dir: " + userDir);
+            }
+            
+            // Strategy 4: Try absolute path from class location
+            try {
+                String classPath = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+                if (classPath != null) {
+                    // Decode URL encoding
+                    classPath = java.net.URLDecoder.decode(classPath, "UTF-8");
+                    java.io.File classFile = new java.io.File(classPath);
+                    if (classFile.isFile()) {
+                        // It's a JAR file, get parent directory
+                        classPath = classFile.getParent();
+                    }
+                    if (classPath != null && !pathList.contains(classPath)) {
+                        pathList.add(classPath);
+                        System.out.println("  ✅ Added class location path: " + classPath);
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("  ⚠️ Could not get class location: " + e.getMessage());
+            }
+            
+            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            System.out.println("🔍 [StockAlert] Total paths to check: " + pathList.size());
+            
+            // Try each path
+            int pathIndex = 0;
+            for (String path : pathList) {
+                pathIndex++;
+                if (path == null) {
+                    System.out.println("  [" + pathIndex + "/" + pathList.size() + "] ⚠️ Path is null, skipping");
+                    continue;
+                }
+                
+                try {
+                    System.out.println("  [" + pathIndex + "/" + pathList.size() + "] 🔍 Trying .env at: " + path);
+                    
+                    // Check if .env file exists
+                    java.io.File envFile = new java.io.File(path, ".env");
+                    if (envFile.exists() && envFile.isFile()) {
+                        System.out.println("    ✅ .env file exists at this path");
+                    } else {
+                        System.out.println("    ⚠️ .env file NOT found at this path");
+                    }
+                    
+                    Dotenv dotenv = Dotenv.configure()
+                        .directory(path)
+                        .ignoreIfMissing()
+                        .load();
+                    
+                    String token = dotenv.get("TELEGRAM_BOT_TOKEN");
+                    if (token != null && !token.isEmpty()) {
+                        // Clean and validate token
+                        token = token.trim();
+                        System.out.println("    ✅ Token found in .env file!");
+                        System.out.println("    📏 Token length: " + token.length() + " characters");
+                        System.out.println("    📝 Token preview: " + (token.length() > 20 ? token.substring(0, 20) + "..." : token));
+                        
+                        // Validate token format (should contain ':')
+                        if (token.contains(":")) {
+                            System.out.println("    ✅ Token format valid (contains ':')");
+                            String[] parts = token.split(":", 2);
+                            System.out.println("    📋 Bot ID: " + parts[0]);
+                            System.out.println("    📋 Token part length: " + (parts.length > 1 ? parts[1].length() : 0));
+                        } else {
+                            System.out.println("    ⚠️ Token format warning: No ':' found (may be invalid)");
+                        }
+                        
+                        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                        return token;
+                    } else {
+                        System.out.println("    ⚠️ TELEGRAM_BOT_TOKEN not found in .env at this path");
+                        System.out.println("    🔍 Checking if .env file has any content...");
+                        try {
+                            java.io.File envFile2 = new java.io.File(path, ".env");
+                            if (envFile2.exists()) {
+                                java.util.Scanner scanner = new java.util.Scanner(envFile2);
+                                boolean hasContent = false;
+                                while (scanner.hasNextLine()) {
+                                    String line = scanner.nextLine();
+                                    if (line.trim().startsWith("TELEGRAM_BOT_TOKEN")) {
+                                        System.out.println("    📝 Found TELEGRAM_BOT_TOKEN line: " + line.substring(0, Math.min(50, line.length())) + "...");
+                                        hasContent = true;
+                                        break;
+                                    }
+                                }
+                                scanner.close();
+                                if (!hasContent) {
+                                    System.out.println("    ⚠️ .env file exists but no TELEGRAM_BOT_TOKEN found");
+                                }
+                            }
+                        } catch (Exception e2) {
+                            System.out.println("    ⚠️ Could not read .env file: " + e2.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("    ❌ Error loading .env from " + path + ": " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
+            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            System.out.println("⚠️ [StockAlert] Could not load token from .env file in any of the " + pathList.size() + " checked paths");
+            System.out.println("📋 Paths checked:");
+            for (int i = 0; i < pathList.size(); i++) {
+                System.out.println("   " + (i+1) + ". " + pathList.get(i));
+            }
+        } catch (Exception e) {
+            System.err.println("❌ [StockAlert] Exception while trying to load .env: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Priority 2: System environment variable
+        System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.out.println("🔍 [StockAlert] Attempting to load token from system environment variable...");
+        String token = System.getenv("TELEGRAM_BOT_TOKEN");
+        if (token != null && !token.isEmpty()) {
+            token = token.trim();
+            System.out.println("✅ [StockAlert] Token loaded from system environment variable");
+            System.out.println("📏 Token length: " + token.length() + " characters");
+            System.out.println("📝 Token preview: " + (token.length() > 20 ? token.substring(0, 20) + "..." : token));
+            
+            // Validate token format
+            if (token.contains(":")) {
+                System.out.println("✅ Token format valid (contains ':')");
+            } else {
+                System.out.println("⚠️ Token format warning: No ':' found");
+            }
+            
+            System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            return token;
+        } else {
+            System.out.println("⚠️ [StockAlert] TELEGRAM_BOT_TOKEN not found in system environment or is empty");
+        }
+        
+        System.err.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        System.err.println("❌ [StockAlert] Telegram bot token not found in .env file or system environment");
+        System.err.println("💡 Troubleshooting tips:");
+        System.err.println("   1. Check if .env file exists in project root (same level as pom.xml)");
+        System.err.println("   2. Verify .env file format: TELEGRAM_BOT_TOKEN=your_token_here");
+        System.err.println("   3. Check file permissions");
+        System.err.println("   4. Try setting system environment variable: TELEGRAM_BOT_TOKEN");
+        System.err.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        return null;
+    }
+    
+    /**
+     * Find project root by looking for pom.xml using multiple strategies
+     * Similar to ChatBotServlet.findProjectRoot() but adapted for non-servlet context
+     */
+    private String findProjectRoot() {
+        System.out.println("🔍 [StockAlert] findProjectRoot() - Starting search...");
+        
+        // Strategy 1: Try class location (most reliable for IDE deployments)
+        try {
+            String classPath = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+            if (classPath != null) {
+                // Decode URL encoding
+                if (classPath.startsWith("file:")) {
+                    classPath = classPath.substring(5);
+                }
+                // Handle Windows paths
+                if (classPath.startsWith("/") && System.getProperty("os.name").toLowerCase().contains("win")) {
+                    classPath = classPath.substring(1);
+                }
+                
+                File classFile = new File(java.net.URLDecoder.decode(classPath, "UTF-8"));
+                System.out.println("🔍 [StockAlert] Strategy 1 - Class location: " + classFile.getAbsolutePath());
+                
+                // If it's a JAR file, get the parent directory
+                if (classFile.getName().endsWith(".jar") || classFile.getName().endsWith(".war")) {
+                    classFile = classFile.getParentFile();
+                }
+                
+                // If it's WEB-INF/classes, go up to webapp root, then to project root
+                if (classFile.getName().equals("classes") && classFile.getParentFile() != null && 
+                    classFile.getParentFile().getName().equals("WEB-INF")) {
+                    classFile = classFile.getParentFile().getParentFile();
+                }
+                
+                // Walk up from class location to find pom.xml
+                File dir = classFile;
+                for (int i = 0; i < 10 && dir != null; i++) {
+                    File pomFile = new File(dir, "pom.xml");
+                    if (pomFile.exists() && pomFile.isFile()) {
+                        System.out.println("✅ [StockAlert] Found project root via class location: " + dir.getAbsolutePath());
+                        return dir.getAbsolutePath();
+                    }
+                    dir = dir.getParentFile();
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ [StockAlert] Strategy 1 (class location) failed: " + e.getMessage());
+        }
+        
+        // Strategy 2: Try Tomcat webapps path
+        try {
+            String catalinaBase = System.getProperty("catalina.base");
+            if (catalinaBase != null) {
+                File webappsDir = new File(catalinaBase, "webapps/LiteFlow");
+                System.out.println("🔍 [StockAlert] Strategy 2 - Checking Tomcat webapps: " + webappsDir.getAbsolutePath());
+                
+                if (webappsDir.exists() && webappsDir.isDirectory()) {
+                    // Walk up from webapps to find project root
+                    File dir = webappsDir;
+                    for (int i = 0; i < 5 && dir != null; i++) {
+                        File pomFile = new File(dir, "pom.xml");
+                        if (pomFile.exists() && pomFile.isFile()) {
+                            System.out.println("✅ [StockAlert] Found project root via Tomcat path: " + dir.getAbsolutePath());
+                            return dir.getAbsolutePath();
+                        }
+                        dir = dir.getParentFile();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ [StockAlert] Strategy 2 (Tomcat path) failed: " + e.getMessage());
+        }
+        
+        // Strategy 3: Try current working directory and walk up
+        try {
+            String userDir = System.getProperty("user.dir");
+            if (userDir != null) {
+                File currentDir = new File(userDir);
+                System.out.println("🔍 [StockAlert] Strategy 3 - Checking user.dir: " + currentDir.getAbsolutePath());
+                
+                File pomFile = new File(currentDir, "pom.xml");
+                if (pomFile.exists() && pomFile.isFile()) {
+                    System.out.println("✅ [StockAlert] Found project root via user.dir: " + currentDir.getAbsolutePath());
+                    return currentDir.getAbsolutePath();
+                }
+                
+                // Walk up directories (max 10 levels)
+                File dir = currentDir;
+                for (int i = 0; i < 10 && dir != null; i++) {
+                    dir = dir.getParentFile();
+                    if (dir == null) break;
+                    
+                    pomFile = new File(dir, "pom.xml");
+                    if (pomFile.exists() && pomFile.isFile()) {
+                        System.out.println("✅ [StockAlert] Found project root via user.dir walk-up: " + dir.getAbsolutePath());
+                        return dir.getAbsolutePath();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ [StockAlert] Strategy 3 (user.dir) failed: " + e.getMessage());
+        }
+        
+        System.err.println("❌ [StockAlert] Could not find project root using any strategy");
+        return null;
     }
     
     /**
@@ -244,15 +544,38 @@ public class StockAlertService {
                     priority = "HIGH";
                 }
                 
+                // Get Telegram bot token
+                System.out.println("🔍 [StockAlert] Loading Telegram bot token...");
+                String telegramToken = getTelegramBotToken();
+                if (telegramToken == null) {
+                    System.err.println("❌ [StockAlert] Telegram bot token not configured. Cannot send notification.");
+                    System.err.println("❌ [StockAlert] Checked .env file and system environment variable TELEGRAM_BOT_TOKEN");
+                    continue;
+                }
+                System.out.println("✅ [StockAlert] Telegram bot token loaded (length: " + telegramToken.length() + " characters)");
+                System.out.println("🔍 [StockAlert] Token format check: " + (telegramToken.contains(":") ? "Valid format (contains ':')" : "Warning: May be invalid (no ':')"));
+                
                 // Send Telegram message
-                // Note: Telegram token is handled by NotificationService from .env or database
                 System.out.println("🔍 [StockAlert] Attempting to send Telegram notification to Chat ID: " + chatId);
                 System.out.println("🔍 [StockAlert] Title: " + title);
                 System.out.println("🔍 [StockAlert] Message length: " + (message != null ? message.length() : 0) + " characters");
                 System.out.println("🔍 [StockAlert] Priority: " + priority);
-                System.out.println("🔍 [StockAlert] Bot token: Will be retrieved by NotificationService (passing null)");
-                boolean sent = notificationService.sendTelegramToUser(chatId, title, message, priority, null);
-                System.out.println("🔍 [StockAlert] Send result: " + (sent ? "SUCCESS" : "FAILED"));
+                System.out.println("🔍 [StockAlert] Calling sendTelegramToUser with:");
+                System.out.println("  - Chat ID: " + chatId);
+                System.out.println("  - Title: " + title);
+                System.out.println("  - Message length: " + (message != null ? message.length() : 0));
+                System.out.println("  - Priority: " + priority);
+                System.out.println("  - Token length: " + (telegramToken != null ? telegramToken.length() : 0));
+                
+                boolean sent = false;
+                try {
+                    sent = notificationService.sendTelegramToUser(chatId, title, message, priority, telegramToken);
+                    System.out.println("🔍 [StockAlert] Send result: " + (sent ? "✅ SUCCESS" : "❌ FAILED"));
+                } catch (Exception e) {
+                    System.err.println("❌ [StockAlert] Exception while sending Telegram: " + e.getMessage());
+                    e.printStackTrace();
+                    sent = false;
+                }
                 
                 if (sent) {
                     // Mark notification as sent (use separate EntityManager for transaction)
