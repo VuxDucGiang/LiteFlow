@@ -233,9 +233,14 @@
                 <i class='bx bx-calendar-plus'></i>
                 Đặt bàn mới
             </h2>
-            <button class="close-btn" onclick="closeSidebar()">
-                <i class='bx bx-x'></i>
-            </button>
+            <div class="sidebar-header-actions">
+                <button class="btn-delete-reservation" id="deleteReservationBtn" onclick="deleteReservationFromSidebar()" style="display: none;" title="Xóa đặt bàn">
+                    <i class='bx bx-trash'></i>
+                </button>
+                <button class="close-btn" onclick="closeSidebar()">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
         </div>
 
         <div class="sidebar-content">

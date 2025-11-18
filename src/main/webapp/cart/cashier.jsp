@@ -1017,5 +1017,40 @@ categories = window.categories || [];
   </div>
 </div>
 
+<!-- ========== EDIT RESERVATION MODAL ========== -->
+<div id="editReservationModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>
+        <i class='bx bx-edit'></i>
+        Chỉnh sửa đặt bàn
+      </h2>
+      <div class="modal-header-actions">
+        <button class="btn-delete-reservation" onclick="deleteReservationFromModal()" title="Xóa đặt bàn">
+          <i class='bx bx-trash'></i>
+        </button>
+        <button class="close-modal-btn" onclick="closeEditReservationModal()">
+          <i class='bx bx-x'></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="modal-body">
+      <div id="editReservationContent">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditReservationModal()">
+        <i class='bx bx-x'></i> Đóng
+      </button>
+      <button class="btn btn-primary" onclick="saveReservationChanges()">
+        <i class='bx bx-save'></i> Lưu thay đổi
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

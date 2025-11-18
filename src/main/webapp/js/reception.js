@@ -636,6 +636,12 @@ function openCreateReservation() {
         Đặt bàn mới
     `;
     
+    // Hide delete button when creating new reservation
+    const deleteBtn = document.getElementById('deleteReservationBtn');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'none';
+    }
+    
     // Reset form
     resetReservationForm();
     
@@ -661,6 +667,12 @@ function openEditReservation(reservationId) {
         <i class='bx bx-edit'></i>
         Chỉnh sửa đặt bàn
     `;
+    
+    // Show delete button when editing
+    const deleteBtn = document.getElementById('deleteReservationBtn');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'flex';
+    }
     
     // Fill form with reservation data
     document.getElementById('reservationId').value = reservation.reservationId;
@@ -697,6 +709,18 @@ function resetReservationForm() {
     document.getElementById('reservationId').value = '';
     preOrderedItems = [];
     renderPreOrderList();
+    
+    // Hide delete button when creating new reservation
+    const deleteBtn = document.getElementById('deleteReservationBtn');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'none';
+    }
+    
+    // Reset sidebar title
+    document.getElementById('sidebarTitle').innerHTML = `
+        <i class='bx bx-calendar-plus'></i>
+        Đặt bàn mới
+    `;
 }
 
 // ========================================
@@ -1120,6 +1144,61 @@ function cancelReservation(reservationId) {
             refreshData();
         } else {
             showNotification('error', 'Hủy thất bại', result.message || 'Có lỗi xảy ra');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('error', 'Lỗi kết nối', 'Không thể kết nối đến server');
+    });
+}
+
+/**
+ * Delete reservation from sidebar (when editing)
+ */
+function deleteReservationFromSidebar() {
+    if (!editingReservationId) {
+        showNotification('error', 'Lỗi', 'Không tìm thấy đặt bàn để xóa');
+        return;
+    }
+    
+    const reservation = reservations.find(r => r.reservationId === editingReservationId);
+    
+    if (!reservation) {
+        showNotification('error', 'Lỗi', 'Không tìm thấy thông tin đặt bàn');
+        return;
+    }
+    
+    const customerName = reservation.customerName || 'N/A';
+    const reservationCode = reservation.reservationCode || 'N/A';
+    
+    // Show confirmation with more details
+    if (!confirm(`Bạn có chắc chắn muốn xóa đặt bàn này?\n\nKhách hàng: ${customerName}\nMã đặt bàn: ${reservationCode}\n\nHành động này không thể hoàn tác!`)) {
+        return;
+    }
+    
+    // Call cancel API
+    fetch(`${contextPath}/reception/cancel`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            reservationId: editingReservationId,
+            reason: 'Xóa từ trang chỉnh sửa lễ tân'
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('success', 'Xóa thành công', 'Đặt bàn đã được xóa');
+            
+            // Close sidebar
+            closeSidebar();
+            
+            // Refresh data
+            refreshData();
+        } else {
+            showNotification('error', 'Xóa thất bại', result.message || 'Có lỗi xảy ra');
         }
     })
     .catch(error => {

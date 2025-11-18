@@ -857,6 +857,29 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    /* Chiều cao tối đa bằng timeline (8h-22h = 15 slots * 60px + 14 gaps * 4px = 956px) */
+    max-height: 956px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Custom scrollbar for reservation list */
+.reservation-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.reservation-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.reservation-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.reservation-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 .reservation-card {
@@ -1125,6 +1148,44 @@ body {
 .sidebar-header h2 i {
     color: #0080FF;
     font-size: 28px;
+}
+
+/* Sidebar header actions container */
+.sidebar-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Delete reservation button */
+.btn-delete-reservation {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: white;
+    color: #dc3545;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border: 1px solid #fca5a5;
+}
+
+.btn-delete-reservation:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #f87171;
+    transform: scale(1.1);
+}
+
+.btn-delete-reservation:active {
+    transform: scale(0.95);
+}
+
+.btn-delete-reservation i {
+    font-size: 20px;
 }
 
 .close-btn {

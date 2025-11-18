@@ -592,8 +592,19 @@ function renderReservationList() {
   const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
   const statusValue = statusFilter ? statusFilter.value : '';
   
-  // Filter reservations
-  let filtered = reservations || [];
+  // ✅ Filter reservations - chỉ hiển thị đặt bàn trong ngày hôm nay
+  const today = new Date();
+  const todayStr = formatDateForFilter(today);
+  
+  let filtered = (reservations || []).filter(r => {
+    if (!r.arrivalTime) return false;
+    
+    // So sánh ngày của arrivalTime với ngày hôm nay
+    const arrivalDate = new Date(r.arrivalTime);
+    const arrivalDateStr = formatDateForFilter(arrivalDate);
+    
+    return arrivalDateStr === todayStr;
+  });
   
   if (statusValue) {
     filtered = filtered.filter(r => r.status === statusValue);
@@ -645,7 +656,7 @@ function renderReservationList() {
     const statusClass = r.status ? r.status.toLowerCase() : '';
     
     return `
-      <div class="reservation-card">
+      <div class="reservation-card" onclick="openEditReservationModal('${r.reservationId}')" style="cursor: pointer;">
         <div class="reservation-card-header">
           <div class="reservation-card-info">
             <h3>${escapeHtml(r.customerName || 'N/A')}</h3>
@@ -718,6 +729,308 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Variable to store current editing reservation ID
+let currentEditingReservationId = null;
+
+/**
+ * Open edit reservation modal
+ */
+function openEditReservationModal(reservationId) {
+  const reservation = reservations.find(r => r.reservationId === reservationId || String(r.reservationId) === String(reservationId));
+  
+  if (!reservation) {
+    console.error('❌ Reservation not found:', reservationId);
+    return;
+  }
+  
+  currentEditingReservationId = reservationId;
+  
+  // Format arrival time
+  const arrivalTime = new Date(reservation.arrivalTime);
+  const timeStr = arrivalTime.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const dateStr = arrivalTime.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  
+  // Format datetime-local for input
+  const dateTimeLocal = formatDateTimeLocal(arrivalTime);
+  
+  const statusLabel = getReservationStatusLabel(reservation.status);
+  const statusClass = reservation.status ? reservation.status.toLowerCase() : '';
+  
+  // Build form content
+  const content = `
+    <form id="editReservationForm">
+      <input type="hidden" id="editReservationId" value="${reservation.reservationId}">
+      
+      <!-- Customer Information -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class='bx bx-user'></i>
+          Thông tin khách hàng
+        </h3>
+        
+        <div class="form-group">
+          <label>Tên khách hàng</label>
+          <input type="text" id="editCustomerName" class="form-control" value="${escapeHtml(reservation.customerName || '')}">
+        </div>
+        
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label>Số điện thoại</label>
+            <input type="tel" id="editCustomerPhone" class="form-control" value="${escapeHtml(reservation.customerPhone || '')}">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="editCustomerEmail" class="form-control" value="${escapeHtml(reservation.customerEmail || '')}">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Reservation Details -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class='bx bx-calendar-event'></i>
+          Thông tin đặt bàn
+        </h3>
+        
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label>Ngày & Giờ đến</label>
+            <input type="datetime-local" id="editArrivalTime" class="form-control" value="${dateTimeLocal}">
+          </div>
+          <div class="form-group">
+            <label>Số khách</label>
+            <input type="number" id="editNumberOfGuests" class="form-control" value="${reservation.numberOfGuests || 2}" min="1">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Trạng thái</label>
+          <select id="editStatus" class="form-control">
+            <option value="PENDING" ${reservation.status === 'PENDING' ? 'selected' : ''}>Chờ xác nhận</option>
+            <option value="CONFIRMED" ${reservation.status === 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
+            <option value="SEATED" ${reservation.status === 'SEATED' ? 'selected' : ''}>Đang phục vụ</option>
+            <option value="CLOSED" ${reservation.status === 'CLOSED' ? 'selected' : ''}>Đã đóng</option>
+            <option value="CANCELLED" ${reservation.status === 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Bàn</label>
+          <input type="text" class="form-control" value="${escapeHtml(reservation.tableName || 'Chưa chọn bàn')}" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label>Ghi chú</label>
+          <textarea id="editNotes" class="form-control" rows="3">${escapeHtml(reservation.notes || '')}</textarea>
+        </div>
+      </div>
+      
+      <!-- Reservation Info Display -->
+      <div class="form-section">
+        <h3 class="section-title">
+          <i class='bx bx-info-circle'></i>
+          Thông tin bổ sung
+        </h3>
+        
+        <div class="info-display">
+          <div class="info-item">
+            <span class="info-label">Mã đặt bàn:</span>
+            <span class="info-value">${escapeHtml(reservation.reservationCode || 'N/A')}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Thời gian tạo:</span>
+            <span class="info-value">${reservation.createdAt ? new Date(reservation.createdAt).toLocaleString('vi-VN') : 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+    </form>
+  `;
+  
+  document.getElementById('editReservationContent').innerHTML = content;
+  
+  // Show modal
+  const modal = document.getElementById('editReservationModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+/**
+ * Close edit reservation modal
+ */
+function closeEditReservationModal() {
+  const modal = document.getElementById('editReservationModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  currentEditingReservationId = null;
+}
+
+/**
+ * Format datetime for datetime-local input
+ */
+function formatDateTimeLocal(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+/**
+ * Delete reservation from modal
+ */
+function deleteReservationFromModal() {
+  if (!currentEditingReservationId) {
+    console.error('❌ No reservation ID to delete');
+    return;
+  }
+  
+  const reservation = reservations.find(r => 
+    r.reservationId === currentEditingReservationId || 
+    String(r.reservationId) === String(currentEditingReservationId)
+  );
+  
+  if (!reservation) {
+    console.error('❌ Reservation not found');
+    return;
+  }
+  
+  const customerName = reservation.customerName || 'N/A';
+  const reservationCode = reservation.reservationCode || 'N/A';
+  
+  // Show confirmation
+  if (!confirm(`Bạn có chắc chắn muốn xóa đặt bàn này?\n\nKhách hàng: ${customerName}\nMã đặt bàn: ${reservationCode}\n\nHành động này không thể hoàn tác!`)) {
+    return;
+  }
+  
+  // Call API to cancel/delete reservation
+  fetch(`${contextPath}/reception/api/reservation/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      reservationId: currentEditingReservationId,
+      reason: 'Xóa từ trang thu ngân'
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Show success message
+      alert('✅ Đã xóa đặt bàn thành công!');
+      
+      // Close modal
+      closeEditReservationModal();
+      
+      // Reload reservations
+      loadTodayReservations();
+      
+      // Re-render tables
+      renderTables();
+      
+      // Re-render sidebar if open
+      if (document.getElementById('reservationSidebar')?.classList.contains('active')) {
+        renderReservationList();
+      }
+    } else {
+      alert('❌ Lỗi: ' + (data.message || 'Không thể xóa đặt bàn'));
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error deleting reservation:', error);
+    alert('❌ Lỗi kết nối: Không thể xóa đặt bàn');
+  });
+}
+
+/**
+ * Save reservation changes
+ */
+function saveReservationChanges() {
+  if (!currentEditingReservationId) {
+    console.error('❌ No reservation ID to update');
+    return;
+  }
+  
+  // Get form values
+  const customerName = document.getElementById('editCustomerName')?.value || '';
+  const customerPhone = document.getElementById('editCustomerPhone')?.value || '';
+  const customerEmail = document.getElementById('editCustomerEmail')?.value || '';
+  const arrivalTime = document.getElementById('editArrivalTime')?.value || '';
+  const numberOfGuests = parseInt(document.getElementById('editNumberOfGuests')?.value || '2');
+  const status = document.getElementById('editStatus')?.value || 'PENDING';
+  const notes = document.getElementById('editNotes')?.value || '';
+  
+  // Validate
+  if (!customerName.trim()) {
+    alert('⚠️ Vui lòng nhập tên khách hàng');
+    return;
+  }
+  
+  if (!customerPhone.trim()) {
+    alert('⚠️ Vui lòng nhập số điện thoại');
+    return;
+  }
+  
+  // Prepare data
+  const data = {
+    reservationId: currentEditingReservationId,
+    customerName: customerName.trim(),
+    customerPhone: customerPhone.trim(),
+    customerEmail: customerEmail.trim(),
+    arrivalTime: arrivalTime,
+    numberOfGuests: numberOfGuests,
+    status: status,
+    notes: notes.trim()
+  };
+  
+  // Call API to update
+  fetch(`${contextPath}/reception/api/reservation/update`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.success) {
+      alert('✅ Cập nhật đặt bàn thành công!');
+      
+      // Reload reservations
+      loadTodayReservations();
+      
+      // Re-render tables
+      renderTables();
+      
+      // Re-render sidebar if open
+      if (document.getElementById('reservationSidebar')?.classList.contains('active')) {
+        renderReservationList();
+      }
+      
+      // Close modal
+      closeEditReservationModal();
+    } else {
+      alert('❌ Lỗi: ' + (result.message || 'Không thể cập nhật đặt bàn'));
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error updating reservation:', error);
+    alert('❌ Lỗi kết nối: Không thể cập nhật đặt bàn');
+  });
 }
 
 // Populate menu categories - Dropdown version
