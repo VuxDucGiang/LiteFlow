@@ -9,8 +9,9 @@
     <title>Quản lý Đơn đặt hàng - LiteFlow</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/design-system.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/ui-components.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/po-dialogs.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <script src="${pageContext.request.contextPath}/js/dropdown-simple.js"></script>
     
     <style>
         /* ========== DESIGN SYSTEM ========== */
@@ -957,6 +958,69 @@
         
         .modal-body::-webkit-scrollbar-thumb:hover {
             background: var(--gray-400);
+        }
+        
+        /* PO Table in Detail Modal - Compact version */
+        #detailsModal .modal-body .po-table {
+            min-width: auto;
+            width: 100%;
+            font-size: 13px;
+            table-layout: fixed;
+        }
+        
+        #detailsModal .modal-body .po-table th {
+            padding: 12px 10px;
+            font-size: 12px;
+            text-align: left;
+        }
+        
+        #detailsModal .modal-body .po-table td {
+            padding: 12px 10px;
+            font-size: 12px;
+            text-align: left;
+        }
+        
+        /* Column widths for detail modal table */
+        #detailsModal .modal-body .po-table th:nth-child(1),
+        #detailsModal .modal-body .po-table td:nth-child(1) {
+            width: 5%;
+            text-align: center;
+        }
+        
+        #detailsModal .modal-body .po-table th:nth-child(2),
+        #detailsModal .modal-body .po-table td:nth-child(2) {
+            width: 40%;
+            text-align: left;
+        }
+        
+        #detailsModal .modal-body .po-table th:nth-child(3),
+        #detailsModal .modal-body .po-table td:nth-child(3) {
+            width: 15%;
+            text-align: right;
+        }
+        
+        #detailsModal .modal-body .po-table th:nth-child(4),
+        #detailsModal .modal-body .po-table td:nth-child(4) {
+            width: 20%;
+            text-align: right;
+        }
+        
+        #detailsModal .modal-body .po-table th:nth-child(5),
+        #detailsModal .modal-body .po-table td:nth-child(5) {
+            width: 20%;
+            text-align: right;
+        }
+        
+        #detailsModal .modal-body .po-table th,
+        #detailsModal .modal-body .po-table td {
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        
+        /* Make table scrollable if needed */
+        #detailsModal .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
         }
         
         .modal-footer {
@@ -2010,8 +2074,32 @@
         }
 
         // Action functions
-        function approvePO(poId) {
-            if (confirm('Bạn có chắc chắn muốn duyệt đơn hàng này?')) {
+        async function approvePO(poId) {
+            console.log('approvePO called with poId:', poId);
+            console.log('window.showConfirm:', window.showConfirm);
+            console.log('window.Modal:', window.Modal);
+            
+            // Wait a bit if scripts are still loading
+            if (!window.showConfirm && !window.Modal) {
+                console.warn('Scripts not loaded yet, waiting...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            let confirmed = false;
+            if (window.showConfirm && typeof window.showConfirm === 'function') {
+                try {
+                    console.log('Using showConfirm');
+                    confirmed = await window.showConfirm('Bạn có chắc chắn muốn duyệt đơn hàng này?', 'Xác nhận duyệt đơn hàng');
+                } catch (error) {
+                    console.error('Error in showConfirm:', error);
+                    confirmed = confirm('Bạn có chắc chắn muốn duyệt đơn hàng này?');
+                }
+            } else {
+                console.warn('showConfirm not available, using browser confirm');
+                confirmed = confirm('Bạn có chắc chắn muốn duyệt đơn hàng này?');
+            }
+            
+            if (confirmed) {
                 console.log('=== approvePO START ===');
                 console.log('POID:', poId);
                 
@@ -2045,8 +2133,31 @@
             }
         }
 
-        function rejectPO(poId) {
-            const reason = prompt('Lý do từ chối:');
+        async function rejectPO(poId) {
+            console.log('rejectPO called with poId:', poId);
+            console.log('window.showPrompt:', window.showPrompt);
+            console.log('window.Modal:', window.Modal);
+            
+            // Wait a bit if scripts are still loading
+            if (!window.showPrompt && !window.Modal) {
+                console.warn('Scripts not loaded yet, waiting...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            let reason = null;
+            if (window.showPrompt && typeof window.showPrompt === 'function') {
+                try {
+                    console.log('Using showPrompt');
+                    reason = await window.showPrompt('Lý do từ chối:', 'Từ chối đơn hàng', '');
+                } catch (error) {
+                    console.error('Error in showPrompt:', error);
+                    reason = prompt('Lý do từ chối:');
+                }
+            } else {
+                console.warn('showPrompt not available, using browser prompt');
+                reason = prompt('Lý do từ chối:');
+            }
+            
             if (reason && reason.trim() !== '') {
                 console.log('=== rejectPO START ===');
                 console.log('POID:', poId);
@@ -2574,8 +2685,8 @@
                     const itemTotal = qty * price;
                     total += itemTotal;
                     itemsHtml += '<tr>' +
-                        '<td>' + (idx + 1) + '</td>' +
-                        '<td>' + (item.itemName || 'N/A') + '</td>' +
+                        '<td style="text-align:center">' + (idx + 1) + '</td>' +
+                        '<td style="text-align:left">' + (item.itemName || 'N/A') + '</td>' +
                         '<td style="text-align:right">' + qty.toLocaleString('vi-VN') + '</td>' +
                         '<td style="text-align:right">' + price.toLocaleString('vi-VN') + ' ₫</td>' +
                         '<td style="text-align:right"><strong>' + itemTotal.toLocaleString('vi-VN') + ' ₫</strong></td>' +
@@ -2604,11 +2715,11 @@
                 '<table class="po-table">' +
                 '<thead>' +
                 '<tr>' +
-                '<th style="width:50px">#</th>' +
-                '<th>Tên sản phẩm</th>' +
-                '<th style="width:100px">Số lượng</th>' +
-                '<th style="width:150px">Đơn giá</th>' +
-                '<th style="width:150px">Thành tiền</th>' +
+                '<th style="width:5%; text-align:center;">#</th>' +
+                '<th style="width:40%; text-align:left;">Tên sản phẩm</th>' +
+                '<th style="width:15%; text-align:right;">Số lượng</th>' +
+                '<th style="width:20%; text-align:right;">Đơn giá</th>' +
+                '<th style="width:20%; text-align:right;">Thành tiền</th>' +
                 '</tr>' +
                 '</thead>' +
                 '<tbody>' +
@@ -3677,6 +3788,33 @@
             
           
         };
+    </script>
+    
+    <!-- Load scripts at end of body to ensure DOM and dependencies are ready -->
+    <script src="${pageContext.request.contextPath}/js/dropdown-simple.js"></script>
+    <script src="${pageContext.request.contextPath}/js/ui-enhancements.js"></script>
+    <script src="${pageContext.request.contextPath}/js/po-dialogs.js"></script>
+    <script>
+        // Verify scripts are loaded after all scripts have executed
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                if (typeof window.Modal === 'undefined') {
+                    console.error('PO Dialogs: Modal class not loaded!');
+                } else {
+                    console.log('PO Dialogs: Modal class loaded successfully');
+                }
+                if (typeof window.showConfirm === 'undefined') {
+                    console.error('PO Dialogs: showConfirm function not loaded!');
+                } else {
+                    console.log('PO Dialogs: showConfirm function loaded successfully');
+                }
+                if (typeof window.showPrompt === 'undefined') {
+                    console.error('PO Dialogs: showPrompt function not loaded!');
+                } else {
+                    console.log('PO Dialogs: showPrompt function loaded successfully');
+                }
+            }, 100);
+        });
     </script>
 </body>
 </html>
